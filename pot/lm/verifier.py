@@ -5,6 +5,8 @@ Implements verification protocol from paper Section 3
 
 import torch
 import numpy as np
+import difflib
+from collections import Counter
 from typing import List, Dict, Any, Tuple, Optional
 from dataclasses import dataclass
 import json
@@ -114,31 +116,66 @@ class LMVerifier:
     def compute_output_distance(self, output1: str, output2: str,
                                method: str = 'fuzzy') -> float:
         """
-        Compute distance between two model outputs
-        
+        Compute distance between two model outputs.
+
         Args:
             output1: First model output
             output2: Second model output
-            method: Distance computation method
-            
+            method: Distance computation method. Supported values:
+                - ``'fuzzy'`` (default): Token-level fuzzy Jaccard distance
+                - ``'exact'``: Exact token match
+                - ``'weighted'``: Weighted n-gram distance
+                - ``'edit'``: Normalized Levenshtein edit distance
+                - ``'embedding'``: Cosine distance between token-count embeddings
+
         Returns:
-            Distance in [0, 1]
+            Distance in ``[0, 1]`` where 0 indicates identical outputs.
         """
-        # Tokenize outputs
-        tokens1 = self.tokenizer.encode(output1, add_special_tokens=False)
-        tokens2 = self.tokenizer.encode(output2, add_special_tokens=False)
-        
-        # Compute distance using normalizer
-        distance = self.normalizer.compute_distance(tokens1, tokens2, method=method)
-        
-        return distance
+        if method in {"fuzzy", "exact", "weighted"}:
+            tokens1 = self.tokenizer.encode(output1, add_special_tokens=False)
+            tokens2 = self.tokenizer.encode(output2, add_special_tokens=False)
+            distance = self.normalizer.compute_distance(tokens1, tokens2, method=method)
+            return distance
+
+        if method == "edit":
+            # Normalized edit distance using SequenceMatcher
+            return 1.0 - difflib.SequenceMatcher(None, output1, output2).ratio()
+
+        if method == "embedding":
+            tokens1 = self.tokenizer.encode(output1, add_special_tokens=False)
+            tokens2 = self.tokenizer.encode(output2, add_special_tokens=False)
+            norm1 = self.normalizer.normalize_tokens(tokens1)
+            norm2 = self.normalizer.normalize_tokens(tokens2)
+
+            vec1 = Counter(norm1)
+            vec2 = Counter(norm2)
+            all_tokens = set(vec1) | set(vec2)
+            if not all_tokens:
+                return 0.0
+
+            v1 = np.array([vec1[t] for t in all_tokens], dtype=float)
+            v2 = np.array([vec2[t] for t in all_tokens], dtype=float)
+
+            if np.linalg.norm(v1) == 0 or np.linalg.norm(v2) == 0:
+                return 1.0
+
+            cos_sim = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+            return 1.0 - cos_sim
+
+        raise ValueError(f"Unknown method: {method}")
     
-    def evaluate_challenge(self, model: LM, challenge: Dict[str, Any]) -> Tuple[str, float]:
+    def evaluate_challenge(self, model: LM, challenge: Dict[str, Any],
+                            method: str = 'fuzzy') -> Tuple[str, float]:
         """
-        Evaluate a single challenge on the model
-        
+        Evaluate a single challenge on the model.
+
+        Args:
+            model: Model to query
+            challenge: Challenge specification
+            method: Distance computation method (default ``'fuzzy'``)
+
         Returns:
-            (model_output, distance_from_reference)
+            Tuple of ``(model_output, distance_from_reference)``
         """
         # Construct prompt from challenge
         if "template" in challenge and "slot_values" in challenge:
@@ -154,20 +191,21 @@ class LMVerifier:
         reference_output = self.reference_model.generate(prompt, max_new_tokens=64)
         
         # Compute distance
-        distance = self.compute_output_distance(model_output, reference_output)
+        distance = self.compute_output_distance(model_output, reference_output, method=method)
         
         return model_output, distance
     
-    def verify(self, model: LM, challenges: List[Dict[str, Any]], 
-              tolerance: float = 0.1) -> LMVerificationResult:
+    def verify(self, model: LM, challenges: List[Dict[str, Any]],
+              tolerance: float = 0.1, method: str = 'fuzzy') -> LMVerificationResult:
         """
-        Verify a language model against reference
-        
+        Verify a language model against reference.
+
         Args:
             model: Model to verify (f)
             challenges: List of challenges to evaluate
             tolerance: Maximum acceptable average distance
-            
+            method: Distance computation method (default ``'fuzzy'``)
+
         Returns:
             LMVerificationResult with verification outcome
         """
@@ -184,7 +222,7 @@ class LMVerifier:
         
         for i, challenge in enumerate(challenges):
             # Evaluate challenge
-            model_output, distance = self.evaluate_challenge(model, challenge)
+            model_output, distance = self.evaluate_challenge(model, challenge, method=method)
             distances.append(distance)
             
             # Compute fuzzy similarity for additional validation
