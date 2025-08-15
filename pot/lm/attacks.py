@@ -5,13 +5,18 @@ from pot.core.attacks import (
     targeted_finetune,
     limited_distillation,
     wrapper_attack,
-    extraction_attack
+    extraction_attack,
+    WrapperConfig,
 )
 
-# LM-specific wrapper (for backward compatibility)
-def wrapper_map(outputs):
-    """Simple wrapper that passes through outputs."""
-    return outputs
+def wrapper_map(logits, config: WrapperConfig = WrapperConfig()):
+    """Apply temperature scaling and bias shift to logits."""
+    return logits / config.temperature + config.bias
+
+
+def inverse_wrapper_map(logits, config: WrapperConfig = WrapperConfig()):
+    """Reverses the transformation applied by ``wrapper_map``."""
+    return (logits - config.bias) * config.temperature
 
 # Re-export for backward compatibility
 __all__ = [
@@ -19,5 +24,7 @@ __all__ = [
     'limited_distillation', 
     'wrapper_attack', 
     'extraction_attack',
-    'wrapper_map'
+    'wrapper_map',
+    'inverse_wrapper_map',
+    'WrapperConfig',
 ]
