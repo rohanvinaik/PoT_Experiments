@@ -7,14 +7,15 @@ similarity thresholds.
 """
 
 import hashlib
+import hmac
 import logging
+import secrets
 import numpy as np
 import json
 import time
 from typing import Optional, Union, List, Dict, Tuple, Any
 from dataclasses import dataclass, field
 from enum import Enum
-from abc import ABC, abstractmethod
 import warnings
 
 # Try to import fuzzy hashing libraries
@@ -103,19 +104,44 @@ class ChallengeVector:
             return np.random.randn(self.dimension)
 
 
-class FuzzyHasher(ABC):
-    """Abstract base class for fuzzy hash algorithms"""
-    
-    @abstractmethod
+class FuzzyHasher:
+    """Basic cryptographic hasher used as fallback implementation.
+
+    This class provides deterministic hashing using a salted SHA256 digest and a
+    timing-safe comparison function.  More advanced fuzzy hashers (e.g. SSDEEP
+    or TLSH) subclass this to provide algorithm specific behaviour.  The salt is
+    generated once per instance which makes hashes reproducible for the same
+    object when the instance is reused while still providing protection against
+    precomputation attacks.
+    """
+
+    def __init__(self, salt: Optional[bytes] = None):
+        self.salt = salt or secrets.token_bytes(16)
+
     def generate_hash(self, data: Union[np.ndarray, bytes]) -> str:
-        """Generate fuzzy hash from data"""
-        pass
-    
-    @abstractmethod
+        """Generate a cryptographic hash of ``data``.
+
+        Args:
+            data: Input to be hashed.  Accepts ``numpy`` arrays or raw bytes.
+
+        Returns:
+            Hex digest of a salted SHA256 hash.
+        """
+        byte_data = self.prepare_data(data) + self.salt
+        return hashlib.sha256(byte_data).hexdigest()
+
     def compare(self, hash1: str, hash2: str) -> float:
-        """Compare two fuzzy hashes and return similarity score (0-1)"""
-        pass
-    
+        """Compare two hash digests using a timing-safe equality check.
+
+        Args:
+            hash1: First hash digest.
+            hash2: Second hash digest.
+
+        Returns:
+            ``1.0`` if the hashes are equal, ``0.0`` otherwise.
+        """
+        return 1.0 if hmac.compare_digest(hash1, hash2) else 0.0
+
     def prepare_data(self, data: Union[np.ndarray, bytes]) -> bytes:
         """Convert data to bytes for hashing"""
         if isinstance(data, np.ndarray):

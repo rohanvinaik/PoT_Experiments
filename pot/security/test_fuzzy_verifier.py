@@ -20,7 +20,7 @@ def test_basic_verification():
     print("TEST: Basic Fuzzy Hash Verification")
     print("="*70)
     
-    verifier = FuzzyHashVerifier(similarity_threshold=0.85)
+    verifier = FuzzyHashVerifier(similarity_threshold=0.85, algorithm=HashAlgorithm.SHA256)
     
     # Create a challenge
     challenge = ChallengeVector(dimension=1000, topology='complex', seed=42)
@@ -57,7 +57,7 @@ def test_batch_verification():
     print("TEST: Batch Verification")
     print("="*70)
     
-    verifier = FuzzyHashVerifier(similarity_threshold=0.80)
+    verifier = FuzzyHashVerifier(similarity_threshold=0.80, algorithm=HashAlgorithm.SHA256)
     
     # Create batch of challenges
     batch_size = 10
@@ -98,7 +98,7 @@ def test_reference_storage():
     print("TEST: Reference Hash Storage")
     print("="*70)
     
-    verifier = FuzzyHashVerifier()
+    verifier = FuzzyHashVerifier(algorithm=HashAlgorithm.SHA256)
     
     # Store references for different model versions
     models = {
@@ -133,7 +133,7 @@ def test_threshold_adjustment():
     print("TEST: Dynamic Threshold Adjustment")
     print("="*70)
     
-    verifier = FuzzyHashVerifier(similarity_threshold=0.90)
+    verifier = FuzzyHashVerifier(similarity_threshold=0.90, algorithm=HashAlgorithm.SHA256)
     
     # Generate test data with varying similarities
     base_vector = np.random.randn(1000)
@@ -231,7 +231,7 @@ def test_challenge_vector_integration():
     print("TEST: ChallengeVector Integration")
     print("="*70)
     
-    verifier = FuzzyHashVerifier(similarity_threshold=0.85)
+    verifier = FuzzyHashVerifier(similarity_threshold=0.85, algorithm=HashAlgorithm.SHA256)
     
     # Test different topologies
     topologies = ['complex', 'sparse', 'normal']
@@ -274,7 +274,7 @@ def test_error_handling():
     print("TEST: Error Handling")
     print("="*70)
     
-    verifier = FuzzyHashVerifier()
+    verifier = FuzzyHashVerifier(algorithm=HashAlgorithm.SHA256)
     
     # Test 1: Invalid reference identifier
     try:
@@ -307,7 +307,7 @@ def test_statistics_and_reporting():
     print("TEST: Statistics and Reporting")
     print("="*70)
     
-    verifier = FuzzyHashVerifier(similarity_threshold=0.85)
+    verifier = FuzzyHashVerifier(similarity_threshold=0.85, algorithm=HashAlgorithm.SHA256)
     
     # Perform multiple verifications
     num_tests = 20
