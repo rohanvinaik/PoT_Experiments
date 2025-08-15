@@ -16,6 +16,7 @@ from token_space_normalizer import (
     AlignmentResult,
     MockTokenizer
 )
+import torch
 
 
 def test_text_normalization():
@@ -382,6 +383,61 @@ def test_generation_variants():
     print(f"✓ Variant similarity: {similarity:.4f}")
     
     return True
+
+
+def test_hf_model_generation_with_metadata():
+    """Ensure HuggingFace-style models generate text and log metadata"""
+
+    controller = StochasticDecodingController(seed=0)
+
+    class MockTokenizer:
+        def __call__(self, text, return_tensors=None):
+            return {'input_ids': torch.tensor([[ord(c) for c in text]])}
+
+        def decode(self, ids, skip_special_tokens=True):
+            return ''.join(chr(i) for i in ids)
+
+    class MockHFModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.device = torch.device('cpu')
+            self.tokenizer = MockTokenizer()
+
+        def generate(self, input_ids=None, **kwargs):
+            # Echo the input and append '!'
+            exclam = torch.tensor([[33]], device=input_ids.device)
+            return torch.cat([input_ids, exclam], dim=1)
+
+    model = MockHFModel()
+    challenge = "hi"
+
+    responses = controller.generate_verification_response(model, challenge, num_variants=1)
+
+    assert responses[0] == "hi!"
+
+    history = controller.generation_history[-1]
+    assert history['metadata']['input_ids'] == [[104, 105]]
+    assert history['metadata']['output_ids'] == [104, 105, 33]
+    assert 'device' in history['metadata']
+
+
+def test_callable_model_fallback():
+    """Verify callable models without generate are supported"""
+
+    controller = StochasticDecodingController(seed=0)
+
+    class EchoModel:
+        def __call__(self, prompt, **kwargs):
+            return f"echo:{prompt}"
+
+    model = EchoModel()
+    challenge = "hello"
+
+    responses = controller.generate_verification_response(model, challenge, num_variants=1)
+
+    assert responses[0] == "echo:hello"
+    history = controller.generation_history[-1]
+    assert history['metadata'] == {}
 
 
 def test_integrated_verification():
