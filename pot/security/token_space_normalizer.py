@@ -783,21 +783,24 @@ class StochasticDecodingController:
         
         for i in range(min(num_variants, len(settings))):
             setting = settings[i]
-            
+
             # Apply settings
             self.temperature = setting.get('temperature', self.temperature)
             self.top_k = setting.get('top_k', self.top_k)
             self.top_p = setting.get('top_p', self.top_p)
-            
-            # Generate response
-            response = self._generate_single_response(model, challenge, max_length)
+
+            # Generate response and associated metadata
+            response, metadata = self._generate_single_response(
+                model, challenge, max_length
+            )
             responses.append(response)
-            
+
             # Store in history
             self.generation_history.append({
                 'challenge': str(challenge),
                 'response': response,
                 'settings': setting,
+                'metadata': metadata,
                 'timestamp': time.time()
             })
         
@@ -809,25 +812,71 @@ class StochasticDecodingController:
         return responses
     
     def _generate_single_response(self, model: Any, challenge: Any,
-                                 max_length: int) -> str:
-        """Generate a single response"""
-        # This is a placeholder - actual implementation would depend on model type
+                                 max_length: int) -> Tuple[str, Dict[str, Any]]:
+        """Generate a single response and associated metadata"""
+        # Models exposing a .generate API (e.g., Hugging Face)
         if hasattr(model, 'generate'):
-            # Hugging Face model
-            if TORCH_AVAILABLE:
+            tokenizer = getattr(model, 'tokenizer', None)
+
+            # HuggingFace-style path with tokenizer support
+            if TORCH_AVAILABLE and isinstance(challenge, str) and callable(tokenizer):
+                inputs = tokenizer(challenge, return_tensors='pt')
+
+                device = getattr(model, 'device', None)
+                if device is None and hasattr(model, 'parameters'):
+                    try:
+                        device = next(model.parameters()).device
+                    except StopIteration:
+                        device = torch.device('cpu')
+
+                if device is not None:
+                    inputs = {k: v.to(device) for k, v in inputs.items()}
+
                 with torch.no_grad():
                     outputs = model.generate(
-                        challenge,
+                        **inputs,
                         max_length=max_length,
                         temperature=self.temperature,
                         top_k=self.top_k,
                         top_p=self.top_p,
                         do_sample=self.temperature > 0
                     )
-                return outputs
-        
-        # Fallback: return mock response
-        return f"Response to {challenge} with temp={self.temperature}"
+
+                text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+                metadata = {
+                    'input_ids': inputs['input_ids'].tolist(),
+                    'output_ids': outputs[0].tolist(),
+                    'device': str(device) if device is not None else 'cpu'
+                }
+                return text, metadata
+
+            # Generic generate method without tokenizer
+            result = model.generate(
+                challenge,
+                max_length=max_length,
+                temperature=self.temperature,
+                top_k=self.top_k,
+                top_p=self.top_p,
+                do_sample=self.temperature > 0
+            )
+            if isinstance(result, tuple):
+                return result
+            return result, {}
+
+        # Callable models without generate - simple fallback
+        if callable(model):
+            result = model(challenge,
+                           temperature=self.temperature,
+                           top_k=self.top_k,
+                           top_p=self.top_p,
+                           max_length=max_length)
+            if isinstance(result, tuple):
+                return result
+            return result, {}
+
+        # Fallback when no generation method
+        text = f"Response to {challenge} with temp={self.temperature}"
+        return text, {}
     
     def compute_semantic_similarity(self, responses: List[str],
                                   method: str = 'jaccard') -> float:
