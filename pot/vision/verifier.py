@@ -11,6 +11,7 @@ from dataclasses import dataclass
 import time
 from PIL import Image
 import torchvision.transforms as transforms
+import xxhash
 
 from ..core.stats import empirical_bernstein_bound, t_statistic
 from ..core.sequential import SequentialTester, SPRTResult
@@ -128,12 +129,17 @@ class VisionVerifier:
         challenge_data = generate_challenges(config)
         challenges = []
         
-        for item in challenge_data["items"]:
+        for idx, item in enumerate(challenge_data["items"]):
+            # Generate deterministic seed per item
+            seed_input = f"{master_key}:{session_nonce}:{idx}:{item['octaves']}:{item['scale']}"
+            seed = xxhash.xxh64(seed_input).intdigest()
+
             # Generate Perlin noise texture
             image = self._generate_perlin_noise(
                 size=(224, 224),
                 octaves=item["octaves"],
-                scale=item["scale"]
+                scale=item["scale"],
+                seed=seed,
             )
             challenges.append(image)
         
@@ -168,32 +174,66 @@ class VisionVerifier:
     
     def _generate_perlin_noise(self, size: Tuple[int, int],
                               octaves: int,
-                              scale: float) -> torch.Tensor:
-        """Generate Perlin noise texture"""
+                              scale: float,
+                              seed: Optional[int] = None) -> torch.Tensor:
+        """Generate Perlin noise texture using Perlin's gradient interpolation."""
         h, w = size
+        rng = np.random.default_rng(seed)
         noise = np.zeros((h, w))
-        
+
+        def fade(t: np.ndarray) -> np.ndarray:
+            return t * t * t * (t * (t * 6 - 15) + 10)
+
         for octave in range(octaves):
             freq = 2 ** octave
             amplitude = 1 / freq
-            
-            # Generate random gradients
+
             grad_h = int(h * scale * freq) + 1
             grad_w = int(w * scale * freq) + 1
-            gradients = np.random.randn(grad_h, grad_w, 2)
-            
-            # Interpolate to full resolution
-            x = np.linspace(0, grad_w - 1, w)
-            y = np.linspace(0, grad_h - 1, h)
-            
-            # Simple bilinear interpolation (placeholder)
-            octave_noise = np.random.randn(h, w) * amplitude
-            noise += octave_noise
-        
-        # Normalize to [0, 1]
+
+            angles = rng.uniform(0, 2 * np.pi, size=(grad_h, grad_w))
+            gradients = np.stack((np.cos(angles), np.sin(angles)), axis=-1)
+
+            x = np.linspace(0, grad_w - 1, w, endpoint=False)
+            y = np.linspace(0, grad_h - 1, h, endpoint=False)
+            xi = x.astype(int)
+            yi = y.astype(int)
+            xf = x - xi
+            yf = y - yi
+
+            xi = xi[np.newaxis, :]
+            yi = yi[:, np.newaxis]
+            xf = xf[np.newaxis, :]
+            yf = yf[:, np.newaxis]
+
+            g00 = gradients[yi, xi]
+            g10 = gradients[yi, xi + 1]
+            g01 = gradients[yi + 1, xi]
+            g11 = gradients[yi + 1, xi + 1]
+
+            x_b = np.broadcast_to(xf, (h, w))
+            y_b = np.broadcast_to(yf, (h, w))
+
+            d00 = np.stack((x_b, y_b), axis=-1)
+            d10 = np.stack((x_b - 1, y_b), axis=-1)
+            d01 = np.stack((x_b, y_b - 1), axis=-1)
+            d11 = np.stack((x_b - 1, y_b - 1), axis=-1)
+
+            dot00 = np.sum(g00 * d00, axis=-1)
+            dot10 = np.sum(g10 * d10, axis=-1)
+            dot01 = np.sum(g01 * d01, axis=-1)
+            dot11 = np.sum(g11 * d11, axis=-1)
+
+            u = fade(xf)
+            v = fade(yf)
+
+            nx0 = dot00 * (1 - u) + dot10 * u
+            nx1 = dot01 * (1 - u) + dot11 * u
+            value = (nx0 * (1 - v) + nx1 * v) * amplitude
+            noise += value
+
         noise = (noise - noise.min()) / (noise.max() - noise.min() + 1e-8)
-        
-        # Convert to RGB tensor
+
         noise_rgb = np.stack([noise, noise, noise], axis=0)
         return torch.tensor(noise_rgb, dtype=torch.float32)
     
