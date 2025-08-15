@@ -319,11 +319,13 @@ class LMVerifier:
             return prompt
         return challenge.get("prompt", "Hello")
     
-    def verify_with_time_tolerance(self, model: LM, 
+    def verify_with_time_tolerance(self, model: LM,
                                   challenges: List[Dict[str, Any]],
                                   base_tolerance: float = 0.1,
                                   days_elapsed: int = 0,
-                                  drift_rate: float = 0.001) -> LMVerificationResult:
+                                  drift_rate: float = 0.001,
+                                  drift_model: str = "linear",
+                                  max_tolerance: Optional[float] = None) -> LMVerificationResult:
         """
         Verify with time-aware tolerance for version drift
         From paper Section 5 on handling model updates
@@ -333,14 +335,27 @@ class LMVerifier:
             challenges: Verification challenges
             base_tolerance: Base tolerance at time 0
             days_elapsed: Days since reference model snapshot
-            drift_rate: Expected drift per day
+            drift_rate: Expected drift parameter
+            drift_model: Drift adjustment model ('linear', 'quadratic', 'exponential')
+            max_tolerance: Optional cap on adjusted tolerance
             
         Returns:
             Verification result with adjusted tolerance
         """
-        # Adjust tolerance based on time elapsed
-        # τ(t) = τ_0 + λ * t
-        adjusted_tolerance = base_tolerance + drift_rate * days_elapsed
+        # Adjust tolerance based on time elapsed using specified drift model
+        if drift_model == "linear":
+            adjusted_tolerance = base_tolerance + drift_rate * days_elapsed
+        elif drift_model == "quadratic":
+            adjusted_tolerance = base_tolerance + drift_rate * (days_elapsed ** 2)
+        elif drift_model == "exponential":
+            adjusted_tolerance = base_tolerance * ((1 + drift_rate) ** days_elapsed)
+        else:
+            raise ValueError(f"Unknown drift_model: {drift_model}")
+
+        cap_applied = False
+        if max_tolerance is not None and adjusted_tolerance > max_tolerance:
+            adjusted_tolerance = max_tolerance
+            cap_applied = True
         
         # Run verification with adjusted tolerance
         result = self.verify(model, challenges, adjusted_tolerance)
@@ -350,7 +365,14 @@ class LMVerifier:
             "base_tolerance": base_tolerance,
             "days_elapsed": days_elapsed,
             "drift_rate": drift_rate,
-            "adjusted_tolerance": adjusted_tolerance
+            "drift_model": drift_model,
+            "max_tolerance": max_tolerance,
+            "adjusted_tolerance": adjusted_tolerance,
+            "justification": (
+                f"Tolerance adjusted using {drift_model} model with rate {drift_rate} "
+                f"over {days_elapsed} days" +
+                ("; capped at maximum tolerance " + str(max_tolerance) if cap_applied else "")
+            )
         }
         
         return result
