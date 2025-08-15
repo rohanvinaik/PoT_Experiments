@@ -179,12 +179,15 @@ class MerkleTree:
                 if i == current_index or i + 1 == current_index:
                     # This pair contains our target
                     sibling_index = i + 1 if i == current_index else i
-                    
+
                     if sibling_index < len(current_level):
                         sibling = current_level[sibling_index]
-                        position = 'right' if i == current_index else 'left'
-                        proof.append((sibling.hash_value, position))
-                    
+                    else:
+                        # Duplicate the node if no sibling (odd count)
+                        sibling = current_level[i]
+                    position = 'right' if i == current_index else 'left'
+                    proof.append((sibling.hash_value, position))
+
                     # Update index for next level
                     current_index = i // 2
                 
