@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-15T17:38:59.227599",
+  "experiments": [
+    {
+      "name": "Verification Types",
+      "data": [
+        {
+          "type": "exact",
+          "depth": "quick",
+          "verified": 

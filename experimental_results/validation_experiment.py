@@ -8,6 +8,10 @@ import time
 import numpy as np
 from datetime import datetime
 
+# Add parent directory to path
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 # Import PoT components
 try:
     from pot.security.proof_of_training import ProofOfTraining, ChallengeLibrary
