@@ -17,8 +17,6 @@ from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pot.eval.plots import plot_roc_curve, plot_auroc_vs_queries, plot_leakage_curve
-
 def load_jsonl(filepath):
     """Load JSONL file"""
     data = []
@@ -30,12 +28,21 @@ def load_jsonl(filepath):
 def main():
     parser = argparse.ArgumentParser(description="Generate plots from experiment results")
     parser.add_argument("--exp_dir", required=True, help="Experiment directory")
-    parser.add_argument("--plot_type", choices=["roc", "det", "auroc", "leakage", "drift", "sequential"],
-                       default="roc", help="Plot type to generate")
+    parser.add_argument(
+        "--plot_type",
+        choices=["roc", "det", "auroc", "leakage", "drift", "sequential"],
+        default="roc",
+        help="Plot type to generate",
+    )
+    parser.add_argument(
+        "--input_files",
+        nargs="*",
+        help="Optional JSONL files to load (defaults depend on plot type)",
+    )
     args = parser.parse_args()
-    
+
     exp_dir = Path(args.exp_dir)
-    
+
     print(f"Generating {args.plot_type} plots from {exp_dir}")
     
     # Set style
@@ -103,21 +110,40 @@ def main():
             print(f"AUROC plot saved to {output_file}")
             
     elif args.plot_type == "leakage":
-        # Placeholder for leakage curve
-        rho_values = [0.0, 0.1, 0.25, 0.5]
-        detection_rates = [0.95, 0.85, 0.65, 0.40]  # Placeholder data
-        
-        plt.figure()
-        plt.plot(rho_values, detection_rates, 'r^-', linewidth=2, markersize=10)
-        plt.xlabel('Leakage Fraction (ρ)')
-        plt.ylabel('Detection Rate')
-        plt.title('Detection Rate vs Challenge Leakage')
-        plt.grid(True, alpha=0.3)
-        plt.ylim([0, 1])
-        
-        output_file = exp_dir / "leakage_curve.png"
-        plt.savefig(output_file, dpi=150, bbox_inches='tight')
-        print(f"Leakage curve saved to {output_file}")
+        # Load leakage experiment results
+        files = [Path(f) for f in args.input_files] if args.input_files else [exp_dir / "leakage_log.jsonl"]
+
+        rho_to_rates = {}
+        for file in files:
+            if file.exists():
+                data = load_jsonl(file)
+                for entry in data:
+                    rho = entry.get("rho")
+                    rate = entry.get("detection_rate")
+                    if rho is None or rate is None:
+                        continue
+                    rho_to_rates.setdefault(rho, []).append(rate)
+            else:
+                print(f"Warning: {file} not found")
+
+        if rho_to_rates:
+            rho_values = sorted(rho_to_rates.keys())
+            detection_rates = [np.mean(rates) for rates in (rho_to_rates[r] for r in rho_values)]
+
+            plt.figure()
+            plt.plot(rho_values, detection_rates, 'r^-', linewidth=2, markersize=10)
+            plt.xlabel('Leakage Fraction (ρ)')
+            plt.ylabel('Detection Rate')
+            plt.title('Detection Rate vs Challenge Leakage')
+            plt.grid(True, alpha=0.3)
+            plt.xlim([0, max(rho_values)])
+            plt.ylim([0, 1])
+
+            output_file = exp_dir / "leakage_curve.png"
+            plt.savefig(output_file, dpi=150, bbox_inches='tight')
+            print(f"Leakage curve saved to {output_file}")
+        else:
+            print("No leakage data found; skipping plot")
     
     plt.show()
 
