@@ -3,7 +3,7 @@
 # Proof-of-Training Comprehensive Experimental Validator
 # This script runs all tests and experiments to validate the complete PoT system
 
-set -e  # Exit on error
+# set -e  # Exit on error (commented out to allow partial failures)
 
 # Colors for output
 RED='\033[0;31m'
@@ -40,8 +40,8 @@ print_info() {
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
 
-# Start logging
-exec 2>&1 | tee -a "${LOG_FILE}"
+# Start logging (commented out - was causing issues)
+# exec 2>&1 | tee -a "${LOG_FILE}"
 
 print_header "PROOF-OF-TRAINING COMPREHENSIVE EXPERIMENTAL VALIDATOR"
 echo "Started at: $(date)"
@@ -152,6 +152,10 @@ import json
 import time
 import numpy as np
 from datetime import datetime
+
+# Add parent directory to path
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import PoT components
 try:
@@ -452,8 +456,13 @@ Stress testing the PoT system
 """
 
 import sys
+import os
 import time
 import numpy as np
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pot.security.proof_of_training import ProofOfTraining
 
 def stress_test_batch_verification():
