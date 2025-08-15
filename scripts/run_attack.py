@@ -8,10 +8,11 @@ Logs attack cost, queries used, and resulting PoT distance distributions.
 """
 
 import argparse
+import json
 import yaml
-import numpy as np
 from pathlib import Path
 import sys
+
 sys.path.append(str(Path(__file__).parent.parent))
 
 from pot.core.logging import StructuredLogger
@@ -19,10 +20,31 @@ from pot.core.logging import StructuredLogger
 def main():
     parser = argparse.ArgumentParser(description="Run attack experiments")
     parser.add_argument("--config", required=True, help="Config YAML file")
-    parser.add_argument("--attack", choices=["wrapper", "targeted_finetune", "distillation"], 
-                       required=True, help="Attack type")
+    parser.add_argument(
+        "--attack",
+        choices=["wrapper", "targeted_finetune", "distillation", "extraction"],
+        required=True,
+        help="Attack type",
+    )
     parser.add_argument("--rho", type=float, default=0.1, help="Leakage fraction")
-    parser.add_argument("--budget", type=int, default=10000, help="Query budget for distillation")
+    parser.add_argument(
+        "--epochs", type=int, default=10, help="Training epochs for learning-based attacks"
+    )
+    parser.add_argument(
+        "--temperature", type=float, default=4.0, help="Distillation temperature"
+    )
+    parser.add_argument(
+        "--routing",
+        type=str,
+        default=None,
+        help="JSON-encoded routing logic for wrapper attack",
+    )
+    parser.add_argument(
+        "--query_budget",
+        type=int,
+        default=10000,
+        help="Query budget for distillation or extraction attacks",
+    )
     parser.add_argument("--output_dir", default="outputs", help="Output directory")
     args = parser.parse_args()
     
@@ -36,28 +58,43 @@ def main():
     logger = StructuredLogger(f"{args.output_dir}/{exp_name}/attacks/{attack_id}")
     
     print(f"Running {args.attack} attack with ρ={args.rho}")
-    
-    # Placeholder attack implementation
+
+    # Placeholder cost accounting; actual attack logic is implemented in
+    # ``pot.core.attacks`` and used in tests/examples.  Here we simply expose the
+    # hyperparameters and log the expected resource usage.
     if args.attack == "wrapper":
-        print("Applying wrapper mapping...")
-        attack_cost = 0  # No training cost
+        routing_logic = json.loads(args.routing) if args.routing else None
+        print(f"Applying wrapper mapping with routing={routing_logic}...")
+        attack_cost = 0
         queries_used = 0
-        
+
     elif args.attack == "targeted_finetune":
-        print(f"Fine-tuning on {args.rho*100:.0f}% leaked challenges...")
-        attack_cost = args.rho * 1000  # Placeholder cost metric
+        print(
+            f"Fine-tuning on {args.rho*100:.0f}% leaked challenges for {args.epochs} epochs..."
+        )
+        attack_cost = args.rho * 1000 * args.epochs
         queries_used = int(args.rho * 512)
-        
+
     elif args.attack == "distillation":
-        print(f"Distilling with budget={args.budget} queries...")
-        attack_cost = args.budget * 0.01  # Placeholder cost metric
-        queries_used = args.budget
+        print(
+            f"Distilling with budget={args.query_budget} queries, temperature={args.temperature}..."
+        )
+        attack_cost = args.query_budget * 0.01 * args.epochs
+        queries_used = args.query_budget
+
+    elif args.attack == "extraction":
+        print(f"Extracting model with query_budget={args.query_budget}...")
+        attack_cost = args.query_budget * 0.02
+        queries_used = args.query_budget
     
     # Log attack results
     entry = {
         "attack_type": args.attack,
         "rho": args.rho,
-        "budget": args.budget if args.attack == "distillation" else None,
+        "budget": args.query_budget if args.attack in {"distillation", "extraction"} else None,
+        "epochs": args.epochs,
+        "temperature": args.temperature if args.attack == "distillation" else None,
+        "routing": json.loads(args.routing) if args.routing else None,
         "attack_cost": attack_cost,
         "queries_used": queries_used,
         "config": config
