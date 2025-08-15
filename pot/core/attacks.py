@@ -1,7 +1,26 @@
 """Shared attack implementations for both vision and language models."""
 
 import numpy as np
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
+
+@dataclass
+class WrapperConfig:
+    """Configuration for logit wrapper transformations."""
+
+    temperature: float = 1.0
+    bias: float = 0.0
+
+    @classmethod
+    def from_dict(cls, config: Optional[Dict[str, float]] = None) -> "WrapperConfig":
+        """Create a config from a dictionary of parameters."""
+        if config is None:
+            return cls()
+        return cls(
+            temperature=config.get("temperature", 1.0),
+            bias=config.get("bias", 0.0),
+        )
 
 
 def targeted_finetune(model: Any, target_outputs: np.ndarray, epochs: int = 10) -> Any:
