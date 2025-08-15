@@ -293,23 +293,91 @@ class ZeroKnowledgeProof:
         return signature == expected_signature
 
 
-class BlockchainClient(ABC):
-    """Abstract blockchain client for provenance storage"""
-    
-    @abstractmethod
+class BlockchainClient:
+    """Blockchain client using web3.py for provenance storage"""
+
+    def __init__(
+        self,
+        web3: Optional[Any] = None,
+        provider_url: Optional[str] = None,
+        default_account: Optional[str] = None,
+    ) -> None:
+        """Create blockchain client.
+
+        Args:
+            web3: Pre-configured Web3 instance. If ``None``, a new instance
+                will be created using ``provider_url``.
+            provider_url: RPC endpoint for the blockchain. Defaults to
+                ``http://127.0.0.1:8545`` if not provided.
+            default_account: Account to use for transactions. If not
+                provided, the first account from the provider is used.
+        """
+        from web3 import Web3  # Imported lazily to avoid hard dependency
+
+        self.web3 = web3 or Web3(Web3.HTTPProvider(provider_url or "http://127.0.0.1:8545"))
+        if not self.web3.is_connected():
+            raise ConnectionError("Unable to connect to blockchain provider")
+
+        self.default_account = (
+            default_account or (self.web3.eth.accounts[0] if self.web3.eth.accounts else None)
+        )
+        if self.default_account is None:
+            raise ValueError("No default account available for blockchain transactions")
+
     def store_hash(self, hash_value: str, metadata: Dict) -> str:
-        """Store hash on blockchain"""
-        pass
-    
-    @abstractmethod
+        """Store hash and metadata on blockchain.
+
+        The hash and metadata are embedded in the transaction's data field as
+        a JSON payload. The transaction hash is returned as the identifier.
+        """
+
+        payload = json.dumps({"hash": hash_value, "metadata": metadata}, sort_keys=True).encode()
+        tx = {
+            "from": self.default_account,
+            "to": self.default_account,
+            "value": 0,
+            "data": self.web3.to_hex(payload),
+            "gas": 100000,
+        }
+
+        tx_hash = self.web3.eth.send_transaction(tx)
+        self.web3.eth.wait_for_transaction_receipt(tx_hash)
+        tx_hex = tx_hash.hex()
+        logger.info(f"Stored hash on blockchain: {tx_hex}")
+        return tx_hex
+
     def retrieve_hash(self, transaction_id: str) -> Optional[Dict]:
-        """Retrieve hash from blockchain"""
-        pass
-    
-    @abstractmethod
+        """Retrieve stored hash and metadata from blockchain."""
+
+        from web3.exceptions import TransactionNotFound
+
+        try:
+            tx = self.web3.eth.get_transaction(transaction_id)
+        except TransactionNotFound:
+            return None
+
+        data_bytes = bytes(tx["input"])
+        try:
+            payload = json.loads(data_bytes.decode())
+        except Exception:
+            return None
+
+        block = self.web3.eth.get_block(tx["blockNumber"])
+        return {
+            "hash": payload.get("hash"),
+            "metadata": payload.get("metadata"),
+            "from": tx["from"],
+            "to": tx["to"],
+            "block_number": tx["blockNumber"],
+            "timestamp": datetime.fromtimestamp(block["timestamp"], timezone.utc).isoformat(),
+            "tx_hash": transaction_id,
+        }
+
     def verify_hash(self, hash_value: str, transaction_id: str) -> bool:
-        """Verify hash on blockchain"""
-        pass
+        """Verify that the given hash matches blockchain record."""
+
+        stored = self.retrieve_hash(transaction_id)
+        return bool(stored and stored.get("hash") == hash_value)
 
 
 class MockBlockchainClient(BlockchainClient):
