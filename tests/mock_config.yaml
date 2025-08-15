@@ -1,0 +1,14 @@
+experiment: "mock_exp"
+models:
+  reference: "tests.mock_models:ReferenceModel"
+  identical: "tests.mock_models:IdenticalModel"
+  variant: "tests.mock_models:VariantModel"
+challenges:
+  family: "vision:freq"
+  params:
+    freq_range: [0.5, 1.0]
+    contrast_range: [0.2, 0.3]
+  master_key: "0000000000000000000000000000000000000000000000000000000000000000"
+  session_nonce: "11111111111111111111111111111111"
+verification:
+  tau_grid: [0.05, 0.2]
