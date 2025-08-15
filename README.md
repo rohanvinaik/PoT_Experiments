@@ -4,9 +4,93 @@ A comprehensive implementation of Proof-of-Training verification systems for neu
 
 ## Overview
 
-This repository contains a complete Proof-of-Training framework that combines multiple verification techniques to ensure model authenticity and training integrity. The system is designed to work with various model types including vision, language, and multimodal models.
+This repository contains a complete Proof-of-Training framework with two main components:
 
-## Core Components
+1. **Experimental Framework** (`pot/`): Research implementation for validating PoT concepts through systematic experiments (E1-E7)
+2. **Security Components** (`pot/security/`): Production-ready verification components including fuzzy hashing, provenance tracking, and token normalization
+
+## Project Structure
+
+```
+PoT_Experiments/
+├── pot/                          # Core experimental framework
+│   ├── core/                    # Challenge generation, stats, governance
+│   ├── vision/                  # Vision model experiments
+│   ├── lm/                      # Language model experiments
+│   ├── eval/                    # Evaluation metrics and plotting
+│   └── security/                # Production security components
+│       ├── fuzzy_hash_verifier.py
+│       ├── training_provenance_auditor.py
+│       ├── token_space_normalizer.py
+│       └── proof_of_training.py
+├── configs/                     # Experiment configurations
+│   ├── vision_cifar10.yaml
+│   ├── vision_imagenet_sub.yaml
+│   └── lm_small.yaml
+├── scripts/                     # Experiment runner scripts
+│   ├── run_generate_reference.py
+│   ├── run_verify.py
+│   ├── run_attack.py
+│   ├── run_grid.py
+│   └── run_plots.py
+├── requirements.txt            # Python dependencies
+├── pyproject.toml             # Project configuration
+├── run_all.sh                 # Complete test suite runner
+├── EXPERIMENTS.md             # Detailed experimental protocols
+├── CLAUDE.md                  # Instructions for Claude AI
+└── AGENTS.md                  # Instructions for AI agents
+
+```
+
+## Quick Start
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/yourusername/PoT_Experiments.git
+cd PoT_Experiments
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running Core Experiments
+
+```bash
+# E1: Separation vs Query Budget
+python scripts/run_generate_reference.py --config configs/vision_cifar10.yaml
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+
+# E2: Leakage Ablation
+python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.25
+
+# Run complete test suite
+bash run_all.sh
+```
+
+### Using Security Components
+
+```python
+from pot.security.proof_of_training import ProofOfTraining
+
+# Initialize system
+config = {
+    'verification_type': 'fuzzy',
+    'model_type': 'vision',
+    'security_level': 'high'
+}
+
+pot = ProofOfTraining(config)
+
+# Register and verify model
+model_id = pot.register_model(model, architecture="resnet50")
+result = pot.perform_verification(model, model_id, 'comprehensive')
+print(f"Verified: {result.verified}, Confidence: {result.confidence:.2%}")
+```
+
+## Security Components
 
 ### 1. Fuzzy Hash Verifier (`fuzzy_hash_verifier.py`)
 - **Purpose**: Enables approximate matching of model outputs while maintaining security
@@ -17,7 +101,7 @@ This repository contains a complete Proof-of-Training framework that combines mu
   - Reference hash storage and retrieval
 - **Usage**:
 ```python
-from fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
+from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
 
 verifier = FuzzyHashVerifier(similarity_threshold=0.85)
 challenge = ChallengeVector(dimension=1000, topology='complex')
@@ -34,7 +118,7 @@ result = verifier.verify_fuzzy(candidate_hash, reference_hash)
   - Compression for efficient storage
 - **Usage**:
 ```python
-from training_provenance_auditor import TrainingProvenanceAuditor
+from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, ProofType
 
 auditor = TrainingProvenanceAuditor(model_id="model_001")
 auditor.log_training_event(epoch=1, metrics={'loss': 0.5})
@@ -50,7 +134,7 @@ proof = auditor.generate_training_proof(0, 10, ProofType.MERKLE)
   - Multilingual support
 - **Usage**:
 ```python
-from token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController
+from pot.security.token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController, TokenizerType
 
 normalizer = TokenSpaceNormalizer(TokenizerType.BPE)
 controller = StochasticDecodingController(seed=42)
@@ -67,7 +151,7 @@ controller.set_deterministic_mode(temperature=0.0)
   - Batch and incremental verification
 - **Usage**:
 ```python
-from proof_of_training import ProofOfTraining
+from pot.security.proof_of_training import ProofOfTraining
 
 config = {
     'verification_type': 'fuzzy',
@@ -190,27 +274,31 @@ result = pot.cross_platform_verify(outputs, model_id)
 
 Run the test suites:
 ```bash
-python test_fuzzy_verifier.py
-python test_provenance_auditor.py
-python test_token_normalizer.py
+# Security component tests
+python pot/security/test_fuzzy_verifier.py
+python pot/security/test_provenance_auditor.py
+python pot/security/test_token_normalizer.py
+
+# Integrated demo
+python pot/security/proof_of_training.py
+
+# Full experimental validation
+bash run_all.sh
 ```
 
-Run the integrated demo:
-```bash
-python proof_of_training.py
-```
+## Experiments
 
-## Architecture
+The framework includes 7 core experiments (E1-E7) for validating PoT concepts:
 
-```
-PoT_Experiments/
-├── fuzzy_hash_verifier.py      # Fuzzy hashing for approximate matching
-├── training_provenance_auditor.py  # Training history tracking
-├── token_space_normalizer.py   # Token normalization for LLMs
-├── proof_of_training.py        # Integrated verification system
-├── test_*.py                   # Test suites
-└── README.md                   # This file
-```
+- **E1**: Separation vs Query Budget - Test model discrimination with varying challenge sizes
+- **E2**: Leakage Ablation - Robustness to challenge leakage
+- **E3**: Non-IID Drift - Stability under distribution shifts
+- **E4**: Adversarial Attacks - Resistance to active attacks
+- **E5**: Sequential Testing - Early stopping with SPRT/e-values
+- **E6**: Baseline Comparisons - Compare against naive methods
+- **E7**: Ablation Studies - Component contribution analysis
+
+See `EXPERIMENTS.md` for detailed protocols and expected results.
 
 ## Key Innovations
 

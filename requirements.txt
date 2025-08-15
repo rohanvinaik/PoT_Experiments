@@ -1,0 +1,18 @@
+torch
+torchvision
+transformers
+accelerate
+sentence-transformers
+numpy
+scipy
+scikit-learn
+einops
+tqdm
+pyyaml
+matplotlib
+seaborn
+xxhash
+
+# Optional for advanced fuzzy hashing
+# python-ssdeep
+# python-tlsh

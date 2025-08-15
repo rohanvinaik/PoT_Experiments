@@ -1,0 +1,24 @@
+experiment: "vision_imagenet_sub"
+dataset:
+  name: "ImageNet"
+  split: "val"
+  subset_size: 5000  # Use subset for faster experiments
+  resize: [224, 224]
+  normalize: "torchvision_default"
+models:
+  reference: {arch: "resnet50", seed: 0, pretrained: true}
+  variants:
+    - {type: "seed", arch: "resnet50", seed: 1, pretrained: true}
+    - {type: "finetune", arch: "resnet50", seed: 0, epochs: 2}
+    - {type: "prune", arch: "resnet50", amount: 0.4}
+    - {type: "quant", arch: "resnet50", backend: "fbgemm"}
+challenges:
+  families:
+    - {family: "vision:freq", n: 512, params: {freq_range: [0.5, 10.0], contrast_range: [0.2, 1.0]}}
+    - {family: "vision:texture", n: 512, params: {octaves: [1, 6], scale: [0.3, 3.0]}}
+verification:
+  distances: ["logits_l2", "kl"]
+  tau_grid: [0.005, 0.01, 0.02, 0.05]
+  sequential: {enabled: true, alpha: 0.01, beta: 0.01}
+leakage:
+  rhos: [0.0, 0.1, 0.25, 0.5]

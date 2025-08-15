@@ -4,14 +4,44 @@
 
 This document provides instructions for AI agents and developers on how to use the Proof-of-Training (PoT) verification system. The system provides cryptographic verification of neural network training and model identity through multiple verification techniques.
 
+## Project Structure
+
+The PoT system consists of two main components:
+
+1. **Core Experimental Framework** (`pot/`): Implements the research experiments for validating PoT concepts
+   - `pot/core/`: Challenge generation, fingerprinting, statistics
+   - `pot/vision/`: Vision model experiments
+   - `pot/lm/`: Language model experiments
+   - `pot/eval/`: Evaluation metrics and baselines
+
+2. **Security Components** (`pot/security/`): Production-ready verification components
+   - Fuzzy hash verification
+   - Training provenance auditing
+   - Token space normalization
+   - Integrated proof-of-training system
+
 ## Quick Start Guide
 
-### 1. Basic Model Verification
+### 1. Running Experiments
 
-For a quick verification of any neural network model:
+To run the core experiments (E1-E7), follow the experimental protocol:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run experiment E1 (core separation)
+python scripts/run_generate_reference.py --config configs/vision_cifar10.yaml
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+```
+
+### 2. Basic Model Verification
+
+For production verification using security components:
 
 ```python
-from proof_of_training import ProofOfTraining
+from pot.security.proof_of_training import ProofOfTraining
 
 # Initialize with appropriate settings
 config = {
@@ -34,7 +64,7 @@ result = pot.perform_verification(model, model_id, 'standard')
 print(f"Model verified: {result.verified} (confidence: {result.confidence:.2%})")
 ```
 
-### 2. Model-Specific Configurations
+### 3. Model-Specific Configurations
 
 #### For Vision Models (CNNs, ViTs)
 ```python
@@ -63,14 +93,57 @@ config = {
 }
 ```
 
-## Component Usage
+## Experimental Framework Usage
+
+### Running Core Experiments
+
+The experimental framework includes 7 key experiments (E1-E7):
+
+```bash
+# E1: Separation vs Query Budget
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
+
+# E2: Leakage Ablation
+python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.25
+
+# E3: Non-IID Drift (configure drift parameters in config)
+python scripts/run_verify.py --config configs/vision_cifar10.yaml --challenge_family vision:freq --n 256
+
+# E4: Adversarial Attacks
+python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack wrapper
+
+# E5: Sequential Testing (enabled in config)
+python scripts/run_verify.py --config configs/lm_small.yaml --challenge_family lm:templates --n 512
+
+# Generate all plots
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+```
+
+### Challenge Generation
+
+```python
+from pot.core.challenge import ChallengeConfig, generate_challenges
+from pot.core.governance import new_session_nonce
+
+config = ChallengeConfig(
+    master_key_hex="0" * 64,  # Use proper key in production
+    session_nonce_hex=new_session_nonce(),
+    n=256,
+    family="vision:freq",
+    params={"freq_range": [0.5, 8.0], "contrast_range": [0.3, 1.0]}
+)
+
+challenges = generate_challenges(config)
+```
+
+## Security Component Usage
 
 ### 1. Fuzzy Hash Verification
 
 Use when you need to verify models with minor output variations:
 
 ```python
-from fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
+from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
 
 # Initialize verifier
 verifier = FuzzyHashVerifier(similarity_threshold=0.85)
@@ -98,7 +171,7 @@ is_valid = verifier.verify_against_stored('model_v1', new_output)
 Use to track and verify training history:
 
 ```python
-from training_provenance_auditor import TrainingProvenanceAuditor, EventType
+from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType
 
 # Initialize auditor
 auditor = TrainingProvenanceAuditor(model_id="your_model_id")
@@ -135,7 +208,7 @@ model_with_provenance = auditor.embed_provenance(model_state_dict)
 Use for handling tokenization differences:
 
 ```python
-from token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController
+from pot.security.token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController
 
 # Initialize components
 normalizer = TokenSpaceNormalizer(TokenizerType.BPE, vocab_size=50000)
@@ -301,7 +374,7 @@ print(f"Proof valid: {verification['valid']}")
 
 ```python
 from fastapi import FastAPI, HTTPException
-from proof_of_training import ProofOfTraining
+from pot.security.proof_of_training import ProofOfTraining
 
 app = FastAPI()
 pot = ProofOfTraining(config)
@@ -325,7 +398,7 @@ async def verify_model(model_id: str):
 
 ```python
 import pytorch_lightning as pl
-from proof_of_training import ProofOfTraining
+from pot.security.proof_of_training import ProofOfTraining
 
 class VerifiedModel(pl.LightningModule):
     def __init__(self, model, pot_config):
@@ -372,12 +445,23 @@ class VerifiedModel(pl.LightningModule):
 - `incremental_verify()`: Verify during training
 - `cross_platform_verify()`: Verify with outputs only
 
+## File Locations
+
+- **Experimental Framework**: `pot/core/`, `pot/vision/`, `pot/lm/`, `pot/eval/`
+- **Security Components**: `pot/security/`
+- **Configurations**: `configs/`
+- **Experiment Scripts**: `scripts/`
+- **Tests**: `pot/security/test_*.py`
+- **Documentation**: `README.md`, `EXPERIMENTS.md`, `CLAUDE.md`, `AGENTS.md`
+
 ## Support
 
 For issues or questions:
-1. Check the test files for usage examples
-2. Run the demo: `python proof_of_training.py`
-3. Open an issue on GitHub
+1. Check the test files for usage examples: `python pot/security/test_*.py`
+2. Run the integrated demo: `python pot/security/proof_of_training.py`
+3. Run experiments: See `EXPERIMENTS.md`
+4. Check `CLAUDE.md` for detailed instructions
+5. Open an issue on GitHub
 
 ## Updates and Maintenance
 
