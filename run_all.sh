@@ -105,21 +105,21 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 
 # Run individual component tests
-if run_test "FuzzyHashVerifier" "test_fuzzy_verifier.py"; then
+if run_test "FuzzyHashVerifier" "pot/security/test_fuzzy_verifier.py"; then
     ((PASSED_TESTS++))
 else
     ((FAILED_TESTS++))
 fi
 ((TOTAL_TESTS++))
 
-if run_test "TrainingProvenanceAuditor" "test_provenance_auditor.py"; then
+if run_test "TrainingProvenanceAuditor" "pot/security/test_provenance_auditor.py"; then
     ((PASSED_TESTS++))
 else
     ((FAILED_TESTS++))
 fi
 ((TOTAL_TESTS++))
 
-if run_test "TokenSpaceNormalizer" "test_token_normalizer.py"; then
+if run_test "TokenSpaceNormalizer" "pot/security/test_token_normalizer.py"; then
     ((PASSED_TESTS++))
 else
     ((FAILED_TESTS++))
@@ -129,7 +129,7 @@ fi
 # Run integrated system demo
 print_header "RUNNING INTEGRATED SYSTEM DEMO"
 
-if ${PYTHON} proof_of_training.py > "${RESULTS_DIR}/integrated_demo_${TIMESTAMP}.log" 2>&1; then
+if ${PYTHON} pot/security/proof_of_training.py > "${RESULTS_DIR}/integrated_demo_${TIMESTAMP}.log" 2>&1; then
     print_success "Integrated system demo completed"
     ((PASSED_TESTS++))
 else
@@ -155,10 +155,10 @@ from datetime import datetime
 
 # Import PoT components
 try:
-    from proof_of_training import ProofOfTraining, ChallengeLibrary
-    from fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
-    from training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
-    from token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController, TokenizerType
+    from pot.security.proof_of_training import ProofOfTraining, ChallengeLibrary
+    from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
+    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.security.token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController, TokenizerType
 except ImportError as e:
     print(f"Import error: {e}")
     sys.exit(1)
@@ -454,7 +454,7 @@ Stress testing the PoT system
 import sys
 import time
 import numpy as np
-from proof_of_training import ProofOfTraining
+from pot.security.proof_of_training import ProofOfTraining
 
 def stress_test_batch_verification():
     """Test batch verification with many models"""
@@ -514,7 +514,7 @@ def stress_test_large_challenges():
     """Test with large challenge vectors"""
     print("Stress testing large challenges...")
     
-    from fuzzy_hash_verifier import ChallengeVector, FuzzyHashVerifier
+    from pot.security.fuzzy_hash_verifier import ChallengeVector, FuzzyHashVerifier
     
     verifier = FuzzyHashVerifier()
     
@@ -542,7 +542,7 @@ def stress_test_provenance_history():
     """Test with large training histories"""
     print("Stress testing training history...")
     
-    from training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
     
     auditor = TrainingProvenanceAuditor(
         model_id="stress_test",
