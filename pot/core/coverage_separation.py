@@ -4,7 +4,7 @@ Based on paper Section 4: Challenge Design Principles
 """
 
 import numpy as np
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple, Optional, Callable
 from dataclasses import dataclass
 import itertools
 from scipy.spatial.distance import pdist, squareform
@@ -30,7 +30,8 @@ class CoverageSeparationOptimizer:
     the input space while maintaining separation between genuine and adversarial models"
     """
     
-    def __init__(self, input_dim: int, n_challenges: int, seed: int = 42):
+    def __init__(self, input_dim: int, n_challenges: int, seed: int = 42,
+                 model_eval_functions: Optional[Dict[str, Callable[[np.ndarray], np.ndarray]]] = None):
         """
         Initialize optimizer
         
@@ -42,6 +43,9 @@ class CoverageSeparationOptimizer:
         self.input_dim = input_dim
         self.n_challenges = n_challenges
         self.rng = np.random.default_rng(seed)
+        self.model_eval_functions = model_eval_functions or {}
+        # Cache of model responses to avoid redundant evaluations
+        self._response_cache: Dict[bytes, Dict[str, np.ndarray]] = {}
         
     def compute_coverage(self, challenges: np.ndarray, 
                         space_bounds: Tuple[float, float] = (-1, 1)) -> float:
@@ -130,10 +134,9 @@ class CoverageSeparationOptimizer:
             # Compute combined score
             coverage = self.compute_coverage(new_challenges)
             
-            # For separation, we need model responses (simulate for now)
-            # In practice, this would use actual model evaluations
-            simulated_responses = self._simulate_model_responses(new_challenges)
-            separation = self.compute_separation(new_challenges, simulated_responses)
+            # For separation, evaluate models on the challenges
+            model_responses = self._get_model_responses(new_challenges)
+            separation = self.compute_separation(new_challenges, model_responses)
             
             score = coverage_weight * coverage + separation_weight * separation
             
@@ -147,22 +150,21 @@ class CoverageSeparationOptimizer:
         
         return best_challenges
     
-    def _simulate_model_responses(self, challenges: np.ndarray) -> Dict[str, np.ndarray]:
-        """Simulate model responses for optimization (placeholder)"""
-        # In practice, this would evaluate actual models
-        # Here we simulate 3 different "models"
-        responses = {}
-        
-        # Model 1: Linear response
-        responses["model1"] = np.sum(challenges, axis=1)
-        
-        # Model 2: Nonlinear response  
-        responses["model2"] = np.sum(challenges**2, axis=1)
-        
-        # Model 3: Mixed response
-        responses["model3"] = np.sum(challenges * np.sin(challenges), axis=1)
-        
-        return responses
+    def _get_model_responses(self, challenges: np.ndarray) -> Dict[str, np.ndarray]:
+        """Evaluate models on challenges using provided callables.
+
+        Results are cached to avoid redundant evaluations.
+        """
+        if not self.model_eval_functions:
+            raise ValueError("Model evaluation functions must be provided")
+
+        cache_key = challenges.tobytes()
+        if cache_key not in self._response_cache:
+            self._response_cache[cache_key] = {
+                model_id: fn(challenges)
+                for model_id, fn in self.model_eval_functions.items()
+            }
+        return self._response_cache[cache_key]
     
     def stratified_sampling(self, n_strata: int = 5) -> np.ndarray:
         """
@@ -256,8 +258,8 @@ class CoverageSeparationOptimizer:
         # Coverage score
         coverage = self.compute_coverage(challenges)
         
-        # Separation score (simulated)
-        model_responses = self._simulate_model_responses(challenges)
+        # Separation score based on provided model evaluations
+        model_responses = self._get_model_responses(challenges)
         separation = self.compute_separation(challenges, model_responses)
         
         # Intra-challenge distances
