@@ -21,6 +21,8 @@ dependencies = [
     "matplotlib>=3.5.0",
     "seaborn>=0.12.0",
     "xxhash>=3.0.0",
+    "ssdeep>=3.4",
+    "py-tlsh>=4.7.2",
 ]
 
 [project.optional-dependencies]
@@ -30,11 +32,6 @@ dev = [
     "black>=22.0.0",
     "isort>=5.10.0",
     "mypy>=0.990",
-]
-
-fuzzy = [
-    "python-ssdeep>=3.4",
-    "python-tlsh>=4.5.0",
 ]
 
 [build-system]

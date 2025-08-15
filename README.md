@@ -1,8 +1,15 @@
 # Proof-of-Training (PoT) Experiments
 
-A comprehensive implementation of Proof-of-Training verification systems for neural networks, providing cryptographic verification of model training and identity.
+A comprehensive implementation of Proof-of-Training verification systems for neural networks, providing cryptographic verification of model training and identity. Based on the theoretical framework presented in "Black-Box Neural Network Verification via Proof-of-Training" (see `PoT Paper.md`).
 
 ## Overview
+
+This repository implements the Proof-of-Training protocol, a statistical framework for verifying black-box neural networks without access to training data or model weights. The system uses:
+
+- **Empirical Bernstein Bounds** (Theorem 1): Tighter confidence intervals for finite-sample statistics
+- **Sequential Testing** (Algorithm 1): SPRT-based early stopping for efficient verification  
+- **Cryptographic Challenge Derivation** (Algorithm 3): KDF-based challenge generation with epoch rotation
+- **Fuzzy Hashing** (Definition 1): N-gram based hashing for handling tokenization variability
 
 This repository contains a complete Proof-of-Training framework with two main components:
 
@@ -14,9 +21,18 @@ This repository contains a complete Proof-of-Training framework with two main co
 ```
 PoT_Experiments/
 ├── pot/                          # Core experimental framework
-│   ├── core/                    # Challenge generation, stats, governance
+│   ├── core/                    # Statistical verification and cryptography
+│   │   ├── stats.py            # Empirical Bernstein bounds (Paper Section 2.3)
+│   │   ├── sequential.py       # SPRT implementation (Paper Section 2.4)
+│   │   ├── governance.py       # Cryptographic KDF (Paper Section 6.2)
+│   │   ├── challenge.py        # Challenge generation protocol
+│   │   ├── coverage_separation.py  # Coverage-separation trade-off (Paper Section 4)
+│   │   └── wrapper_detection.py    # Wrapper attack detection (Paper Section 5)
 │   ├── vision/                  # Vision model experiments
-│   ├── lm/                      # Language model experiments
+│   │   └── verifier.py         # Vision model verification with perceptual distance
+│   ├── lm/                      # Language model experiments  
+│   │   ├── fuzzy_hash.py       # N-gram fuzzy hashing (Paper Section 3.1)
+│   │   └── verifier.py         # LM verification with time tolerance
 │   ├── eval/                    # Evaluation metrics and plotting
 │   └── security/                # Production security components
 │       ├── fuzzy_hash_verifier.py
@@ -300,13 +316,15 @@ The framework includes 7 core experiments (E1-E7) for validating PoT concepts:
 
 See `EXPERIMENTS.md` for detailed protocols and expected results.
 
-## Key Innovations
+## Key Innovations (from Paper)
 
-1. **Fuzzy Hashing**: Allows verification despite minor output variations
-2. **Merkle Trees**: Efficient cryptographic proofs of training history
-3. **Token Normalization**: Handles tokenization differences in language models
-4. **Zero-Knowledge Proofs**: Verify training without revealing sensitive data
-5. **Adaptive Challenges**: Automatically adjusts to model architecture
+1. **Empirical Bernstein Bounds**: Provides tighter confidence intervals than Hoeffding's inequality by incorporating sample variance (Theorem 1, Section 2.3)
+2. **Sequential Probability Ratio Test (SPRT)**: Enables early stopping with controlled error rates, reducing expected sample complexity (Algorithm 1, Section 2.4)
+3. **Token-Level Fuzzy Hashing**: Handles tokenization variability in language models using n-gram hashes H_fuzzy(s) = {h(n-gram) : n-gram ∈ s, n ∈ {2,3,4}} (Definition 1, Section 3.1)
+4. **Cryptographic Challenge Derivation**: Uses HMAC-based KDF for deterministic challenge generation with epoch-based key rotation for leakage resilience (Algorithm 3, Section 6.2)
+5. **Coverage-Separation Trade-off**: Optimizes challenge design to maximize input space coverage while maintaining model discrimination (Section 4)
+6. **Wrapper Attack Detection**: Identifies adversaries routing challenges to genuine models through timing analysis and response consistency checks (Section 5.1)
+7. **Time-Aware Tolerance**: Adjusts verification thresholds based on model age to handle version drift τ(t) = τ_0 + λ * t (Section 5)
 
 ## Use Cases
 
@@ -324,12 +342,32 @@ Contributions are welcome! Please feel free to submit pull requests or open issu
 
 MIT License - See LICENSE file for details
 
+## Theoretical Foundation
+
+This implementation is based on the theoretical framework presented in the PoT paper. Key results include:
+
+- **Theorem 1 (Empirical Bernstein Bound)**: For n i.i.d. samples with empirical variance σ̂², the confidence radius is:
+  ```
+  r = √(2σ̂²log(2/δ)/n) + 7B·log(2/δ)/(3(n-1))
+  ```
+
+- **Algorithm 1 (SPRT)**: Sequential testing with thresholds A = log((1-β)/α) and B = log(β/(1-α))
+
+- **Algorithm 3 (KDF)**: Challenge key derivation:
+  ```
+  k_epoch = KDF(k, "epoch" || e)
+  k_session = KDF(k_epoch, "session" || s) 
+  seed = KDF(k_session, "challenge")
+  ```
+
+See `PoT Paper.md` for complete theoretical details.
+
 ## Citation
 
 If you use this code in your research, please cite:
 ```bibtex
 @software{pot_experiments,
-  title = {Proof-of-Training Experiments},
+  title = {Proof-of-Training Experiments: Implementation of Black-Box Neural Network Verification},
   author = {Your Name},
   year = {2024},
   url = {https://github.com/yourusername/PoT_Experiments}

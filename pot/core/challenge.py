@@ -15,8 +15,15 @@ class ChallengeConfig:
     params: Dict[str, Any] # family-specific args (freq ranges, token masks, etc.)
 
 def kdf(master_key_hex: str, label: str, nonce_hex: str) -> bytes:
-    # Simple HKDF-like placeholder (replace with proper HKDF if desired)
-    return hashlib.sha256(bytes.fromhex(master_key_hex) + label.encode() + bytes.fromhex(nonce_hex)).digest()
+    """
+    Key Derivation Function for challenge generation
+    Matches the KDF in governance.py for consistency with paper
+    """
+    import hmac
+    master_key = bytes.fromhex(master_key_hex)
+    context = bytes.fromhex(nonce_hex)
+    info = label.encode() + context
+    return hmac.new(master_key, info, hashlib.sha256).digest()
 
 def seeded_rng(seed: bytes) -> np.random.Generator:
     s = int.from_bytes(seed, "big") % (2**63 - 1)

@@ -1,11 +1,23 @@
-# Similar attack patterns for language models
+"""Attack implementations for language models."""
+
+# Import shared attack implementations
+from pot.core.attacks import (
+    targeted_finetune,
+    limited_distillation,
+    wrapper_attack,
+    extraction_attack
+)
+
+# LM-specific wrapper (for backward compatibility)
 def wrapper_map(outputs):
+    """Simple wrapper that passes through outputs."""
     return outputs
 
-def targeted_finetune(model, leaked_challenges, reference_outputs):
-    # TODO: LoRA fine-tuning on leaked challenges
-    return model
-
-def limited_distillation(student, teacher, dataloader, budget: int):
-    # TODO: distillation with query budget
-    return student
+# Re-export for backward compatibility
+__all__ = [
+    'targeted_finetune', 
+    'limited_distillation', 
+    'wrapper_attack', 
+    'extraction_attack',
+    'wrapper_map'
+]

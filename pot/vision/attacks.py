@@ -1,14 +1,25 @@
-# Wrapper: simple mapping to "normalize" outputs closer to reference
+"""Attack implementations for vision models."""
+
+# Import shared attack implementations
+from pot.core.attacks import (
+    targeted_finetune,
+    limited_distillation,
+    wrapper_attack,
+    extraction_attack
+)
+
+# Vision-specific wrapper (for backward compatibility)
 def wrapper_map(logits):
-    # e.g., temperature scaling + bias shift placeholder
+    """Simple wrapper for logit transformation.
+    e.g., temperature scaling + bias shift placeholder
+    """
     return logits
 
-# Targeted fine-tune: training on leaked challenges to minimize distance
-def targeted_finetune(model, leaked_challenges, reference_outputs):
-    # TODO
-    return model
-
-# Limited distillation: student trained on limited query set
-def limited_distillation(student, teacher, dataloader, budget: int):
-    # TODO
-    return student
+# Re-export for backward compatibility
+__all__ = [
+    'targeted_finetune', 
+    'limited_distillation', 
+    'wrapper_attack', 
+    'extraction_attack',
+    'wrapper_map'
+]

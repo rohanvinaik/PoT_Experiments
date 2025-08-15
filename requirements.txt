@@ -13,6 +13,6 @@ matplotlib
 seaborn
 xxhash
 
-# Optional for advanced fuzzy hashing
-# python-ssdeep
-# python-tlsh
+# Required for fuzzy hashing (core PoT functionality)
+ssdeep
+py-tlsh

@@ -10,7 +10,10 @@ from datetime import datetime
 
 # Add parent directory to path
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directory to path for imports
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path.cwd().parent if Path.cwd().name == 'scripts' else Path.cwd()))
 
 # Import PoT components
 try:

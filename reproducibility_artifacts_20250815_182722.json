@@ -1,0 +1,70 @@
+{
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "challenge_ids": [
+    "pot_chal_0000",
+    "pot_chal_0001",
+    "pot_chal_0002",
+    "pot_chal_0003",
+    "pot_chal_0004"
+  ],
+  "salts": [
+    "0866451beed10ce5",
+    "629f108a820fd15c",
+    "4b7d69f1f9029b56",
+    "e954ae861bbbf386",
+    "a0db08c3c582fee6"
+  ],
+  "checksums": {
+    "reference_model": "420070406515c7f5",
+    "genuine_model": "9f251163ec7516b9",
+    "attack_model": "0550e997ef8853f4"
+  },
+  "likelihood_traces": {
+    "genuine": [
+      0.0,
+      -0.8,
+      -1.5,
+      -2.1,
+      -2.8,
+      -3.4,
+      -4.0,
+      -4.6,
+      -5.1,
+      -5.5
+    ],
+    "attack": [
+      0.0,
+      0.9,
+      1.7,
+      2.4,
+      3.2,
+      3.9,
+      4.5,
+      5.2,
+      5.8,
+      6.3
+    ]
+  },
+  "configuration": {
+    "alpha": 0.01,
+    "beta": 0.01,
+    "tau": 0.05,
+    "n_challenges": 128,
+    "fuzzy_n_grams": [
+      2,
+      3,
+      4
+    ]
+  }
+}
