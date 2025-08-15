@@ -5,7 +5,9 @@ from pot.core.attacks import (
     targeted_finetune,
     limited_distillation,
     wrapper_attack,
-    extraction_attack
+    extraction_attack,
+    compression_attack,
+    distillation_attack
 )
 
 # Vision-specific wrapper (for backward compatibility)
@@ -21,5 +23,7 @@ __all__ = [
     'limited_distillation', 
     'wrapper_attack', 
     'extraction_attack',
+    'compression_attack',
+    'distillation_attack',
     'wrapper_map'
 ]

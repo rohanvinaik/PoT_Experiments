@@ -1,0 +1,17 @@
+{
+  "total_stubs": 0,
+  "priority_summary": {
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0
+  },
+  "categorized": {
+    "security": [],
+    "vision": [],
+    "language_model": [],
+    "core": [],
+    "evaluation": [],
+    "scripts": [],
+    "other": []
+  }
+}

@@ -270,9 +270,10 @@ if __name__ == "__main__":
     print("Starting comprehensive experimental validation...")
     results = run_experiments()
     
-    # Save results
+    # Save results with custom encoder
+    from pot.core.jsonenc import NpTorchEncoder
     with open('validation_results.json', 'w') as f:
-        json.dump(results, f, indent=2)
+        json.dump(results, f, indent=2, cls=NpTorchEncoder)
     
     print("\n=== VALIDATION COMPLETE ===")
     print(f"Results saved to validation_results.json")

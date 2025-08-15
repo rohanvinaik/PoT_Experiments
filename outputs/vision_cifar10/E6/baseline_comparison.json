@@ -1,0 +1,174 @@
+{
+  "n_baselines": 5,
+  "n_samples": 256,
+  "genuine_results": [
+    {
+      "method": "naive_hash",
+      "decision": "reject",
+      "confidence": 0.0,
+      "time": 0.0022208690643310547,
+      "metadata": {
+        "hash1": "ba012666886fcd62...",
+        "hash2": "fb45a5be35568f6a...",
+        "exact_match": false
+      }
+    },
+    {
+      "method": "simple_distance_l2",
+      "decision": "reject",
+      "confidence": 5.18732541642831e-32,
+      "time": 0.0002231597900390625,
+      "metadata": {
+        "distance": 7.20365047454834,
+        "threshold": 0.1,
+        "metric": "l2"
+      }
+    },
+    {
+      "method": "simple_distance_cosine",
+      "decision": "accept",
+      "confidence": 0.9503071623001677,
+      "time": 0.00016880035400390625,
+      "metadata": {
+        "distance": 0.010194003582000732,
+        "threshold": 0.2,
+        "metric": "cosine"
+      }
+    },
+    {
+      "method": "simple_distance_l1",
+      "decision": "reject",
+      "confidence": 4.9613425752364205e-256,
+      "time": 0.0001678466796875,
+      "metadata": {
+        "distance": 293.9300537109375,
+        "threshold": 0.5,
+        "metric": "l1"
+      }
+    },
+    {
+      "method": "statistical",
+      "decision": "accept",
+      "confidence": 0.9999826760481535,
+      "time": 0.45764613151550293,
+      "metadata": {
+        "ks_statistic": 0.00859375,
+        "ks_pvalue": 0.9999826760481535,
+        "t_statistic": -0.11902052098277421,
+        "t_pvalue": 0.9052637690989037,
+        "alpha": 0.05
+      }
+    }
+  ],
+  "impostor_results": [
+    {
+      "method": "naive_hash",
+      "decision": "reject",
+      "confidence": 0.0,
+      "time": 0.0022809505462646484,
+      "metadata": {
+        "hash1": "ba012666886fcd62...",
+        "hash2": "b95afffd16444fde...",
+        "exact_match": false
+      }
+    },
+    {
+      "method": "simple_distance_l2",
+      "decision": "reject",
+      "confidence": 0.0,
+      "time": 0.0001609325408935547,
+      "metadata": {
+        "distance": 125.7571029663086,
+        "threshold": 0.1,
+        "metric": "l2"
+      }
+    },
+    {
+      "method": "simple_distance_cosine",
+      "decision": "reject",
+      "confidence": 0.006104782034669441,
+      "time": 0.00015783309936523438,
+      "metadata": {
+        "distance": 1.0197365749627352,
+        "threshold": 0.2,
+        "metric": "cosine"
+      }
+    },
+    {
+      "method": "simple_distance_l1",
+      "decision": "reject",
+      "confidence": 0.0,
+      "time": 0.00015687942504882812,
+      "metadata": {
+        "distance": 5098.314453125,
+        "threshold": 0.5,
+        "metric": "l1"
+      }
+    },
+    {
+      "method": "statistical",
+      "decision": "reject",
+      "confidence": 2.5364447805236408e-144,
+      "time": 0.002657651901245117,
+      "metadata": {
+        "ks_statistic": 0.355859375,
+        "ks_pvalue": 2.5364447805236408e-144,
+        "t_statistic": -22.627107466092948,
+        "t_pvalue": 4.0415940016603e-108,
+        "alpha": 0.05
+      }
+    }
+  ],
+  "summary": {
+    "naive_hash": {
+      "accuracy": 0.5,
+      "tpr": 0,
+      "tnr": 1,
+      "fpr": 0,
+      "fnr": 1,
+      "avg_time": 0.0022509098052978516,
+      "avg_confidence": 0.0
+    },
+    "simple_distance_l2": {
+      "accuracy": 0.5,
+      "tpr": 0,
+      "tnr": 1,
+      "fpr": 0,
+      "fnr": 1,
+      "avg_time": 0.0001920461654663086,
+      "avg_confidence": 2.593662708214155e-32
+    },
+    "simple_distance_cosine": {
+      "accuracy": 1.0,
+      "tpr": 1,
+      "tnr": 1,
+      "fpr": 0,
+      "fnr": 0,
+      "avg_time": 0.0001633167266845703,
+      "avg_confidence": 0.47820597216741856
+    },
+    "simple_distance_l1": {
+      "accuracy": 0.5,
+      "tpr": 0,
+      "tnr": 1,
+      "fpr": 0,
+      "fnr": 1,
+      "avg_time": 0.00016236305236816406,
+      "avg_confidence": 2.4806712876182103e-256
+    },
+    "statistical": {
+      "accuracy": 1.0,
+      "tpr": 1,
+      "tnr": 1,
+      "fpr": 0,
+      "fnr": 0,
+      "avg_time": 0.23015189170837402,
+      "avg_confidence": 0.49999133802407675
+    }
+  },
+  "metadata": {
+    "n_samples": 256,
+    "output_dim": 10,
+    "timestamp": "20250815_194729"
+  }
+}

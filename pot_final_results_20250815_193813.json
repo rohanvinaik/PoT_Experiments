@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-08-15T19:38:13.457430",
+  "dependencies": {
+    "Python": true,
+    "NumPy": true,
+    "PyTorch": true,
+    "Transformers": true,
+    "SSDeep": false,
+    "TLSH": false
+  },
+  "test_results": [
+    {
+      "component": "FuzzyHashVerifier",
+      "success": true,
+      "duration": 0.19365715980529785,
+      "stdout_lines": 127,
+      "stderr_lines": 138,
+      "returncode": 0
+    },
+    {
+      "component": "TokenSpaceNormalizer",
+      "success": true,
+      "duration": 6.793310880661011,
+      "stdout_lines": 135,
+      "stderr_lines": 19,
+      "returncode": 0
+    },
+    {
+      "component": "TrainingProvenanceAuditor",
+      "success": true,
+      "duration": 0.33946704864501953,
+      "stdout_lines": 114,
+      "stderr_lines": 1037,
+      "returncode": 0
+    },
+    {
+      "component": "Integrated System",
+      "success": true,
+      "duration": 4.4045000076293945,
+      "stdout_lines": 49,
+      "stderr_lines": 24,
+      "returncode": 0
+    }
+  ],
+  "summary": {
+    "total_tests": 4,
+    "passed_tests": 4,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  }
+}

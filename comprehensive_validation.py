@@ -13,7 +13,7 @@ from typing import List, Dict, Any, Tuple
 import traceback
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__ if "__file__" in locals() else sys.argv[0])))
 
 def print_section(title: str):
     """Print a formatted section header"""
@@ -794,3 +794,5 @@ if __name__ == "__main__":
     validator = ComprehensiveValidator()
     success = validator.run_comprehensive_validation()
     sys.exit(0 if success else 1)
+
+# Missing variable

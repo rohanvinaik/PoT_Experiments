@@ -592,52 +592,43 @@ def test_special_tokens():
 
 def run_all_tests():
     """Run all test functions"""
-    print("\n" + "="*70)
-    print("TOKEN SPACE NORMALIZER - COMPREHENSIVE TEST SUITE")
-    print("="*70)
-    
-    tests = [
-        ("Text Normalization", test_text_normalization),
-        ("Token Sequence Normalization", test_token_sequence_normalization),
-        ("Token Alignment", test_token_alignment),
-        ("Invariant Hash", test_invariant_hash),
-        ("Subword Regularization", test_subword_regularization),
-        ("Unknown Token Handling", test_unknown_token_handling),
-        ("Deterministic Mode", test_deterministic_mode),
-        ("Sampling Methods", test_sampling_methods),
-        ("Semantic Similarity", test_semantic_similarity),
-        ("Generation Variants", test_generation_variants),
-        ("Integrated Verification", test_integrated_verification),
-        ("Caching", test_caching),
-        ("Multilingual Support", test_multilingual_support),
-        ("Special Tokens", test_special_tokens)
+    test_functions = [
+        test_text_normalization,
+        test_token_sequence_normalization,
+        test_token_alignment,
+        test_invariant_hash,
+        test_subword_regularization,
+        test_unknown_token_handling,
+        test_deterministic_mode,
+        test_sampling_methods,
+        test_semantic_similarity,
+        test_generation_variants,
+        test_integrated_verification,
+        test_caching,
+        test_multilingual_support,
+        test_special_tokens
     ]
     
     passed = 0
     failed = 0
     
-    for test_name, test_func in tests:
+    for test_func in test_functions:
         try:
             if test_func():
                 passed += 1
-                print(f"\n✅ {test_name} PASSED")
+                print(f"✓ {test_func.__name__} passed")
             else:
                 failed += 1
-                print(f"\n❌ {test_name} FAILED")
+                print(f"✗ {test_func.__name__} failed")
         except Exception as e:
             failed += 1
-            print(f"\n❌ {test_name} FAILED with exception: {e}")
+            print(f"✗ {test_func.__name__} error: {e}")
     
-    print("\n" + "="*70)
-    print("TEST SUMMARY")
-    print("="*70)
-    print(f"Total tests: {len(tests)}")
-    print(f"Passed: {passed}")
-    print(f"Failed: {failed}")
-    print(f"Success rate: {(passed/len(tests))*100:.1f}%")
+    print(f"\n{'='*70}")
+    print(f"RESULTS: {passed}/{len(test_functions)} tests passed")
+    print(f"{'='*70}")
     
     return failed == 0
-
 
 if __name__ == "__main__":
     success = run_all_tests()

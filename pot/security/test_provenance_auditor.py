@@ -598,60 +598,41 @@ def test_large_history_compression():
 
 def run_all_tests():
     """Run all test functions"""
-    print("\n" + "="*70)
-    print("TRAINING PROVENANCE AUDITOR - TEST SUITE")
-    print("="*70)
-    
-    tests = [
-        ("Basic Event Logging", test_basic_event_logging),
-        ("Merkle Tree Proofs", test_merkle_tree_proofs),
-        ("Zero-Knowledge Proofs", test_zero_knowledge_proofs),
-        ("Blockchain Integration", test_blockchain_integration),
-        ("Provenance Embedding", test_provenance_embedding),
-        ("History Verification", test_history_verification),
-        ("Event Querying", test_event_querying),
-        ("Export/Import", test_export_import),
-        ("Distributed Training", test_distributed_training),
-        ("Corruption Handling", test_corruption_handling),
-        ("Real-time Streaming", test_real_time_streaming),
-        ("Large History Compression", test_large_history_compression)
+    test_functions = [
+        test_basic_event_logging,
+        test_merkle_tree_proofs,
+        test_zero_knowledge_proofs,
+        test_blockchain_integration,
+        test_provenance_embedding,
+        test_history_verification,
+        test_event_querying,
+        test_export_import,
+        test_distributed_training,
+        test_corruption_handling,
+        test_real_time_streaming,
+        test_large_history_compression
     ]
     
     passed = 0
     failed = 0
     
-    for test_name, test_func in tests:
+    for test_func in test_functions:
         try:
             if test_func():
                 passed += 1
-                print(f"\n✅ {test_name} PASSED")
+                print(f"✓ {test_func.__name__} passed")
             else:
                 failed += 1
-                print(f"\n❌ {test_name} FAILED")
+                print(f"✗ {test_func.__name__} failed")
         except Exception as e:
             failed += 1
-            print(f"\n❌ {test_name} FAILED with exception: {e}")
+            print(f"✗ {test_func.__name__} error: {e}")
     
-    print("\n" + "="*70)
-    print("TEST SUMMARY")
-    print("="*70)
-    print(f"Total tests: {len(tests)}")
-    print(f"Passed: {passed}")
-    print(f"Failed: {failed}")
-    print(f"Success rate: {(passed/len(tests))*100:.1f}%")
+    print(f"\n{'='*70}")
+    print(f"RESULTS: {passed}/{len(test_functions)} tests passed")
+    print(f"{'='*70}")
     
-    # Consider test suite passed if at least 70% of tests pass
-    # This accounts for optional features and minor implementation differences
-    success_threshold = 0.7
-    success_rate = passed / len(tests)
-    
-    if success_rate >= success_threshold:
-        print(f"\n✅ TEST SUITE PASSED (>={success_threshold*100:.0f}% success rate)")
-        return True
-    else:
-        print(f"\n❌ TEST SUITE FAILED (<{success_threshold*100:.0f}% success rate)")
-        return False
-
+    return failed == 0
 
 if __name__ == "__main__":
     success = run_all_tests()

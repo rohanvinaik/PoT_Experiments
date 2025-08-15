@@ -1,7 +1,9 @@
-from typing import Iterable, Callable, Tuple, Optional
+from typing import Iterable, Callable, Tuple, Optional, Literal, Dict, Any, List
 import numpy as np
-from math import log
+from math import log, sqrt
 from dataclasses import dataclass
+
+Decision = Literal["continue", "accept_H0", "accept_H1"]
 
 @dataclass
 class SPRTResult:
@@ -159,3 +161,209 @@ def sprt_test(stream: Iterable[float], mu0: float, mu1: float,
         return 'accept_H0', tester.n
     else:
         return 'accept_H1', tester.n
+
+
+# New enhanced implementations
+
+@dataclass
+class EBConfig:
+    """Configuration for Empirical Bernstein test"""
+    delta: float = 0.02     # ~ alpha+beta (confidence parameter)
+    B: float = 1.0          # known bound on distances
+    tau: float = 0.05       # threshold
+
+    def __post_init__(self):
+        assert 0 < self.tau < self.B, f"tau must be in (0, {self.B})"
+        assert 0 < self.delta < 1, "delta must be in (0,1)"
+
+
+def eb_radius(var: float, n: int, delta: float) -> float:
+    """
+    Compute anytime-valid confidence radius
+    
+    Args:
+        var: Sample variance
+        n: Number of observations
+        delta: Confidence parameter
+        
+    Returns:
+        Confidence radius
+    """
+    if n <= 1:
+        return float('inf')
+    return sqrt(2 * var * log(3 / delta) / n) + 3 * log(3 / delta) / n
+
+
+def sequential_eb(stream: Iterable[float], cfg: EBConfig) -> Dict[str, Any]:
+    """
+    Anytime Empirical-Bernstein sequential test
+    
+    Tests H_0: μ ≤ τ vs H_1: μ > τ for bounded distances in [0, B]
+    
+    Args:
+        stream: Iterable of distance observations
+        cfg: EB configuration
+        
+    Returns:
+        Dict with decision, n, and trace
+    """
+    xs = []
+    out = {"trace": [], "decision": "continue", "n": 0}
+    
+    for x in stream:
+        # Clip to [0, B]
+        xs.append(max(0.0, min(cfg.B, float(x))))
+        n = len(xs)
+        m = float(np.mean(xs))
+        v = float(np.var(xs, ddof=1)) if n > 1 else 0.0
+        r = eb_radius(v, n, cfg.delta)
+        
+        out["trace"].append({"n": n, "mean": m, "var": v, "rad": r})
+        
+        # Stopping rules (anytime-valid)
+        if m - r > cfg.tau:
+            out["decision"] = "accept_H1"  # Reject H0
+            out["n"] = n
+            return out
+        if m + r < cfg.tau:
+            out["decision"] = "accept_H0"  # Accept H0
+            out["n"] = n
+            return out
+    
+    out["n"] = len(xs)
+    return out
+
+
+@dataclass 
+class SPRTConfig:
+    """Configuration for enhanced SPRT"""
+    alpha: float = 0.01     # Type I error rate
+    beta: float = 0.01      # Type II error rate
+    tau: float = 0.05       # Threshold to test against
+    eps: float = 0.02       # Separation between H0/H1
+    sigma: float = 0.05     # Fixed or periodic re-estimation
+
+    def __post_init__(self):
+        assert self.eps > 0, "eps must be positive"
+        assert 0 < self.alpha < 1, "alpha must be in (0,1)"
+        assert 0 < self.beta < 1, "beta must be in (0,1)"
+
+
+def sprt(stream: Iterable[float], cfg: SPRTConfig) -> Dict[str, Any]:
+    """
+    Classic SPRT with Gaussian assumption
+    
+    Tests H_0: μ = τ vs H_1: μ = τ + ε
+    
+    Args:
+        stream: Iterable of observations
+        cfg: SPRT configuration
+        
+    Returns:
+        Dict with decision, n, A, B, and trace
+    """
+    A = log((1 - cfg.beta) / cfg.alpha)
+    B = log(cfg.beta / (1 - cfg.alpha))
+    mu0, mu1 = cfg.tau, cfg.tau + cfg.eps
+    llr = 0.0
+    n = 0
+    trace = []
+    
+    for x in stream:
+        n += 1
+        # Gaussian LLR with known sigma
+        llr += ((x - mu0)**2 - (x - mu1)**2) / (2 * cfg.sigma**2)
+        trace.append({"n": n, "llr": llr})
+        
+        if llr >= A:
+            return {"decision": "accept_H1", "n": n, "A": A, "B": B, "trace": trace}
+        if llr <= B:
+            return {"decision": "accept_H0", "n": n, "A": A, "B": B, "trace": trace}
+    
+    return {"decision": "continue", "n": n, "A": A, "B": B, "trace": trace}
+
+
+class UnifiedSequentialTester:
+    """Unified interface for all sequential testing methods"""
+    
+    def __init__(self, method: str = "eb", **kwargs):
+        """
+        Initialize sequential tester
+        
+        Args:
+            method: One of "eb", "sprt", or "legacy"
+            **kwargs: Configuration parameters for chosen method
+        """
+        self.method = method.lower()
+        self.observations = []
+        self.decisions = []
+        
+        if method == "eb":
+            self.config = EBConfig(**kwargs)
+        elif method == "sprt":
+            self.config = SPRTConfig(**kwargs)
+        elif method == "legacy":
+            # Use original SequentialTester
+            self.tester = SequentialTester(**kwargs)
+        else:
+            raise ValueError(f"Unknown method: {method}")
+    
+    def update(self, observation: float) -> Tuple[Decision, Dict[str, Any]]:
+        """
+        Update with new observation and return decision
+        
+        Args:
+            observation: New data point
+            
+        Returns:
+            (decision, metadata)
+        """
+        self.observations.append(observation)
+        
+        if self.method == "eb":
+            result = sequential_eb(iter(self.observations), self.config)
+            decision = result["decision"]
+            metadata = {
+                "n": result["n"],
+                "trace": result["trace"][-1] if result["trace"] else {}
+            }
+        elif self.method == "sprt":
+            result = sprt(iter(self.observations), self.config)
+            decision = result["decision"]
+            metadata = {
+                "n": result["n"],
+                "A": result["A"],
+                "B": result["B"],
+                "trace": result["trace"][-1] if result["trace"] else {}
+            }
+        elif self.method == "legacy":
+            result = self.tester.update(observation)
+            decision = result.decision
+            metadata = {
+                "n": result.n_samples,
+                "llr": result.log_likelihood_ratio
+            }
+        
+        self.decisions.append({
+            "n": len(self.observations),
+            "decision": decision,
+            **metadata
+        })
+        
+        return decision, metadata
+    
+    def get_trace(self) -> List[Dict[str, Any]]:
+        """Get full decision trace"""
+        return self.decisions
+    
+    def reset(self):
+        """Reset tester state"""
+        self.observations = []
+        self.decisions = []
+        if self.method == "legacy":
+            self.tester = SequentialTester(
+                self.tester.alpha, 
+                self.tester.beta,
+                self.tester.tau0,
+                self.tester.tau1
+            )

@@ -13,7 +13,7 @@ import sys
 import os
 
 # Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__ if "__file__" in locals() else sys.argv[0])))
 
 @dataclass
 class ExperimentResult:

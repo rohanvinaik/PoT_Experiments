@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper function to replace bc with Python
+py_rate() {
+    python3 -c "import sys; ok,total=float(sys.argv[1]),float(sys.argv[2]); print(f'{(ok/total)*100:.1f}')" "$1" "$2"
+}
 
 # Proof-of-Training Comprehensive Experimental Validator
 # This script runs all tests and experiments to validate the complete PoT system
-
-# set -e  # Exit on error (commented out to allow partial failures)
 
 # Colors for output
 RED='\033[0;31m'
@@ -640,7 +644,7 @@ TEST RESULTS
 Total Tests: ${TOTAL_TESTS}
 Passed: ${PASSED_TESTS}
 Failed: ${FAILED_TESTS}
-Success Rate: $(echo "scale=1; ${PASSED_TESTS}*100/${TOTAL_TESTS}" | bc)%
+Success Rate: $(py_rate ${PASSED_TESTS} ${TOTAL_TESTS})%
 
 COMPONENT TESTS
 ---------------

@@ -1,52 +1,10 @@
 {
-  "total": 9,
-  "passed": 6,
-  "failed": 3,
-  "tests": [
+  "timestamp": "2025-08-15T19:34:03.692470",
+  "experiments": [
     {
-      "name": "Empirical Bernstein Bounds (Theorem 1)",
-      "passed": true,
-      "details": "n=10: [0.105, 0.882], covers=True; n=50: [0.382, 0.584], covers=True"
-    },
-    {
-      "name": "Sequential Probability Ratio Test (Algorithm 1)",
-      "passed": true,
-      "details": "H0:True, H1:True, ESS:True"
-    },
-    {
-      "name": "KDF and Challenge Governance (Algorithm 3)",
-      "passed": true,
-      "details": "9/9 checks passed"
-    },
-    {
-      "name": "Challenge Generation Protocol",
-      "passed": true,
-      "details": "10/10 challenge tests"
-    },
-    {
-      "name": "N-gram Fuzzy Hashing (Definition 1)",
-      "passed": true,
-      "details": "9/9 tests, sim=0.33"
-    },
-    {
-      "name": "LM Verifier with Time Tolerance",
-      "passed": false,
-      "details": "4/4 LM tests"
-    },
-    {
-      "name": "Vision Verifier with Perceptual Distance",
-      "passed": true,
-      "details": "8/9 vision tests"
-    },
-    {
-      "name": "Coverage-Separation Trade-off Optimization",
-      "passed": false,
-      "details": "9/10 tests, coverage=0.55"
-    },
-    {
-      "name": "Wrapper Attack Detection",
-      "passed": false,
-      "details": "8/9 tests, wrapper_detected=True"
-    }
-  ]
-}
+      "name": "Verification Types",
+      "data": [
+        {
+          "type": "exact",
+          "depth": "quick",
+          "verified": 

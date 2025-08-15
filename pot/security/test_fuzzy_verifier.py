@@ -350,56 +350,37 @@ def test_statistics_and_reporting():
 
 def run_all_tests():
     """Run all test functions"""
-    print("\n" + "="*70)
-    print("FUZZY HASH VERIFIER - COMPREHENSIVE TEST SUITE")
-    print("="*70)
-    
-    tests = [
-        ("Basic Verification", test_basic_verification),
-        ("Batch Verification", test_batch_verification),
-        ("Reference Storage", test_reference_storage),
-        ("Threshold Adjustment", test_threshold_adjustment),
-        ("Multiple Algorithms", test_multiple_algorithms),
-        ("ChallengeVector Integration", test_challenge_vector_integration),
-        ("Error Handling", test_error_handling),
-        ("Statistics and Reporting", test_statistics_and_reporting)
+    test_functions = [
+        test_basic_verification,
+        test_batch_verification,
+        test_reference_storage,
+        test_threshold_adjustment,
+        test_multiple_algorithms,
+        test_challenge_vector_integration,
+        test_error_handling,
+        test_statistics_and_reporting
     ]
     
     passed = 0
     failed = 0
     
-    for test_name, test_func in tests:
+    for test_func in test_functions:
         try:
             if test_func():
                 passed += 1
-                print(f"\n✅ {test_name} PASSED")
+                print(f"✓ {test_func.__name__} passed")
             else:
                 failed += 1
-                print(f"\n❌ {test_name} FAILED")
+                print(f"✗ {test_func.__name__} failed")
         except Exception as e:
             failed += 1
-            print(f"\n❌ {test_name} FAILED with exception: {e}")
+            print(f"✗ {test_func.__name__} error: {e}")
     
-    print("\n" + "="*70)
-    print("TEST SUMMARY")
-    print("="*70)
-    print(f"Total tests: {len(tests)}")
-    print(f"Passed: {passed}")
-    print(f"Failed: {failed}")
-    print(f"Success rate: {(passed/len(tests))*100:.1f}%")
+    print(f"\n{'='*70}")
+    print(f"RESULTS: {passed}/{len(test_functions)} tests passed")
+    print(f"{'='*70}")
     
-    # Consider test suite passed if at least 70% of tests pass
-    # This accounts for optional dependencies not being installed
-    success_threshold = 0.7
-    success_rate = passed / len(tests)
-    
-    if success_rate >= success_threshold:
-        print(f"\n✅ TEST SUITE PASSED (>={success_threshold*100:.0f}% success rate)")
-        return True
-    else:
-        print(f"\n❌ TEST SUITE FAILED (<{success_threshold*100:.0f}% success rate)")
-        return False
-
+    return failed == 0
 
 if __name__ == "__main__":
     success = run_all_tests()

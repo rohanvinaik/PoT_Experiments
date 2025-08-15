@@ -1,0 +1,1 @@
+{"challenge_id": "e4891ff3ad498011ff4c2e8e87ace4fc", "family": "lm:templates", "n": 512, "items_hash": "e4d234656ee3dd9145d86f4000c4bbce60348199046fd0f536d94c5fcdaf7eb6", "fingerprint_type": "io_hash", "salt": "d73175d5b114b931516abf81005aa3ce", "metadata": {"config": "configs/lm_small.yaml", "session_nonce": "05a92eef03ae508b0e2ac11d3a226672"}}
