@@ -8,10 +8,7 @@ import time
 import numpy as np
 
 # Add parent directory to path
-# Add parent directory to path for imports
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path.cwd().parent if Path.cwd().name == 'scripts' else Path.cwd()))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pot.security.proof_of_training import ProofOfTraining
 

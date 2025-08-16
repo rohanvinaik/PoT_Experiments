@@ -10,10 +10,7 @@ from datetime import datetime
 
 # Add parent directory to path
 import os
-# Add parent directory to path for imports
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path.cwd().parent if Path.cwd().name == 'scripts' else Path.cwd()))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import PoT components
 try:
@@ -274,10 +271,9 @@ if __name__ == "__main__":
     print("Starting comprehensive experimental validation...")
     results = run_experiments()
     
-    # Save results with custom encoder
-    from pot.core.jsonenc import NpTorchEncoder
+    # Save results
     with open('validation_results.json', 'w') as f:
-        json.dump(results, f, indent=2, cls=NpTorchEncoder)
+        json.dump(results, f, indent=2)
     
     print("\n=== VALIDATION COMPLETE ===")
     print(f"Results saved to validation_results.json")
