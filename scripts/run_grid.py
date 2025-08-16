@@ -35,54 +35,58 @@ except ImportError:
 
 class ResourceMonitor:
     """Monitor system resources during experiments"""
-    
-    def __init__(self):
+
+    def __init__(self, cpu_only: bool = False):
         self.start_time = None
         self.start_memory = None
         self.peak_memory = 0
         self.gpu_memory_allocated = 0
-        
+        self.cpu_only = cpu_only
+
     def start(self):
         self.start_time = time.time()
         self.start_memory = psutil.virtual_memory().used
-        if HAS_TORCH and torch.cuda.is_available():
+        if HAS_TORCH and not self.cpu_only and torch.cuda.is_available():
             torch.cuda.reset_peak_memory_stats()
             self.gpu_memory_allocated = torch.cuda.memory_allocated()
-    
+
     def snapshot(self):
         current_memory = psutil.virtual_memory().used
         self.peak_memory = max(self.peak_memory, current_memory - self.start_memory)
-        
+
         metrics = {
             "elapsed_seconds": time.time() - self.start_time if self.start_time else 0,
             "memory_mb": (current_memory - self.start_memory) / 1024 / 1024 if self.start_memory else 0,
             "peak_memory_mb": self.peak_memory / 1024 / 1024,
             "cpu_percent": psutil.cpu_percent()
         }
-        
-        if HAS_TORCH and torch.cuda.is_available():
+
+        if HAS_TORCH and not self.cpu_only and torch.cuda.is_available():
             metrics.update({
                 "gpu_memory_allocated_mb": torch.cuda.memory_allocated() / 1024 / 1024,
                 "gpu_memory_reserved_mb": torch.cuda.memory_reserved() / 1024 / 1024,
                 "gpu_peak_memory_mb": torch.cuda.max_memory_allocated() / 1024 / 1024
             })
-        
+
         return metrics
 
-def load_production_model(model_config, device="auto"):
+def load_production_model(model_config, device="auto", cpu_only: bool = False):
     """Load production-scale models with proper resource management"""
-    
+
     if not HAS_TORCH:
         raise RuntimeError("PyTorch required for production model loading")
-    
+
+    if cpu_only:
+        device = "cpu"
+
     model_type = model_config.get("type", "huggingface")
     model_name = model_config.get("name", model_config.get("arch"))
-    
+
     try:
         if model_type == "huggingface" or "llama" in model_name.lower():
             # Load large language models
             from transformers import AutoModel, AutoTokenizer, BitsAndBytesConfig
-            
+
             # Configure quantization if specified
             quantization_config = None
             if model_config.get("torch_dtype") == "float16":
@@ -95,47 +99,52 @@ def load_production_model(model_config, device="auto"):
                 dtype = None
             else:
                 dtype = torch.float32
-            
+
             # Load model with device mapping
+            device_map = None if cpu_only else model_config.get("device_map", "auto")
             model = AutoModel.from_pretrained(
                 model_name,
-                device_map=model_config.get("device_map", "auto"),
+                device_map=device_map,
                 torch_dtype=dtype,
                 quantization_config=quantization_config,
                 low_cpu_mem_usage=model_config.get("low_cpu_mem_usage", True),
                 trust_remote_code=True
             )
-            
+
             # Load tokenizer
             tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
             if tokenizer.pad_token is None:
                 tokenizer.pad_token = tokenizer.eos_token
-                
+
+            if device != "auto":
+                model = model.to(device)
+
             return {"model": model, "tokenizer": tokenizer, "type": "language"}
-            
+
         else:
             # Load vision models
             import torchvision.models as models
-            
+
             arch = model_config.get("arch", "resnet50")
             pretrained = model_config.get("pretrained", True)
-            
+
             if hasattr(models, arch):
                 model = getattr(models, arch)(pretrained=pretrained)
             else:
                 raise ValueError(f"Unknown architecture: {arch}")
-            
+
             # Apply device placement
             if device != "auto":
                 model = model.to(device)
-            elif torch.cuda.is_available():
+            elif not cpu_only and torch.cuda.is_available():
                 model = model.cuda()
-            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            elif (not cpu_only and hasattr(torch.backends, 'mps')
+                  and torch.backends.mps.is_available()):
                 model = model.to('mps')
-                
+
             model.eval()
             return {"model": model, "type": "vision"}
-            
+
     except Exception as e:
         print(f"Warning: Failed to load production model {model_name}: {e}")
         # Fallback to simple model
@@ -158,7 +167,18 @@ def main():
     parser.add_argument("--max_memory_gb", type=int, default=32, help="Maximum memory usage in GB")
     parser.add_argument("--device", default="auto", help="Device placement strategy")
     parser.add_argument("--enable_monitoring", action="store_true", help="Enable resource monitoring")
+    parser.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="Run on CPU only and avoid CUDA initialization",
+    )
     args = parser.parse_args()
+
+    if args.cpu_only:
+        import os
+
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        args.device = "cpu"
     
     # Load config
     with open(args.config) as f:
@@ -167,7 +187,7 @@ def main():
     # Setup logging
     exp_name = config['experiment']
     logger = StructuredLogger(f"{args.output_dir}/{exp_name}/{args.exp}")
-    monitor = ResourceMonitor() if args.enable_monitoring else None
+    monitor = ResourceMonitor(cpu_only=args.cpu_only) if args.enable_monitoring else None
     
     if monitor:
         monitor.start()
@@ -183,21 +203,21 @@ def main():
     if lm_cfg:
         # Language model configuration
         reference_config = lm_cfg.get("reference", {})
-        reference_model = load_production_model(reference_config, args.device)
-        
+        reference_model = load_production_model(reference_config, args.device, cpu_only=args.cpu_only)
+
         test_models = []
         for variant in lm_cfg.get("variants", []):
-            variant_model = load_production_model(variant, args.device)
+            variant_model = load_production_model(variant, args.device, cpu_only=args.cpu_only)
             test_models.append((variant.get("type", "unknown"), variant_model))
-            
+
     else:
-        # Vision model configuration  
+        # Vision model configuration
         reference_config = models_cfg.get("reference", {})
-        reference_model = load_production_model(reference_config, args.device)
-        
+        reference_model = load_production_model(reference_config, args.device, cpu_only=args.cpu_only)
+
         test_models = []
         for variant in models_cfg.get("variants", []):
-            variant_model = load_production_model(variant, args.device)
+            variant_model = load_production_model(variant, args.device, cpu_only=args.cpu_only)
             test_models.append((variant.get("type", "unknown"), variant_model))
 
     # Challenge configuration

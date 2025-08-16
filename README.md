@@ -13,6 +13,19 @@ Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
 Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
 
+### Running on CPU
+
+The main run scripts support a `--cpu-only` flag that disables CUDA initialization and forces all models to load on the CPU. This is useful when no GPU is available or for debugging purposes.
+
+Example CPU-only invocations:
+
+```bash
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1 --cpu-only
+python scripts/run_verify.py --config configs/vision_cifar10.yaml --challenge_family vision:texture --n 256 --cpu-only
+```
+
+The same flag is available for other scripts such as `run_attack.py`.
+
 ## Relation to Proof-of-Learning
 
 PoT offers statistical model-identity checks and complements cryptographic Proof-of-Learning (PoL) systems that attest to training provenance. PoL schemes require access to training traces or commitments and have recently improved via polynomial commitments and gradient compression, while PoT operates post-hoc on black-box models. Combining PoT with PoL can bind behavioral fingerprints to verifiable training histories.
