@@ -10,7 +10,8 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 - Outperforms simple distance baselines (E6).
 - Fuzzy hashing outperforms exact token matching on sample LMs ([docs/lm_hashing_benchmark.md](docs/lm_hashing_benchmark.md)).
 
-Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
+Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)). Consolidated outputs from the latest run are
+available in `pot_final_results_20250815_193813.json`.
 
 ### Reproducible environment
 
@@ -116,6 +117,9 @@ the full suite with:
 ```bash
 pytest -q
 ```
+
+On a CPU-only environment with the pinned dependencies, this command currently reports
+`92 passed, 3 skipped` in about one minute.
 
 ### Adding tests
 
