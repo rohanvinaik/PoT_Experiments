@@ -14,11 +14,11 @@ The PoT system consists of two main components:
    - `pot/lm/`: Language model experiments
    - `pot/eval/`: Evaluation metrics and baselines
 
-2. **Security Components** (`pot/security/`): Production-ready verification components
+2. **Security Components** (`pot/security/`): Prototype verification components
    - Fuzzy hash verification
-   - Training provenance auditing
    - Token space normalization
    - Integrated proof-of-training system
+   - Training provenance auditing (experimental, see `pot/prototypes/`)
 
 ## Quick Start Guide
 
@@ -171,7 +171,7 @@ is_valid = verifier.verify_against_stored('model_v1', new_output)
 Use to track and verify training history:
 
 ```python
-from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType
+from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor, EventType
 
 # Initialize auditor
 auditor = TrainingProvenanceAuditor(model_id="your_model_id")
@@ -449,6 +449,7 @@ class VerifiedModel(pl.LightningModule):
 
 - **Experimental Framework**: `pot/core/`, `pot/vision/`, `pot/lm/`, `pot/eval/`
 - **Security Components**: `pot/security/`
+- **Prototypes**: `pot/prototypes/`
 - **Configurations**: `configs/`
 - **Experiment Scripts**: `scripts/`
 - **Tests**: `pot/security/test_*.py`
