@@ -11,7 +11,7 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 
 Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
-Note: “Security components” under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
+Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
 
 ## Relation to Proof-of-Learning
 
