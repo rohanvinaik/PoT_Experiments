@@ -214,6 +214,10 @@ def prf_floats(key: bytes, info: bytes, count: int, min_val: float = 0.0, max_va
     if min_val >= max_val:
         raise ValueError("min_val must be less than max_val")
     
+    # Handle empty case
+    if count == 0:
+        return []
+    
     # Generate random bytes (8 bytes per float for double precision)
     random_bytes = prf_bytes(key, info, count * 8)
     

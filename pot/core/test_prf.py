@@ -2,6 +2,7 @@
 
 import sys
 import os
+import struct
 import numpy as np
 from pathlib import Path
 from collections import Counter
@@ -15,7 +16,7 @@ except ImportError:
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from pot.core.prf import (
-    prf_derive_key, prf_bytes, prf_derive_seed,
+    prf_derive_key, prf_bytes, prf_derive_seed, prf_expand,
     prf_integers, prf_floats, prf_choice, prf_shuffle
 )
 from pot.core.challenge import ChallengeConfig, generate_challenges, generate_challenges_legacy
@@ -357,6 +358,411 @@ def visualize_distributions():
     plt.close()
 
 
+def test_prf_bytes_edge_cases():
+    """Test prf_bytes with edge cases and boundary conditions."""
+    print("Testing prf_bytes edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"test_info"
+    
+    # Test zero-length output (should raise error)
+    try:
+        prf_bytes(key, info, 0)
+        assert False, "Should raise error for zero length"
+    except ValueError:
+        pass
+    
+    # Test negative length (should raise error)
+    try:
+        prf_bytes(key, info, -1)
+        assert False, "Should raise error for negative length"
+    except ValueError:
+        pass
+    
+    # Test single byte
+    single = prf_bytes(key, info, 1)
+    assert len(single) == 1
+    assert isinstance(single, bytes)
+    
+    # Test exact block size (32 bytes for SHA256)
+    block = prf_bytes(key, info, 32)
+    assert len(block) == 32
+    
+    # Test one byte more than block size
+    block_plus = prf_bytes(key, info, 33)
+    assert len(block_plus) == 33
+    
+    # Test large output (multiple blocks)
+    large = prf_bytes(key, info, 1000)
+    assert len(large) == 1000
+    
+    # Test very large output (stress test)
+    very_large = prf_bytes(key, info, 100000)
+    assert len(very_large) == 100000
+    
+    # Test empty info
+    empty_info = prf_bytes(key, b"", 100)
+    assert len(empty_info) == 100
+    
+    # Test different info produces different output
+    info1 = prf_bytes(key, b"info1", 100)
+    info2 = prf_bytes(key, b"info2", 100)
+    assert info1 != info2
+    
+    # Test incremental generation consistency
+    # First 50 bytes should match when generating 100 bytes
+    first_50 = prf_bytes(key, info, 50)
+    first_100 = prf_bytes(key, info, 100)
+    assert first_100[:50] == first_50
+    
+    print("✓ prf_bytes edge cases handled correctly")
+    return True
+
+
+def test_prf_expand_edge_cases():
+    """Test prf_expand with edge cases and key expansion properties."""
+    print("Testing prf_expand edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"expand_info"
+    
+    # Test zero-length output (should raise error)
+    try:
+        prf_expand(key, info, 0)
+        assert False, "Should raise error for zero length"
+    except ValueError:
+        pass
+    
+    # Test negative length (should raise error)
+    try:
+        prf_expand(key, info, -1)
+        assert False, "Should raise error for negative length"
+    except ValueError:
+        pass
+    
+    # Test small outputs (should use direct PRF)
+    small = prf_expand(key, info, 16)
+    assert len(small) == 16
+    
+    # Test exactly 32 bytes (threshold)
+    exact_32 = prf_expand(key, info, 32)
+    assert len(exact_32) == 32
+    
+    # Test just over threshold (33 bytes, should use xxhash)
+    over_32 = prf_expand(key, info, 33)
+    assert len(over_32) == 33
+    
+    # Test large expansion
+    large = prf_expand(key, info, 10000)
+    assert len(large) == 10000
+    
+    # Test determinism
+    expand1 = prf_expand(key, info, 1000)
+    expand2 = prf_expand(key, info, 1000)
+    assert expand1 == expand2
+    
+    # Test different info produces different output
+    expand_a = prf_expand(key, b"info_a", 1000)
+    expand_b = prf_expand(key, b"info_b", 1000)
+    assert expand_a != expand_b
+    
+    # Test key sensitivity
+    key2 = b"different_key_32_bytes_padded!!"
+    expand_key1 = prf_expand(key, info, 1000)
+    expand_key2 = prf_expand(key2, info, 1000)
+    assert expand_key1 != expand_key2
+    
+    # Test expansion doesn't repeat patterns
+    expanded = prf_expand(key, info, 256)
+    # Check no obvious 8-byte patterns (xxhash block size)
+    for i in range(0, len(expanded) - 16, 8):
+        assert expanded[i:i+8] != expanded[i+8:i+16], "Expansion has repeating pattern"
+    
+    print("✓ prf_expand edge cases handled correctly")
+    return True
+
+
+def test_prf_integers_edge_cases():
+    """Test prf_integers with edge cases and boundary conditions."""
+    print("Testing prf_integers edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"int_test"
+    
+    # Test invalid range (min >= max)
+    try:
+        prf_integers(key, info, 10, 5, 5)
+        assert False, "Should raise error when min_val >= max_val"
+    except ValueError:
+        pass
+    
+    try:
+        prf_integers(key, info, 10, 10, 5)
+        assert False, "Should raise error when min_val > max_val"
+    except ValueError:
+        pass
+    
+    # Test single value range [0, 1)
+    singles = prf_integers(key, info, 100, 0, 1)
+    assert all(x == 0 for x in singles)
+    
+    # Test small range [0, 2)
+    binary = prf_integers(key, info, 1000, 0, 2)
+    assert all(x in [0, 1] for x in binary)
+    # Check roughly balanced
+    count_0 = sum(1 for x in binary if x == 0)
+    assert 400 < count_0 < 600, f"Binary distribution skewed: {count_0}/1000"
+    
+    # Test negative range
+    negatives = prf_integers(key, info, 100, -50, -30)
+    assert all(-50 <= x < -30 for x in negatives)
+    
+    # Test range crossing zero
+    crossing = prf_integers(key, info, 100, -10, 10)
+    assert all(-10 <= x < 10 for x in crossing)
+    
+    # Test large range
+    large_range = prf_integers(key, info, 100, 0, 1000000)
+    assert all(0 <= x < 1000000 for x in large_range)
+    
+    # Test count edge cases
+    zero_count = prf_integers(key, info, 0, 0, 100)
+    assert len(zero_count) == 0
+    
+    one_count = prf_integers(key, info, 1, 0, 100)
+    assert len(one_count) == 1
+    
+    # Test determinism with different ranges
+    ints1 = prf_integers(key, info, 50, 10, 20)
+    ints2 = prf_integers(key, info, 50, 10, 20)
+    assert ints1 == ints2
+    
+    # Test uniformity in small range
+    small_range = prf_integers(key, info, 10000, 0, 10)
+    counts = Counter(small_range)
+    for i in range(10):
+        assert 900 < counts[i] < 1100, f"Non-uniform distribution at {i}: {counts[i]}"
+    
+    print("✓ prf_integers edge cases handled correctly")
+    return True
+
+
+def test_prf_floats_edge_cases():
+    """Test prf_floats with edge cases and precision tests."""
+    print("Testing prf_floats edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"float_test"
+    
+    # Test invalid range (min >= max)
+    try:
+        prf_floats(key, info, 10, 1.0, 1.0)
+        assert False, "Should raise error when min_val >= max_val"
+    except ValueError:
+        pass
+    
+    try:
+        prf_floats(key, info, 10, 2.0, 1.0)
+        assert False, "Should raise error when min_val > max_val"
+    except ValueError:
+        pass
+    
+    # Test standard [0, 1) range
+    standard = prf_floats(key, info, 1000)
+    assert all(0.0 <= x < 1.0 for x in standard)
+    assert min(standard) >= 0.0
+    assert max(standard) < 1.0
+    
+    # Test very small range
+    small_range = prf_floats(key, info, 100, 0.0, 0.001)
+    assert all(0.0 <= x < 0.001 for x in small_range)
+    
+    # Test negative range
+    negative = prf_floats(key, info, 100, -2.0, -1.0)
+    assert all(-2.0 <= x < -1.0 for x in negative)
+    
+    # Test range crossing zero
+    crossing = prf_floats(key, info, 100, -0.5, 0.5)
+    assert all(-0.5 <= x < 0.5 for x in crossing)
+    
+    # Test large range
+    large = prf_floats(key, info, 100, 0.0, 1000000.0)
+    assert all(0.0 <= x < 1000000.0 for x in large)
+    
+    # Test precision (no exact 1.0 in [0, 1))
+    many_floats = prf_floats(key, info, 10000, 0.0, 1.0)
+    assert 1.0 not in many_floats
+    assert all(x < 1.0 for x in many_floats)
+    
+    # Test determinism
+    floats1 = prf_floats(key, info, 100, 0.5, 1.5)
+    floats2 = prf_floats(key, info, 100, 0.5, 1.5)
+    assert floats1 == floats2
+    
+    # Test zero count
+    zero_count = prf_floats(key, info, 0, 0.0, 1.0)
+    assert len(zero_count) == 0
+    
+    # Test distribution mean and variance
+    uniform = prf_floats(key, info, 10000, 0.0, 1.0)
+    mean = np.mean(uniform)
+    var = np.var(uniform)
+    # For uniform [0,1), mean should be ~0.5, variance ~1/12
+    assert 0.48 < mean < 0.52, f"Mean {mean} not near 0.5"
+    assert 0.08 < var < 0.09, f"Variance {var} not near 1/12"
+    
+    print("✓ prf_floats edge cases handled correctly")
+    return True
+
+
+def test_prf_choice_edge_cases():
+    """Test prf_choice with edge cases and various list sizes."""
+    print("Testing prf_choice edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"choice_test"
+    
+    # Test empty list (should raise error)
+    try:
+        prf_choice(key, info, [])
+        assert False, "Should raise error for empty choices"
+    except ValueError:
+        pass
+    
+    # Test single item
+    single = [42]
+    for i in range(10):
+        chosen = prf_choice(key, info + bytes([i]), single)
+        assert chosen == 42
+    
+    # Test two items
+    binary = ["A", "B"]
+    selections = [prf_choice(key, info + struct.pack('>I', i), binary) for i in range(1000)]
+    count_a = sum(1 for x in selections if x == "A")
+    assert 400 < count_a < 600, f"Binary choice biased: {count_a}/1000"
+    
+    # Test various data types
+    mixed = [1, "string", 3.14, None, True, [1, 2], {"key": "value"}]
+    chosen = prf_choice(key, info, mixed)
+    assert chosen in mixed
+    
+    # Test large list
+    large_list = list(range(1000))
+    chosen = prf_choice(key, info, large_list)
+    assert 0 <= chosen < 1000
+    
+    # Test determinism
+    choices = ["a", "b", "c", "d", "e"]
+    choice1 = prf_choice(key, info, choices)
+    choice2 = prf_choice(key, info, choices)
+    assert choice1 == choice2
+    
+    # Test different info produces different choices (usually)
+    choices_made = set()
+    for i in range(100):
+        chosen = prf_choice(key, info + bytes([i]), choices)
+        choices_made.add(chosen)
+    assert len(choices_made) > 1, "Should select different items with different info"
+    
+    # Test uniform distribution over many selections
+    choices = list(range(10))
+    selections = [prf_choice(key, info + struct.pack('>I', i), choices) for i in range(10000)]
+    counts = Counter(selections)
+    for choice in choices:
+        assert 900 < counts[choice] < 1100, f"Choice {choice} non-uniform: {counts[choice]}"
+    
+    print("✓ prf_choice edge cases handled correctly")
+    return True
+
+
+def test_prf_shuffle_edge_cases():
+    """Test prf_shuffle with edge cases and permutation properties."""
+    print("Testing prf_shuffle edge cases...")
+    
+    key = b"test_key_32_bytes_padded_here!!!"
+    info = b"shuffle_test"
+    
+    # Test empty list
+    empty = []
+    shuffled = prf_shuffle(key, info, empty)
+    assert shuffled == []
+    
+    # Test single item
+    single = [42]
+    shuffled = prf_shuffle(key, info, single)
+    assert shuffled == [42]
+    
+    # Test two items
+    two = [1, 2]
+    # Should sometimes swap
+    swapped = False
+    for i in range(20):
+        shuffled = prf_shuffle(key, info + bytes([i]), two)
+        if shuffled == [2, 1]:
+            swapped = True
+            break
+    assert swapped, "Two-element list never swapped in 20 tries"
+    
+    # Test preservation of elements
+    original = list(range(100))
+    shuffled = prf_shuffle(key, info, original)
+    assert sorted(shuffled) == original
+    assert shuffled != original, "100-element list not shuffled"
+    
+    # Test determinism
+    items = list(range(50))
+    shuffle1 = prf_shuffle(key, info, items)
+    shuffle2 = prf_shuffle(key, info, items)
+    assert shuffle1 == shuffle2
+    
+    # Test different info produces different shuffle
+    shuffle_a = prf_shuffle(key, b"info_a", items)
+    shuffle_b = prf_shuffle(key, b"info_b", items)
+    assert shuffle_a != shuffle_b
+    
+    # Test that it's a proper permutation (no duplicates)
+    items = list(range(1000))
+    shuffled = prf_shuffle(key, info, items)
+    assert len(shuffled) == len(items)
+    assert len(set(shuffled)) == len(items)
+    
+    # Test quality of shuffle (no obvious patterns)
+    # Check that elements don't stay in their original positions too often
+    stay_count = sum(1 for i, x in enumerate(shuffled) if i == x)
+    # For random permutation, expect ~1/e ≈ 0.368 to stay in place
+    # We allow generous bounds
+    assert stay_count < 50, f"Too many elements stayed in place: {stay_count}/1000"
+    
+    print("✓ prf_shuffle edge cases handled correctly")
+    return True
+
+
+def test_error_handling():
+    """Test error handling for invalid inputs."""
+    print("Testing error handling...")
+    
+    # Test with invalid key sizes (PRF functions should handle any size)
+    short_key = b"short"
+    long_key = b"very" * 100
+    info = b"test"
+    
+    # These should work with any key size
+    prf_bytes(short_key, info, 10)
+    prf_bytes(long_key, info, 10)
+    
+    # Test with None inputs where applicable
+    key = b"test_key_32_bytes_padded_here!!!"
+    
+    # Most functions should handle empty info
+    prf_bytes(key, b"", 10)
+    prf_expand(key, b"", 10)
+    prf_integers(key, b"", 5, 0, 10)
+    prf_floats(key, b"", 5)
+    
+    print("✓ Error handling works correctly")
+    return True
+
+
 def run_all_tests():
     """Run all PRF tests."""
     print("=" * 60)
@@ -370,7 +776,15 @@ def run_all_tests():
         test_prf_uniformity,
         test_prf_independence,
         test_prf_functions,
-        test_compatibility
+        test_compatibility,
+        # Edge case tests
+        test_prf_bytes_edge_cases,
+        test_prf_expand_edge_cases,
+        test_prf_integers_edge_cases,
+        test_prf_floats_edge_cases,
+        test_prf_choice_edge_cases,
+        test_prf_shuffle_edge_cases,
+        test_error_handling
     ]
     
     passed = 0
