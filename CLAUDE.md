@@ -40,12 +40,29 @@ PoT_Experiments/
   - `SequentialTester`: SPRT-based early stopping
   - `sequential_verify`: Complete verification with audit trail
   - Asymmetric error control (α, β)
-- **Fingerprinting** (`fingerprint.py`): Behavioral fingerprints
-  - I/O hashing for deterministic outputs
-  - Jacobian analysis for gradient-based fingerprints
+- **Behavioral Fingerprinting** (`fingerprint.py`): Comprehensive model fingerprinting system
+  - `FingerprintConfig`: Configuration with parameter tuning guidelines
+  - `FingerprintResult`: Dataclass storing IO hash, Jacobian sketch, timing
+  - `fingerprint_run`: Main function to compute behavioral fingerprints
+  - **IO Fingerprinting**: Hash-based signatures of canonicalized outputs
+  - **Jacobian Analysis**: Gradient structure capture via sketching
+    - `jacobian_sign_hash`: Sign pattern compression (most robust)
+    - `jacobian_magnitude_sketch`: Scale-preserving sketch
+    - `compute_jacobian_sketch`: Integrated sketch computation
+  - **Comparison Utilities**:
+    - `compare_fingerprints`: Weighted similarity scoring
+    - `fingerprint_distance`: Multiple distance metrics
+    - `is_behavioral_match`: Binary decision with threshold
+    - `batch_compare_fingerprints`: Efficient batch processing
+    - `find_closest_match`: Best match from candidates
+  - **Canonicalization Integration**: Ensures reproducible comparisons
+  - **Performance**: Sub-100ms for IO, ~500ms with Jacobian
 - **Canonicalization** (`canonicalize.py`): Normalization for robust comparison
   - `canonicalize_number`: Numeric precision normalization
   - `canonicalize_text`: Text/token normalization
+  - `canonicalize_logits`: Handle NaN/Inf in neural network outputs
+  - `canonicalize_model_output`: Auto-detect and process various output types
+  - `canonicalize_batch_outputs`: Batch processing with deterministic ordering
 - **Statistics** (`stats.py`): Statistical testing utilities
   - `empirical_bernstein_bound`: Confidence intervals
   - `t_statistic`: Test statistics computation
@@ -97,12 +114,23 @@ PoT_Experiments/
   - Verification result serialization
 
 ### 4. Vision Components (`pot/vision/`)
-- **Vision Verifier** (`verifier.py`): Vision model verification
-  - `VisionVerifier`: Main verification class
+- **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting
+  - `VisionVerifier`: Main verification class with integrated fingerprinting
+    - `use_fingerprinting`: Enable behavioral fingerprinting
+    - `fingerprint_config`: Configuration for fingerprint computation
+    - `compute_reference_fingerprint`: Generate reference model fingerprint
+    - `compute_fingerprint_similarity`: Compare fingerprints
+  - `VisionVerificationResult`: Enhanced with fingerprint fields
+    - `fingerprint`: FingerprintResult object
+    - `fingerprint_match`: Similarity score to reference
   - Sine grating and texture challenge generation
   - Perceptual distance computation (cosine, L2, L1)
   - Augmentation-based robustness testing
-  - `BatchVisionVerifier`: Multi-model verification
+  - `BatchVisionVerifier`: Multi-model verification with fingerprinting
+  - **Fingerprint Integration**:
+    - Automatic fingerprint computation during verification
+    - Early rejection based on fingerprint mismatch
+    - Fingerprint metadata in verification results
 - **Vision Models** (`models.py`): Model wrappers and utilities
   - `VisionModel`: Base class for vision models
   - Feature extraction interfaces
@@ -113,13 +141,24 @@ PoT_Experiments/
   - Geometric patterns (checkerboards)
 
 ### 5. Language Model Components (`pot/lm/`)
-- **LM Verifier** (`verifier.py`): Language model verification
-  - `LMVerifier`: Main verification class
+- **LM Verifier** (`verifier.py`): Language model verification with fingerprinting
+  - `LMVerifier`: Main verification class with integrated fingerprinting
+    - `use_fingerprinting`: Enable behavioral fingerprinting for text
+    - `fingerprint_config`: LM-specific fingerprint configuration
+    - `compute_reference_fingerprint`: Generate fingerprint from prompts
+    - `compute_fingerprint_similarity`: Text-aware similarity comparison
+  - `LMVerificationResult`: Enhanced with fingerprint fields
+    - `fingerprint`: FingerprintResult for text outputs
+    - `fingerprint_match`: Similarity using fuzzy text matching
   - Template-based challenge generation
   - Output distance computation (fuzzy, exact, edit, embedding)
   - Time-tolerance verification for model drift
-  - `BatchLMVerifier`: Multi-model verification
+  - `BatchLMVerifier`: Multi-model verification with fingerprinting
   - Adaptive verification with dynamic challenge counts
+  - **Fingerprint Integration**:
+    - Text canonicalization for consistent hashing
+    - Fuzzy matching for fingerprint comparison
+    - Conservative thresholds for text variability
 - **Fuzzy Hashing** (`fuzzy_hash.py`): Token-level matching
   - `TokenSpaceNormalizer`: Cross-tokenizer normalization
   - `NGramFuzzyHasher`: N-gram based fuzzy matching
@@ -259,6 +298,58 @@ result = pot.perform_verification(model, model_id, 'standard')
 print(f"Verified: {result.verified} (confidence: {result.confidence:.2%})")
 ```
 
+### Behavioral Fingerprinting
+```python
+from pot.core.fingerprint import (
+    FingerprintConfig, 
+    fingerprint_run,
+    compare_fingerprints,
+    is_behavioral_match
+)
+
+# Configure fingerprinting for vision model
+config = FingerprintConfig.for_vision_model(
+    compute_jacobian=True,  # Enable gradient analysis
+    include_timing=True,
+    memory_efficient=False
+)
+
+# Compute fingerprint
+fingerprint = fingerprint_run(model, challenges, config)
+print(f"IO Hash: {fingerprint.io_hash[:32]}...")
+
+# Compare fingerprints
+similarity = compare_fingerprints(fp1, fp2)
+is_match = is_behavioral_match(fp1, fp2, threshold=0.95)
+
+# Batch comparison
+from pot.core.fingerprint import batch_compare_fingerprints
+similarities = batch_compare_fingerprints(fingerprints, reference=ref_fp)
+```
+
+### Integrated Verification with Fingerprinting
+```python
+from pot.vision.verifier import VisionVerifier
+from pot.lm.verifier import LMVerifier
+
+# Vision model with fingerprinting
+vision_verifier = VisionVerifier(
+    reference_model=ref_model,
+    use_fingerprinting=True,
+    fingerprint_config=FingerprintConfig.for_vision_model()
+)
+result = vision_verifier.verify(model, challenges)
+print(f"Fingerprint match: {result.fingerprint_match:.3f}")
+
+# Language model with fingerprinting
+lm_verifier = LMVerifier(
+    reference_model=ref_lm,
+    use_fingerprinting=True,
+    fingerprint_config=FingerprintConfig.for_language_model()
+)
+result = lm_verifier.verify(model, prompts)
+```
+
 ### Challenge Generation
 ```python
 from pot.core.challenge import ChallengeConfig, generate_challenges
@@ -325,17 +416,45 @@ pytest -q
    - Always use seeded random generators
    - Set `torch.use_deterministic_algorithms(True)`
    - For LMs: `do_sample=False, temperature=0.0, top_k=1`
+   - Fingerprints must be reproducible: same model + challenges = same fingerprint
 
 2. **Preserve Structure**:
    - Keep core framework in `pot/`
    - Security extensions in `pot/security/`
    - Configs in `configs/`
    - Scripts in `scripts/`
+   - Fingerprinting utilities in `pot/core/fingerprint.py`
 
 3. **Testing**:
+   - Run fingerprint tests: `python -m pot.core.test_fingerprint`
    - Run component tests: `python pot/security/test_*.py`
    - Run integration: `python pot/security/proof_of_training.py`
    - Full validation: `bash run_all.sh`
+
+### When Using Behavioral Fingerprinting
+
+1. **Configuration Selection**:
+   - Use factory methods: `FingerprintConfig.for_vision_model()` or `.for_language_model()`
+   - Enable Jacobian only for security-critical verification (adds 2-5x overhead)
+   - Adjust `canonicalize_precision` based on model precision (6 for float32, 3-4 for quantized)
+
+2. **Performance Optimization**:
+   - IO fingerprinting alone for quick checks (<100ms)
+   - Use `memory_efficient=True` for models >1GB
+   - Batch challenges when possible for GPU models
+   - Cache reference fingerprints to avoid recomputation
+
+3. **Integration Best Practices**:
+   - Always compute reference fingerprint once and reuse
+   - Use fingerprinting as pre-filter before expensive statistical tests
+   - Set appropriate thresholds: 0.95+ for high security, 0.8-0.9 for development
+   - Log fingerprint mismatches for audit trails
+
+4. **Handling Edge Cases**:
+   - Fingerprints handle NaN/Inf via canonicalization
+   - Variable-length outputs supported for LMs
+   - Model failures on some inputs won't crash fingerprinting
+   - Empty challenge lists return valid (empty) fingerprints
 
 ### When Running Experiments
 

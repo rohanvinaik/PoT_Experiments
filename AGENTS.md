@@ -18,8 +18,13 @@ The PoT system provides comprehensive model verification through multiple compon
 - **Statistical Testing** (`stats.py`, `boundaries.py`, `sequential.py`)
   - Empirical Bernstein bounds, SPRT, confidence sequences
   - Early stopping with asymmetric error control
-- **Fingerprinting** (`fingerprint.py`): Behavioral model identification
+- **Behavioral Fingerprinting** (`fingerprint.py`): Fast model identification
+  - IO fingerprinting: Hash-based signatures of canonicalized outputs
+  - Jacobian sketching: Compressed gradient structure analysis
+  - Comparison utilities for similarity scoring and batch processing
+  - Sub-100ms verification for identity checks
 - **Canonicalization** (`canonicalize.py`): Robust output comparison
+  - Handles NaN/Inf values, text normalization, numeric precision
 - **Wrapper Detection** (`wrapper_detection.py`): Attack detection
 - **Governance** (`governance.py`): Session and policy management
 - **Utilities**: Logging, cost tracking, JSON encoding
@@ -40,18 +45,22 @@ The PoT system provides comprehensive model verification through multiple compon
 - **Schema** (`schema.py`): Structured audit records with JSON schemas
 
 ### 4. Vision Components (`pot/vision/`)
-- **VisionVerifier** (`verifier.py`): Vision model verification
+- **VisionVerifier** (`verifier.py`): Vision model verification with fingerprinting
+  - Integrated behavioral fingerprinting support
   - Sine grating and texture challenge generation
   - Perceptual distance metrics (cosine, L2, L1)
   - Augmentation-based robustness testing
+  - Early rejection based on fingerprint mismatch
 - **Models** (`models.py`): Vision model interfaces and loading
 - **Probes** (`probes.py`): Visual challenge generation utilities
 
 ### 5. Language Model Components (`pot/lm/`)
-- **LMVerifier** (`verifier.py`): Language model verification
+- **LMVerifier** (`verifier.py`): Language model verification with fingerprinting
+  - Integrated behavioral fingerprinting for text outputs
   - Template-based challenge generation
   - Multiple distance metrics (fuzzy, exact, edit, embedding)
   - Time-tolerance verification for drift handling
+  - Text canonicalization for consistent fingerprints
 - **FuzzyHash** (`fuzzy_hash.py`): Token-level fuzzy matching
 - **Models** (`models.py`): LM interfaces and generation control
 
@@ -71,6 +80,49 @@ The PoT system provides comprehensive model verification through multiple compon
 - Vision: `vision_cifar10.yaml`, `vision_imagenet.yaml`
 - Language: `lm_small.yaml`, `lm_large.yaml`
 - Custom model configurations
+
+## Behavioral Fingerprinting Integration
+
+### Overview
+Behavioral fingerprinting provides fast, deterministic model verification that complements statistical methods. It's ideal for:
+- Quick identity checks before expensive verification
+- Detecting fine-tuning or model modifications
+- Batch verification of multiple models
+- Creating audit trails
+
+### Key Components
+1. **IO Fingerprinting**: Creates hash-based signatures from model outputs
+2. **Jacobian Sketching**: Compresses gradient information for deeper analysis
+3. **Comparison Utilities**: Tools for similarity scoring and batch processing
+
+### Integration Pattern
+```python
+from pot.core.fingerprint import FingerprintConfig, fingerprint_run, is_behavioral_match
+from pot.vision.verifier import VisionVerifier
+
+# Step 1: Quick fingerprint check
+config = FingerprintConfig.for_vision_model(compute_jacobian=False)
+fp_candidate = fingerprint_run(model, challenges, config)
+
+if not is_behavioral_match(fp_reference, fp_candidate, threshold=0.9):
+    return "Model rejected - fingerprint mismatch"
+
+# Step 2: Full statistical verification if fingerprints match
+verifier = VisionVerifier(reference_model, use_fingerprinting=True)
+result = verifier.verify(model, challenges)
+```
+
+### Configuration Guidelines
+- **Vision Models**: Enable Jacobian, use magnitude sketch, precision 6
+- **Language Models**: Skip Jacobian (expensive), focus on IO hash, precision 5
+- **Large Models (>1GB)**: Use `memory_efficient=True`, skip Jacobian
+- **Security-Critical**: Enable both IO and Jacobian, threshold 0.95+
+
+### Performance Benchmarks
+- IO Fingerprinting: ~10-50ms for 10 challenges
+- Jacobian Sketching: ~100-500ms additional
+- Batch Verification: Linear scaling with model count
+- Memory: O(n_challenges × output_dim)
 
 ## Quick Start Guide
 
