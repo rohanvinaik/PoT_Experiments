@@ -32,10 +32,18 @@ PoT_Experiments/
   - `prf_bytes`: NIST SP 800-108 counter mode PRF
   - `prf_integers`, `prf_floats`, `prf_choice`: Typed random generation
   - `prf_expand`: Hybrid HMAC/xxhash for performance
-- **Boundaries** (`boundaries.py`): Confidence sequences with EB radius
-  - `CSState`: Online confidence sequence state tracking
-  - `eb_radius`: Empirical Bernstein bounds computation
-  - Welford's algorithm for streaming statistics
+- **Boundaries** (`boundaries.py`): Confidence sequences with EB radius (UPDATED 2025-08-16)
+  - `CSState`: Online confidence sequence state tracking with Welford's algorithm
+  - `eb_radius(state, alpha, c=1.0)`: Empirical Bernstein bounds computation
+    - Formula: r_t(α) = sqrt(2 * σ²_t * log(log(t) / α) / t) + c * log(log(t) / α) / t
+    - Configurable constant c for bias term tuning (default 1.0)
+    - Anytime-valid with log-log correction factor
+  - `eb_confidence_interval(mean, variance, n, alpha, c=1.0)`: Confidence bounds
+    - Returns (lower, upper) tuple clipped to [0,1]
+    - Uses EB radius for anytime-valid intervals
+  - `log_log_correction(t, alpha)`: Log-log correction for anytime validity
+    - Handles edge cases for small t (t < e)
+    - Returns log(log(max(e, t)) / α)
 - **Sequential Testing** (`sequential.py`): Anytime-valid sequential verification
   - `SequentialTester`: SPRT-based early stopping
   - `sequential_verify`: Complete verification with audit trail
@@ -514,32 +522,40 @@ proof = pot.generate_verification_proof(result)
 
 ## Documentation Guidelines
 
-**IMPORTANT**: When you make changes to this codebase as an AI agent, you MUST keep these documentation files updated:
+**CRITICAL REQUIREMENT FOR AI AGENTS - MANDATORY DOCUMENTATION PROTOCOL**
+
+### ⚠️ ABSOLUTE REQUIREMENT ⚠️
+
+**AS AN AI AGENT, YOU MUST UPDATE DOCUMENTATION FILES IMMEDIATELY AFTER ANY CODE CHANGES**
+
+This is NOT optional. Failure to update documentation is considered an incomplete task.
 
 ### Required Documentation Updates
 
-When adding substantial functionality to the codebase:
+When making ANY changes to the codebase:
 
-1. **ALWAYS update this CLAUDE.md file** immediately after implementing new features:
-   - Add new module descriptions and their purposes
-   - Document important implementation details
-   - Include usage patterns and best practices
-   - Add any new dependencies or requirements
-   - Update the "Complete Functionality Overview" section
-   - Add new features to the appropriate component sections
+1. **MANDATORY: Update CLAUDE.md (this file)** IMMEDIATELY after implementing:
+   - ANY new functions, classes, or modules - document them in the appropriate section
+   - ANY changes to existing components - update their descriptions
+   - ANY new parameters or configuration options - add to relevant sections
+   - ANY algorithm implementations - include formulas and paper references
+   - ANY performance characteristics - document complexity and benchmarks
+   - Mark updates with date: (UPDATED YYYY-MM-DD)
+   
+2. **MANDATORY: Update AGENTS.md** IMMEDIATELY after implementing:
+   - ANY new API endpoints or interfaces
+   - ANY changes to verification workflows
+   - ANY new integration patterns or examples
+   - ANY performance benchmarks or thresholds
+   - ANY user-facing functionality changes
+   - Mark sections with update dates
 
-2. **ALWAYS update AGENTS.md** immediately if the functionality affects:
-   - Integration patterns with external systems
-   - API interfaces or protocols
-   - Agent-based verification workflows
-   - Usage examples or quick start guides
-   - Performance benchmarks or configuration guidelines
-
-3. **ALWAYS update README.md** when:
+3. **MANDATORY: Update README.md** when:
    - Adding new challenge families
    - Creating new verification modes
-   - Adding major features that users will interact with
-   - Changing dependencies or setup requirements
+   - Changing installation or setup requirements
+   - Adding major user-facing features
+   - Modifying command-line interfaces
 
 ### Code Documentation Requirements
 
@@ -562,14 +578,28 @@ When adding substantial functionality to the codebase:
 
 ### Documentation Update Checklist
 
-After implementing any new feature, verify you have:
-- [ ] Updated CLAUDE.md with implementation details
-- [ ] Updated AGENTS.md with integration instructions
-- [ ] Updated README.md if user-facing
-- [ ] Added comprehensive docstrings
-- [ ] Added inline comments for complex logic
-- [ ] Updated requirements.txt if needed
-- [ ] Added the feature to the appropriate "Complete Functionality Overview" section
+**THIS CHECKLIST IS MANDATORY - YOU MUST COMPLETE ALL APPLICABLE ITEMS**
+
+After implementing ANY feature or change, verify you have:
+- [ ] Updated CLAUDE.md with ALL implementation details, formulas, and parameters
+- [ ] Updated AGENTS.md with ALL integration instructions and API changes
+- [ ] Updated README.md if ANY user-facing changes were made
+- [ ] Added comprehensive docstrings with paper references to ALL new functions
+- [ ] Added inline comments explaining ALL complex logic
+- [ ] Updated requirements.txt if ANY dependencies were added
+- [ ] Added the feature to the "Complete Functionality Overview" section
+- [ ] Marked ALL updated sections with (UPDATED YYYY-MM-DD)
+- [ ] Verified that examples still work with the changes
+- [ ] Ensured backward compatibility or documented breaking changes
+
+### Enforcement
+
+**AI AGENTS MUST**:
+1. Check this checklist BEFORE considering any task complete
+2. Update documentation IMMEDIATELY after code changes (not at the end)
+3. Include update dates in documentation
+4. Ensure examples and usage patterns are current
+5. NEVER skip documentation updates - they are PART of the implementation
 
 ## Contact & Support
 

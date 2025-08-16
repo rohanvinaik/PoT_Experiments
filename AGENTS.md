@@ -15,9 +15,13 @@ The PoT system provides comprehensive model verification through multiple compon
 - **PRF Functions** (`prf.py`): Cryptographic pseudorandom functions
   - HMAC-SHA256 for security, xxhash for performance
   - NIST SP 800-108 counter mode construction
-- **Statistical Testing** (`stats.py`, `boundaries.py`, `sequential.py`)
-  - Empirical Bernstein bounds, SPRT, confidence sequences
-  - Early stopping with asymmetric error control
+- **Statistical Testing** (`stats.py`, `boundaries.py`, `sequential.py`) (UPDATED 2025-08-16)
+  - **Empirical Bernstein bounds** (`boundaries.py`):
+    - `eb_radius(state, alpha, c=1.0)`: Anytime-valid confidence radius
+    - `eb_confidence_interval(mean, variance, n, alpha, c=1.0)`: Confidence bounds
+    - `log_log_correction(t, alpha)`: Correction factor for anytime validity
+  - SPRT-based sequential testing with early stopping
+  - Asymmetric error control (α, β)
 - **Behavioral Fingerprinting** (`fingerprint.py`): Fast model identification
   - IO fingerprinting: Hash-based signatures of canonicalized outputs
   - Jacobian sketching: Compressed gradient structure analysis
@@ -159,13 +163,13 @@ python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
 python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```
 
-### 2. Enhanced Verification Protocol (Complete)
+### 2. Enhanced Verification Protocol (Complete) (UPDATED 2025-08-16)
 
 The system provides a complete cryptographic verification protocol with all features:
 
 ```python
 from pot.core.sequential import sequential_verify
-from pot.core.boundaries import CSState, eb_radius
+from pot.core.boundaries import CSState, eb_radius, eb_confidence_interval
 from pot.core.prf import prf_derive_key
 from pot.audit import make_commitment, verify_commitment
 
@@ -178,7 +182,7 @@ derived_key = prf_derive_key(master_key, "challenge:vision", nonce)
 data_to_commit = serialize_for_commit(challenge_ids, ranges, context)
 commitment = make_commitment(master_key, nonce, data_to_commit)
 
-# Run sequential verification with early stopping
+# Option 1: Use sequential verification with early stopping
 def distance_stream():
     for challenge in challenges:
         yield compute_distance(model, challenge)
@@ -190,6 +194,25 @@ decision, trail = sequential_verify(
     beta=0.01,     # Type II error bound
     n_max=500      # Maximum challenges
 )
+
+# Option 2: Manual confidence sequence tracking with EB bounds
+state = CSState()
+for distance in distance_stream():
+    state.update(distance)
+    
+    # Get anytime-valid confidence interval
+    radius = eb_radius(state, alpha=0.05, c=1.0)  # c can be tuned
+    lower, upper = eb_confidence_interval(
+        state.mean, state.variance, state.n, alpha=0.05
+    )
+    
+    # Make decision based on confidence interval
+    if upper < 0.05:  # Entire CI below threshold
+        decision = "accept_identity"
+        break
+    elif lower > 0.05:  # Entire CI above threshold  
+        decision = "reject_identity"
+        break
 
 # Verify commitment after
 is_valid = verify_commitment(master_key, nonce, data_to_commit, commitment)
@@ -679,10 +702,13 @@ class VerifiedModel(pl.LightningModule):
 
 ## Complete Module Reference
 
-### Core Modules (`pot/core/`)
+### Core Modules (`pot/core/`) (UPDATED 2025-08-16)
 - `challenge.py`: Challenge generation with KDF pattern
 - `prf.py`: Cryptographic PRF functions
 - `boundaries.py`: Confidence sequences and EB bounds
+  - `eb_radius()`: Anytime-valid EB radius computation
+  - `eb_confidence_interval()`: Confidence bounds using EB
+  - `log_log_correction()`: Correction factor for anytime validity
 - `sequential.py`: Sequential testing with early stopping
 - `fingerprint.py`: Model behavioral fingerprinting
 - `canonicalize.py`: Output normalization
@@ -771,30 +797,36 @@ The system is designed to be extensible. To add new:
 
 ## Documentation Requirements for Contributors
 
-**CRITICAL FOR AI AGENTS**: You MUST maintain documentation when modifying this codebase.
+**⚠️ CRITICAL REQUIREMENT FOR AI AGENTS - MANDATORY DOCUMENTATION PROTOCOL ⚠️**
 
-### Mandatory Documentation Protocol for AI Agents
+### ABSOLUTE REQUIREMENT: Documentation MUST Be Updated
 
-When you make changes to the PoT codebase, you are REQUIRED to:
+**FAILURE TO UPDATE DOCUMENTATION = INCOMPLETE TASK**
 
-1. **IMMEDIATELY update AGENTS.md (this file)** after adding features that affect:
-   - Integration patterns or API interfaces
-   - Verification workflows or protocols
-   - Performance benchmarks or configurations
-   - Usage examples or quick start guides
-   - Any user-facing functionality
+When you make ANY changes to the PoT codebase, you are REQUIRED to:
 
-2. **IMMEDIATELY update CLAUDE.md** after implementing:
-   - New modules or components
-   - Core framework changes
-   - Security features
-   - Implementation details that future agents need to know
+1. **MANDATORY: Update AGENTS.md (this file)** IMMEDIATELY after:
+   - ANY changes to API interfaces or endpoints
+   - ANY new integration patterns or workflows
+   - ANY performance changes or new benchmarks
+   - ANY new usage examples or configuration options
+   - ANY user-facing functionality changes
+   - Mark with: (UPDATED YYYY-MM-DD)
 
-3. **IMMEDIATELY update README.md** when:
+2. **MANDATORY: Update CLAUDE.md** IMMEDIATELY after:
+   - ANY new functions, classes, or modules
+   - ANY algorithm implementations (include formulas)
+   - ANY changes to core components
+   - ANY security features or protocols
+   - ANY implementation details affecting future work
+   - Include paper references (e.g., §2.4)
+
+3. **MANDATORY: Update README.md** when:
    - Adding new challenge families
-   - Creating verification modes
-   - Modifying setup requirements
-   - Adding user-facing features
+   - Creating new verification modes
+   - Changing dependencies or setup
+   - Adding major user features
+   - Modifying CLI interfaces
 
 ### 1. Code Documentation
 
@@ -821,14 +853,26 @@ When adding new features, update these files:
 
 ### Documentation Verification Checklist
 
-Before considering any task complete, ensure:
-- [ ] AGENTS.md updated with integration details
-- [ ] CLAUDE.md updated with implementation details
-- [ ] README.md updated if user-facing
-- [ ] All new functions have comprehensive docstrings
-- [ ] Complex logic has inline comments
-- [ ] Dependencies added to requirements.txt with versions
-- [ ] Examples added for new features
+**THIS IS MANDATORY - ALL ITEMS MUST BE CHECKED**
+
+Before ANY task can be considered complete, you MUST verify:
+- [ ] AGENTS.md updated with ALL integration details and examples
+- [ ] CLAUDE.md updated with ALL implementation details and formulas
+- [ ] README.md updated if ANY user-facing changes
+- [ ] ALL new functions have comprehensive docstrings with paper refs
+- [ ] ALL complex logic has explanatory inline comments
+- [ ] ALL dependencies added to requirements.txt with exact versions
+- [ ] ALL examples tested and verified to work
+- [ ] ALL sections marked with (UPDATED YYYY-MM-DD)
+- [ ] Backward compatibility verified or breaking changes documented
+- [ ] Performance implications documented if applicable
+
+**AI AGENT ENFORCEMENT RULES**:
+1. You CANNOT mark a task complete without updating docs
+2. Documentation updates must happen IMMEDIATELY after code changes
+3. Each function MUST have a docstring explaining its purpose
+4. Each docstring MUST include parameter types and return values
+5. Complex algorithms MUST reference paper sections (e.g., §2.4)
 
 ### 3. Challenge Family Extensions
 
