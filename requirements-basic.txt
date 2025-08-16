@@ -14,3 +14,4 @@ seaborn==0.12.2
 xxhash==3.4.1
 ssdeep==3.4
 py-tlsh==4.7.2
+pytest>=7.0.0
