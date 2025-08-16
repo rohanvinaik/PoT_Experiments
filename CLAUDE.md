@@ -22,34 +22,172 @@ PoT_Experiments/
 
 ## Key Components
 
-### 1. Core Framework (`pot/`)
-- **Challenge Generation**: KDF-based deterministic challenge creation
-- **PRF Module** (`pot/core/prf.py`): HMAC-SHA256 based pseudorandom functions
-- **Boundaries** (`pot/core/boundaries.py`): Confidence sequences with EB radius
-- **Sequential Testing** (`pot/core/sequential.py`): Anytime-valid sequential verification
-- **Fingerprinting**: Behavioral fingerprints via I/O hashing and Jacobian analysis
-- **Canonicalization**: Numeric and text normalization for robust comparison
-- **Statistics**: FAR/FRR calculation, confidence bounds, sequential testing
+### 1. Core Framework (`pot/core/`)
+- **Challenge Generation** (`challenge.py`): KDF-based deterministic challenge creation
+  - Supports vision:freq, vision:texture, lm:templates families
+  - Challenge dataclass with unique IDs via xxhash
+  - Model-specific challenges via optional model_id
+- **PRF Module** (`prf.py`): HMAC-SHA256 based pseudorandom functions
+  - `prf_derive_key`: Domain-separated key derivation
+  - `prf_bytes`: NIST SP 800-108 counter mode PRF
+  - `prf_integers`, `prf_floats`, `prf_choice`: Typed random generation
+  - `prf_expand`: Hybrid HMAC/xxhash for performance
+- **Boundaries** (`boundaries.py`): Confidence sequences with EB radius
+  - `CSState`: Online confidence sequence state tracking
+  - `eb_radius`: Empirical Bernstein bounds computation
+  - Welford's algorithm for streaming statistics
+- **Sequential Testing** (`sequential.py`): Anytime-valid sequential verification
+  - `SequentialTester`: SPRT-based early stopping
+  - `sequential_verify`: Complete verification with audit trail
+  - Asymmetric error control (α, β)
+- **Fingerprinting** (`fingerprint.py`): Behavioral fingerprints
+  - I/O hashing for deterministic outputs
+  - Jacobian analysis for gradient-based fingerprints
+- **Canonicalization** (`canonicalize.py`): Normalization for robust comparison
+  - `canonicalize_number`: Numeric precision normalization
+  - `canonicalize_text`: Text/token normalization
+- **Statistics** (`stats.py`): Statistical testing utilities
+  - `empirical_bernstein_bound`: Confidence intervals
+  - `t_statistic`: Test statistics computation
+  - FAR/FRR calculation utilities
+- **Wrapper Detection** (`wrapper_detection.py`): Attack detection
+  - Statistical anomaly detection in responses
+  - Timing analysis for wrapper identification
+- **Governance** (`governance.py`): Session and nonce management
+  - `new_session_nonce`: Generate unique session identifiers
+  - Policy enforcement utilities
+- **Logging** (`logging.py`): Structured logging for experiments
+  - `StructuredLogger`: JSONL format logging
+  - Experiment tracking and metrics recording
+- **Cost Tracking** (`cost_tracker.py`): API usage monitoring
+  - Token counting for LLM APIs
+  - Cost estimation and budgeting
 
 ### 2. Security Components (`pot/security/`)
-- **Fuzzy Hash Verifier**: Approximate matching with SSDeep/TLSH
-- **Training Provenance Auditor**: Merkle tree-based training history
-- **Token Space Normalizer**: Handle tokenization differences in LMs
-- **Integrated PoT System**: Complete verification protocol
-- **Leakage Tracking**: Challenge reuse policy enforcement (`pot/security/leakage.py`)
+- **Proof of Training** (`proof_of_training.py`): Main verification system
+  - `ProofOfTraining`: Complete verification protocol
+  - Model registration and fingerprinting
+  - Verification profiles (quick, standard, comprehensive)
+  - Cryptographic proof generation
+- **Fuzzy Hash Verifier** (`fuzzy_hash_verifier.py`): Approximate matching
+  - SSDeep and TLSH algorithm support
+  - `ChallengeVector`: Challenge generation for verification
+  - Similarity threshold-based verification
+- **Token Space Normalizer** (`token_space_normalizer.py`): LM tokenization handling
+  - Handles BPE, WordPiece, SentencePiece tokenizers
+  - Token-invariant hashing for cross-tokenizer verification
+  - Stochastic decoding control for determinism
+- **Integrated Verification** (`integrated_verification.py`): Combined protocols
+  - Multi-method verification (exact, fuzzy, statistical)
+  - Cross-platform verification support
+  - Batch verification capabilities
+- **Leakage Tracking** (`leakage.py`): Challenge reuse policy
+  - `ReusePolicy`: Enforce maximum challenge uses
+  - `LeakageAuditor`: Track and report leakage ratio (ρ)
+  - Session-based tracking with JSON persistence
 
 ### 3. Audit Infrastructure (`pot/audit/`)
-- **Commit-Reveal Protocol**: Tamper-evident verification trails
-- **Audit Records**: JSON-based compliance documentation
+- **Commit-Reveal Protocol** (`commit_reveal.py`): Tamper-evident trails
+  - `make_commitment`: Generate cryptographic commitments
+  - `verify_commitment`: Validate audit trails
+  - HMAC-based commitment scheme
+- **Audit Schema** (`schema.py`): Structured audit records
+  - JSON schema definitions for audit logs
+  - Compliance documentation format
+  - Verification result serialization
 
-### 4. Experiments (`scripts/` and `configs/`)
-- E1-E7: Comprehensive experimental validation
-- Grid search over model variants and challenge sizes
-- Attack simulations and robustness testing
+### 4. Vision Components (`pot/vision/`)
+- **Vision Verifier** (`verifier.py`): Vision model verification
+  - `VisionVerifier`: Main verification class
+  - Sine grating and texture challenge generation
+  - Perceptual distance computation (cosine, L2, L1)
+  - Augmentation-based robustness testing
+  - `BatchVisionVerifier`: Multi-model verification
+- **Vision Models** (`models.py`): Model wrappers and utilities
+  - `VisionModel`: Base class for vision models
+  - Feature extraction interfaces
+  - Model loading and checkpoint management
+- **Vision Probes** (`probes.py`): Challenge generation
+  - Frequency-based patterns (sine gratings)
+  - Texture synthesis (Perlin noise, Gabor filters)
+  - Geometric patterns (checkerboards)
+
+### 5. Language Model Components (`pot/lm/`)
+- **LM Verifier** (`verifier.py`): Language model verification
+  - `LMVerifier`: Main verification class
+  - Template-based challenge generation
+  - Output distance computation (fuzzy, exact, edit, embedding)
+  - Time-tolerance verification for model drift
+  - `BatchLMVerifier`: Multi-model verification
+  - Adaptive verification with dynamic challenge counts
+- **Fuzzy Hashing** (`fuzzy_hash.py`): Token-level matching
+  - `TokenSpaceNormalizer`: Cross-tokenizer normalization
+  - `NGramFuzzyHasher`: N-gram based fuzzy matching
+  - `AdvancedFuzzyHasher`: SSDeep/TLSH integration
+- **LM Models** (`models.py`): Model interfaces
+  - `LM`: Base class for language models
+  - Tokenizer integration
+  - Deterministic generation control
+
+### 6. Evaluation Components (`pot/eval/`)
+- **Metrics**: ROC, DET curves, FAR/FRR analysis
+- **Baselines**: Reference implementations for comparison
+- **Plotting**: Visualization utilities for results
+
+### 7. Experiment Scripts (`scripts/`)
+- **Core Experiments**:
+  - `run_generate_reference.py`: Create reference models
+  - `run_grid.py`: Grid search experiments (E1-E7)
+  - `run_verify.py`: Basic verification runner
+  - `run_verify_enhanced.py`: Enhanced verification with full protocol
+  - `run_plots.py`: Generate ROC/DET curves and visualizations
+- **Attack Simulations**:
+  - `run_attack.py`: Basic attack scenarios
+  - `run_attack_realistic.py`: Realistic adversarial scenarios
+  - `run_attack_simulator.py`: Comprehensive attack simulation
+- **Advanced Features**:
+  - `run_baselines.py`: Baseline method comparisons
+  - `run_coverage.py`: Coverage analysis for challenges
+  - `run_api_verify.py`: API-based verification
+  - `ablation_scaling.py`: Scaling and ablation studies
+  - `audit_log_demo.py`: Audit system demonstration
+
+### 8. Configuration Files (`configs/`)
+- `vision_cifar10.yaml`: CIFAR-10 vision experiments
+- `vision_imagenet.yaml`: ImageNet vision experiments
+- `lm_small.yaml`: Small language model experiments
+- `lm_large.yaml`: Large language model experiments
+- Model-specific configurations with hyperparameters
+
+## Complete Functionality Overview
+
+### Supported Challenge Families
+1. **vision:freq**: Sine grating patterns
+   - Parameters: frequency (cycles/degree), orientation, phase, contrast
+   - Use: Testing frequency response and orientation selectivity
+
+2. **vision:texture**: Complex texture patterns
+   - Types: Perlin noise, Gabor filters, checkerboard
+   - Parameters: octaves, wavelength, square_size, etc.
+   - Use: Testing response to naturalistic and synthetic textures
+
+3. **lm:templates**: Template-based text generation
+   - Slots: subject, verb, object, adjective, adverb
+   - Use: Testing consistent language understanding
+
+### Verification Profiles
+- **quick**: 1 challenge, ~1 second, 70-80% confidence
+- **standard**: 3-5 challenges, ~5 seconds, 85-90% confidence
+- **comprehensive**: All challenges, ~30 seconds, 95%+ confidence
+
+### Security Levels
+- **low**: 70% threshold, development use
+- **medium**: 85% threshold, staging use
+- **high**: 95% threshold, production use
 
 ## Enhanced Verification Protocol
 
-### New Protocol Features (Added 2025-08-16)
+### Protocol Features (Updated 2025-08-16)
 
 The POT system now includes a complete cryptographic verification protocol:
 
@@ -103,6 +241,55 @@ Comprehensive unit tests are available in `tests/`:
 Run all tests:
 ```bash
 pytest tests/ -v
+```
+
+## API Usage Examples
+
+### Basic Verification
+```python
+from pot.security.proof_of_training import ProofOfTraining
+
+pot = ProofOfTraining({
+    'verification_type': 'fuzzy',
+    'model_type': 'vision',
+    'security_level': 'high'
+})
+
+result = pot.perform_verification(model, model_id, 'standard')
+print(f"Verified: {result.verified} (confidence: {result.confidence:.2%})")
+```
+
+### Challenge Generation
+```python
+from pot.core.challenge import ChallengeConfig, generate_challenges
+
+config = ChallengeConfig(
+    master_key_hex='deadbeef' * 8,
+    session_nonce_hex='cafebabe' * 4,
+    n=10,
+    family='vision:texture',
+    params={'texture_types': ['perlin', 'gabor', 'checkerboard']},
+    model_id='resnet50_v1'
+)
+
+challenges = generate_challenges(config)
+```
+
+### Sequential Verification
+```python
+from pot.core.sequential import sequential_verify
+
+def distance_stream():
+    for challenge in challenges:
+        yield compute_distance(model, challenge)
+
+decision, trail = sequential_verify(
+    stream=distance_stream(),
+    tau=0.05,
+    alpha=0.01,
+    beta=0.01,
+    n_max=500
+)
 ```
 
 ## Running Experiments

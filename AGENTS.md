@@ -4,49 +4,96 @@
 
 This document provides instructions for AI agents and developers on how to use the Proof-of-Training (PoT) verification system. The system provides cryptographic verification of neural network training and model identity through multiple verification techniques.
 
-## Project Structure
+## Complete Project Structure
 
-The PoT system consists of two main components:
+The PoT system provides comprehensive model verification through multiple components:
 
-1. **Core Experimental Framework** (`pot/`): Implements the research experiments for validating PoT concepts
-   - `pot/core/`: Challenge generation, fingerprinting, statistics
-   - `pot/vision/`: Vision model experiments
-   - `pot/lm/`: Language model experiments
-   - `pot/eval/`: Evaluation metrics and baselines
+### 1. Core Framework (`pot/core/`)
+- **Challenge Generation** (`challenge.py`): KDF-based deterministic challenge creation
+  - Supports vision:freq, vision:texture, lm:templates families
+  - Model-specific challenges via model_id parameter
+- **PRF Functions** (`prf.py`): Cryptographic pseudorandom functions
+  - HMAC-SHA256 for security, xxhash for performance
+  - NIST SP 800-108 counter mode construction
+- **Statistical Testing** (`stats.py`, `boundaries.py`, `sequential.py`)
+  - Empirical Bernstein bounds, SPRT, confidence sequences
+  - Early stopping with asymmetric error control
+- **Fingerprinting** (`fingerprint.py`): Behavioral model identification
+- **Canonicalization** (`canonicalize.py`): Robust output comparison
+- **Wrapper Detection** (`wrapper_detection.py`): Attack detection
+- **Governance** (`governance.py`): Session and policy management
+- **Utilities**: Logging, cost tracking, JSON encoding
 
-2. **Security Components** (`pot/security/`): Prototype verification components
-   - Fuzzy hash verification
-   - Token space normalization
-   - Integrated proof-of-training system
-   - Training provenance auditing (experimental, see `pot/prototypes/`)
-   - Leakage tracking and challenge reuse policy enforcement
+### 2. Security Components (`pot/security/`)
+- **ProofOfTraining** (`proof_of_training.py`): Main verification system
+  - Three verification profiles: quick, standard, comprehensive
+  - Three security levels: low (70%), medium (85%), high (95%)
+- **FuzzyHashVerifier** (`fuzzy_hash_verifier.py`): Approximate matching
+  - SSDeep and TLSH algorithm support
+- **TokenSpaceNormalizer** (`token_space_normalizer.py`): LM tokenization
+  - Cross-tokenizer verification support
+- **IntegratedVerification** (`integrated_verification.py`): Combined protocols
+- **LeakageTracking** (`leakage.py`): Challenge reuse policy (ρ ≤ ρ_max)
 
-3. **Audit Infrastructure** (`pot/audit/`): Cryptographic audit components
-   - Commit-reveal protocol for tamper-evident trails
-   - Session management and nonce generation
-   - Audit record generation with JSON schemas
+### 3. Audit Infrastructure (`pot/audit/`)
+- **CommitReveal** (`commit_reveal.py`): Tamper-evident verification
+- **Schema** (`schema.py`): Structured audit records with JSON schemas
+
+### 4. Vision Components (`pot/vision/`)
+- **VisionVerifier** (`verifier.py`): Vision model verification
+  - Sine grating and texture challenge generation
+  - Perceptual distance metrics (cosine, L2, L1)
+  - Augmentation-based robustness testing
+- **Models** (`models.py`): Vision model interfaces and loading
+- **Probes** (`probes.py`): Visual challenge generation utilities
+
+### 5. Language Model Components (`pot/lm/`)
+- **LMVerifier** (`verifier.py`): Language model verification
+  - Template-based challenge generation
+  - Multiple distance metrics (fuzzy, exact, edit, embedding)
+  - Time-tolerance verification for drift handling
+- **FuzzyHash** (`fuzzy_hash.py`): Token-level fuzzy matching
+- **Models** (`models.py`): LM interfaces and generation control
+
+### 6. Evaluation (`pot/eval/`)
+- Metrics computation (ROC, DET, FAR/FRR)
+- Baseline implementations
+- Visualization utilities
+
+### 7. Experiment Scripts (`scripts/`)
+- **Core**: `run_generate_reference.py`, `run_grid.py`, `run_verify.py`
+- **Enhanced**: `run_verify_enhanced.py` (full protocol with all features)
+- **Attacks**: `run_attack.py`, `run_attack_realistic.py`, `run_attack_simulator.py`
+- **Analysis**: `run_plots.py`, `run_baselines.py`, `run_coverage.py`
+- **API**: `run_api_verify.py`, `api_verification.py`
+
+### 8. Configurations (`configs/`)
+- Vision: `vision_cifar10.yaml`, `vision_imagenet.yaml`
+- Language: `lm_small.yaml`, `lm_large.yaml`
+- Custom model configurations
 
 ## Quick Start Guide
 
-### Test Suite
-
+### Installation
 ```bash
-# Full experimental validation
+git clone https://github.com/rohanvinaik/PoT_Experiments.git
+cd PoT_Experiments
+pip install -r requirements.txt
+```
+
+### Test Suite
+```bash
+# Full experimental validation (~10 minutes)
 bash run_all.sh
 
-# Faster smoke tests for iteration
+# Quick validation (~2 minutes)
 bash run_all_quick.sh
 
-# Python-only unit tests
+# Unit tests only (~1 minute)
 pytest -q
 ```
 
-codex/run-all-tests-for-pot-paper-review-mzykzr
-Vision-model tests automatically skip if `torchvision` is missing or fails to load.
-
-=======
-main
-### 1. Running Experiments
+### 1. Basic Model Verification
 
 To run the core experiments (E1-E7), follow the experimental protocol:
 
@@ -60,9 +107,9 @@ python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
 python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```
 
-### 2. Enhanced Verification Protocol (New)
+### 2. Enhanced Verification Protocol (Complete)
 
-The system now includes a complete cryptographic verification protocol with sequential testing:
+The system provides a complete cryptographic verification protocol with all features:
 
 ```python
 from pot.core.sequential import sequential_verify
@@ -96,9 +143,9 @@ decision, trail = sequential_verify(
 is_valid = verify_commitment(master_key, nonce, data_to_commit, commitment)
 ```
 
-### 3. Basic Model Verification
+### 3. Production Model Verification
 
-For production verification using security components:
+For production deployment with full security:
 
 ```python
 from pot.security.proof_of_training import ProofOfTraining
@@ -155,28 +202,68 @@ config = {
 
 ## Experimental Framework Usage
 
-### Running Core Experiments
+### Complete Experiment Suite (E1-E7)
 
-The experimental framework includes 7 key experiments (E1-E7):
+The framework validates PoT through comprehensive experiments:
 
+#### E1: Core Separation - Identity vs Different Models
 ```bash
-# E1: Separation vs Query Budget
+python scripts/run_generate_reference.py --config configs/vision_cifar10.yaml
 python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
-
-# E2: Leakage Ablation
-python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.25
-
-# E3: Non-IID Drift (configure drift parameters in config)
-python scripts/run_verify.py --config configs/vision_cifar10.yaml --challenge_family vision:freq --n 256
-
-# E4: Adversarial Attacks
-python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack wrapper
-
-# E5: Sequential Testing (enabled in config)
-python scripts/run_verify.py --config configs/lm_small.yaml --challenge_family lm:templates --n 512
-
-# Generate all plots
 python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+# Expected: AUROC ≈ 0.99, FAR ~0.4%, FRR ~0-1.2%
+```
+
+#### E2: Leakage Robustness - Challenge Reuse Attack
+```bash
+python scripts/run_attack.py --config configs/lm_small.yaml \
+    --attack targeted_finetune --rho 0.25
+# Tests robustness to ρ=25% challenge leakage
+```
+
+#### E3: Non-IID Drift - Distribution Shift
+```bash
+python scripts/run_verify.py --config configs/vision_cifar10.yaml \
+    --challenge_family vision:freq --n 256 --drift_params drift.yaml
+# Tests robustness to training/deployment drift
+```
+
+#### E4: Adversarial Attacks - Wrapper and Routing
+```bash
+python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack wrapper
+python scripts/run_attack_realistic.py --config configs/lm_small.yaml
+# Tests detection of wrapper attacks and routing
+```
+
+#### E5: Sequential Testing - Early Stopping
+```bash
+python scripts/run_verify.py --config configs/lm_small.yaml \
+    --challenge_family lm:templates --n 512 --seq eb
+# Expected: 2-3 queries average with early stopping
+```
+
+#### E6: Baseline Comparison
+```bash
+python scripts/run_baselines.py --config configs/vision_cifar10.yaml
+# Compares against FBI, adversarial trajectories, fixed-n aggregations
+```
+
+#### E7: Ablation Studies
+```bash
+python scripts/ablation_scaling.py --config configs/vision_cifar10.yaml
+# Tests sequential rules, τ calibration, score clipping, challenge families
+```
+
+### Generate Visualizations
+```bash
+# ROC curves
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+
+# DET curves
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type det
+
+# FAR/FRR analysis
+python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type far_frr
 ```
 
 ### Challenge Generation
@@ -538,38 +625,89 @@ class VerifiedModel(pl.LightningModule):
 - `incremental_verify()`: Verify during training
 - `cross_platform_verify()`: Verify with outputs only
 
-## File Locations
+## Complete Module Reference
 
-- **Core Framework**: 
-  - `pot/core/`: Challenge generation, statistics, canonicalization
-  - `pot/core/prf.py`: PRF-based pseudorandom functions
-  - `pot/core/boundaries.py`: Confidence sequences with EB bounds
-  - `pot/core/sequential.py`: Sequential verification with early stopping
-- **Security Components**: 
-  - `pot/security/`: Verification components
-  - `pot/security/leakage.py`: Challenge reuse policy enforcement
-- **Audit Infrastructure**:
-  - `pot/audit/`: Commit-reveal protocol and audit records
-- **Vision/LM Components**: `pot/vision/`, `pot/lm/`
-- **Evaluation**: `pot/eval/`
-- **Prototypes**: `pot/prototypes/`
-- **Configurations**: `configs/`
-- **Scripts**: 
-  - `scripts/`: Experiment runners
-  - `scripts/run_verify_enhanced.py`: Enhanced verification CLI
-- **Tests**: 
-  - `tests/test_*.py`: Comprehensive unit tests (86 test cases)
-  - `pot/security/test_*.py`: Security component tests
-- **Documentation**: `README.md`, `EXPERIMENTS.md`, `CLAUDE.md`, `AGENTS.md`
+### Core Modules (`pot/core/`)
+- `challenge.py`: Challenge generation with KDF pattern
+- `prf.py`: Cryptographic PRF functions
+- `boundaries.py`: Confidence sequences and EB bounds
+- `sequential.py`: Sequential testing with early stopping
+- `fingerprint.py`: Model behavioral fingerprinting
+- `canonicalize.py`: Output normalization
+- `stats.py`: Statistical utilities
+- `wrapper_detection.py`: Attack detection
+- `governance.py`: Session management
+- `logging.py`: Structured logging
+- `cost_tracker.py`: API cost monitoring
+
+### Security Modules (`pot/security/`)
+- `proof_of_training.py`: Main verification system
+- `fuzzy_hash_verifier.py`: Approximate matching
+- `token_space_normalizer.py`: Tokenization handling
+- `integrated_verification.py`: Combined protocols
+- `leakage.py`: Challenge reuse tracking
+
+### Audit Modules (`pot/audit/`)
+- `commit_reveal.py`: Cryptographic commitments
+- `schema.py`: Audit record schemas
+
+### Vision Modules (`pot/vision/`)
+- `verifier.py`: Vision verification
+- `models.py`: Model interfaces
+- `probes.py`: Visual challenges
+- `datasets.py`: Data loading
+
+### LM Modules (`pot/lm/`)
+- `verifier.py`: LM verification
+- `fuzzy_hash.py`: Token matching
+- `models.py`: LM interfaces
+- `probes.py`: Text challenges
+
+### Key Scripts (`scripts/`)
+- `run_verify_enhanced.py`: Full protocol CLI
+- `run_grid.py`: Experiment runner
+- `run_attack.py`: Attack simulations
+- `run_baselines.py`: Baseline comparisons
+- `run_api_verify.py`: API verification
+
+### Test Files
+- `tests/test_*.py`: Integration tests
+- `pot/*/test_*.py`: Unit tests
+- Total: 100+ test cases covering all components
+
+### Documentation
+- `README.md`: Project overview and quick start
+- `EXPERIMENTS.md`: Detailed experimental protocols
+- `CLAUDE.md`: Implementation details for Claude
+- `AGENTS.md`: This file - API and integration guide
+
+## Available Challenge Families
+
+### Vision Challenges
+1. **vision:freq**: Sine grating patterns
+   - Parameters: frequency [0.1-10 cycles/degree], orientation [0-180°], phase [0-2π], contrast [0-1]
+   - Generated via: `generate_vision_freq_challenges()`
+
+2. **vision:texture**: Complex textures
+   - Perlin noise: octaves [1-5], persistence [0.3-0.7], scale [0.01-0.1]
+   - Gabor filters: wavelength [5-30px], orientation [0-180°], sigma [3-15]
+   - Checkerboard: square_size [8-32px], contrast [0.3-1], rotation [0-45°]
+   - Generated via: `generate_vision_texture_challenges()`
+
+### Language Model Challenges
+1. **lm:templates**: Template-based prompts
+   - Slots: {subject}, {verb}, {object}, {adjective}, {adverb}
+   - Example: "The {adjective} {subject} {verb} the {object}"
+   - Generated via: `generate_lm_templates_challenges()`
 
 ## Support
 
 For issues or questions:
-1. Check the test files for usage examples: `python pot/security/test_*.py`
-2. Run the integrated demo: `python pot/security/proof_of_training.py`
-3. Run experiments: See `EXPERIMENTS.md`
-4. Check `CLAUDE.md` for detailed instructions
-5. Open an issue on GitHub
+1. Check test files: `python pot/security/test_*.py`
+2. Run demos: `python pot/security/proof_of_training.py`
+3. See experiments: `EXPERIMENTS.md`
+4. Implementation details: `CLAUDE.md`
+5. GitHub issues: https://github.com/rohanvinaik/PoT_Experiments
 
 ## Updates and Maintenance
 
