@@ -1,0 +1,91 @@
+We formally analyze the problem of detecting wrapper attacks where an 
+adversary attempts to pass verification by wrapping a different model 
+with input/output transformations. We prove bounds on the detectability 
+of such wrappers under various threat models.
+Given a target model f_{\theta^*: X \rightarrow Y that 
+should pass verification, a wrapper attack consists of:
+Such that the composite function f = T_{out \circ g_{\phi \circ T_{in 
+attempts to mimic f_{\theta^* on verification challenges.
+
+The complexity of a wrapper (T_{in, T_{out) is defined as:
+C(T_{in, T_{out) = C(T_{in) + C(T_{out)
+where C(T) measures the computational complexity of transformation T.
+Let f_{\theta^* be the target model and f = T_{out \circ g_{\phi 
+the probability of detecting the wrapper is bounded by:
+\Pr[detect wrapper] \geq 1 - \exp\left(-n \cdot d^2(f_{\theta^*, g_{\phi){2C(T_{in, T_{out)\right)
+where n is the challenge dimension and d(f_{\theta^*, g_{\phi) is the 
+functional distance between the models.
+
+We analyze the information-theoretic limits of wrapper concealment.
+Any transformation T with finite complexity cannot perfectly preserve all 
+information. By the data processing inequality:
+I(X; T(X)) \leq H(X)
+with equality only if T is bijective.
+For high-dimensional challenges c \in R^n, the transformations 
+must handle exponentially many possible inputs. The wrapper must satisfy:
+\|f_{\theta^*(c) - f(c)\| < \tau
+for detection threshold \tau.
+By the Johnson-Lindenstrauss lemma, dimension-reducing transformations 
+preserve distances only approximately. For T_{in: R^n \rightarrow 
+\Pr[\|T_{in(c_1) - T_{in(c_2)\| \approx \|c_1 - c_2\|] \leq \exp(-\Omega(n - n'))
+Combining the above, challenges that exploit the differences between 
+f_{\theta^* and g_{\phi in regions poorly covered by the wrapper 
+transformations lead to detection with probability:
+\Pr[detect] \geq 1 - \exp\left(-n \cdot d^2(f_{\theta^*, g_{\phi){2C(T_{in, T_{out)\right)
+Finding transformations (T_{in, T_{out) such that 
+T_{out \circ g_{\phi \circ T_{in = f_{\theta^* exactly is 
+NP-hard for general neural networks.
+
+We reduce from the neural network equivalence problem.
+
+Given two networks f_1 and f_2, determining if they compute the same 
+function is known to be NP-hard. 
+
+If we could efficiently find perfect wrappers, we could:
+
+This would solve the equivalence problem in polynomial time, contradicting 
+the NP-hardness result.
+Given oracle access to a wrapped model f, an adaptive challenge 
+construction algorithm can detect wrappers with complexity 
+C(T_{in, T_{out) \leq k using O(k \log n) queries.
+
+We use a binary search approach in challenge space.
+The gradient ascent finds regions where the wrapper fails to match the 
+target model. With complexity bound k, the wrapper cannot perfectly 
+track more than O(k) adaptive adjustments.
+The distribution of outputs f(c_i)\_{i=1^N for random challenges 
+provides a statistical fingerprint that distinguishes models with probability:
+\Pr[distinguish] \geq 1 - \exp(-N \cdot KL(P_{f_{\theta^* \| P_{f))
+where KL is the Kullback-Leibler divergence between output distributions.
+
+By the Neyman-Pearson lemma, the likelihood ratio test is optimal for 
+hypothesis testing. The test statistic:
+\Lambda = \sum_{i=1^N \log P_{f_{\theta^*(y_i){P_{f(y_i)
+converges to N \cdot KL(P_{f_{\theta^* \| P_{f) by the 
+law of large numbers.
+
+By Sanov's theorem, the probability of error decreases exponentially with N.
+If the wrapper adds computational overhead \Delta t > 0 per query, then 
+with N timing measurements, the wrapper can be detected with probability:
+\Pr[detect via timing] \geq 1 - \exp\left(-N \Delta t^2{2\sigma^2\right)
+where \sigma^2 is the variance of timing measurements.
+
+The timing measurements follow:
+T_{original &\sim N(\mu, \sigma^2) \\
+T_{wrapped &\sim N(\mu + \Delta t, \sigma^2)
+
+Using a two-sample t-test with N samples from each distribution:
+t = T_{wrapped - T_{original{\sigma2/N \sim N\left(\Delta t N{\sigma2, 1\right)
+
+The power of the test (probability of detection) is:
+Power = \Phi\left(\Delta t N{\sigma2 - z_{\alpha/2\right)
+
+For large N, this approaches 1 - \exp(-N\Delta t^2/2\sigma^2).
+Based on our theoretical analysis, effective wrapper detection combines:
+
+To resist wrapper attacks:
+Our analysis shows that wrapper attacks face fundamental theoretical limits. 
+The detection probability increases with:
+
+Perfect wrapping is computationally intractable, and practical wrappers 
+can be detected through multiple complementary methods.

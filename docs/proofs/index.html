@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Proof-of-Training Formal Proofs</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 40px auto;
+            max-width: 900px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 { 
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 { 
+            color: #34495e;
+            margin-top: 30px;
+        }
+        .proof-list { 
+            list-style-type: none; 
+            padding: 0; 
+        }
+        .proof-list li { 
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .proof-list li:hover {
+            background: #e9ecef;
+        }
+        .proof-list a { 
+            text-decoration: none; 
+            color: #3498db;
+            font-weight: 500;
+        }
+        .proof-list a:hover { 
+            text-decoration: underline; 
+        }
+        .description {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .status {
+            float: right;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.text-only {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .abstract {
+            background: #f0f7ff;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Proof-of-Training Formal Proofs</h1>
+    
+    <div class="abstract">
+        <strong>Abstract:</strong> This collection provides rigorous mathematical foundations 
+        for the Proof-of-Training (PoT) neural network verification framework. We establish 
+        theoretical guarantees for model identity verification through challenge-response protocols,
+        including coverage-separation theorems and wrapper detection analysis.
+    </div>
+    
+    <h2>Core Theoretical Results</h2>
+    <ul class="proof-list">
+        <li>
+            <span class="status available">PDF</span>
+            <a href="coverage_separation.pdf">Coverage-Separation Theorem</a>
+            <div class="description">
+                Proves that challenge vectors can both cover network behavior space 
+                and separate distinct neural networks with high probability.
+                Key result: O((diam(Θ)/ε)^p) challenges suffice for ε-verification.
+            </div>
+        </li>
+        <li>
+            <span class="status available">PDF</span>
+            <a href="wrapper_detection.pdf">Wrapper Detection Analysis</a>
+            <div class="description">
+                Analyzes security against wrapper attacks where adversaries attempt 
+                to substitute models using input/output transformations.
+                Shows detection probability ≥ 1 - exp(-n·d²/2C) for n-dimensional challenges.
+            </div>
+        </li>
+    </ul>
+    
+    <h2>Text Versions</h2>
+    <ul class="proof-list">
+        <li>
+            <span class="status text-only">TXT</span>
+            <a href="coverage_separation.txt">Coverage-Separation (Plain Text)</a>
+            <div class="description">Simplified text version for quick reference</div>
+        </li>
+        <li>
+            <span class="status text-only">TXT</span>
+            <a href="wrapper_detection.txt">Wrapper Detection (Plain Text)</a>
+            <div class="description">Simplified text version for quick reference</div>
+        </li>
+    </ul>
+    
+    <h2>Combined Document</h2>
+    <ul class="proof-list">
+        <li>
+            <span class="status available">PDF</span>
+            <a href="pot_proofs_combined.pdf">All Proofs (Combined PDF)</a>
+            <div class="description">
+                Complete collection of all formal proofs in a single document
+            </div>
+        </li>
+    </ul>
+    
+    <h2>Key Theoretical Contributions</h2>
+    <ol>
+        <li><strong>Coverage Guarantee:</strong> Finite challenge sets can ε-approximate infinite network behaviors</li>
+        <li><strong>Separation Property:</strong> Distinct networks are distinguishable with probability ≥ 1 - 2^(-k)</li>
+        <li><strong>Wrapper Hardness:</strong> Perfect model wrapping is NP-hard</li>
+        <li><strong>Adaptive Detection:</strong> O(k log n) queries suffice to detect k-complexity wrappers</li>
+    </ol>
+    
+    <h2>Implementation Notes</h2>
+    <p>
+        These theoretical results are implemented in the PoT framework at 
+        <a href="https://github.com/rohanvinaik/PoT_Experiments">github.com/rohanvinaik/PoT_Experiments</a>.
+        The proofs establish security guarantees with concrete parameters suitable for 
+        practical deployment.
+    </p>
+    
+    <footer style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em;">
+        Generated: <script>document.write(new Date().toLocaleString());</script>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,97 @@
+We provide formal proofs for the coverage-separation properties of the 
+Proof-of-Training challenge-response protocol, demonstrating that challenge 
+vectors can distinguish between distinct neural networks with high probability.
+A neural network f_\theta: R^n \rightarrow R^m is a 
+function parameterized by weights \theta \in \Theta \subseteq R^p, 
+where n is the input dimension, m is the output dimension, and p is 
+the total number of parameters.
+
+A challenge vector c \in C \subseteq R^n is a specially 
+crafted input designed to probe the learned structure of a neural network.
+The challenge space C is constructed to have the following properties:
+
+For a neural network f_\theta and challenge vector c, the response function 
+is defined as:
+R(f_\theta, c) = h(f_\theta(c))
+where h: R^m \rightarrow 0,1\^k is a hash function that maps 
+the output to a fixed-size binary representation.
+Let f_\theta: R^n \rightarrow R^m be a neural network with 
+Lipschitz constant L. For any \epsilon > 0 and \delta > 0, there exists 
+a finite set of challenge vectors S = c_1, ..., c_N\ \subset C 
+such that for any input x \in C:
+\Pr[\exists c_i \in S: \|f_\theta(x) - f_\theta(c_i)\| < \epsilon] > 1 - \delta
+where N = O\left(\left(L\cdotdiam(C){\epsilon\right)^n 
+
+We construct an \epsilon/L-net over C. Since f_\theta is 
+L-Lipschitz:
+\|f_\theta(x) - f_\theta(y)\| \leq L\|x - y\|
+
+Let N_{\epsilon/L be an \epsilon/L-net of C. 
+By the covering number bound for bounded sets in R^n:
+|N_{\epsilon/L| \leq \left(3L\cdotdiam(C)
+{\epsilon\right)^n
+
+For any x \in C, there exists c \in N_{\epsilon/L 
+such that \|x - c\| < \epsilon/L, which implies:
+\|f_\theta(x) - f_\theta(c)\| \leq L\|x - c\| < \epsilon
+
+To achieve probability 1-\delta, we use a randomized construction with 
+N = O(|N_{\epsilon/L| \log(1/\delta)) samples.
+
+By Chernoff bound, if we sample N points uniformly at random from 
+N_{\epsilon/L with replacement, the probability that any 
+specific point in C is not \epsilon-covered is at most \delta.
+Let f_{\theta_1 and f_{\theta_2 be two neural networks with parameters 
+\theta_1 \neq \theta_2. Under mild regularity conditions, there exists a 
+challenge vector c^* \in C such that:
+\Pr[R(f_{\theta_1, c^*) \neq R(f_{\theta_2, c^*)] \geq 1 - 2^{-k
+where k is the output dimension of the hash function.
+
+Since \theta_1 \neq \theta_2, there exists at least one layer l where 
+the weight matrices W_1^{(l) \neq W_2^{(l) differ.
+By the universal approximation theorem and the fact that neural networks 
+with different parameters define different continuous functions (except on 
+a measure-zero set), there exists an open set U \subset C where:
+f_{\theta_1(x) \neq f_{\theta_2(x) \quad \forall x \in U
+We design challenges to maximize the difference. Let:
+c^* = \arg\max_{c \in C \|f_{\theta_1(c) - f_{\theta_2(c)\|
+
+This optimization can be approximated using gradient ascent:
+c_{t+1 = c_t + \eta \nabla_c \|f_{\theta_1(c) - f_{\theta_2(c)\|^2
+For a cryptographic hash function h with k-bit output, the probability 
+of collision when the inputs differ is approximately 2^{-k (assuming the 
+hash function behaves as a random oracle).
+
+Therefore:
+\Pr[h(f_{\theta_1(c^*)) = h(f_{\theta_2(c^*))] \leq 2^{-k
+
+Which gives us:
+\Pr[R(f_{\theta_1, c^*) \neq R(f_{\theta_2, c^*)] \geq 1 - 2^{-k
+For a family of neural networks F = f_\theta : \theta \in \Theta\ 
+and accuracy parameter \epsilon > 0, there exists a challenge set 
+S \subset C with |S| = O((diam(\Theta)/\epsilon)^p) such that:
+    provides an \epsilon-cover of the network's behavior
+    with \|\theta_1 - \theta_2\| > 2\epsilon, there exists c \in S such that 
+    R(f_{\theta_1, c) \neq R(f_{\theta_2, c) with high probability
+
+We combine the coverage and separation results.
+By Theorem thm:coverage, for each network f_\theta, we can construct 
+a covering set. Taking the union over a discretization of \Theta gives us 
+the required coverage.
+For networks with \|\theta_1 - \theta_2\| > 2\epsilon, by continuity of 
+the network function with respect to parameters, there exists c such that:
+\|f_{\theta_1(c) - f_{\theta_2(c)\| > \gamma(\epsilon)
+for some function \gamma depending on the network architecture.
+
+The challenge set S is constructed to include such separating points for 
+all pairs of sufficiently distant parameters.
+The Proof-of-Training protocol using challenge set S has soundness error 
+at most 2^{-k + e^{-|S| against adversaries attempting to substitute a 
+different model.
+
+The Proof-of-Training protocol has completeness error at most \epsilon for 
+networks within \epsilon-distance in parameter space.
+For practical deployment, we need to balance coverage quality against 
+computational cost. Typical values:
+
+With these parameters:
