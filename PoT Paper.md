@@ -23,9 +23,13 @@ Verifying neural networks in practice faces several obstacles:
 
 1. **Robust statistical framework** using empirical Bernstein bounds and sequential testing  
 2. **Fuzzy hashing for language models** handling tokenization and version variability  
-3. **Comprehensive adversary model** including wrapper attacks and compression  
-4. **Coverage-separation analysis** for principled challenge design  
+3. **Comprehensive adversary model** including wrapper attacks and compression
+4. **Coverage-separation analysis** for principled challenge design
 5. **Comparative evaluation** against fingerprinting, watermarking, and TEE-based approaches
+
+### **1.3 Regulatory Alignment**
+
+Our adversary model—encompassing wrapper functions, targeted fine-tuning, model compression, and limited query budgets—addresses misuse scenarios highlighted in the EU AI Act's risk-management and cybersecurity provisions (Art. 9, Art. 15) and the NIST AI Risk Management Framework's "Secure and Resilient" guidance. PoT's challenge-based fingerprinting offers evidence toward these obligations but does not protect against white-box disclosure, network tampering, or hardware bypass, leaving gaps relative to EU AI Act Art. 15(5) and NIST confidentiality and integrity expectations. Deployment therefore requires secure channels, challenge secrecy, and complementary operational controls in line with both standards [1][2].
 
 ---
 
@@ -382,7 +386,9 @@ PoT offers advantages over existing approaches by requiring no training-time mod
 
 ## **References**
 
-\[Key papers: Maurer & Pontil 2009 (Empirical Bernstein), Wald 1945 (SPRT), Recent watermarking/fingerprinting papers, TEE attestation work\]
+- [1] European Parliament and Council of the European Union. "Regulation (EU) 2024/1689 Artificial Intelligence Act," 2024. <https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689>
+- [2] National Institute of Standards and Technology. *AI Risk Management Framework 1.0*, 2023. <https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf>
+- [Key papers: Maurer & Pontil 2009 (Empirical Bernstein), Wald 1945 (SPRT), Recent watermarking/fingerprinting papers, TEE attestation work]
 
 ---
 
