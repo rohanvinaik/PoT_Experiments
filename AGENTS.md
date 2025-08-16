@@ -771,7 +771,30 @@ The system is designed to be extensible. To add new:
 
 ## Documentation Requirements for Contributors
 
-When adding substantial functionality to the PoT codebase, please ensure comprehensive documentation:
+**CRITICAL FOR AI AGENTS**: You MUST maintain documentation when modifying this codebase.
+
+### Mandatory Documentation Protocol for AI Agents
+
+When you make changes to the PoT codebase, you are REQUIRED to:
+
+1. **IMMEDIATELY update AGENTS.md (this file)** after adding features that affect:
+   - Integration patterns or API interfaces
+   - Verification workflows or protocols
+   - Performance benchmarks or configurations
+   - Usage examples or quick start guides
+   - Any user-facing functionality
+
+2. **IMMEDIATELY update CLAUDE.md** after implementing:
+   - New modules or components
+   - Core framework changes
+   - Security features
+   - Implementation details that future agents need to know
+
+3. **IMMEDIATELY update README.md** when:
+   - Adding new challenge families
+   - Creating verification modes
+   - Modifying setup requirements
+   - Adding user-facing features
 
 ### 1. Code Documentation
 
@@ -795,6 +818,17 @@ When adding new features, update these files:
 - **CLAUDE.md**: Update with implementation details and best practices
 - **README.md**: Add new challenge families or verification modes
 - **requirements.txt**: Document new dependencies with version pins
+
+### Documentation Verification Checklist
+
+Before considering any task complete, ensure:
+- [ ] AGENTS.md updated with integration details
+- [ ] CLAUDE.md updated with implementation details
+- [ ] README.md updated if user-facing
+- [ ] All new functions have comprehensive docstrings
+- [ ] Complex logic has inline comments
+- [ ] Dependencies added to requirements.txt with versions
+- [ ] Examples added for new features
 
 ### 3. Challenge Family Extensions
 

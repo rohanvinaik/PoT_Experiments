@@ -514,7 +514,34 @@ proof = pot.generate_verification_proof(result)
 
 ## Documentation Guidelines
 
+**IMPORTANT**: When you make changes to this codebase as an AI agent, you MUST keep these documentation files updated:
+
+### Required Documentation Updates
+
 When adding substantial functionality to the codebase:
+
+1. **ALWAYS update this CLAUDE.md file** immediately after implementing new features:
+   - Add new module descriptions and their purposes
+   - Document important implementation details
+   - Include usage patterns and best practices
+   - Add any new dependencies or requirements
+   - Update the "Complete Functionality Overview" section
+   - Add new features to the appropriate component sections
+
+2. **ALWAYS update AGENTS.md** immediately if the functionality affects:
+   - Integration patterns with external systems
+   - API interfaces or protocols
+   - Agent-based verification workflows
+   - Usage examples or quick start guides
+   - Performance benchmarks or configuration guidelines
+
+3. **ALWAYS update README.md** when:
+   - Adding new challenge families
+   - Creating new verification modes
+   - Adding major features that users will interact with
+   - Changing dependencies or setup requirements
+
+### Code Documentation Requirements
 
 1. **Add comprehensive docstrings** to all new functions and classes:
    - Include cryptographic properties for security-related functions
@@ -522,32 +549,27 @@ When adding substantial functionality to the codebase:
    - Provide usage examples in docstrings
    - Reference relevant paper sections (e.g., §2.3 for challenge generation)
 
-2. **Update this CLAUDE.md file** with:
-   - New module descriptions and their purposes
-   - Important implementation details
-   - Usage patterns and best practices
-   - Any new dependencies or requirements
-
-3. **Update AGENTS.md** if the functionality affects:
-   - Integration patterns with external systems
-   - API interfaces or protocols
-   - Agent-based verification workflows
-
-4. **Add inline comments** that:
+2. **Add inline comments** that:
    - Reference specific paper sections for algorithms
    - Explain non-obvious implementation choices
    - Mark security-critical code sections
    - Note performance vs security trade-offs
 
-5. **Update requirements.txt** when adding dependencies:
+3. **Update requirements.txt** when adding dependencies:
    - Include version pins for reproducibility
    - Add comments explaining why each dependency is needed
    - Group related dependencies together
 
-6. **Maintain the README.md** by:
-   - Adding new challenge families to the documentation
-   - Updating usage examples for new features
-   - Documenting any new verification profiles or modes
+### Documentation Update Checklist
+
+After implementing any new feature, verify you have:
+- [ ] Updated CLAUDE.md with implementation details
+- [ ] Updated AGENTS.md with integration instructions
+- [ ] Updated README.md if user-facing
+- [ ] Added comprehensive docstrings
+- [ ] Added inline comments for complex logic
+- [ ] Updated requirements.txt if needed
+- [ ] Added the feature to the appropriate "Complete Functionality Overview" section
 
 ## Contact & Support
 
