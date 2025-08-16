@@ -19,7 +19,7 @@ PoT offers statistical model-identity checks and complements cryptographic Proof
 
 ## Threat model
 
-Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (iii) access up to a fraction ρ of past challenges, (iv) query black-box APIs polynomially. We do **not** claim resistance to: white-box access to the reference weights, on-path traffic modification during verification, or hardware attestation bypass. See E4/E2 for measured robustness.
+Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (iii) access up to a fraction ρ of past challenges, (iv) query black-box APIs polynomially. These capabilities map to misuse and robustness obligations in the EU AI Act's risk-management and cybersecurity provisions (Art. 9, Art. 15) and the NIST AI Risk Management Framework's "Secure and Resilient" profile. PoT's challenge-based auditing detects unauthorized model alterations and drift, supporting those standards, but it does not address white-box exposure, network tampering, or hardware bypass—gaps relative to EU AI Act Art. 15(5) and NIST confidentiality/integrity expectations. Deployment must ensure secure channels, challenge secrecy, and complementary operational controls.[1][2]
 
 ## Verification profiles
 
@@ -250,3 +250,6 @@ If you use this code in your research, please cite:
   url = {https://github.com/yourusername/PoT_Experiments}
 }
 ```
+
+[1]: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689
+[2]: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
