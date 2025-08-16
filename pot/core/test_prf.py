@@ -160,7 +160,7 @@ def test_prf_uniformity():
     print("  Testing integer uniformity...")
     max_val = 100
     n_samples = 10000
-    integers = prf_integers(key, b"uniformity_test", n_samples, max_val)
+    integers = prf_integers(key, b"uniformity_test", n_samples, 0, max_val)
     
     # Check range
     assert all(0 <= i < max_val for i in integers), "Integers out of range"
@@ -244,7 +244,8 @@ def test_prf_functions():
     
     # Test prf_choice
     choices = ["apple", "banana", "cherry", "date", "elderberry"]
-    selected = prf_choice(key, b"choice_test", choices, 100)
+    # Test multiple selections
+    selected = [prf_choice(key, b"choice_test" + bytes([i]), choices) for i in range(100)]
     assert len(selected) == 100
     assert all(item in choices for item in selected)
     
@@ -318,7 +319,7 @@ def visualize_distributions():
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     
     # Integer distribution
-    integers = prf_integers(key, b"viz", 10000, 50)
+    integers = prf_integers(key, b"viz", 10000, 0, 50)
     axes[0, 0].hist(integers, bins=50, alpha=0.7, edgecolor='black')
     axes[0, 0].set_title("PRF Integer Distribution (0-49)")
     axes[0, 0].set_xlabel("Value")

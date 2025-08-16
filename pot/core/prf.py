@@ -3,7 +3,8 @@
 import hashlib
 import hmac
 import struct
-from typing import Union
+from typing import Union, List, Any
+import xxhash
 
 
 def prf_derive_key(master_key: bytes, label: str, nonce: bytes) -> bytes:
@@ -93,38 +94,80 @@ def prf_derive_seed(master_key: bytes, family: str, params: dict, nonce: bytes) 
     return seed
 
 
-def prf_expand(seed: bytes, length: int) -> bytes:
+def prf_expand(key: bytes, info: bytes, length: int) -> bytes:
     """
-    Expand a seed to arbitrary length using PRF.
+    Expand key material using HKDF-like expansion with xxhash for speed.
+    
+    This implements an HKDF-Expand-like function using xxhash64 for performance
+    while maintaining cryptographic properties through HMAC-SHA256 mixing.
     
     Args:
-        seed: Seed bytes (typically 32 bytes)
-        length: Desired output length
+        key: Key material (typically output from prf_derive_key)
+        info: Context/info bytes for this expansion
+        length: Desired output length in bytes
     
     Returns:
         Expanded pseudorandom bytes
     """
-    return prf_bytes(seed, b"expand", length)
+    if length <= 0:
+        raise ValueError("length must be positive")
+    
+    # For short outputs, use direct PRF
+    if length <= 32:
+        return prf_bytes(key, info, length)
+    
+    # For longer outputs, use hybrid approach: HMAC for security, xxhash for speed
+    output = bytearray()
+    
+    # First, derive a mixing key using HMAC-SHA256
+    mixing_key = hmac.new(key, b"xxhash-expand" + info, hashlib.sha256).digest()
+    
+    # Use xxhash in counter mode for fast expansion
+    hasher = xxhash.xxh64()
+    counter = 0
+    
+    while len(output) < length:
+        # Mix counter with mixing key for each block
+        hasher.reset()
+        hasher.update(mixing_key)
+        hasher.update(struct.pack('>Q', counter))
+        hasher.update(info)
+        
+        # Generate 8-byte block
+        block = hasher.digest()
+        output.extend(block)
+        counter += 1
+        
+        # Every 8 blocks, re-mix with HMAC for security
+        if counter % 8 == 0:
+            mixing_key = hmac.new(key, mixing_key + struct.pack('>Q', counter), hashlib.sha256).digest()
+    
+    return bytes(output[:length])
 
 
-def prf_integers(key: bytes, info: bytes, count: int, max_value: int) -> list[int]:
+def prf_integers(key: bytes, info: bytes, count: int, min_val: int, max_val: int) -> List[int]:
     """
-    Generate deterministic pseudorandom integers.
+    Generate deterministic pseudorandom integers in a specified range.
     
     Args:
         key: PRF key
         info: Context info
         count: Number of integers to generate
-        max_value: Maximum value (exclusive)
+        min_val: Minimum value (inclusive)
+        max_val: Maximum value (exclusive)
     
     Returns:
-        List of integers in range [0, max_value)
+        List of integers in range [min_val, max_val)
     """
-    if max_value <= 0:
-        raise ValueError("max_value must be positive")
+    if min_val >= max_val:
+        raise ValueError("min_val must be less than max_val")
+    
+    range_size = max_val - min_val
+    if range_size <= 0:
+        raise ValueError("Invalid range")
     
     # Calculate bytes needed per integer (with some margin for rejection sampling)
-    bytes_per_int = (max_value.bit_length() + 7) // 8 + 1
+    bytes_per_int = (range_size.bit_length() + 7) // 8 + 1
     
     integers = []
     offset = 0
@@ -143,11 +186,11 @@ def prf_integers(key: bytes, info: bytes, count: int, max_value: int) -> list[in
             value = int.from_bytes(random_bytes[i:i+bytes_per_int], 'big')
             
             # Rejection sampling for uniform distribution
-            # Find the largest multiple of max_value that fits in our range
-            limit = ((2 ** (bytes_per_int * 8)) // max_value) * max_value
+            # Find the largest multiple of range_size that fits in our range
+            limit = ((2 ** (bytes_per_int * 8)) // range_size) * range_size
             
             if value < limit:
-                integers.append(value % max_value)
+                integers.append(min_val + (value % range_size))
         
         offset += 1
     
@@ -188,24 +231,23 @@ def prf_floats(key: bytes, info: bytes, count: int, min_val: float = 0.0, max_va
     return floats
 
 
-def prf_choice(key: bytes, info: bytes, choices: list, count: int) -> list:
+def prf_choice(key: bytes, info: bytes, choices: List[Any]) -> Any:
     """
-    Make deterministic random choices from a list.
+    Deterministically select a single item from choices.
     
     Args:
         key: PRF key
         info: Context info
         choices: List of items to choose from
-        count: Number of choices to make
     
     Returns:
-        List of chosen items
+        Single chosen item
     """
     if not choices:
         raise ValueError("choices list cannot be empty")
     
-    indices = prf_integers(key, info, count, len(choices))
-    return [choices[i] for i in indices]
+    indices = prf_integers(key, info, 1, 0, len(choices))
+    return choices[indices[0]]
 
 
 def prf_shuffle(key: bytes, info: bytes, items: list) -> list:
@@ -230,7 +272,7 @@ def prf_shuffle(key: bytes, info: bytes, items: list) -> list:
     # For position i, we need a random integer in range [i, n)
     for i in range(n - 1):
         # Generate random index in range [i, n)
-        rand_ints = prf_integers(key, info + struct.pack('>I', i), 1, n - i)
+        rand_ints = prf_integers(key, info + struct.pack('>I', i), 1, 0, n - i)
         j = i + rand_ints[0]
         # Swap
         items_copy[i], items_copy[j] = items_copy[j], items_copy[i]

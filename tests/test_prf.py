@@ -80,9 +80,9 @@ class TestPRFDeterminism:
         info = b"test_info"
         
         # Generate integers multiple times
-        ints1 = prf_integers(key, info, count=100, max_value=1000)
-        ints2 = prf_integers(key, info, count=100, max_value=1000)
-        ints3 = prf_integers(key, info, count=100, max_value=1000)
+        ints1 = prf_integers(key, info, count=100, min_val=0, max_val=1000)
+        ints2 = prf_integers(key, info, count=100, min_val=0, max_val=1000)
+        ints3 = prf_integers(key, info, count=100, min_val=0, max_val=1000)
         
         # All should be identical
         assert ints1 == ints2 == ints3
@@ -234,8 +234,7 @@ class TestCounterMode:
         assert all_at_once[:32] == first_32
         
         # The expand function should give same result
-        seed = key
-        expanded = prf_expand(seed, 100)
+        expanded = prf_expand(key, b"expand_info", 100)
         assert isinstance(expanded, bytes)
         assert len(expanded) == 100
     
@@ -267,7 +266,7 @@ class TestUniformity:
         # Generate many integers
         max_val = 100
         count = 10000
-        integers = prf_integers(key, info, count, max_val)
+        integers = prf_integers(key, info, count, 0, max_val)
         
         # Chi-square test for uniformity
         observed, _ = np.histogram(integers, bins=max_val, range=(0, max_val))
@@ -345,7 +344,8 @@ class TestChoice:
         info = b"test_info"
         
         choices = ["apple", "banana", "cherry", "date", "elderberry"]
-        selected = prf_choice(key, info, choices, 10)
+        # Generate 10 selections using different info for each
+        selected = [prf_choice(key, info + bytes([i]), choices) for i in range(10)]
         
         # Should have correct count
         assert len(selected) == 10
@@ -354,7 +354,7 @@ class TestChoice:
         assert all(item in choices for item in selected)
         
         # Should be deterministic
-        selected2 = prf_choice(key, info, choices, 10)
+        selected2 = [prf_choice(key, info + bytes([i]), choices) for i in range(10)]
         assert selected == selected2
     
     def test_choice_distribution(self):
@@ -363,7 +363,8 @@ class TestChoice:
         info = b"test_info"
         
         choices = list(range(10))
-        selected = prf_choice(key, info, choices, 10000)
+        # Generate many selections with different info
+        selected = [prf_choice(key, info + struct.pack('>I', i), choices) for i in range(10000)]
         
         # Count occurrences
         counts = {}

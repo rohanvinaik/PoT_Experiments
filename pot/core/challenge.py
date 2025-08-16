@@ -85,9 +85,9 @@ def _sample_family_prf(family: str, params: Dict[str, Any], n: int, seed: bytes)
         for i in range(n):
             item_info = f"item_{i}".encode()
             
-            octave_vals = prf_integers(seed, item_info + b":octaves", 1, 
-                                       params["octaves"][1] - params["octaves"][0])
-            octave = params["octaves"][0] + octave_vals[0]
+            octave_vals = prf_integers(seed, item_info + b":octaves", 1,
+                                       params["octaves"][0], params["octaves"][1])
+            octave = octave_vals[0]
             
             scale_vals = prf_floats(seed, item_info + b":scale", 1,
                                     params["scale"][0], params["scale"][1])
@@ -105,13 +105,13 @@ def _sample_family_prf(family: str, params: Dict[str, Any], n: int, seed: bytes)
             item_info = f"item_{i}".encode()
             
             # Choose template
-            template = prf_choice(seed, item_info + b":template", params["templates"], 1)[0]
+            template = prf_choice(seed, item_info + b":template", params["templates"])
             
             # Choose slot values
             slot_values = {}
             for k, v in params["slots"].items():
                 slot_key = item_info + f":slot_{k}".encode()
-                slot_values[k] = prf_choice(seed, slot_key, v, 1)[0]
+                slot_values[k] = prf_choice(seed, slot_key, v)
             
             items.append({
                 "template": template,
