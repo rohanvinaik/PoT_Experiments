@@ -1,0 +1,9 @@
+{"event": "challenges_generated", "num_challenges": 5, "types": ["text"]}
+{"event": "challenges_generated", "num_challenges": 5, "types": ["text"]}
+{"event": "challenges_generated", "num_challenges": 5, "types": ["text"]}
+{"event": "results_saved", "results_file": "api_results/verification_results_20250816_083654.json", "summary_file": "api_results/summary_20250816_083654.json", "report_file": "api_results/report_20250816_083654.md"}
+{"event": "challenges_generated", "num_challenges": 5, "types": ["text"]}
+{"event": "responses_saved", "api": "mock_mock-model", "file": "api_results/mock_mock-model_responses_20250816_083734.json", "num_responses": 5}
+{"event": "challenges_generated", "num_challenges": 5, "types": ["text"]}
+{"event": "responses_saved", "api": "mock_mock-model", "file": "api_results/mock_mock-model_responses_20250816_083758.json", "num_responses": 5}
+{"event": "results_saved", "results_file": "api_results/verification_results_20250816_083758.json", "summary_file": "api_results/summary_20250816_083758.json", "report_file": "api_results/report_20250816_083758.md"}

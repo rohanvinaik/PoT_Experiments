@@ -50,6 +50,15 @@ apis:
     cost_per_token: 0.01
     timeout: 30
     
+  - provider: "mock"
+    model_name: "mock-model"
+    api_key: "none"
+    max_tokens: 100
+    temperature: 0.0
+    rate_limit_rpm: 1000
+    cost_per_token: 0.0
+    timeout: 1
+    
   - provider: "openai"
     model_name: "gpt-3.5-turbo"
     api_key: "${AZURE_OPENAI_API_KEY}"

@@ -1,0 +1,14 @@
+[
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "num_challenges": 5,
+    "distances": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "threshold": 0.7,
+    "accepted": 

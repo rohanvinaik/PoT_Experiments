@@ -1,0 +1,67 @@
+[
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "challenge_id": 0,
+    "prompt": "Complete this sentence: The future of artificial intelligence is",
+    "response": "This is a mock response for testing.",
+    "latency_ms": 12.52293586730957,
+    "tokens_used": 7,
+    "cost": 0.0,
+    "timestamp": "2025-08-16T08:37:58.336353",
+    "success": true,
+    "error": null
+  },
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "challenge_id": 1,
+    "prompt": "Translate 'Thank you for your help.' to Spanish.",
+    "response": "The proof-of-training system uses cryptographic verification.",
+    "latency_ms": 11.996030807495117,
+    "tokens_used": 6,
+    "cost": 0.0,
+    "timestamp": "2025-08-16T08:37:58.348450",
+    "success": true,
+    "error": null
+  },
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "challenge_id": 2,
+    "prompt": "Summarize the following: Quantum computing leverages quantum mechanical phenomena to process information in fundamentally different ways than classical computers.",
+    "response": "Machine learning models can be verified using behavioral fingerprinting.",
+    "latency_ms": 10.732889175415039,
+    "tokens_used": 9,
+    "cost": 0.0,
+    "timestamp": "2025-08-16T08:37:58.359300",
+    "success": true,
+    "error": null
+  },
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "challenge_id": 3,
+    "prompt": "Answer this question: Why is the sky blue?",
+    "response": "Challenge-response protocols ensure model integrity.",
+    "latency_ms": 12.521982192993164,
+    "tokens_used": 5,
+    "cost": 0.0,
+    "timestamp": "2025-08-16T08:37:58.371941",
+    "success": true,
+    "error": null
+  },
+  {
+    "api_name": "mock_mock-model",
+    "model": "mock-model",
+    "challenge_id": 4,
+    "prompt": "Write a recipe about cooking.",
+    "response": "This is a mock response for testing.",
+    "latency_ms": 12.522220611572266,
+    "tokens_used": 7,
+    "cost": 0.0,
+    "timestamp": "2025-08-16T08:37:58.384576",
+    "success": true,
+    "error": null
+  }
+]

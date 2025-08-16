@@ -1,0 +1,12 @@
+{
+  "timestamp": "20250816_083635",
+  "num_apis": 0,
+  "apis_tested": [],
+  "accepted": [],
+  "rejected": [],
+  "average_far": NaN,
+  "average_frr": NaN,
+  "average_auroc": NaN,
+  "total_cost": 0,
+  "total_queries": 0
+}

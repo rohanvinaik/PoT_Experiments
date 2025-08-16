@@ -1,0 +1,16 @@
+{
+  "timestamp": "20250816_083758",
+  "num_apis": 1,
+  "apis_tested": [
+    "mock_mock-model"
+  ],
+  "accepted": [
+    "mock_mock-model"
+  ],
+  "rejected": [],
+  "average_far": 0.0,
+  "average_frr": 0.0,
+  "average_auroc": NaN,
+  "total_cost": 0.0,
+  "total_queries": 5
+}
