@@ -5,6 +5,7 @@ import xxhash
 import secrets
 import hashlib
 import os
+import re
 from .prf import prf_derive_key, prf_derive_seed, prf_floats, prf_integers, prf_choice, prf_bytes
 
 @dataclass
@@ -121,6 +122,127 @@ def generate_vision_freq_challenges(cfg: ChallengeConfig, seed: bytes, salt: str
     
     return challenges
 
+def generate_lm_templates_challenges(cfg: ChallengeConfig, seed: bytes, salt: str) -> List[Challenge]:
+    """
+    Generate template-based text challenges for the lm:templates family.
+    
+    Following the paper's specification, generates deterministic prompts:
+    - Templates with slots for grammatical components
+    - Subjects, verbs, objects, modifiers/adjectives
+    - Complete prompts like "The [adjective] [subject] [verb] the [object]"
+    
+    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    
+    Args:
+        cfg: Challenge configuration with templates and slot values
+        seed: Deterministic seed derived from master key and model_id
+        salt: Salt for commit-reveal protocol
+    
+    Returns:
+        List of Challenge objects with templated prompts
+    """
+    challenges = []
+    
+    # Extract templates and slot values from params
+    # Allow both old format (single templates list) and new format (categorized templates)
+    if "templates" in cfg.params and isinstance(cfg.params["templates"], list):
+        # Old format: list of template strings
+        templates = cfg.params["templates"]
+    else:
+        # New format: default templates if not provided
+        templates = cfg.params.get("templates", [
+            "The {adjective} {subject} {verb} the {object}.",
+            "{subject} {verb} {adjective} {object}.",
+            "A {adjective} {subject} will {verb} the {object}.",
+            "The {subject} {verb} {object} {adverb}.",
+            "{adjective} {subject} {adverb} {verb} {object}.",
+            "When the {subject} {verb}, the {object} becomes {adjective}.",
+            "The {object} was {verb_past} by the {adjective} {subject}.",
+            "{subject} and {subject2} {verb} the {adjective} {object}."
+        ])
+    
+    # Extract slot values with defaults for common grammatical components
+    slots = cfg.params.get("slots", {})
+    
+    # Provide comprehensive defaults if not specified
+    default_slots = {
+        "subject": ["cat", "dog", "bird", "robot", "scientist", "artist", "teacher", "student"],
+        "subject2": ["mouse", "rabbit", "engineer", "doctor", "writer", "musician"],
+        "verb": ["chases", "observes", "creates", "discovers", "analyzes", "transforms", "inspects", "measures"],
+        "verb_past": ["created", "discovered", "analyzed", "transformed", "observed", "measured"],
+        "object": ["ball", "puzzle", "painting", "equation", "melody", "story", "experiment", "pattern"],
+        "adjective": ["clever", "curious", "colorful", "mysterious", "elegant", "complex", "simple", "unusual"],
+        "adverb": ["quickly", "carefully", "quietly", "gracefully", "methodically", "suddenly", "slowly", "precisely"]
+    }
+    
+    # Merge provided slots with defaults (deterministically)
+    # Create new dict to avoid modifying input
+    merged_slots = {}
+    # First add all provided slots
+    for key in sorted(slots.keys()):
+        merged_slots[key] = slots[key]
+    # Then add defaults for missing slots
+    for key in sorted(default_slots.keys()):
+        if key not in merged_slots:
+            merged_slots[key] = default_slots[key]
+    slots = merged_slots
+    
+    for i in range(cfg.n):
+        # Create unique derivation info for each challenge
+        # Following paper: c_i = KDF(master_seed || model_id || i || salt)
+        if cfg.model_id:
+            challenge_info = f"challenge_{cfg.model_id}_{i}_{salt}".encode()
+        else:
+            challenge_info = f"challenge_{i}_{salt}".encode()
+        
+        # Deterministically select a template
+        template = prf_choice(seed, challenge_info + b":template", templates)
+        
+        # Extract slot names from the template
+        slot_pattern = r'\{([^}]+)\}'
+        required_slots = re.findall(slot_pattern, template)
+        
+        # Deterministically select values for each slot
+        slot_values = {}
+        for slot_name in required_slots:
+            if slot_name in slots:
+                # Use PRF to deterministically select from available values
+                slot_value = prf_choice(seed, challenge_info + f":slot_{slot_name}".encode(), 
+                                       slots[slot_name])
+                slot_values[slot_name] = slot_value
+            else:
+                # If slot not defined, use a placeholder
+                slot_values[slot_name] = f"[{slot_name}]"
+        
+        # Generate the complete prompt by filling in the template
+        prompt = template
+        for slot_name, slot_value in slot_values.items():
+            prompt = prompt.replace(f"{{{slot_name}}}", slot_value)
+        
+        # Create unique challenge ID by hashing the complete prompt
+        # This ensures identical prompts always get the same ID
+        prompt_bytes = prompt.encode('utf-8')
+        challenge_id = xxhash.xxh3_64_hexdigest(prompt_bytes + seed[:8])
+        
+        # Create Challenge object with all information
+        challenge = Challenge(
+            challenge_id=challenge_id,
+            index=i,
+            family="lm:templates",
+            parameters={
+                "template": template,
+                "slot_values": slot_values,
+                "prompt": prompt,
+                # Additional metadata
+                "available_slots": sorted(slots.keys()),  # Sort for determinism
+                "template_index": templates.index(template) if template in templates else -1
+            }
+        )
+        
+        challenges.append(challenge)
+    
+    return challenges
+
 def generate_challenges(cfg: ChallengeConfig) -> Dict[str, Any]:
     """
     Generate challenges using PRF-based derivation for cryptographic security.
@@ -155,6 +277,8 @@ def generate_challenges(cfg: ChallengeConfig) -> Dict[str, Any]:
     # Generate challenges based on family
     if cfg.family == "vision:freq":
         challenges = generate_vision_freq_challenges(cfg, seed, salt)
+    elif cfg.family == "lm:templates":
+        challenges = generate_lm_templates_challenges(cfg, seed, salt)
     else:
         # Fallback to old method for other families
         items = _sample_family_prf(cfg.family, cfg.params, cfg.n, seed)
