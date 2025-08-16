@@ -1,0 +1,38 @@
+{
+  "alpha": 0.05,
+  "artifacts": {
+    "confidence_interval": [
+      0,
+      0.2796179644537506
+    ],
+    "decision": "accept_id",
+    "duration_seconds": 0.0903170108795166,
+    "final_mean": 0.08956925867026701,
+    "leakage_stats": {
+      "leaked_challenges": 0,
+      "observed_rho": 0.0,
+      "total_challenges": 100
+    },
+    "session_id": "genuine_test",
+    "stopping_time": 100,
+    "trail_length": 100
+  },
+  "beta": 0.05,
+  "boundary": 0.1,
+  "commitment": "706c616365686f6c646572",
+  "env": {
+    "platform": "darwin",
+    "python_version": "3.11.8 | packaged by conda-forge | (main, Feb 16 2024, 20:49:36) [Clang 16.0.6 ]"
+  },
+  "family": "vision:freq",
+  "model_id": "test_model",
+  "nonce": "ba05908cf47797168a2a294ae7b91b8a72d9105c6d96605040a0ca48d1f3aa9c",
+  "prf_info": {
+    "algorithm": "HMAC-SHA256",
+    "key_derivation": "PRF",
+    "seed_length": 32
+  },
+  "reuse_policy": "u=3, rho_max=0.3",
+  "session_id": "genuine_test",
+  "timestamp": "2025-08-16T17:53:05.205530Z"
+}

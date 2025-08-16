@@ -19,6 +19,12 @@ The PoT system consists of two main components:
    - Token space normalization
    - Integrated proof-of-training system
    - Training provenance auditing (experimental, see `pot/prototypes/`)
+   - Leakage tracking and challenge reuse policy enforcement
+
+3. **Audit Infrastructure** (`pot/audit/`): Cryptographic audit components
+   - Commit-reveal protocol for tamper-evident trails
+   - Session management and nonce generation
+   - Audit record generation with JSON schemas
 
 ## Quick Start Guide
 
@@ -35,8 +41,11 @@ bash run_all_quick.sh
 pytest -q
 ```
 
+codex/run-all-tests-for-pot-paper-review-mzykzr
 Vision-model tests automatically skip if `torchvision` is missing or fails to load.
 
+=======
+main
 ### 1. Running Experiments
 
 To run the core experiments (E1-E7), follow the experimental protocol:
@@ -51,7 +60,43 @@ python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
 python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```
 
-### 2. Basic Model Verification
+### 2. Enhanced Verification Protocol (New)
+
+The system now includes a complete cryptographic verification protocol with sequential testing:
+
+```python
+from pot.core.sequential import sequential_verify
+from pot.core.boundaries import CSState, eb_radius
+from pot.core.prf import prf_derive_key
+from pot.audit import make_commitment, verify_commitment
+
+# Setup PRF-based challenge generation
+master_key = os.urandom(32)
+nonce = os.urandom(32)
+derived_key = prf_derive_key(master_key, "challenge:vision", nonce)
+
+# Create commitment before verification
+data_to_commit = serialize_for_commit(challenge_ids, ranges, context)
+commitment = make_commitment(master_key, nonce, data_to_commit)
+
+# Run sequential verification with early stopping
+def distance_stream():
+    for challenge in challenges:
+        yield compute_distance(model, challenge)
+
+decision, trail = sequential_verify(
+    stream=distance_stream(),
+    tau=0.05,      # Identity threshold
+    alpha=0.01,    # Type I error bound
+    beta=0.01,     # Type II error bound
+    n_max=500      # Maximum challenges
+)
+
+# Verify commitment after
+is_valid = verify_commitment(master_key, nonce, data_to_commit, commitment)
+```
+
+### 3. Basic Model Verification
 
 For production verification using security components:
 
@@ -218,7 +263,40 @@ proof = auditor.generate_training_proof(
 model_with_provenance = auditor.embed_provenance(model_state_dict)
 ```
 
-### 3. Token Space Normalization (Language Models)
+### 3. Leakage Tracking and Reuse Policy
+
+Control challenge reuse to prevent adversarial learning:
+
+```python
+from pot.security.leakage import ReusePolicy, LeakageAuditor
+
+# Initialize policy
+policy = ReusePolicy(
+    u=5,           # Max 5 uses per challenge
+    rho_max=0.3,   # Max 30% leakage ratio
+    persistence_path="reuse_state.json"
+)
+
+# Start session
+session_id = "verification_001"
+policy.start_session(session_id)
+
+# Check if challenges are safe to use
+is_safe, observed_rho = policy.check_leakage_threshold(challenge_ids)
+if not is_safe:
+    print(f"Warning: Leakage ratio {observed_rho:.2%} exceeds threshold")
+
+# Record challenge uses
+for cid in challenge_ids:
+    policy.record_use(cid, session_id)
+
+# End session and get stats
+stats = policy.end_session(session_id)
+print(f"Session complete: {stats.total_challenges} challenges, "
+      f"{stats.leaked_challenges} reused (ρ={stats.observed_rho:.2%})")
+```
+
+### 4. Token Space Normalization (Language Models)
 
 Use for handling tokenization differences:
 
@@ -462,12 +540,26 @@ class VerifiedModel(pl.LightningModule):
 
 ## File Locations
 
-- **Experimental Framework**: `pot/core/`, `pot/vision/`, `pot/lm/`, `pot/eval/`
-- **Security Components**: `pot/security/`
+- **Core Framework**: 
+  - `pot/core/`: Challenge generation, statistics, canonicalization
+  - `pot/core/prf.py`: PRF-based pseudorandom functions
+  - `pot/core/boundaries.py`: Confidence sequences with EB bounds
+  - `pot/core/sequential.py`: Sequential verification with early stopping
+- **Security Components**: 
+  - `pot/security/`: Verification components
+  - `pot/security/leakage.py`: Challenge reuse policy enforcement
+- **Audit Infrastructure**:
+  - `pot/audit/`: Commit-reveal protocol and audit records
+- **Vision/LM Components**: `pot/vision/`, `pot/lm/`
+- **Evaluation**: `pot/eval/`
 - **Prototypes**: `pot/prototypes/`
 - **Configurations**: `configs/`
-- **Experiment Scripts**: `scripts/`
-- **Tests**: `pot/security/test_*.py`
+- **Scripts**: 
+  - `scripts/`: Experiment runners
+  - `scripts/run_verify_enhanced.py`: Enhanced verification CLI
+- **Tests**: 
+  - `tests/test_*.py`: Comprehensive unit tests (86 test cases)
+  - `pot/security/test_*.py`: Security component tests
 - **Documentation**: `README.md`, `EXPERIMENTS.md`, `CLAUDE.md`, `AGENTS.md`
 
 ## Support

@@ -24,6 +24,9 @@ PoT_Experiments/
 
 ### 1. Core Framework (`pot/`)
 - **Challenge Generation**: KDF-based deterministic challenge creation
+- **PRF Module** (`pot/core/prf.py`): HMAC-SHA256 based pseudorandom functions
+- **Boundaries** (`pot/core/boundaries.py`): Confidence sequences with EB radius
+- **Sequential Testing** (`pot/core/sequential.py`): Anytime-valid sequential verification
 - **Fingerprinting**: Behavioral fingerprints via I/O hashing and Jacobian analysis
 - **Canonicalization**: Numeric and text normalization for robust comparison
 - **Statistics**: FAR/FRR calculation, confidence bounds, sequential testing
@@ -33,11 +36,74 @@ PoT_Experiments/
 - **Training Provenance Auditor**: Merkle tree-based training history
 - **Token Space Normalizer**: Handle tokenization differences in LMs
 - **Integrated PoT System**: Complete verification protocol
+- **Leakage Tracking**: Challenge reuse policy enforcement (`pot/security/leakage.py`)
 
-### 3. Experiments (`scripts/` and `configs/`)
+### 3. Audit Infrastructure (`pot/audit/`)
+- **Commit-Reveal Protocol**: Tamper-evident verification trails
+- **Audit Records**: JSON-based compliance documentation
+
+### 4. Experiments (`scripts/` and `configs/`)
 - E1-E7: Comprehensive experimental validation
 - Grid search over model variants and challenge sizes
 - Attack simulations and robustness testing
+
+## Enhanced Verification Protocol
+
+### New Protocol Features (Added 2025-08-16)
+
+The POT system now includes a complete cryptographic verification protocol:
+
+1. **Commit-Reveal Protocol** (`pot/audit/commit_reveal.py`)
+   - Pre-verification commitment generation
+   - Post-verification reveal with proof
+   - Tamper-evident audit trails
+
+2. **PRF-Based Challenge Generation** (`pot/core/prf.py`)
+   - NIST SP 800-108 counter mode construction
+   - Deterministic pseudorandom generation
+   - Cryptographically secure challenge derivation
+
+3. **Confidence Sequences** (`pot/core/boundaries.py`)
+   - Anytime-valid sequential testing
+   - Empirical Bernstein (EB) bounds
+   - Welford's algorithm for online statistics
+
+4. **Sequential Verification** (`pot/core/sequential.py`)
+   - Early stopping with dual radius computation
+   - Asymmetric error control (α, β)
+   - Optional stopping for efficiency
+
+5. **Leakage Tracking** (`pot/security/leakage.py`)
+   - Challenge reuse policy enforcement
+   - Leakage ratio (ρ) calculation
+   - Session-based tracking with persistence
+
+### Enhanced CLI (`scripts/run_verify_enhanced.py`)
+
+```bash
+# Strict verification with tight bounds
+python scripts/run_verify_enhanced.py \
+    --config configs/vision_cifar10.yaml \
+    --alpha 0.001 --beta 0.001 --tau-id 0.01 \
+    --n-max 1000 --boundary EB \
+    --master-key $(openssl rand -hex 32) \
+    --reuse-u 5 --rho-max 0.3 \
+    --outdir outputs/verify/strict
+```
+
+### Test Suite
+
+Comprehensive unit tests are available in `tests/`:
+- `test_boundaries.py`: Confidence sequence tests with FPR validation
+- `test_audit.py`: Commit-reveal protocol tests
+- `test_prf.py`: PRF determinism and uniformity tests
+- `test_reuse.py`: Leakage tracking and policy tests
+- `test_equivalence.py`: Transform equivalence tests
+
+Run all tests:
+```bash
+pytest tests/ -v
+```
 
 ## Running Experiments
 

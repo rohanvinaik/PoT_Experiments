@@ -18,7 +18,18 @@ The widespread deployment of neural networks in critical applications—from med
 
 ## 2. Technical Framework
 
-### 2.1 System Architecture
+### 2.1 Formal Framework
+
+**Definition 1 (Verification Game).** Fix a challenge distribution $\mathcal{C}$, a bounded statistic $Z \in [0,1]$ computed from encoded model responses, and target errors $(\alpha, \beta)$.
+
+- **Completeness**: The certified model $M^*$ is accepted with probability $\geq 1 - \beta$.
+- **Soundness (Identity)**: Any model $M$ outside the declared equivalence class (e.g., non-identical weights or $>\varepsilon$-perturbed) is accepted with probability $\leq \alpha$ under fresh challenges.
+
+The semantic test operates as a parallel game with its own thresholds, enabling dual verification modes: strict identity verification and behavioral similarity assessment.
+
+This definition formalizes the security guarantees of the PoT system: legitimate models pass verification with high probability (completeness), while unauthorized models are rejected with high probability (soundness).
+
+### 2.2 System Architecture
 
 The PoT system consists of four primary components:
 
@@ -27,7 +38,7 @@ The PoT system consists of four primary components:
 3. **Statistical Verifier**: Performs sequential hypothesis testing with calibrated error bounds
 4. **Provenance Auditor**: Maintains cryptographic audit trails using Merkle trees and zero-knowledge proofs
 
-### 2.2 Challenge Generation
+### 2.3 Challenge Generation
 
 We generate challenges using a Key Derivation Function (KDF) with the following properties:
 
@@ -46,10 +57,13 @@ The KDF ensures challenges are:
 - **Unpredictable**: Computationally infeasible to predict without the seed
 - **Domain-specific**: Tailored to model type (vision, language, multimodal)
 
-### 2.3 Empirical-Bernstein Confidence Bounds (Complete)
+### 2.4 Empirical-Bernstein Confidence Bounds (Complete)
+
+#### Connection to Verification Game
+The empirical-Bernstein framework operationalizes Definition 1 by providing finite-sample guarantees for the verification game. The bounded statistic $Z$ from Definition 1 corresponds to our distance metric $d(f(c_i), f^*(c_i))$, and the error bounds $(\alpha, \beta)$ are achieved through the sequential testing procedure described below.
 
 #### Setup
-For each challenge $c_i$, we compute a bounded distance:
+For each challenge $c_i \sim \mathcal{C}$, we compute a bounded distance:
 $$X_i = d(f(c_i), f^*(c_i)) \in [0, B], \quad i = 1, \ldots, n$$
 
 After clipping outputs to [0,1] (so $B \leq 1$ in practice). Let:
@@ -110,7 +124,7 @@ has overall error probabilities $\leq \alpha$ and $\leq \beta$, respectively, wh
 
 **Why this matters**: This is the precise justification for our empirical result that "2–3 queries often suffice": as soon as the data-adaptive EB interval falls entirely on one side of $\tau$, you stop without inflating FAR/FRR, and without fixing $n$ in advance.
 
-### 2.4 Practical Implementation Notes
+### 2.5 Practical Implementation Notes
 
 - **Streaming updates**: Maintain $n$, $\bar{X}_n$, and $M_{2,n} = \sum(X_i - \bar{X}_n)^2$ (Welford) to compute $S_n^2 = M_{2,n}/(n-1)$ in $O(1)$ per challenge
 - **Numerical stability**: For $n \leq 2$, fall back to Hoeffding (variance term undefined) or burn in two probes
