@@ -1,8 +1,8 @@
 """
-Training Provenance Auditor for Model Development Lifecycle
+Prototype Training Provenance Auditor
 
-This module provides comprehensive training log embedding and provenance auditing
-capabilities with cryptographic proofs, blockchain integration, and regulatory compliance.
+Experimental module for logging training events and exploring provenance ideas.
+Includes placeholder blockchain and zero-knowledge integrations; not production-ready.
 """
 
 import hashlib

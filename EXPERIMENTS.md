@@ -32,17 +32,22 @@ python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 **Purpose**: Test robustness to challenge leakage.
 
 **Setup**:
-- Leakage fractions: ρ ∈ {0, 0.1, 0.25, 0.5}
-- Attack: Targeted fine-tuning on leaked challenges
+- Leakage fractions: ρ ∈ {0, 0.1, 0.25, 0.5, 0.75}
+- Attacks:
+  - Targeted fine-tuning on leaked challenges
+  - Distribution-learning attacker that estimates the challenge distribution (watermarking-style)
 - Metric: Detection rate vs ρ
 
 **Expected Results**:
 - Detection rate scales approximately as (1-ρ)
-- Even with 25% leakage, maintain > 70% detection rate
+- Even with 50% leakage, maintain > 60% detection rate
 
 **Run**:
 ```bash
-python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.25
+# Fine-tune attacker
+python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.5
+# Distribution-learning attacker
+python scripts/run_attack.py --config configs/lm_small.yaml --attack learn_challenge --rho 0.5
 python scripts/run_verify.py --config configs/lm_small.yaml --challenge_family lm:templates --n 512
 python scripts/run_plots.py --exp_dir outputs/lm_small/E2 --plot_type leakage
 ```
@@ -94,15 +99,18 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack disti
 
 ### E6: Baseline Comparisons
 
-**Purpose**: Compare against simpler verification methods.
+**Purpose**: Compare against alternative fingerprinting and sequential methods.
 
 **Baselines**:
-1. Naive I/O hash of raw outputs
-2. Lightweight fingerprinting
+1. Benign-input fingerprints (FBI)
+2. Adversarial-trajectory fingerprints (NeurIPS'24)
+3. Fixed-n L2/Hamming aggregations
+4. Sequential tests: SPRT and Hoeffding
 
 **Metrics**:
-- Separation quality (AUROC)
-- Query requirements
+- AUROC
+- FAR/FRR at calibrated τ
+- Average queries
 - Robustness to variations
 
 ### E7: Ablation Studies
@@ -110,9 +118,10 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack disti
 **Purpose**: Understand contribution of individual components.
 
 **Ablations**:
-- Quantization precision: p ∈ {3, 4, 6}
-- Distance metrics: L2 vs KL (vision), edit vs embed (LM)
-- Probe families: freq vs texture (vision), arithmetic vs robustness (LM)
+- Sequential rules: EB vs Hoeffding vs SPRT
+- Threshold calibration: with vs without τ calibration
+- Score clipping: bounded vs unbounded
+- Challenge families: freq vs texture (vision), arithmetic vs robustness (LM)
 
 ## Experimental Protocol
 

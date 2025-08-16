@@ -101,7 +101,11 @@ def stress_test_provenance_history():
     """Test with large training histories"""
     print("Stress testing training history...")
     
-    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.prototypes.training_provenance_auditor import (
+        TrainingProvenanceAuditor,
+        EventType,
+        ProofType,
+    )
     
     auditor = TrainingProvenanceAuditor(
         model_id="stress_test",
