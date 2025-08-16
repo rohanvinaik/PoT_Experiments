@@ -29,13 +29,13 @@ dependencies:
 bash setup_env.sh
 source .venv/bin/activate
 ```
+### Reproducible environment
 
-Once activated, run the test suite directly:
+For a clean setup that includes all pinned dependencies, use the provided Dockerfile:
 
 ```bash
-make test
-```
-
+docker build -t pot-experiments .
+docker run --rm pot-experiments bash -lc "bash run_all.sh"
 The container installs packages from `requirements.txt` and sets `PYTHONPATH`
 so the `pot` modules can be imported without additional configuration.
 
@@ -149,22 +149,20 @@ The basic experiments require the following Python packages (versions tested):
 
 | Package | Version |
 |---------|---------|
-| torch | 2.2.0 |
-| torchvision | 0.17.0 |
-| transformers | 4.31.0 |
-| accelerate | 0.21.0 |
-| sentence-transformers | 2.2.2 |
-| numpy | 1.24.4 |
-| scipy | 1.10.1 |
-| scikit-learn | 1.3.0 |
-| einops | 0.6.1 |
-| tqdm | 4.65.0 |
-| pyyaml | 6.0 |
-| matplotlib | 3.7.1 |
-| seaborn | 0.12.2 |
+| torch | 2.5.1 |
+| torchvision | 0.20.1 |
+| transformers | 4.52.1 |
+| accelerate | 1.10.0 |
+| sentence-transformers | 3.0.1 |
+| numpy | 2.2.6 |
+| scipy | 1.14.1 |
+| scikit-learn | 1.5.1 |
+| einops | 0.7.0 |
+| tqdm | 4.66.5 |
+| pyyaml | 6.0.1 |
+| matplotlib | 3.10.5 |
+| seaborn | 0.13.2 |
 | xxhash | 3.4.1 |
-| ssdeep | 3.4 |
-| py-tlsh | 4.7.2 |
 
 A minimal pinned requirements file is provided in
 [requirements-basic.txt](requirements-basic.txt) for convenience.
