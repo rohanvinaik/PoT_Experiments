@@ -168,7 +168,7 @@ python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 The system provides a complete cryptographic verification protocol with all features:
 
 ```python
-from pot.core.sequential import sequential_verify
+from pot.core.sequential import sequential_verify, SequentialState, SPRTResult
 from pot.core.boundaries import CSState, eb_radius, eb_confidence_interval
 from pot.core.prf import prf_derive_key
 from pot.audit import make_commitment, verify_commitment
@@ -187,13 +187,20 @@ def distance_stream():
     for challenge in challenges:
         yield compute_distance(model, challenge)
 
-decision, trail = sequential_verify(
+# NEW: Returns SPRTResult with complete audit trail
+result = sequential_verify(
     stream=distance_stream(),
-    tau=0.05,      # Identity threshold
-    alpha=0.01,    # Type I error bound
-    beta=0.01,     # Type II error bound
-    n_max=500      # Maximum challenges
+    tau=0.05,           # Identity threshold
+    alpha=0.01,         # Type I error bound
+    beta=0.01,          # Type II error bound  
+    max_samples=500     # Maximum challenges
 )
+
+# Access result details
+print(f"Decision: {result.decision} at n={result.stopped_at}")
+print(f"Final mean: {result.final_mean:.3f}, variance: {result.final_variance:.3f}")
+print(f"CI: {result.confidence_interval}")
+print(f"Trajectory length: {len(result.trajectory)}")
 
 # Option 2: Manual confidence sequence tracking with EB bounds
 state = CSState()
@@ -710,6 +717,9 @@ class VerifiedModel(pl.LightningModule):
   - `eb_confidence_interval()`: Confidence bounds using EB
   - `log_log_correction()`: Correction factor for anytime validity
 - `sequential.py`: Sequential testing with early stopping
+  - `SequentialState`: Online state tracking with Welford's algorithm
+  - `SPRTResult`: Complete test result with trajectory
+  - `sequential_verify()`: Main verification with EB bounds
 - `fingerprint.py`: Model behavioral fingerprinting
 - `canonicalize.py`: Output normalization
 - `stats.py`: Statistical utilities

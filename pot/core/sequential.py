@@ -1,17 +1,82 @@
-from typing import Iterable, Tuple, Literal, Dict, Any, List
+from typing import Iterable, Tuple, Literal, Dict, Any, List, Optional
 import numpy as np
 from math import log, sqrt
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 Decision = Literal["continue", "accept_H0", "accept_H1"]
 
 @dataclass
+class SequentialState:
+    """
+    State for sequential hypothesis testing with running statistics.
+    
+    Maintains Welford's online algorithm for numerically stable computation
+    of mean and variance as samples arrive sequentially.
+    
+    Reference: §2.4 of the paper for sequential testing framework
+    """
+    n: int = 0                      # Number of samples
+    sum_x: float = 0.0              # Sum of observations
+    sum_x2: float = 0.0             # Sum of squared observations
+    mean: float = 0.0               # Running mean
+    variance: float = 0.0           # Running variance estimate
+    M2: float = 0.0                 # Sum of squared deviations (Welford's algorithm)
+    
+    def update(self, x: float) -> None:
+        """
+        Update state with new observation using Welford's method.
+        
+        This ensures numerical stability for online variance computation.
+        
+        Args:
+            x: New observation (should be in [0,1] for bounded distances)
+        """
+        self.n += 1
+        self.sum_x += x
+        self.sum_x2 += x * x
+        
+        # Welford's algorithm for stable variance computation
+        delta = x - self.mean
+        self.mean += delta / self.n
+        delta2 = x - self.mean
+        self.M2 += delta * delta2
+        
+        # Update variance (unbiased estimator)
+        if self.n > 1:
+            self.variance = self.M2 / (self.n - 1)
+        else:
+            self.variance = 0.0
+    
+    def copy(self) -> 'SequentialState':
+        """Create a copy of the current state."""
+        return SequentialState(
+            n=self.n,
+            sum_x=self.sum_x,
+            sum_x2=self.sum_x2,
+            mean=self.mean,
+            variance=self.variance,
+            M2=self.M2
+        )
+
+@dataclass
 class SPRTResult:
-    """Result of SPRT sequential test"""
-    decision: str  # 'accept_H0', 'accept_H1', or 'continue'
-    log_likelihood_ratio: float
-    n_samples: int
-    distances: list
+    """
+    Complete result of anytime-valid sequential hypothesis test.
+    
+    Contains the decision, stopping time, final statistics, and full
+    trajectory for audit and analysis purposes.
+    
+    Reference: §2.4 of the paper for sequential verification protocol
+    """
+    decision: str                              # 'H0', 'H1', or 'continue'
+    stopped_at: int                           # Sample number where test stopped
+    final_mean: float                         # Final empirical mean
+    final_variance: float                     # Final empirical variance
+    confidence_radius: float                  # Final EB confidence radius
+    trajectory: List[SequentialState]         # Complete state trajectory
+    p_value: Optional[float] = None          # Optional p-value if computed
+    confidence_interval: Tuple[float, float] = (0.0, 1.0)  # Final CI
+    forced_stop: bool = False                 # Whether stop was forced at max_samples
     
 class SequentialTester:
     """
@@ -380,123 +445,152 @@ class UnifiedSequentialTester:
 
 def sequential_verify(
     stream: Iterable[float],
-    tau: float,
-    alpha: float,
-    beta: float,
-    n_max: int
-) -> Tuple[Dict[str, Any], List[Tuple[int, float, float, float]]]:
+    tau: float = 0.5,
+    alpha: float = 0.05,
+    beta: float = 0.05,
+    max_samples: int = 10000
+) -> SPRTResult:
     """
-    Sequential verification orchestrator with optional stopping.
+    Anytime-valid sequential hypothesis test using Empirical-Bernstein bounds.
     
-    Uses confidence sequences with separate radii for accept (alpha) and reject (beta) decisions.
-    Implements anytime-valid inference with early stopping.
+    Tests H0: μ ≤ τ (model is genuine) vs H1: μ > τ (model is different)
+    for bounded distances in [0,1].
+    
+    This implementation uses Welford's algorithm for numerical stability and
+    EB confidence sequences for anytime-valid inference with early stopping.
+    
+    Reference: §2.4 of the paper for sequential verification protocol
     
     Args:
-        stream: Iterator/iterable of Z values (similarity scores)
-        tau: Decision threshold
-        alpha: Type I error rate (false acceptance)
-        beta: Type II error rate (false rejection)
-        n_max: Maximum number of samples before forced decision
+        stream: Iterator/iterable of distance values (should be in [0,1])
+        tau: Decision threshold (default 0.5)
+        alpha: Type I error rate - false acceptance (default 0.05)
+        beta: Type II error rate - false rejection (default 0.05)
+        max_samples: Maximum number of samples before forced decision (default 10000)
     
     Returns:
-        Tuple of:
-        - Decision dict with keys:
-            - 'type': 'accept_id', 'reject_id', or 'conservative_reject'
-            - 'stopping_time': Number of samples used
-            - 'final_mean': Final empirical mean
-            - 'final_radius_alpha': Final radius for alpha
-            - 'final_radius_beta': Final radius for beta
-        - Trail: List of (t, mean, r_alpha, r_beta) tuples for visualization
-    """
-    state = CSState()
-    trail = []
+        SPRTResult with:
+            - decision: 'H0' (accept identity), 'H1' (reject identity), or 'continue'
+            - stopped_at: Number of samples used
+            - final_mean: Final empirical mean
+            - final_variance: Final empirical variance
+            - confidence_radius: Final EB radius
+            - trajectory: Complete state history
+            - confidence_interval: Final confidence bounds
+            - p_value: Optional p-value (if computed)
+            - forced_stop: Whether stopping was forced at max_samples
     
-    for t, z_raw in enumerate(stream, start=1):
-        # Clip Z values to [0,1]
-        z = max(0.0, min(1.0, float(z_raw)))
+    Example:
+        >>> from pot.core.sequential import sequential_verify
+        >>> distances = [0.1, 0.2, 0.15, 0.12, 0.18]  # Stream of distances
+        >>> result = sequential_verify(iter(distances), tau=0.3, alpha=0.05, beta=0.05)
+        >>> print(f"Decision: {result.decision} at n={result.stopped_at}")
+    """
+    # Initialize state and trajectory
+    state = SequentialState()
+    trajectory = []
+    
+    # Process stream
+    for t, x_raw in enumerate(stream, start=1):
+        # Clip values to [0,1] for bounded distances
+        x = max(0.0, min(1.0, float(x_raw)))
         
-        # Update state with new observation
-        state.update(z)
+        # Update state with Welford's algorithm
+        state.update(x)
         
-        # Compute radii for both error rates
-        # Alpha radius for acceptance (tighter bound)
-        r_alpha = compute_eb_radius(state, alpha)
-        # Beta radius for rejection (may be different)
-        r_beta = compute_eb_radius(state, beta)
+        # Store trajectory snapshot
+        trajectory.append(state.copy())
         
-        # Record trail for visualization
-        trail.append((t, state.mean, r_alpha, r_beta))
+        # Compute EB radius for current state
+        # Use CSState for compatibility with boundaries.eb_radius
+        cs_state = CSState()
+        cs_state.n = state.n
+        cs_state.mean = state.mean
+        cs_state.M2 = state.M2
         
-        # Early stopping decisions
-        # Accept if upper bound with alpha is below threshold
-        if state.mean + r_alpha <= tau:
-            decision = {
-                'type': 'accept_id',
-                'stopping_time': t,
-                'final_mean': state.mean,
-                'final_radius_alpha': r_alpha,
-                'final_radius_beta': r_beta,
-                'confidence_interval': (max(0, state.mean - r_alpha), 
-                                       min(1, state.mean + r_alpha))
-            }
-            return decision, trail
+        # Compute confidence radius
+        radius = compute_eb_radius(cs_state, alpha)
         
-        # Reject if lower bound with beta is above threshold
-        if state.mean - r_beta > tau:
-            decision = {
-                'type': 'reject_id',
-                'stopping_time': t,
-                'final_mean': state.mean,
-                'final_radius_alpha': r_alpha,
-                'final_radius_beta': r_beta,
-                'confidence_interval': (max(0, state.mean - r_beta),
-                                       min(1, state.mean + r_beta))
-            }
-            return decision, trail
+        # Check stopping conditions based on EB bounds
+        # Condition 1: Accept H0 if upper bound ≤ τ (strong evidence for H0)
+        if state.mean + radius <= tau:
+            return SPRTResult(
+                decision='H0',
+                stopped_at=t,
+                final_mean=state.mean,
+                final_variance=state.variance,
+                confidence_radius=radius,
+                trajectory=trajectory,
+                confidence_interval=(max(0, state.mean - radius), 
+                                   min(1, state.mean + radius)),
+                p_value=None,  # Could compute if needed
+                forced_stop=False
+            )
+        
+        # Condition 2: Accept H1 if lower bound > τ (strong evidence against H0)
+        if state.mean - radius > tau:
+            return SPRTResult(
+                decision='H1',
+                stopped_at=t,
+                final_mean=state.mean,
+                final_variance=state.variance,
+                confidence_radius=radius,
+                trajectory=trajectory,
+                confidence_interval=(max(0, state.mean - radius),
+                                   min(1, state.mean + radius)),
+                p_value=None,
+                forced_stop=False
+            )
         
         # Check if we've reached maximum samples
-        if t >= n_max:
-            # Conservative rejection at max samples
-            # Decision based on which hypothesis the mean is closer to
-            decision_type = 'accept_id' if state.mean <= tau else 'conservative_reject'
-            decision = {
-                'type': decision_type,
-                'stopping_time': t,
-                'final_mean': state.mean,
-                'final_radius_alpha': r_alpha,
-                'final_radius_beta': r_beta,
-                'confidence_interval': (max(0, state.mean - r_alpha),
-                                       min(1, state.mean + r_alpha)),
-                'forced_stop': True
-            }
-            return decision, trail
+        if t >= max_samples:
+            # Forced decision at maximum samples
+            # Use point estimate to decide
+            decision = 'H0' if state.mean <= tau else 'H1'
+            return SPRTResult(
+                decision=decision,
+                stopped_at=t,
+                final_mean=state.mean,
+                final_variance=state.variance,
+                confidence_radius=radius,
+                trajectory=trajectory,
+                confidence_interval=(max(0, state.mean - radius),
+                                   min(1, state.mean + radius)),
+                p_value=None,
+                forced_stop=True
+            )
     
-    # If stream ends before n_max (shouldn't happen with proper usage)
-    # Make conservative decision based on current state
-    t = state.n
-    if t > 0:
-        r_alpha = compute_eb_radius(state, alpha)
-        r_beta = compute_eb_radius(state, beta)
-        decision_type = 'accept_id' if state.mean <= tau else 'conservative_reject'
-        decision = {
-            'type': decision_type,
-            'stopping_time': t,
-            'final_mean': state.mean,
-            'final_radius_alpha': r_alpha,
-            'final_radius_beta': r_beta,
-            'confidence_interval': (max(0, state.mean - r_alpha),
-                                   min(1, state.mean + r_alpha)),
-            'stream_ended': True
-        }
-        return decision, trail
+    # Stream ended without reaching max_samples
+    # Return current state with 'continue' decision
+    if state.n > 0:
+        cs_state = CSState()
+        cs_state.n = state.n
+        cs_state.mean = state.mean
+        cs_state.M2 = state.M2
+        radius = compute_eb_radius(cs_state, alpha)
+        
+        return SPRTResult(
+            decision='continue',
+            stopped_at=state.n,
+            final_mean=state.mean,
+            final_variance=state.variance,
+            confidence_radius=radius,
+            trajectory=trajectory,
+            confidence_interval=(max(0, state.mean - radius),
+                               min(1, state.mean + radius)),
+            p_value=None,
+            forced_stop=False
+        )
     else:
         # No samples processed
-        decision = {
-            'type': 'conservative_reject',
-            'stopping_time': 0,
-            'final_mean': 0.0,
-            'final_radius_alpha': float('inf'),
-            'final_radius_beta': float('inf'),
-            'no_samples': True
-        }
-        return decision, []
+        return SPRTResult(
+            decision='continue',
+            stopped_at=0,
+            final_mean=0.0,
+            final_variance=0.0,
+            confidence_radius=float('inf'),
+            trajectory=[],
+            confidence_interval=(0.0, 1.0),
+            p_value=None,
+            forced_stop=False
+        )

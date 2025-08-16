@@ -44,9 +44,18 @@ PoT_Experiments/
   - `log_log_correction(t, alpha)`: Log-log correction for anytime validity
     - Handles edge cases for small t (t < e)
     - Returns log(log(max(e, t)) / α)
-- **Sequential Testing** (`sequential.py`): Anytime-valid sequential verification
-  - `SequentialTester`: SPRT-based early stopping
-  - `sequential_verify`: Complete verification with audit trail
+- **Sequential Testing** (`sequential.py`): Anytime-valid sequential verification (UPDATED 2025-08-16)
+  - `SequentialState`: State tracking with Welford's algorithm for numerical stability
+    - Maintains running mean, variance, sum_x, sum_x2, and M2
+    - Online updates with `update(x)` method
+  - `SPRTResult`: Complete test result with trajectory and audit trail
+    - Contains decision, stopped_at, final statistics, confidence bounds
+    - Full trajectory for analysis and visualization
+  - `sequential_verify(stream, tau, alpha, beta, max_samples)`: Main verification function
+    - Uses EB bounds for anytime-valid inference
+    - Early stopping when |μ_t - τ| > r_t(α)
+    - Returns complete SPRTResult with audit trail
+  - `SequentialTester`: Legacy SPRT implementation
   - Asymmetric error control (α, β)
 - **Behavioral Fingerprinting** (`fingerprint.py`): Comprehensive model fingerprinting system
   - `FingerprintConfig`: Configuration with parameter tuning guidelines
