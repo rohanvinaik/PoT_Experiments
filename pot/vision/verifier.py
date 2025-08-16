@@ -17,6 +17,7 @@ from ..core.stats import empirical_bernstein_bound, t_statistic
 from ..core.sequential import SequentialTester, SPRTResult
 from ..core.challenge import generate_challenges, ChallengeConfig
 from ..core.wrapper_detection import WrapperAttackDetector
+from ..core.fingerprint import fingerprint_run, FingerprintConfig, FingerprintResult, compare_jacobian_sketches
 from .models import VisionModel
 
 
@@ -30,6 +31,8 @@ class VisionVerificationResult:
     perceptual_similarity: float
     time_elapsed: float
     wrapper_detection: Optional[Dict[str, Any]]
+    fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
+    fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
     metadata: Dict[str, Any]
 
 
@@ -40,7 +43,8 @@ class VisionVerifier:
     """
     
     def __init__(self, reference_model: VisionModel, delta: float = 0.01,
-                 use_sequential: bool = True, detect_wrappers: bool = True):
+                 use_sequential: bool = True, detect_wrappers: bool = True,
+                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
         """
         Initialize vision verifier
         
@@ -49,11 +53,28 @@ class VisionVerifier:
             delta: Confidence parameter (1-delta confidence)
             use_sequential: Whether to use SPRT for early stopping
             detect_wrappers: Whether to detect wrapper attacks
+            use_fingerprinting: Whether to compute behavioral fingerprints
+            fingerprint_config: Configuration for fingerprinting (uses default vision config if None)
         """
         self.reference_model = reference_model
         self.delta = delta
         self.use_sequential = use_sequential
         self.detect_wrappers = detect_wrappers
+        self.use_fingerprinting = use_fingerprinting
+        
+        # Set up fingerprinting configuration
+        if use_fingerprinting:
+            if fingerprint_config is None:
+                # Use default vision model configuration
+                self.fingerprint_config = FingerprintConfig.for_vision_model(
+                    compute_jacobian=True,
+                    include_timing=True
+                )
+            else:
+                self.fingerprint_config = fingerprint_config
+            
+            # Compute reference fingerprint if fingerprinting is enabled
+            self.reference_fingerprint = None
         
         # Initialize components
         if use_sequential:
@@ -353,6 +374,82 @@ class VisionVerifier:
         
         return distance
     
+    def compute_reference_fingerprint(self, challenges: List[torch.Tensor]) -> FingerprintResult:
+        """
+        Compute and store reference model fingerprint
+        
+        Args:
+            challenges: Challenges to use for fingerprinting
+            
+        Returns:
+            FingerprintResult for the reference model
+        """
+        if not self.use_fingerprinting:
+            return None
+            
+        # Create a wrapper function for the reference model
+        def model_wrapper(x):
+            with torch.no_grad():
+                return self.reference_model.get_features(x)
+        
+        # Compute fingerprint
+        self.reference_fingerprint = fingerprint_run(
+            model_wrapper,
+            challenges,
+            self.fingerprint_config
+        )
+        
+        return self.reference_fingerprint
+    
+    def compute_fingerprint_similarity(self, fingerprint1: FingerprintResult, 
+                                      fingerprint2: FingerprintResult) -> float:
+        """
+        Compute similarity between two fingerprints
+        
+        Args:
+            fingerprint1: First fingerprint
+            fingerprint2: Second fingerprint
+            
+        Returns:
+            Similarity score between 0 and 1 (1 = identical)
+        """
+        if fingerprint1 is None or fingerprint2 is None:
+            return 0.0
+        
+        # Compare IO hashes (exact match)
+        if fingerprint1.io_hash == fingerprint2.io_hash:
+            return 1.0
+        
+        # If Jacobian sketches exist, compare them
+        if fingerprint1.jacobian_sketch and fingerprint2.jacobian_sketch:
+            # Convert hex strings back to bytes for comparison
+            sketch1_bytes = bytes.fromhex(fingerprint1.jacobian_sketch)
+            sketch2_bytes = bytes.fromhex(fingerprint2.jacobian_sketch)
+            
+            # Use Hamming similarity by default
+            similarity = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='hamming')
+            return similarity
+        
+        # Fall back to comparing raw outputs if available
+        if fingerprint1.raw_outputs and fingerprint2.raw_outputs:
+            # Simple cosine similarity on flattened outputs
+            try:
+                import numpy as np
+                flat1 = np.concatenate([np.array(o).flatten() for o in fingerprint1.raw_outputs])
+                flat2 = np.concatenate([np.array(o).flatten() for o in fingerprint2.raw_outputs])
+                
+                # Normalize and compute cosine similarity
+                norm1 = np.linalg.norm(flat1)
+                norm2 = np.linalg.norm(flat2)
+                if norm1 > 0 and norm2 > 0:
+                    similarity = np.dot(flat1, flat2) / (norm1 * norm2)
+                    return max(0.0, min(1.0, similarity))  # Clamp to [0, 1]
+            except:
+                pass
+        
+        # Default: different fingerprints
+        return 0.0
+    
     def evaluate_challenge(self, model: VisionModel,
                          challenge: torch.Tensor) -> Tuple[torch.Tensor, float, float]:
         """
@@ -384,7 +481,8 @@ class VisionVerifier:
     def verify(self, model: VisionModel,
               challenges: List[torch.Tensor],
               tolerance: float = 0.05,
-              challenge_types: List[str] = None) -> VisionVerificationResult:
+              challenge_types: List[str] = None,
+              compute_reference_fingerprint: bool = False) -> VisionVerificationResult:
         """
         Verify a vision model against reference
         
@@ -393,6 +491,7 @@ class VisionVerifier:
             challenges: List of challenge images
             tolerance: Maximum acceptable average distance
             challenge_types: Optional list indicating challenge type for each challenge
+            compute_reference_fingerprint: Whether to compute reference fingerprint if not already done
             
         Returns:
             VisionVerificationResult with verification outcome
@@ -402,6 +501,45 @@ class VisionVerifier:
         perceptual_similarities = []
         response_times = []
         challenge_responses = []
+        
+        # Compute behavioral fingerprint if enabled
+        model_fingerprint = None
+        fingerprint_similarity = None
+        
+        if self.use_fingerprinting:
+            # Compute reference fingerprint if needed
+            if compute_reference_fingerprint or self.reference_fingerprint is None:
+                self.compute_reference_fingerprint(challenges)
+            
+            # Create a wrapper function for the model being verified
+            def model_wrapper(x):
+                with torch.no_grad():
+                    return model.get_features(x)
+            
+            # Compute fingerprint for the model being verified
+            fingerprint_start = time.time()
+            model_fingerprint = fingerprint_run(
+                model_wrapper,
+                challenges,
+                self.fingerprint_config
+            )
+            fingerprint_time = time.time() - fingerprint_start
+            
+            # Compare fingerprints if reference exists
+            if self.reference_fingerprint is not None:
+                fingerprint_similarity = self.compute_fingerprint_similarity(
+                    self.reference_fingerprint,
+                    model_fingerprint
+                )
+                
+                # Log fingerprint metrics for debugging
+                print(f"[Fingerprint] IO Hash Match: {model_fingerprint.io_hash == self.reference_fingerprint.io_hash}")
+                print(f"[Fingerprint] Similarity: {fingerprint_similarity:.4f}")
+                print(f"[Fingerprint] Time: {fingerprint_time:.3f}s")
+                
+                # Early rejection based on fingerprint (optional)
+                # if fingerprint_similarity < 0.5:  # Threshold can be configurable
+                #     print("[Fingerprint] Early rejection: similarity too low")
         
         # Reset sequential tester if using
         if self.use_sequential:
@@ -488,6 +626,18 @@ class VisionVerifier:
             }
         }
         
+        # Add fingerprint information to metadata if available
+        if model_fingerprint is not None:
+            metadata['fingerprint'] = {
+                'io_hash': model_fingerprint.io_hash,
+                'has_jacobian': model_fingerprint.jacobian_sketch is not None,
+                'similarity': fingerprint_similarity if fingerprint_similarity is not None else 'N/A',
+                'num_outputs': len(model_fingerprint.raw_outputs),
+                'config': model_fingerprint.metadata.get('fingerprint_config', {})
+            }
+            if self.reference_fingerprint is not None:
+                metadata['fingerprint']['reference_io_hash'] = self.reference_fingerprint.io_hash
+        
         return VisionVerificationResult(
             accepted=accepted,
             distance=float(test_statistic),
@@ -496,6 +646,8 @@ class VisionVerifier:
             perceptual_similarity=float(np.mean(perceptual_similarities)),
             time_elapsed=elapsed,
             wrapper_detection=wrapper_result,
+            fingerprint=model_fingerprint,
+            fingerprint_match=fingerprint_similarity,
             metadata=metadata
         )
     
@@ -521,7 +673,8 @@ class VisionVerifier:
             challenge_types.extend([aug_type] * len(augmented))
         
         # Run verification with full challenge set
-        result = self.verify(model, all_challenges, tolerance, challenge_types)
+        result = self.verify(model, all_challenges, tolerance, challenge_types, 
+                            compute_reference_fingerprint=True)
         
         # Add augmentation-specific analysis to metadata
         result.metadata['augmentation_analysis'] = self._analyze_augmentation_results(
@@ -584,8 +737,11 @@ class BatchVisionVerifier:
     Batch verification for multiple vision models
     """
     
-    def __init__(self, reference_model: VisionModel, delta: float = 0.01):
-        self.verifier = VisionVerifier(reference_model, delta)
+    def __init__(self, reference_model: VisionModel, delta: float = 0.01,
+                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
+        self.verifier = VisionVerifier(reference_model, delta, 
+                                      use_fingerprinting=use_fingerprinting,
+                                      fingerprint_config=fingerprint_config)
     
     def verify_batch(self, models: List[VisionModel],
                     challenges: List[torch.Tensor],
