@@ -16,6 +16,7 @@ from dataclasses import dataclass, asdict
 from datetime import datetime
 import sys
 import os
+import warnings
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__ if "__file__" in locals() else sys.argv[0])))
@@ -25,8 +26,9 @@ try:
     import matplotlib.pyplot as plt
     import seaborn as sns
     HAS_VISUALIZATION = True
-except ImportError:
+except ImportError as e:
     HAS_VISUALIZATION = False
+    warnings.warn(f"Optional dependency missing ({e}); visualization disabled.")
 
 @dataclass
 class PerformanceMetrics:
@@ -81,7 +83,7 @@ class ResourceProfiler:
             if torch.cuda.is_available():
                 torch.cuda.reset_peak_memory_stats()
         except ImportError:
-            pass
+            warnings.warn("PyTorch not available; GPU metrics will be skipped.")
     
     def sample_resources(self):
         """Sample current resource usage"""
@@ -107,7 +109,7 @@ class ResourceProfiler:
                 gpu_memory = torch.cuda.memory_allocated() / 1024 / 1024  # MB
                 self.gpu_samples.append((elapsed, gpu_memory))
         except ImportError:
-            pass
+            warnings.warn("PyTorch not available; GPU metrics will be skipped.")
     
     def record_query(self):
         """Record a query being made"""
@@ -130,7 +132,7 @@ class ResourceProfiler:
             if torch.cuda.is_available():
                 peak_gpu_mb = torch.cuda.max_memory_allocated() / 1024 / 1024
         except ImportError:
-            pass
+            warnings.warn("PyTorch not available; GPU metrics will be zero.")
         
         # Throughput
         throughput = self.query_count / max(runtime, 0.001)
@@ -190,6 +192,7 @@ class ExperimentalReporter:
                 info["gpu_available"] = False
         except ImportError:
             info["torch_available"] = False
+            warnings.warn("PyTorch not available; GPU information omitted.")
             
         return info
         
