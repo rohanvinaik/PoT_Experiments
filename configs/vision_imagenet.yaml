@@ -1,0 +1,234 @@
+# ImageNet-Scale Vision Model Experimental Configuration  
+# Production validation with ResNet50/101, Vision Transformers, EfficientNet
+
+experiment: vision_imagenet
+
+dataset:
+  name: "ImageNet"
+  split: "val"  # Use validation split for verification
+  resize: [224, 224] 
+  normalize: "imagenet_default"
+  augmentation: "standard"
+  subset_size: 50000  # Full validation set
+  
+models:
+  reference:
+    arch: "resnet50"
+    pretrained: true
+    seed: 0
+    checkpoint: "torchvision://resnet50"
+    
+  variants:
+    - type: "seed"
+      arch: "resnet50" 
+      pretrained: true
+      seed: 1
+      
+    - type: "architecture"
+      arch: "resnet101"
+      pretrained: true
+      seed: 0
+      
+    - type: "architecture" 
+      arch: "efficientnet_b4"
+      pretrained: true
+      seed: 0
+      
+    - type: "architecture"
+      arch: "vit_b_16" 
+      pretrained: true
+      seed: 0
+      
+    - type: "finetune"
+      arch: "resnet50"
+      pretrained: true
+      dataset: "imagenet_subset"
+      epochs: 10
+      learning_rate: 1e-4
+      
+    - type: "prune"
+      arch: "resnet50"
+      pretrained: true
+      amount: 0.3
+      method: "magnitude"
+      
+    - type: "quant"
+      arch: "resnet50" 
+      pretrained: true
+      backend: "fbgemm"
+      dtype: "qint8"
+      
+    - type: "distill"
+      teacher: "resnet50"
+      student: "resnet18"
+      budget: 100000
+      temperature: 4.0
+      
+    - type: "adversarial"
+      arch: "resnet50"
+      pretrained: true
+      attack: "pgd"
+      epsilon: 0.03
+      
+    - type: "compress"
+      arch: "resnet50"
+      method: "channel_pruning"
+      compression_ratio: 0.5
+
+challenges:
+  families:
+    - family: "vision:freq"
+      n: 1024
+      params:
+        freq_range: [0.1, 16.0]
+        contrast_range: [0.1, 2.0]
+        phase_shift_range: [0, 2.0]
+        amplitude_range: [0.5, 2.0]
+        patterns: ["sinusoidal", "gabor", "checkerboard"]
+        orientations: [0, 45, 90, 135]
+        
+    - family: "vision:texture"
+      n: 1024
+      params:
+        octaves: [1, 2, 3, 4, 5, 6]
+        scale: [0.25, 0.5, 1.0, 2.0, 4.0]
+        persistence: [0.3, 0.5, 0.7]
+        lacunarity: [1.8, 2.0, 2.2]
+        texture_types: ["perlin", "worley", "fractal", "cellular"]
+        
+    - family: "vision:geometric"
+      n: 512
+      params:
+        shapes: ["circle", "square", "triangle", "polygon", "star"]
+        transformations: ["rotation", "scale", "shear", "perspective"]
+        angles: [15, 30, 45, 60, 90, 120, 180]
+        scale_factors: [0.5, 0.75, 1.25, 1.5, 2.0]
+        
+    - family: "vision:adversarial"
+      n: 512
+      params:
+        perturbation_types: ["gaussian", "uniform", "adversarial"]
+        epsilon_values: [0.01, 0.03, 0.05, 0.1]
+        attack_methods: ["fgsm", "pgd", "c&w"]
+        targeted: [true, false]
+        
+    - family: "vision:style"
+      n: 256
+      params:
+        style_transfers: ["neural_style", "adain", "wct"]
+        style_strengths: [0.3, 0.5, 0.7, 1.0]
+        content_preservation: [0.6, 0.8, 0.9]
+
+verification:
+  distances: 
+    - "logits_l2"
+    - "feature_cosine"
+    - "kl_divergence" 
+    - "wasserstein"
+    - "activation_l1"
+    
+  tau_grid: [0.005, 0.01, 0.02, 0.05, 0.1, 0.15]
+  
+  feature_layers:
+    - "layer1"
+    - "layer2" 
+    - "layer3"
+    - "layer4"
+    - "avgpool"
+    - "fc"
+    
+  sequential:
+    enabled: true
+    alpha: 0.005
+    beta: 0.005
+    method: "empirical_bernstein"
+    max_samples: 2048
+    
+  batch_size: 32
+  timeout: 600  # 10 minutes per challenge family
+
+leakage:
+  rhos: [0.0, 0.05, 0.1, 0.15, 0.25, 0.35, 0.5, 0.75]
+
+attacks:
+  wrapper:
+    enabled: true
+    routing_strategies: ["input_dependent", "random", "deterministic"]
+    
+  finetune:
+    enabled: true 
+    epochs: [1, 5, 10, 20]
+    learning_rates: [1e-5, 1e-4, 1e-3]
+    datasets: ["imagenet_subset", "cifar10", "custom"]
+    
+  pruning:
+    enabled: true
+    methods: ["magnitude", "gradient", "fisher"]
+    sparsity_levels: [0.1, 0.3, 0.5, 0.7, 0.9]
+    
+  quantization:
+    enabled: true
+    precisions: [8, 4, 2]
+    methods: ["dynamic", "static", "qat"]
+    
+  distillation:
+    enabled: true
+    teacher_student_pairs:
+      - ["resnet50", "resnet18"]
+      - ["resnet101", "resnet50"] 
+      - ["vit_b_16", "resnet34"]
+    budgets: [50000, 100000, 200000]
+    
+  adversarial:
+    enabled: true
+    attacks: ["fgsm", "pgd", "bim", "deepfool", "cw"]
+    epsilons: [0.01, 0.03, 0.1]
+    
+  compression:
+    enabled: true
+    algorithms: ["jpeg", "webp", "neural_compression"]
+    quality_levels: [50, 70, 85, 95]
+
+performance:
+  benchmark_mode: true
+  memory_profiling: true
+  gpu_monitoring: true
+  batch_optimization: true
+  mixed_precision: true
+  compile_model: true  # torch.compile for speed
+  
+security:
+  challenge_encryption: true
+  response_signing: true
+  audit_logging: true
+  secure_aggregation: true
+  differential_privacy: false  # Disabled for accuracy
+  
+compliance:
+  gdpr: true
+  eu_ai_act: true
+  nist_csf: true
+  iso_27001: true
+  audit_trail: true
+  
+evaluation:
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall" 
+    - "f1_score"
+    - "auroc"
+    - "auprc"
+    - "calibration_error"
+    - "robustness_score"
+    
+  calibration:
+    methods: ["platt", "isotonic", "temperature"]
+    validation_split: 0.2
+    
+  visualization:
+    confusion_matrix: true
+    roc_curves: true
+    precision_recall: true
+    feature_maps: true
+    attention_maps: true  # For ViT models

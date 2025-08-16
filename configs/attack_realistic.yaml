@@ -1,0 +1,157 @@
+# Realistic Attack Configuration
+# Comprehensive attack scenarios for PoT robustness evaluation
+
+experiment: attack_realistic
+
+# Victim model configuration
+victim_model:
+  arch: "resnet50"
+  pretrained: true
+  device: "auto"
+
+# Attack scenarios with realistic parameters
+attacks:
+  - type: "wrapper"
+    description: "Adaptive wrapper attack with multiple routing strategies"
+    parameters:
+      num_alternatives: 3
+      routing_strategies: ["input_dependent", "random", "threshold"]
+      detection_evasion: true
+      adaptive_learning: true
+    budget_queries: 500
+    budget_time: 120  # 2 minutes
+    budget_memory_gb: 2
+    success_threshold: 0.3
+    detection_threshold: 0.7
+    
+  - type: "finetune"
+    description: "Targeted fine-tuning with leaked challenges"
+    parameters:
+      epochs: 10
+      learning_rate: 1e-4
+      batch_size: 32
+      similarity_threshold: 0.8
+      data_augmentation: true
+      regularization: 0.01
+    budget_queries: 2000
+    budget_time: 600  # 10 minutes
+    budget_memory_gb: 4
+    success_threshold: 0.6
+    detection_threshold: 0.4
+    
+  - type: "compression"
+    description: "Model compression attacks (quantization, pruning)"
+    parameters:
+      method: "quant"  # or "prune"
+      amount: 0.5
+      similarity_threshold: 0.9
+      preserve_accuracy: true
+      iterative_compression: true
+    budget_queries: 100
+    budget_time: 300  # 5 minutes  
+    budget_memory_gb: 3
+    success_threshold: 0.7
+    detection_threshold: 0.3
+    
+  - type: "distillation"
+    description: "Knowledge distillation with budget constraints"
+    parameters:
+      budget: 5000
+      temperature: 3.0
+      epochs: 15
+      student_compression: 0.3
+      kl_threshold: 0.8
+      ensemble_distillation: false
+    budget_queries: 5000
+    budget_time: 900  # 15 minutes
+    budget_memory_gb: 6
+    success_threshold: 0.5
+    detection_threshold: 0.5
+    
+  - type: "extraction"
+    description: "Model extraction via query synthesis"
+    parameters:
+      query_strategy: "active_learning"
+      similarity_threshold: 0.75
+      surrogate_arch: "smaller"
+      iterative_refinement: true
+      gradient_free: true
+    budget_queries: 10000
+    budget_time: 1200  # 20 minutes
+    budget_memory_gb: 4
+    success_threshold: 0.4
+    detection_threshold: 0.6
+    
+  - type: "adversarial"
+    description: "Adversarial example generation and transfer"
+    parameters:
+      attack_methods: ["fgsm", "pgd", "c&w"]
+      epsilon_values: [0.01, 0.03, 0.1]
+      targeted: true
+      transferability: true
+      evasion_techniques: ["noise_injection", "input_transformation"]
+    budget_queries: 1000
+    budget_time: 300
+    budget_memory_gb: 2
+    success_threshold: 0.2
+    detection_threshold: 0.8
+
+# Resource monitoring configuration
+monitoring:
+  enabled: true
+  sample_interval: 1.0  # seconds
+  track_memory: true
+  track_cpu: true
+  track_gpu: true
+  track_latency: true
+  track_throughput: true
+
+# Budget constraints
+budgets:
+  total_queries: 25000
+  total_time_minutes: 120
+  total_memory_gb: 16
+  total_cost_usd: 100.0
+  
+# Success criteria
+evaluation:
+  success_metrics:
+    - "output_similarity"
+    - "behavioral_consistency" 
+    - "detection_evasion"
+    - "resource_efficiency"
+  
+  detection_metrics:
+    - "statistical_distance"
+    - "timing_analysis"
+    - "resource_fingerprinting"
+    - "response_consistency"
+
+# Compliance and audit
+compliance:
+  log_all_attacks: true
+  track_resource_usage: true
+  audit_trail: true
+  privacy_protection: true
+  ethical_boundaries: true
+  
+security:
+  sandboxed_execution: true
+  resource_limits: true
+  attack_isolation: true
+  cleanup_procedures: true
+
+# Reporting configuration
+reporting:
+  generate_plots: true
+  attack_timeline: true
+  resource_graphs: true
+  success_analysis: true
+  detection_analysis: true
+  cost_analysis: true
+  
+output:
+  formats: ["json", "csv", "html"]
+  include_raw_data: true
+  include_visualizations: true
+  include_recommendations: true
