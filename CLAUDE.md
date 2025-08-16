@@ -306,17 +306,53 @@ python scripts/run_verify_enhanced.py \
     --outdir outputs/verify/strict
 ```
 
-### Test Suite
+### Test Suite (UPDATED 2025-08-16)
 
-Comprehensive unit tests are available in `tests/`:
-- `test_boundaries.py`: Confidence sequence tests with FPR validation
+Comprehensive unit tests are available in `pot/core/` and `tests/`:
+
+**Core Framework Tests**:
+- `pot/core/test_boundaries.py`: Confidence sequence tests with FPR validation
+  - Welford's algorithm correctness
+  - EB radius computation and properties
+  - Sequential decision making (one-sided and two-sided)
+  - Adaptive threshold computation
+  - Variance bounds for [0,1] values
+- `pot/core/test_prf.py`: PRF determinism and uniformity tests
+  - Cryptographic PRF validation
+  - Challenge generation determinism
+  - Output uniformity verification
+  - Edge case handling
+- `pot/core/test_sequential_verify.py`: Complete sequential verification tests (NEW)
+  - Type I error control (false positives < α)
+  - Type II error control (false negatives < β)
+  - Borderline behavior at decision boundary
+  - Anytime validity across different stopping strategies
+  - Numerical stability with 100k+ samples
+  - Trajectory recording and audit trails
+  - Anytime-valid p-value computation
+  - Integration testing with performance benchmarks
+- `pot/core/test_fingerprint.py`: Behavioral fingerprinting tests
+  - Determinism and reproducibility
+  - Sensitivity to model changes
+  - Jacobian computation correctness
+  - Canonicalization integration
+  - Edge cases (NaN/Inf, failures, variable outputs)
+  - Performance characteristics
+
+**Security Component Tests**:
 - `test_audit.py`: Commit-reveal protocol tests
-- `test_prf.py`: PRF determinism and uniformity tests
 - `test_reuse.py`: Leakage tracking and policy tests
 - `test_equivalence.py`: Transform equivalence tests
 
 Run all tests:
 ```bash
+# Run specific test suites
+python -m pot.core.test_sequential_verify  # Sequential verification
+python -m pot.core.test_boundaries         # Confidence sequences
+python -m pot.core.test_prf               # PRF and challenges
+python -m pot.core.test_fingerprint       # Behavioral fingerprinting
+
+# Run all pytest tests
 pytest tests/ -v
 ```
 
@@ -404,7 +440,7 @@ config = ChallengeConfig(
 challenges = generate_challenges(config)
 ```
 
-### Sequential Verification
+### Sequential Verification (UPDATED 2025-08-16)
 ```python
 from pot.core.sequential import sequential_verify
 
@@ -412,13 +448,20 @@ def distance_stream():
     for challenge in challenges:
         yield compute_distance(model, challenge)
 
-decision, trail = sequential_verify(
+result = sequential_verify(
     stream=distance_stream(),
     tau=0.05,
     alpha=0.01,
     beta=0.01,
-    n_max=500
+    max_samples=500,
+    compute_p_value=True  # Optional: compute anytime-valid p-value
 )
+
+print(f"Decision: {result.decision}")
+print(f"Stopped at: {result.stopped_at} samples")
+print(f"Final mean: {result.final_mean:.3f} ± {result.confidence_radius:.3f}")
+if result.p_value is not None:
+    print(f"Anytime-valid p-value: {result.p_value:.4f}")
 ```
 
 ## Running Experiments
@@ -463,11 +506,15 @@ pytest -q
    - Scripts in `scripts/`
    - Fingerprinting utilities in `pot/core/fingerprint.py`
 
-3. **Testing**:
+3. **Testing** (UPDATED 2025-08-16):
+   - Run sequential verification tests: `python -m pot.core.test_sequential_verify`
+   - Run confidence sequence tests: `python -m pot.core.test_boundaries`
+   - Run PRF tests: `python -m pot.core.test_prf`
    - Run fingerprint tests: `python -m pot.core.test_fingerprint`
    - Run component tests: `python pot/security/test_*.py`
    - Run integration: `python pot/security/proof_of_training.py`
    - Full validation: `bash run_all.sh`
+   - Quick validation: `bash run_all_quick.sh`
 
 ### When Using Behavioral Fingerprinting
 

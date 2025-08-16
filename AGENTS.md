@@ -191,7 +191,15 @@ python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 The system provides a complete cryptographic verification protocol with all features:
 
 ```python
-from pot.core.sequential import sequential_verify, SequentialState, SPRTResult
+from pot.core.sequential import (
+    sequential_verify, 
+    SequentialState, 
+    SPRTResult,
+    welford_update,
+    compute_empirical_variance,
+    check_stopping_condition,
+    compute_anytime_p_value
+)
 from pot.core.boundaries import CSState, eb_radius, eb_confidence_interval
 from pot.core.prf import prf_derive_key
 from pot.audit import make_commitment, verify_commitment
@@ -244,6 +252,24 @@ for distance in distance_stream():
         break
     elif lower > 0.05:  # Entire CI above threshold  
         decision = "reject_identity"
+        break
+
+# Option 3: Use numerical stability helpers directly (NEW)
+state = SequentialState()
+for value in distance_stream():
+    # Numerically stable update
+    state = welford_update(state, value)
+    
+    # Compute variance with Bessel correction
+    variance = compute_empirical_variance(state, bessel_correction=True)
+    
+    # Check stopping condition
+    should_stop, decision = check_stopping_condition(state, tau=0.05, alpha=0.01)
+    
+    if should_stop:
+        # Compute anytime-valid p-value
+        p_value = compute_anytime_p_value(state, tau=0.05)
+        print(f"Decision: {decision}, p-value: {p_value:.6f}")
         break
 
 # Verify commitment after
