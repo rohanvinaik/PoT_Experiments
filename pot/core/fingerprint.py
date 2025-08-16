@@ -4,7 +4,7 @@ import numpy as np
 import hashlib
 import time
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Callable, Optional, Union
+from typing import List, Dict, Any, Callable, Optional, Union, Tuple
 import torch
 
 from .canonicalize import canonicalize_logits, canonicalize_text
@@ -1236,3 +1236,302 @@ def fingerprint_run(f: Callable,
         timing_info=timing_info,
         metadata=metadata
     )
+
+
+# ============================================================================
+# Fingerprint Comparison Utilities
+# ============================================================================
+
+def compare_fingerprints(fp1: FingerprintResult, fp2: FingerprintResult) -> float:
+    """Compare two behavioral fingerprints and return similarity score.
+    
+    This function compares fingerprints using multiple components:
+    - IO hash comparison (exact match or Hamming distance)
+    - Jacobian sketch comparison if available
+    - Combined weighted score
+    
+    Args:
+        fp1: First fingerprint to compare
+        fp2: Second fingerprint to compare
+        
+    Returns:
+        Similarity score between 0 and 1 (1 = identical)
+    """
+    if fp1 is None or fp2 is None:
+        return 0.0
+    
+    # Compare IO hashes
+    io_similarity = 0.0
+    if fp1.io_hash == fp2.io_hash:
+        io_similarity = 1.0
+    else:
+        # Compute Hamming distance between hash strings
+        if len(fp1.io_hash) == len(fp2.io_hash):
+            matching_chars = sum(1 for c1, c2 in zip(fp1.io_hash, fp2.io_hash) if c1 == c2)
+            io_similarity = matching_chars / len(fp1.io_hash)
+        else:
+            # Different hash lengths, use prefix matching
+            min_len = min(len(fp1.io_hash), len(fp2.io_hash))
+            matching_chars = sum(1 for c1, c2 in zip(fp1.io_hash[:min_len], fp2.io_hash[:min_len]) if c1 == c2)
+            io_similarity = matching_chars / max(len(fp1.io_hash), len(fp2.io_hash))
+    
+    # Compare Jacobian sketches if both available
+    jacobian_similarity = None
+    if fp1.jacobian_sketch and fp2.jacobian_sketch:
+        try:
+            # Convert hex strings to bytes
+            sketch1_bytes = bytes.fromhex(fp1.jacobian_sketch)
+            sketch2_bytes = bytes.fromhex(fp2.jacobian_sketch)
+            
+            # Use Hamming similarity by default
+            if len(sketch1_bytes) == len(sketch2_bytes):
+                jacobian_similarity = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='hamming')
+            else:
+                # Different sketch sizes, compare prefixes
+                min_len = min(len(sketch1_bytes), len(sketch2_bytes))
+                jacobian_similarity = compare_jacobian_sketches(
+                    sketch1_bytes[:min_len], 
+                    sketch2_bytes[:min_len], 
+                    method='hamming'
+                )
+        except (ValueError, TypeError):
+            # Failed to compare Jacobian sketches
+            jacobian_similarity = None
+    
+    # Combine scores with appropriate weighting
+    if jacobian_similarity is not None:
+        # Both IO and Jacobian available: weight 60% IO, 40% Jacobian
+        similarity = 0.6 * io_similarity + 0.4 * jacobian_similarity
+    else:
+        # Only IO hash available
+        similarity = io_similarity
+    
+    return similarity
+
+
+def fingerprint_distance(fp1: FingerprintResult, fp2: FingerprintResult, 
+                        metric: str = 'combined') -> float:
+    """Compute distance between two fingerprints using specified metric.
+    
+    Supported metrics:
+    - 'combined': Weighted combination of IO and Jacobian distances
+    - 'io': IO hash distance only
+    - 'jacobian': Jacobian sketch distance only (returns 1.0 if unavailable)
+    - 'hamming': Hamming distance on IO hashes
+    - 'jaccard': Jaccard distance on Jacobian sketches
+    
+    Args:
+        fp1: First fingerprint
+        fp2: Second fingerprint
+        metric: Distance metric to use
+        
+    Returns:
+        Distance between 0 and 1 (0 = identical, 1 = completely different)
+    """
+    if fp1 is None or fp2 is None:
+        return 1.0
+    
+    if metric == 'combined':
+        # Use compare_fingerprints and convert similarity to distance
+        similarity = compare_fingerprints(fp1, fp2)
+        return 1.0 - similarity
+    
+    elif metric == 'io':
+        # IO hash distance only
+        if fp1.io_hash == fp2.io_hash:
+            return 0.0
+        else:
+            # Hamming distance on hash strings
+            if len(fp1.io_hash) == len(fp2.io_hash):
+                diff_chars = sum(1 for c1, c2 in zip(fp1.io_hash, fp2.io_hash) if c1 != c2)
+                return diff_chars / len(fp1.io_hash)
+            else:
+                # Different lengths, maximum distance
+                return 1.0
+    
+    elif metric == 'jacobian':
+        # Jacobian sketch distance only
+        if not fp1.jacobian_sketch or not fp2.jacobian_sketch:
+            # Missing Jacobian data
+            return 1.0
+        
+        try:
+            sketch1_bytes = bytes.fromhex(fp1.jacobian_sketch)
+            sketch2_bytes = bytes.fromhex(fp2.jacobian_sketch)
+            
+            if len(sketch1_bytes) == len(sketch2_bytes):
+                similarity = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='hamming')
+                return 1.0 - similarity
+            else:
+                # Different sketch sizes
+                return 1.0
+        except (ValueError, TypeError):
+            return 1.0
+    
+    elif metric == 'hamming':
+        # Hamming distance on IO hashes
+        if len(fp1.io_hash) != len(fp2.io_hash):
+            return 1.0
+        
+        diff_chars = sum(1 for c1, c2 in zip(fp1.io_hash, fp2.io_hash) if c1 != c2)
+        return diff_chars / len(fp1.io_hash)
+    
+    elif metric == 'jaccard':
+        # Jaccard distance on Jacobian sketches
+        if not fp1.jacobian_sketch or not fp2.jacobian_sketch:
+            return 1.0
+        
+        try:
+            sketch1_bytes = bytes.fromhex(fp1.jacobian_sketch)
+            sketch2_bytes = bytes.fromhex(fp2.jacobian_sketch)
+            
+            if len(sketch1_bytes) == len(sketch2_bytes):
+                similarity = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='jaccard')
+                return 1.0 - similarity
+            else:
+                return 1.0
+        except (ValueError, TypeError):
+            return 1.0
+    
+    else:
+        raise ValueError(f"Unknown metric: {metric}")
+
+
+def is_behavioral_match(fp1: FingerprintResult, fp2: FingerprintResult, 
+                        threshold: float = 0.95, verbose: bool = False) -> bool:
+    """Determine if two fingerprints represent behaviorally matching models.
+    
+    This function performs a binary decision based on fingerprint similarity,
+    with optional detailed logging of the comparison process.
+    
+    Args:
+        fp1: First fingerprint
+        fp2: Second fingerprint  
+        threshold: Similarity threshold for matching (default: 0.95)
+        verbose: Whether to log detailed comparison results
+        
+    Returns:
+        True if fingerprints match above threshold, False otherwise
+    """
+    if fp1 is None or fp2 is None:
+        if verbose:
+            print(f"[Behavioral Match] One or both fingerprints are None")
+        return False
+    
+    # Compute overall similarity
+    similarity = compare_fingerprints(fp1, fp2)
+    
+    # Detailed comparison if verbose
+    if verbose:
+        print(f"[Behavioral Match] Comparison Results:")
+        print(f"  - Threshold: {threshold:.3f}")
+        print(f"  - Overall Similarity: {similarity:.4f}")
+        
+        # IO hash comparison
+        io_match = fp1.io_hash == fp2.io_hash
+        print(f"  - IO Hash Match: {io_match}")
+        if not io_match:
+            # Show hash prefixes for debugging
+            print(f"    - FP1 Hash: {fp1.io_hash[:16]}...")
+            print(f"    - FP2 Hash: {fp2.io_hash[:16]}...")
+        
+        # Jacobian comparison if available
+        if fp1.jacobian_sketch and fp2.jacobian_sketch:
+            try:
+                sketch1_bytes = bytes.fromhex(fp1.jacobian_sketch)
+                sketch2_bytes = bytes.fromhex(fp2.jacobian_sketch)
+                
+                if len(sketch1_bytes) == len(sketch2_bytes):
+                    j_sim = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='hamming')
+                    print(f"  - Jacobian Similarity: {j_sim:.4f}")
+                else:
+                    print(f"  - Jacobian Sketches: Different sizes ({len(sketch1_bytes)} vs {len(sketch2_bytes)})")
+            except:
+                print(f"  - Jacobian Sketches: Comparison failed")
+        else:
+            print(f"  - Jacobian Sketches: Not available for both fingerprints")
+        
+        # Metadata comparison
+        if fp1.metadata and fp2.metadata:
+            model_type1 = fp1.metadata.get('model_type', 'unknown')
+            model_type2 = fp2.metadata.get('model_type', 'unknown')
+            print(f"  - Model Types: {model_type1} vs {model_type2}")
+            
+            n_challenges1 = fp1.metadata.get('num_challenges', 0)
+            n_challenges2 = fp2.metadata.get('num_challenges', 0)
+            print(f"  - Challenges Used: {n_challenges1} vs {n_challenges2}")
+        
+        # Decision
+        is_match = similarity >= threshold
+        print(f"  - Decision: {'MATCH' if is_match else 'NO MATCH'} (similarity {similarity:.4f} {'≥' if is_match else '<'} {threshold:.3f})")
+    
+    else:
+        # Simple comparison without logging
+        is_match = similarity >= threshold
+    
+    return is_match
+
+
+def batch_compare_fingerprints(fingerprints: List[FingerprintResult], 
+                              reference: Optional[FingerprintResult] = None) -> np.ndarray:
+    """Compare multiple fingerprints pairwise or against a reference.
+    
+    Args:
+        fingerprints: List of fingerprints to compare
+        reference: Optional reference fingerprint for comparison
+                  If None, performs pairwise comparison
+                  
+    Returns:
+        If reference provided: 1D array of similarities to reference
+        If no reference: 2D similarity matrix (symmetric)
+    """
+    n = len(fingerprints)
+    
+    if reference is not None:
+        # Compare all fingerprints to reference
+        similarities = np.zeros(n)
+        for i, fp in enumerate(fingerprints):
+            similarities[i] = compare_fingerprints(fp, reference)
+        return similarities
+    
+    else:
+        # Pairwise comparison matrix
+        similarity_matrix = np.eye(n)  # Diagonal is 1.0 (self-similarity)
+        
+        for i in range(n):
+            for j in range(i + 1, n):
+                similarity = compare_fingerprints(fingerprints[i], fingerprints[j])
+                similarity_matrix[i, j] = similarity
+                similarity_matrix[j, i] = similarity  # Symmetric
+        
+        return similarity_matrix
+
+
+def find_closest_match(query: FingerprintResult, 
+                       candidates: List[FingerprintResult],
+                       return_all_scores: bool = False) -> Union[Tuple[int, float], Tuple[int, float, np.ndarray]]:
+    """Find the closest matching fingerprint from a list of candidates.
+    
+    Args:
+        query: Query fingerprint to match
+        candidates: List of candidate fingerprints
+        return_all_scores: Whether to return all similarity scores
+        
+    Returns:
+        If return_all_scores is False:
+            Tuple of (best_index, best_similarity)
+        If return_all_scores is True:
+            Tuple of (best_index, best_similarity, all_similarities)
+    """
+    if not candidates:
+        if return_all_scores:
+            return -1, 0.0, np.array([])
+        return -1, 0.0
+    
+    similarities = batch_compare_fingerprints(candidates, reference=query)
+    best_idx = np.argmax(similarities)
+    best_similarity = similarities[best_idx]
+    
+    if return_all_scores:
+        return int(best_idx), float(best_similarity), similarities
+    return int(best_idx), float(best_similarity)
