@@ -111,7 +111,8 @@ The repository contains unit tests for core, vision, language, evaluation, and s
 
 Install dependencies from `requirements.txt` (NumPy, PyTorch, torchvision, matplotlib,
 transformers, etc.). A CUDA-enabled GPU is recommended but the tests run on CPU for small
-mock models. Some vision tests skip if `torchvision` is absent; install it to avoid skips. Run
+mock models. Vision tests fall back to mock models if `torchvision` is missing or fails to
+load, so a compatible `torchvision` build is only needed for full coverage. Run
 the full suite with:
 
 ```bash

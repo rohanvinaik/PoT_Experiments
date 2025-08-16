@@ -195,7 +195,8 @@ proof = pot.generate_verification_proof(result)
 1. **Check Logs**: Outputs are in JSONL format in `outputs/` directory
 2. **Verify Seeds**: Ensure `PYTHONHASHSEED=0` is set
 3. **Memory Issues**: Reduce batch sizes or challenge counts
-4. **Import Errors**: Check optional dependencies (ssdeep, tlsh)
+4. **Import Errors**: Check optional dependencies (ssdeep, tlsh) and ensure a compatible
+   `torchvision` build if vision tests are required
 
 ## Best Practices
 

@@ -41,6 +41,11 @@ bash run_all_quick.sh
 pytest -q
 ```
 
+codex/run-all-tests-for-pot-paper-review-mzykzr
+Vision-model tests automatically skip if `torchvision` is missing or fails to load.
+
+=======
+main
 ### 1. Running Experiments
 
 To run the core experiments (E1-E7), follow the experimental protocol:
