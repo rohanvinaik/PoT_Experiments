@@ -17,6 +17,8 @@ from transformers import AutoTokenizer
 from ..core.stats import empirical_bernstein_bound, t_statistic
 from ..core.sequential import SequentialTester, SPRTResult
 from ..core.challenge import generate_challenges, ChallengeConfig
+from ..core.fingerprint import fingerprint_run, FingerprintConfig, FingerprintResult, compare_jacobian_sketches
+from ..core.canonicalize import canonicalize_text, canonicalize_logits
 from .fuzzy_hash import TokenSpaceNormalizer, NGramFuzzyHasher, AdvancedFuzzyHasher
 from .models import LM
 
@@ -30,6 +32,8 @@ class LMVerificationResult:
     n_challenges: int
     fuzzy_similarity: float
     time_elapsed: float
+    fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
+    fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
     metadata: Dict[str, Any]
 
 
@@ -40,7 +44,8 @@ class LMVerifier:
     """
     
     def __init__(self, reference_model: LM, delta: float = 0.01, 
-                 use_sequential: bool = True):
+                 use_sequential: bool = True, use_fingerprinting: bool = True,
+                 fingerprint_config: Optional[FingerprintConfig] = None):
         """
         Initialize LM verifier
         
@@ -48,10 +53,28 @@ class LMVerifier:
             reference_model: Reference language model f*
             delta: Confidence parameter (1-delta confidence)
             use_sequential: Whether to use SPRT for early stopping
+            use_fingerprinting: Whether to compute behavioral fingerprints
+            fingerprint_config: Configuration for fingerprinting (uses default LM config if None)
         """
         self.reference_model = reference_model
         self.delta = delta
         self.use_sequential = use_sequential
+        self.use_fingerprinting = use_fingerprinting
+        
+        # Set up fingerprinting configuration
+        if use_fingerprinting:
+            if fingerprint_config is None:
+                # Use default language model configuration
+                self.fingerprint_config = FingerprintConfig.for_language_model(
+                    compute_jacobian=False,  # Jacobians less useful for text
+                    include_timing=True,
+                    canonicalize_outputs=True
+                )
+            else:
+                self.fingerprint_config = fingerprint_config
+            
+            # Will compute reference fingerprint lazily
+            self.reference_fingerprint = None
         
         # Initialize tokenizer and normalizer
         self.tokenizer = reference_model.tok
@@ -258,7 +281,8 @@ class LMVerifier:
         return model_output, distance
     
     def verify(self, model: LM, challenges: List[Dict[str, Any]],
-              tolerance: float = 0.1, method: str = 'fuzzy') -> LMVerificationResult:
+              tolerance: float = 0.1, method: str = 'fuzzy',
+              compute_reference_fingerprint: bool = False) -> LMVerificationResult:
         """
         Verify a language model against reference.
 
@@ -267,6 +291,7 @@ class LMVerifier:
             challenges: List of challenges to evaluate
             tolerance: Maximum acceptable average distance
             method: Distance computation method (default ``'fuzzy'``)
+            compute_reference_fingerprint: Whether to compute reference fingerprint if not already done
 
         Returns:
             LMVerificationResult with verification outcome
@@ -274,6 +299,57 @@ class LMVerifier:
         start_time = time.time()
         distances = []
         fuzzy_similarities = []
+        
+        # Compute behavioral fingerprint if enabled
+        model_fingerprint = None
+        fingerprint_similarity = None
+        
+        if self.use_fingerprinting:
+            # Convert challenges to prompts for fingerprinting
+            prompts = [self._challenge_to_prompt(ch) for ch in challenges]
+            
+            # Compute reference fingerprint if needed
+            if compute_reference_fingerprint or self.reference_fingerprint is None:
+                self.compute_reference_fingerprint(prompts)
+            
+            # Create a wrapper function for the model being verified
+            def model_wrapper(prompt_batch):
+                if isinstance(prompt_batch, str):
+                    prompt_batch = [prompt_batch]
+                
+                outputs = []
+                for prompt in prompt_batch:
+                    output = model.generate(prompt, max_new_tokens=64)
+                    # Canonicalize the text output
+                    canonical_output = canonicalize_text(output)
+                    outputs.append(canonical_output)
+                
+                return outputs if len(outputs) > 1 else outputs[0]
+            
+            # Compute fingerprint for the model being verified
+            fingerprint_start = time.time()
+            model_fingerprint = fingerprint_run(
+                model_wrapper,
+                prompts,
+                self.fingerprint_config
+            )
+            fingerprint_time = time.time() - fingerprint_start
+            
+            # Compare fingerprints if reference exists
+            if self.reference_fingerprint is not None:
+                fingerprint_similarity = self.compute_fingerprint_similarity(
+                    self.reference_fingerprint,
+                    model_fingerprint
+                )
+                
+                # Log fingerprint metrics for debugging
+                print(f"[LM Fingerprint] IO Hash Match: {model_fingerprint.io_hash == self.reference_fingerprint.io_hash}")
+                print(f"[LM Fingerprint] Similarity: {fingerprint_similarity:.4f}")
+                print(f"[LM Fingerprint] Time: {fingerprint_time:.3f}s")
+                
+                # Early rejection based on fingerprint (optional, with conservative threshold)
+                if fingerprint_similarity < 0.3:  # Very low threshold for text
+                    print("[LM Fingerprint] Warning: Low similarity detected")
         
         # Reset sequential tester if using
         if self.use_sequential:
@@ -340,6 +416,18 @@ class LMVerifier:
             }
         }
         
+        # Add fingerprint information to metadata if available
+        if model_fingerprint is not None:
+            metadata['fingerprint'] = {
+                'io_hash': model_fingerprint.io_hash,
+                'has_jacobian': model_fingerprint.jacobian_sketch is not None,
+                'similarity': fingerprint_similarity if fingerprint_similarity is not None else 'N/A',
+                'num_outputs': len(model_fingerprint.raw_outputs),
+                'config': model_fingerprint.metadata.get('fingerprint_config', {})
+            }
+            if self.reference_fingerprint is not None:
+                metadata['fingerprint']['reference_io_hash'] = self.reference_fingerprint.io_hash
+        
         # Add advanced fuzzy hashing results if available
         if self.advanced_hasher:
             sample_idx = min(5, len(challenges))  # Sample a few for advanced hashing
@@ -369,6 +457,8 @@ class LMVerifier:
             n_challenges=len(distances),
             fuzzy_similarity=float(np.mean(fuzzy_similarities)),
             time_elapsed=elapsed,
+            fingerprint=model_fingerprint,
+            fingerprint_match=fingerprint_similarity,
             metadata=metadata
         )
     
@@ -380,6 +470,88 @@ class LMVerifier:
                 prompt = prompt.replace(f"{{{slot}}}", value)
             return prompt
         return challenge.get("prompt", "Hello")
+    
+    def compute_reference_fingerprint(self, prompts: List[str]) -> FingerprintResult:
+        """
+        Compute and store reference model fingerprint
+        
+        Args:
+            prompts: Text prompts to use for fingerprinting
+            
+        Returns:
+            FingerprintResult for the reference model
+        """
+        if not self.use_fingerprinting:
+            return None
+        
+        # Create a wrapper function for the reference model
+        def model_wrapper(prompt_batch):
+            # Handle both single prompts and batches
+            if isinstance(prompt_batch, str):
+                prompt_batch = [prompt_batch]
+            
+            outputs = []
+            for prompt in prompt_batch:
+                output = self.reference_model.generate(prompt, max_new_tokens=64)
+                # Canonicalize the text output
+                canonical_output = canonicalize_text(output)
+                outputs.append(canonical_output)
+            
+            return outputs if len(outputs) > 1 else outputs[0]
+        
+        # Compute fingerprint
+        self.reference_fingerprint = fingerprint_run(
+            model_wrapper,
+            prompts,
+            self.fingerprint_config
+        )
+        
+        return self.reference_fingerprint
+    
+    def compute_fingerprint_similarity(self, fingerprint1: FingerprintResult,
+                                      fingerprint2: FingerprintResult) -> float:
+        """
+        Compute similarity between two fingerprints
+        
+        Args:
+            fingerprint1: First fingerprint
+            fingerprint2: Second fingerprint
+            
+        Returns:
+            Similarity score between 0 and 1 (1 = identical)
+        """
+        if fingerprint1 is None or fingerprint2 is None:
+            return 0.0
+        
+        # Compare IO hashes (exact match)
+        if fingerprint1.io_hash == fingerprint2.io_hash:
+            return 1.0
+        
+        # If Jacobian sketches exist, compare them (though less useful for text)
+        if fingerprint1.jacobian_sketch and fingerprint2.jacobian_sketch:
+            sketch1_bytes = bytes.fromhex(fingerprint1.jacobian_sketch)
+            sketch2_bytes = bytes.fromhex(fingerprint2.jacobian_sketch)
+            similarity = compare_jacobian_sketches(sketch1_bytes, sketch2_bytes, method='hamming')
+            return similarity
+        
+        # Compare raw outputs using fuzzy text matching
+        if fingerprint1.raw_outputs and fingerprint2.raw_outputs:
+            similarities = []
+            for out1, out2 in zip(fingerprint1.raw_outputs, fingerprint2.raw_outputs):
+                # Convert to strings if needed
+                s1 = str(out1) if not isinstance(out1, str) else out1
+                s2 = str(out2) if not isinstance(out2, str) else out2
+                
+                # Use SequenceMatcher for similarity
+                import difflib
+                similarity = difflib.SequenceMatcher(None, s1, s2).ratio()
+                similarities.append(similarity)
+            
+            if similarities:
+                return float(np.mean(similarities))
+        
+        # Default: different fingerprints
+        return 0.0
     
     def verify_with_time_tolerance(self, model: LM,
                                   challenges: List[Dict[str, Any]],
@@ -419,8 +591,9 @@ class LMVerifier:
             adjusted_tolerance = max_tolerance
             cap_applied = True
         
-        # Run verification with adjusted tolerance
-        result = self.verify(model, challenges, adjusted_tolerance)
+        # Run verification with adjusted tolerance (pass through fingerprinting)
+        result = self.verify(model, challenges, adjusted_tolerance, 
+                           compute_reference_fingerprint=True)
         
         # Add time tolerance info to metadata
         result.metadata["time_tolerance"] = {
@@ -446,8 +619,11 @@ class BatchLMVerifier:
     Implements efficient batch processing from paper
     """
     
-    def __init__(self, reference_model: LM, delta: float = 0.01):
-        self.verifier = LMVerifier(reference_model, delta)
+    def __init__(self, reference_model: LM, delta: float = 0.01,
+                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
+        self.verifier = LMVerifier(reference_model, delta, 
+                                  use_fingerprinting=use_fingerprinting,
+                                  fingerprint_config=fingerprint_config)
     
     def verify_batch(self, models: List[LM], 
                     challenges: List[Dict[str, Any]],
