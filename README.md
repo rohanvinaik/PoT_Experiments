@@ -39,8 +39,13 @@ bash run_all.sh
 pytest -q
 ```
 
-When finished, deactivate the environment with `deactivate`.
+If you prefer a one-command container run, use:
 
+```bash
+make test
+```
+
+When finished, deactivate the environment with `deactivate`.
 The container installs packages from `requirements.txt` and sets `PYTHONPATH`
 so the `pot` modules can be imported without additional configuration.
 

@@ -51,16 +51,16 @@ test_module() {
 
 # Core modules
 echo -e "${YELLOW}Core Modules:${NC}"
-test_module "Challenge" "python3 -c 'from pot.core.challenge import generate_challenges'"
-test_module "Stats" "python3 -c 'from pot.core.stats import far_frr'"
-test_module "Logging" "python3 -c 'from pot.core.logging import StructuredLogger'"
-test_module "Governance" "python3 -c 'from pot.core.governance import ChallengeGovernance'"
-test_module "Attacks" "python3 -c 'from pot.core.attacks import targeted_finetune'"
+test_module "Challenge" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.challenge import generate_challenges'"
+test_module "Stats" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.stats import far_frr'"
+test_module "Logging" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.logging import StructuredLogger'"
+test_module "Governance" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.governance import ChallengeGovernance'"
+test_module "Attacks" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.attacks import targeted_finetune'"
 
 # Security modules
 echo -e "\n${YELLOW}Security Modules:${NC}"
-test_module "Audit Logger" "python3 -c 'from pot.core.audit_logger import AuditLogger'"
-test_module "Cost Tracker" "python3 -c 'from pot.core.cost_tracker import CostTracker'"
+test_module "Audit Logger" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.audit_logger import AuditLogger'"
+test_module "Cost Tracker" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.cost_tracker import CostTracker'"
 
 # Scripts
 echo -e "\n${YELLOW}Validation Scripts:${NC}"

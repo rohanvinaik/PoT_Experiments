@@ -94,7 +94,7 @@ run_test() {
     echo -e "\n${YELLOW}Testing: ${test_name}${NC}"
     
     if [ -f "${test_file}" ]; then
-        if ${PYTHON} "${test_file}" > "${RESULTS_DIR}/${test_name}_${TIMESTAMP}.log" 2>&1; then
+        if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} "${test_file}" > "${RESULTS_DIR}/${test_name}_${TIMESTAMP}.log" 2>&1; then
             print_success "${test_name} tests passed"
             return 0
         else
@@ -137,7 +137,7 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 # Run integrated system demo
 print_header "RUNNING INTEGRATED SYSTEM DEMO"
 
-if ${PYTHON} pot/security/proof_of_training.py > "${RESULTS_DIR}/integrated_demo_${TIMESTAMP}.log" 2>&1; then
+if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} pot/security/proof_of_training.py > "${RESULTS_DIR}/integrated_demo_${TIMESTAMP}.log" 2>&1; then
     print_success "Integrated system demo completed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
@@ -463,7 +463,7 @@ if __name__ == "__main__":
 EOF
 
 print_info "Running experimental validation..."
-if ${PYTHON} "${RESULTS_DIR}/validation_experiment.py" > "${RESULTS_DIR}/validation_${TIMESTAMP}.log" 2>&1; then
+if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} "${RESULTS_DIR}/validation_experiment.py" > "${RESULTS_DIR}/validation_${TIMESTAMP}.log" 2>&1; then
     print_success "Experimental validation completed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
@@ -651,7 +651,7 @@ if __name__ == "__main__":
 EOF
 
 print_info "Running stress tests..."
-if ${PYTHON} "${RESULTS_DIR}/stress_test.py" > "${RESULTS_DIR}/stress_test_${TIMESTAMP}.log" 2>&1; then
+if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} "${RESULTS_DIR}/stress_test.py" > "${RESULTS_DIR}/stress_test_${TIMESTAMP}.log" 2>&1; then
     print_success "Stress tests passed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
