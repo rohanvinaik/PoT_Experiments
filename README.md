@@ -44,13 +44,37 @@ Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (i
 - **Bound & distances**: outputs clipped to `[0,1]`; L2 distance for vision, token-level Hamming for LMs.
 - **Calibration**: thresholds calibrated on held-out split (see `outputs/*/calibration.png`).
 - **Model checkpoints**: see `outputs/*/references/*.ckpt` with SHA256 hashes in `outputs/*/sha256.txt`.
-- **Determinism flags**:
   ```
   export PYTHONHASHSEED=0
   export CUBLAS_WORKSPACE_CONFIG=:4096:8
   torch.use_deterministic_algorithms(True)
   ```
-- **Integration tests**: require PyTorch and NumPy; run `PYTHONPATH=. pytest tests/test_attacks_integration.py` to exercise end-to-end attack scenarios.
+## Testing
+
+The repository contains unit tests for core, vision, language, evaluation, and security modules
+(`pot/*/test_*.py`) along with end-to-end checks in `tests/`:
+
+- `test_attacks_integration.py`
+- `test_run_grid_integration.py`
+- `test_run_plots.py`
+- `test_run_verify.py`
+
+Install dependencies from `requirements.txt` (NumPy, PyTorch, torchvision, matplotlib,
+transformers, etc.). A CUDA-enabled GPU is recommended but the tests run on CPU for small
+mock models. Some vision tests skip if `torchvision` is absent; install it to avoid skips. Run
+the full suite with:
+
+```bash
+pytest -q
+```
+
+### Adding tests
+
+- Place fast unit tests next to new modules under `pot/` using the `test_*.py` pattern.
+- For new attack or verification pipelines, add integration tests under `tests/` similar to
+  `test_attacks_integration.py`.
+- Use small deterministic mock models or fixtures and avoid network calls.
+- Ensure the suite remains runnable via `pytest -q`.
 
 ## Quick start
 
