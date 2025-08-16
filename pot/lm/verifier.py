@@ -75,10 +75,20 @@ class LMVerifier:
     
     def generate_template_challenges(self, n: int, 
                                     master_key: str,
-                                    session_nonce: str) -> List[Dict[str, Any]]:
+                                    session_nonce: str,
+                                    model_id: Optional[str] = None) -> Tuple[List[str], List[Dict[str, Any]]]:
         """
         Generate template-based challenges for language models
         From paper Section 3.2
+        
+        Args:
+            n: Number of challenges
+            master_key: Master key for challenge generation
+            session_nonce: Session-specific nonce
+            model_id: Optional model identifier for model-specific challenges
+            
+        Returns:
+            Tuple of (prompts, challenge metadata including IDs)
         """
         # Define template families
         templates = [
@@ -107,11 +117,63 @@ class LMVerifier:
             session_nonce_hex=session_nonce,
             n=n,
             family="lm:templates",
-            params={"templates": templates, "slots": slots}
+            params={"templates": templates, "slots": slots},
+            model_id=model_id
         )
         
         result = generate_challenges(config)
-        return result["items"]
+        prompts = []
+        metadata = []
+        
+        # Use Challenge objects if available
+        challenges = result.get("challenges", None)
+        if challenges:
+            # New format with Challenge objects
+            for challenge in challenges:
+                params = challenge.parameters
+                # Use the generated prompt
+                prompt = params.get("prompt", None)
+                if not prompt:
+                    # Fallback: construct prompt from template and slots
+                    template = params["template"]
+                    slot_values = params["slot_values"]
+                    prompt = template
+                    for slot_name, slot_value in slot_values.items():
+                        prompt = prompt.replace(f"{{{slot_name}}}", slot_value)
+                
+                prompts.append(prompt)
+                
+                # Store metadata including challenge ID
+                metadata.append({
+                    "challenge_id": challenge.challenge_id,
+                    "index": challenge.index,
+                    "template": params.get("template", ""),
+                    "slot_values": params.get("slot_values", {}),
+                    "prompt": prompt
+                })
+        else:
+            # Backward compatibility: use items
+            for idx, item in enumerate(result["items"]):
+                # Construct prompt from template if needed
+                if "prompt" in item:
+                    prompt = item["prompt"]
+                else:
+                    template = item.get("template", "")
+                    slot_values = item.get("slot_values", {})
+                    prompt = template
+                    for slot_name, slot_value in slot_values.items():
+                        prompt = prompt.replace(f"{{{slot_name}}}", slot_value)
+                
+                prompts.append(prompt)
+                metadata.append({
+                    "challenge_id": f"legacy_{idx}",
+                    "index": idx,
+                    "template": item.get("template", ""),
+                    "slot_values": item.get("slot_values", {}),
+                    "prompt": prompt
+                })
+        
+        return prompts, metadata
     
     def compute_output_distance(self, output1: str, output2: str,
                                method: str = 'fuzzy') -> float:

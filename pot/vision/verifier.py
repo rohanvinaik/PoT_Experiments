@@ -77,10 +77,20 @@ class VisionVerifier:
     
     def generate_frequency_challenges(self, n: int,
                                      master_key: str,
-                                     session_nonce: str) -> List[torch.Tensor]:
+                                     session_nonce: str,
+                                     model_id: Optional[str] = None) -> Tuple[List[torch.Tensor], List[Dict[str, Any]]]:
         """
         Generate frequency-based challenges (sine gratings)
         From paper Section 3.3: Vision-specific challenges
+        
+        Args:
+            n: Number of challenges
+            master_key: Master key for challenge generation
+            session_nonce: Session-specific nonce
+            model_id: Optional model identifier for model-specific challenges
+            
+        Returns:
+            Tuple of (challenge images, challenge metadata including IDs)
         """
         config = ChallengeConfig(
             master_key_hex=master_key,
@@ -90,30 +100,71 @@ class VisionVerifier:
             params={
                 "freq_range": (0.5, 10.0),  # Spatial frequency range
                 "contrast_range": (0.2, 1.0)  # Contrast range
-            }
+            },
+            model_id=model_id
         )
         
         challenge_data = generate_challenges(config)
-        challenges = []
+        images = []
+        metadata = []
         
-        for item in challenge_data["items"]:
-            # Generate sine grating image
-            image = self._generate_sine_grating(
-                size=(224, 224),
-                frequency=item["freq"],
-                orientation=item["theta"],
-                phase=item["phase"],
-                contrast=item["contrast"]
-            )
-            challenges.append(image)
+        # Use Challenge objects if available, otherwise fall back to items
+        challenges = challenge_data.get("challenges", None)
+        if challenges:
+            # New format with Challenge objects
+            for challenge in challenges:
+                params = challenge.parameters
+                # Generate sine grating image
+                # Note: theta_rad is in radians, theta is in degrees
+                image = self._generate_sine_grating(
+                    size=(224, 224),
+                    frequency=params["freq"],
+                    orientation=params.get("theta_rad", params["theta"]),  # Use radians if available
+                    phase=params["phase"],
+                    contrast=params["contrast"]
+                )
+                images.append(image)
+                
+                # Store metadata including challenge ID
+                metadata.append({
+                    "challenge_id": challenge.challenge_id,
+                    "index": challenge.index,
+                    "parameters": params
+                })
+        else:
+            # Backward compatibility: use items
+            for idx, item in enumerate(challenge_data["items"]):
+                image = self._generate_sine_grating(
+                    size=(224, 224),
+                    frequency=item["freq"],
+                    orientation=item["theta"],
+                    phase=item["phase"],
+                    contrast=item["contrast"]
+                )
+                images.append(image)
+                metadata.append({
+                    "challenge_id": f"legacy_{idx}",
+                    "index": idx,
+                    "parameters": item
+                })
         
-        return challenges
+        return images, metadata
     
     def generate_texture_challenges(self, n: int,
                                   master_key: str,
-                                  session_nonce: str) -> List[torch.Tensor]:
+                                  session_nonce: str,
+                                  model_id: Optional[str] = None) -> Tuple[List[torch.Tensor], List[Dict[str, Any]]]:
         """
         Generate texture-based challenges using Perlin noise
+        
+        Args:
+            n: Number of challenges
+            master_key: Master key for challenge generation
+            session_nonce: Session-specific nonce
+            model_id: Optional model identifier for model-specific challenges
+            
+        Returns:
+            Tuple of (challenge images, challenge metadata including IDs)
         """
         config = ChallengeConfig(
             master_key_hex=master_key,
@@ -123,27 +174,56 @@ class VisionVerifier:
             params={
                 "octaves": (1, 4),
                 "scale": (0.01, 0.1)
-            }
+            },
+            model_id=model_id
         )
         
         challenge_data = generate_challenges(config)
-        challenges = []
+        images = []
+        metadata = []
         
-        for idx, item in enumerate(challenge_data["items"]):
-            # Generate deterministic seed per item
-            seed_input = f"{master_key}:{session_nonce}:{idx}:{item['octaves']}:{item['scale']}"
-            seed = xxhash.xxh64(seed_input).intdigest()
-
-            # Generate Perlin noise texture
-            image = self._generate_perlin_noise(
-                size=(224, 224),
-                octaves=item["octaves"],
-                scale=item["scale"],
-                seed=seed,
-            )
-            challenges.append(image)
+        # Use Challenge objects if available
+        challenges = challenge_data.get("challenges", None)
+        if challenges:
+            for challenge in challenges:
+                params = challenge.parameters
+                # Use challenge ID for seed generation (more deterministic)
+                seed = xxhash.xxh64(challenge.challenge_id.encode()).intdigest()
+                
+                # Generate Perlin noise texture
+                image = self._generate_perlin_noise(
+                    size=(224, 224),
+                    octaves=params["octaves"],
+                    scale=params["scale"],
+                    seed=seed,
+                )
+                images.append(image)
+                
+                metadata.append({
+                    "challenge_id": challenge.challenge_id,
+                    "index": challenge.index,
+                    "parameters": params
+                })
+        else:
+            # Backward compatibility
+            for idx, item in enumerate(challenge_data["items"]):
+                seed_input = f"{master_key}:{session_nonce}:{idx}:{item['octaves']}:{item['scale']}"
+                seed = xxhash.xxh64(seed_input).intdigest()
+                
+                image = self._generate_perlin_noise(
+                    size=(224, 224),
+                    octaves=item["octaves"],
+                    scale=item["scale"],
+                    seed=seed,
+                )
+                images.append(image)
+                metadata.append({
+                    "challenge_id": f"legacy_{idx}",
+                    "index": idx,
+                    "parameters": item
+                })
         
-        return challenges
+        return images, metadata
     
     def _generate_sine_grating(self, size: Tuple[int, int],
                               frequency: float,
