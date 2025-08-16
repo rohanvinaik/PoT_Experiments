@@ -165,7 +165,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 try:
     from pot.security.proof_of_training import ProofOfTraining, ChallengeLibrary
     from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
-    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.prototypes.training_provenance_auditor import (
+        TrainingProvenanceAuditor,
+        EventType,
+        ProofType,
+    )
     from pot.security.token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController, TokenizerType
 except ImportError as e:
     print(f"Import error: {e}")
@@ -555,7 +559,11 @@ def stress_test_provenance_history():
     """Test with large training histories"""
     print("Stress testing training history...")
     
-    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.prototypes.training_provenance_auditor import (
+        TrainingProvenanceAuditor,
+        EventType,
+        ProofType,
+    )
     
     auditor = TrainingProvenanceAuditor(
         model_id="stress_test",

@@ -15,7 +15,7 @@ print("\n1. Testing imports...")
 try:
     from pot.security.proof_of_training import ProofOfTraining
     from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier
-    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor
+    from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor
     from pot.security.token_space_normalizer import TokenSpaceNormalizer
     print("✓ All security components imported successfully")
 except ImportError as e:

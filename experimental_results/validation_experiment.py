@@ -19,7 +19,11 @@ sys.path.insert(0, str(Path.cwd().parent if Path.cwd().name == 'scripts' else Pa
 try:
     from pot.security.proof_of_training import ProofOfTraining, ChallengeLibrary
     from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector
-    from pot.security.training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.prototypes.training_provenance_auditor import (
+        TrainingProvenanceAuditor,
+        EventType,
+        ProofType,
+    )
     from pot.security.token_space_normalizer import TokenSpaceNormalizer, StochasticDecodingController, TokenizerType
 except ImportError as e:
     print(f"Import error: {e}")

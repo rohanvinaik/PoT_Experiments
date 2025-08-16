@@ -7,14 +7,14 @@ import time
 import hashlib
 import numpy as np
 from datetime import datetime, timezone, timedelta
-from training_provenance_auditor import (
+from pot.prototypes.training_provenance_auditor import (
     TrainingProvenanceAuditor,
     TrainingEvent,
     EventType,
     ProofType,
     MerkleTree,
     ZeroKnowledgeProof,
-    MockBlockchainClient
+    MockBlockchainClient,
 )
 
 
