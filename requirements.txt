@@ -16,3 +16,4 @@ xxhash
 # Required for fuzzy hashing (core PoT functionality)
 ssdeep
 py-tlsh
+pytest>=7.0.0
