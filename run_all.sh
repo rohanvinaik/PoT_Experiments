@@ -22,6 +22,9 @@ RESULTS_DIR="experimental_results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${RESULTS_DIR}/run_all_${TIMESTAMP}.log"
 
+# Ensure repository root on PYTHONPATH for direct script execution
+export PYTHONPATH="${PYTHONPATH:-$(pwd)}"
+
 # Print colored output
 print_header() {
     echo -e "\n${BLUE}========================================${NC}"
@@ -69,6 +72,7 @@ check_dependencies() {
     print_info "Checking required packages..."
     
     ${PYTHON} -c "import numpy" 2>/dev/null && print_success "NumPy installed" || print_error "NumPy not found"
+    ${PYTHON} -c "import pytest" 2>/dev/null && print_success "PyTest installed" || print_error "PyTest not found"
     
     # Check optional dependencies
     ${PYTHON} -c "import torch" 2>/dev/null && print_success "PyTorch installed" || print_info "PyTorch not found (optional)"

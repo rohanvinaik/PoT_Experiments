@@ -41,6 +41,18 @@ PoT_Experiments/
 
 ## Running Experiments
 
+### Using the virtual environment
+
+Set up and activate the local environment before running commands:
+
+```bash
+bash setup_env.sh
+source .venv/bin/activate
+```
+
+After activation you can execute scripts like `bash run_all.sh` or run
+tests via `pytest -q`. Leave the environment with `deactivate`.
+
 ### Quick Start
 ```bash
 # Install dependencies

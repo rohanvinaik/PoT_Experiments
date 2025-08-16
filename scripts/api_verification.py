@@ -33,6 +33,7 @@ try:
     import openai
     OPENAI_AVAILABLE = True
 except ImportError:
+    openai = None  # make attribute available for tests
     OPENAI_AVAILABLE = False
     
 try:
@@ -449,7 +450,9 @@ class APIVerifier:
             # AUROC
             try:
                 auroc = roc_auc_score(y_true, y_scores)
-            except:
+                if np.isnan(auroc):
+                    auroc = 0.5
+            except Exception:
                 auroc = 0.5
                 
             # Precision-Recall

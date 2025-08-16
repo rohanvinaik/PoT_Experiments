@@ -1,18 +1,18 @@
-torch
-torchvision
-transformers
-accelerate
-sentence-transformers
-numpy>=2.0.0
-scipy
-scikit-learn
-einops
-tqdm
-pyyaml
-matplotlib>=3.8.0
-seaborn
-xxhash
+--extra-index-url https://download.pytorch.org/whl/cpu
 
-# Required for fuzzy hashing (core PoT functionality)
-ssdeep
-py-tlsh
+torch==2.5.1
+torchvision==0.20.1
+transformers==4.52.1
+accelerate==1.10.0
+sentence-transformers==3.0.1
+numpy>=2.0.0
+scipy==1.14.1
+scikit-learn==1.5.1
+einops==0.7.0
+tqdm==4.66.5
+pyyaml==6.0.1
+matplotlib>=3.8.2
+seaborn==0.13.2
+xxhash==3.4.1
+
+pytest>=7.0.0

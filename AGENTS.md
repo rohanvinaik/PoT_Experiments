@@ -22,6 +22,19 @@ The PoT system consists of two main components:
 
 ## Quick Start Guide
 
+### Using the provided virtual environment
+
+Create and activate a local environment with pinned dependencies:
+
+```bash
+bash setup_env.sh
+source .venv/bin/activate
+```
+
+Run project commands inside the activated shell, e.g. `bash run_all.sh`
+for the full validation or `pytest -q` for unit tests. Exit with
+`deactivate` when done.
+
 ### 1. Running Experiments
 
 To run the core experiments (E1-E7), follow the experimental protocol:

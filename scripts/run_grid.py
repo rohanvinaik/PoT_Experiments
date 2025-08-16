@@ -73,14 +73,22 @@ class ResourceMonitor:
 def load_production_model(model_config, device="auto", cpu_only: bool = False):
     """Load production-scale models with proper resource management"""
 
+    if isinstance(model_config, str):
+        model_config = {"name": model_config, "type": "python"}
+
+    model_type = model_config.get("type", "huggingface")
+    model_name = model_config.get("name", model_config.get("arch"))
+
+    if model_type == "python":
+        module_name, attr = model_name.split(":")
+        module = importlib.import_module(module_name)
+        return {"model": getattr(module, attr)(), "type": "python"}
+
     if not HAS_TORCH:
         raise RuntimeError("PyTorch required for production model loading")
 
     if cpu_only:
         device = "cpu"
-
-    model_type = model_config.get("type", "huggingface")
-    model_name = model_config.get("name", model_config.get("arch"))
 
     try:
         if model_type == "huggingface" or "llama" in model_name.lower():

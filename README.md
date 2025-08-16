@@ -12,6 +12,38 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 
 Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
+### Reproducible environment
+
+For a clean setup that includes all pinned dependencies, use the provided
+Dockerfile:
+
+```bash
+docker build -t pot-experiments .
+docker run --rm pot-experiments bash run_all.sh
+```
+
+Alternatively, create a local virtual environment with the same
+dependencies:
+
+```bash
+bash setup_env.sh
+source .venv/bin/activate
+```
+
+After activating the environment you can run the project as usual:
+
+```bash
+# run validation pipeline
+bash run_all.sh
+# or execute the unit tests
+pytest -q
+```
+
+When finished, deactivate the environment with `deactivate`.
+
+The container installs packages from `requirements.txt` and sets `PYTHONPATH`
+so the `pot` modules can be imported without additional configuration.
+
 Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
 
 ### Running without CUDA
@@ -122,22 +154,20 @@ The basic experiments require the following Python packages (versions tested):
 
 | Package | Version |
 |---------|---------|
-| torch | 2.2.0 |
-| torchvision | 0.17.0 |
-| transformers | 4.31.0 |
-| accelerate | 0.21.0 |
-| sentence-transformers | 2.2.2 |
-| numpy | 1.24.4 |
-| scipy | 1.10.1 |
-| scikit-learn | 1.3.0 |
-| einops | 0.6.1 |
-| tqdm | 4.65.0 |
-| pyyaml | 6.0 |
-| matplotlib | 3.7.1 |
-| seaborn | 0.12.2 |
+| torch | 2.5.1 |
+| torchvision | 0.20.1 |
+| transformers | 4.52.1 |
+| accelerate | 1.10.0 |
+| sentence-transformers | 3.0.1 |
+| numpy | 2.2.6 |
+| scipy | 1.14.1 |
+| scikit-learn | 1.5.1 |
+| einops | 0.7.0 |
+| tqdm | 4.66.5 |
+| pyyaml | 6.0.1 |
+| matplotlib | 3.10.5 |
+| seaborn | 0.13.2 |
 | xxhash | 3.4.1 |
-| ssdeep | 3.4 |
-| py-tlsh | 4.7.2 |
 
 A minimal pinned requirements file is provided in
 [requirements-basic.txt](requirements-basic.txt) for convenience.

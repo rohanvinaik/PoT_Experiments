@@ -1,5 +1,5 @@
 import numpy as np
-from coverage_separation import CoverageSeparationOptimizer
+from pot.core.coverage_separation import CoverageSeparationOptimizer
 
 def dummy_model_linear(challenges):
     return np.sum(challenges, axis=1) * 0.1

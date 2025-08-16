@@ -1,16 +1,17 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-torch==2.2.0
-torchvision==0.17.0
-transformers
-accelerate
-sentence-transformers
+torch==2.5.1
+torchvision==0.20.1
+transformers==4.52.1
+accelerate==1.10.0
+sentence-transformers==3.0.1
 numpy>=2.0.0
-scipy
-scikit-learn
-einops
-tqdm
-pyyaml
-matplotlib>=3.8.0
-seaborn
-xxhash
+scipy==1.14.1
+scikit-learn==1.5.1
+einops==0.7.0
+tqdm==4.66.5
+pyyaml==6.0.1
+matplotlib>=3.8.2
+seaborn==0.13.2
+xxhash==3.4.1
+pytest>=7.0.0
