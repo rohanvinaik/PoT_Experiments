@@ -11,6 +11,8 @@ try:
 except ImportError:
     torch = None
     HAS_TORCH = False
+    import warnings
+    warnings.warn("PyTorch not available; JSON encoding of tensors will be disabled.")
 
 
 class NpTorchEncoder(json.JSONEncoder):

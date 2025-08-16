@@ -28,6 +28,7 @@ from pot.core.stats import (
 )
 from pot.core.logging import StructuredLogger
 from pot.eval.metrics import dist_logits_l2, dist_kl
+from pot.models import load_model
 
 def main():
     parser = argparse.ArgumentParser(description="Verify model against reference")
@@ -35,7 +36,17 @@ def main():
     parser.add_argument("--challenge_family", required=True, help="Challenge family to use")
     parser.add_argument("--n", type=int, default=256, help="Number of challenges")
     parser.add_argument("--output_dir", default="outputs", help="Output directory")
+    parser.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="Run on CPU only and avoid CUDA initialization",
+    )
     args = parser.parse_args()
+
+    if args.cpu_only:
+        import os
+
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     # Load config
     with open(args.config) as f:
@@ -46,8 +57,8 @@ def main():
     logger = StructuredLogger(f"{args.output_dir}/{exp_name}/{run_id}")
 
     # Load reference and test models
-    ref_model = torch.load(config["models"]["reference_path"], weights_only=False).eval()
-    test_model = torch.load(config["models"]["test_path"], weights_only=False).eval()
+    ref_model = load_model(config["models"]["reference_path"], cpu_only=args.cpu_only).eval()
+    test_model = load_model(config["models"]["test_path"], cpu_only=args.cpu_only).eval()
 
     # Get challenge parameters from config
     family_cfg = None

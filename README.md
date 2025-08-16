@@ -13,6 +13,19 @@ Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
 Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
 
+### Running on CPU
+
+The main run scripts support a `--cpu-only` flag that disables CUDA initialization and forces all models to load on the CPU. This is useful when no GPU is available or for debugging purposes.
+
+Example CPU-only invocations:
+
+```bash
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1 --cpu-only
+python scripts/run_verify.py --config configs/vision_cifar10.yaml --challenge_family vision:texture --n 256 --cpu-only
+```
+
+The same flag is available for other scripts such as `run_attack.py`.
+
 ## Relation to Proof-of-Learning
 
 PoT offers statistical model-identity checks and complements cryptographic Proof-of-Learning (PoL) systems that attest to training provenance. PoL schemes require access to training traces or commitments and have recently improved via polynomial commitments and gradient compression, while PoT operates post-hoc on black-box models. Combining PoT with PoL can bind behavioral fingerprints to verifiable training histories.
@@ -93,6 +106,32 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r requirements.txt
 ```
+
+### Python dependencies
+
+The basic experiments require the following Python packages (versions tested):
+
+| Package | Version |
+|---------|---------|
+| torch | 2.2.0 |
+| torchvision | 0.17.0 |
+| transformers | 4.31.0 |
+| accelerate | 0.21.0 |
+| sentence-transformers | 2.2.2 |
+| numpy | 1.24.4 |
+| scipy | 1.10.1 |
+| scikit-learn | 1.3.0 |
+| einops | 0.6.1 |
+| tqdm | 4.65.0 |
+| pyyaml | 6.0 |
+| matplotlib | 3.7.1 |
+| seaborn | 0.12.2 |
+| xxhash | 3.4.1 |
+| ssdeep | 3.4 |
+| py-tlsh | 4.7.2 |
+
+A minimal pinned requirements file is provided in
+[requirements-basic.txt](requirements-basic.txt) for convenience.
 
 ### Dataset setup
 

@@ -52,6 +52,7 @@ htmlcov/
 *.npz
 data/
 models/
+!pot/models/
 checkpoints/
 
 # Logs

@@ -46,7 +46,17 @@ def main():
         help="Query budget for distillation or extraction attacks",
     )
     parser.add_argument("--output_dir", default="outputs", help="Output directory")
+    parser.add_argument(
+        "--cpu-only",
+        action="store_true",
+        help="Run on CPU only and avoid CUDA initialization",
+    )
     args = parser.parse_args()
+
+    if args.cpu_only:
+        import os
+
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
     
     # Load config
     with open(args.config) as f:

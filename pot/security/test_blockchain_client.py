@@ -1,3 +1,6 @@
+import pytest
+pytest.importorskip("web3")
+
 from pot.prototypes.training_provenance_auditor import BlockchainClient
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
