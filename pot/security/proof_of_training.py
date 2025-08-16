@@ -27,7 +27,11 @@ except ImportError:
     warnings.warn("FuzzyHashVerifier not available")
 
 try:
-    from training_provenance_auditor import TrainingProvenanceAuditor, EventType, ProofType
+    from pot.prototypes.training_provenance_auditor import (
+        TrainingProvenanceAuditor,
+        EventType,
+        ProofType,
+    )
     PROVENANCE_AVAILABLE = True
 except ImportError:
     PROVENANCE_AVAILABLE = False
