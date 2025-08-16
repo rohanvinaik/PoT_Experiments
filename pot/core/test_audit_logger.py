@@ -11,14 +11,14 @@ import json
 from pathlib import Path
 from datetime import datetime, timedelta
 
-from audit_logger import (
+from pot.core.audit_logger import (
     AuditLogger,
     AuditEventType,
     AuditSeverity,
     ComplianceFramework,
     create_audit_logger,
     audit_verification,
-    audit_attack_detection
+    audit_attack_detection,
 )
 
 

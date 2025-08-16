@@ -5,12 +5,12 @@ Test suite for FuzzyHashVerifier with comprehensive examples
 import numpy as np
 import time
 import json
-from fuzzy_hash_verifier import (
-    FuzzyHashVerifier, 
-    ChallengeVector, 
+from pot.security.fuzzy_hash_verifier import (
+    FuzzyHashVerifier,
+    ChallengeVector,
     HashAlgorithm,
     VerificationResult,
-    BatchVerificationResult
+    BatchVerificationResult,
 )
 
 

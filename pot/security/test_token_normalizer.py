@@ -13,7 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
     torch = None
 
 import pytest
-from token_space_normalizer import (
+from pot.security.token_space_normalizer import (
     TokenSpaceNormalizer,
     StochasticDecodingController,
     IntegratedVerificationSystem,
@@ -21,7 +21,7 @@ from token_space_normalizer import (
     SamplingMethod,
     TokenizationResult,
     AlignmentResult,
-    MockTokenizer
+    MockTokenizer,
 )
 
 
