@@ -107,6 +107,32 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+### Python dependencies
+
+The basic experiments require the following Python packages (versions tested):
+
+| Package | Version |
+|---------|---------|
+| torch | 2.2.0 |
+| torchvision | 0.17.0 |
+| transformers | 4.31.0 |
+| accelerate | 0.21.0 |
+| sentence-transformers | 2.2.2 |
+| numpy | 1.24.4 |
+| scipy | 1.10.1 |
+| scikit-learn | 1.3.0 |
+| einops | 0.6.1 |
+| tqdm | 4.65.0 |
+| pyyaml | 6.0 |
+| matplotlib | 3.7.1 |
+| seaborn | 0.12.2 |
+| xxhash | 3.4.1 |
+| ssdeep | 3.4 |
+| py-tlsh | 4.7.2 |
+
+A minimal pinned requirements file is provided in
+[requirements-basic.txt](requirements-basic.txt) for convenience.
+
 ### Dataset setup
 
 #### Vision (CIFAR-10)
