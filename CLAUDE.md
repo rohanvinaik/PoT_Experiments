@@ -56,6 +56,12 @@ python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```bash
 # Run all tests including security components
 bash run_all.sh
+
+# Faster smoke test (skips heavy benchmarks)
+bash run_all_quick.sh
+
+# Python-only unit tests
+pytest -q
 ```
 
 ## Important Guidelines
@@ -123,7 +129,8 @@ proof = pot.generate_verification_proof(result)
 1. **Check Logs**: Outputs are in JSONL format in `outputs/` directory
 2. **Verify Seeds**: Ensure `PYTHONHASHSEED=0` is set
 3. **Memory Issues**: Reduce batch sizes or challenge counts
-4. **Import Errors**: Check optional dependencies (ssdeep, tlsh)
+4. **Import Errors**: Check optional dependencies (ssdeep, tlsh) and ensure a compatible
+   `torchvision` build if vision tests are required
 
 ## Best Practices
 

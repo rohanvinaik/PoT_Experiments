@@ -9,7 +9,8 @@ import torch.nn.utils.prune as prune
 try:
     from torchvision.models import resnet18, resnet50
     TORCHVISION_AVAILABLE = True
-except ImportError:
+except Exception:  # noqa: B902 - broad catch to handle miscompiled torchvision
+    resnet18 = resnet50 = None  # type: ignore[assignment]
     TORCHVISION_AVAILABLE = False
 
 class VisionModel:
