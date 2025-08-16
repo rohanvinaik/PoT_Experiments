@@ -11,8 +11,8 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 
 Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
-Note: “Security components” under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
- 
+Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
+
 ## Relation to Proof-of-Learning
 
 PoT offers statistical model-identity checks and complements cryptographic Proof-of-Learning (PoL) systems that attest to training provenance. PoL schemes require access to training traces or commitments and have recently improved via polynomial commitments and gradient compression, while PoT operates post-hoc on black-box models. Combining PoT with PoL can bind behavioral fingerprints to verifiable training histories.
@@ -50,6 +50,7 @@ Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (i
   export CUBLAS_WORKSPACE_CONFIG=:4096:8
   torch.use_deterministic_algorithms(True)
   ```
+
 ## Quick start
 
 ### Installation
@@ -120,6 +121,7 @@ PoT_Experiments/
 ```
 
 ## Baselines
+
 PoT is compared against:
 
 - benign-input fingerprints (FBI),
@@ -155,6 +157,7 @@ Leakage fractions ρ ∈ {0, 0.1, 0.25, 0.5, 0.75} are evaluated with an adaptiv
 7. Time-aware tolerance for version drift.
 
 ## Use cases
+
 - Model authentication before deployment
 - Regulatory compliance and audit trails
 - IP protection via statistical verification
