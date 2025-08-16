@@ -273,7 +273,12 @@ class AdvancedFuzzyHasher:
             data = data + b'\x00' * (50 - len(data))
         
         h = tlsh.hash(data)
-        return h if h else None
+        # TLSH returns the string 'TNULL' when the input lacks sufficient
+        # diversity. Treat this as a missing hash so downstream comparisons
+        # can gracefully skip TLSH rather than raising errors.
+        if not h or h == "TNULL":
+            return None
+        return h
     
     def compare_ssdeep(self, hash1: str, hash2: str) -> float:
         """Compare two ssdeep hashes (0-100 similarity score)"""
@@ -289,14 +294,18 @@ class AdvancedFuzzyHasher:
             return 1.0
         
         # TLSH diff returns distance (0 = identical, higher = more different)
-        # We normalize to similarity score
-        distance = tlsh.diff(hash1, hash2)
-        
+        # We normalize to a similarity score. Invalid hashes can raise
+        # ValueError, so we treat those cases as maximal distance (similarity 0).
+        try:
+            distance = tlsh.diff(hash1, hash2)
+        except ValueError:
+            return 0.0
+
         # Convert distance to similarity (rough approximation)
         # TLSH distances can be 0-400+, we cap at 200 for normalization
         max_distance = 200
         similarity = max(0, 1 - (distance / max_distance))
-        
+
         return similarity
     
     def compute_combined_similarity(self, tokens1: List[int], 
