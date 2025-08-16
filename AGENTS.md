@@ -128,6 +128,29 @@ result = verifier.verify(model, challenges)
 - Batch Verification: Linear scaling with model count
 - Memory: O(n_challenges × output_dim)
 
+## Demonstrations (UPDATED 2025-08-16)
+
+### Sequential Verification Demo
+
+Run the comprehensive sequential verification demo:
+
+```bash
+python -m pot.core.demo_sequential_verify
+```
+
+This demonstrates:
+- Three test scenarios (H0, H1, borderline cases)
+- Trajectory visualization with confidence bounds
+- Anytime validity across different stopping times
+- Type I/II error rate validation over 1000 simulations
+- Early stopping efficiency while maintaining guarantees
+
+Output includes:
+- Decision points and stopping times for each scenario
+- Confidence intervals and p-values
+- Error rate verification showing control at target levels
+- Mean stopping times showing efficiency gains
+
 ## Quick Start Guide
 
 ### Installation

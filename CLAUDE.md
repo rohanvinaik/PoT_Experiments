@@ -204,13 +204,20 @@ PoT_Experiments/
 - **Baselines**: Reference implementations for comparison
 - **Plotting**: Visualization utilities for results
 
-### 7. Experiment Scripts (`scripts/`)
-- **Core Experiments**:
+### 7. Experiment Scripts and Demos
+- **Core Experiments** (`scripts/`):
   - `run_generate_reference.py`: Create reference models
   - `run_grid.py`: Grid search experiments (E1-E7)
   - `run_verify.py`: Basic verification runner
   - `run_verify_enhanced.py`: Enhanced verification with full protocol
   - `run_plots.py`: Generate ROC/DET curves and visualizations
+- **Demonstration Scripts** (`pot/core/`) (UPDATED 2025-08-16):
+  - `demo_sequential_verify.py`: Complete sequential verification demo
+    - Three test scenarios: H0 (mean<tau), H1 (mean>tau), borderline (mean≈tau)
+    - Trajectory plotting with confidence bounds
+    - Anytime validity demonstration across different stopping times
+    - Type I/II error rate verification over 1000+ simulations
+    - Shows early stopping saves computation while maintaining guarantees
 - **Attack Simulations**:
   - `run_attack.py`: Basic attack scenarios
   - `run_attack_realistic.py`: Realistic adversarial scenarios
