@@ -1,0 +1,102 @@
+# Medium Language Model Configuration
+# ~1-3B parameters (e.g., GPT-2 medium/large, T5-base)
+
+experiment: lm_medium
+
+lm:
+  reference:
+    name: "gpt2-medium"  # 355M parameters
+    seed: 0
+    
+  variants:
+    - type: "seed"
+      name: "gpt2-medium"
+      seed: 1
+      
+    - type: "lora"
+      name: "gpt2-medium"
+      dataset: "medium_sft"
+      steps: 750
+      rank: 8
+      alpha: 16
+      
+    - type: "quant"
+      name: "gpt2-medium"
+      bits: 8
+      method: "dynamic"
+      
+    - type: "distill"
+      teacher: "gpt2-large"
+      student: "gpt2-medium"
+      budget: 30000
+
+challenges:
+  families:
+    - family: "lm:templates"
+      n: 256
+      params:
+        templates:
+          - "Complete: {prompt}"
+          - "Translate '{text}' to {lang}."
+          - "Answer: {question}"
+          - "Define: {term}"
+        slots:
+          prompt: 
+            - "The future of AI is"
+            - "Technology impacts society by"
+            - "Education should focus on"
+          text:
+            - "Hello world"
+            - "Good morning"
+            - "Thank you"
+          lang:
+            - "French"
+            - "Spanish"
+            - "German"
+          question:
+            - "What is machine learning?"
+            - "How do computers work?"
+            - "Why is data important?"
+          term:
+            - "algorithm"
+            - "neural network"
+            - "optimization"
+            
+    - family: "lm:reasoning"
+      n: 128
+      params:
+        reasoning_types:
+          - "logical_deduction"
+          - "causal_inference"
+          - "analogical_reasoning"
+        complexity_levels: [1, 2, 3]
+
+verification:
+  canonicalize:
+    lower: true
+    strip_punct: true
+    collapse_ws: true
+    max_len: 256
+    
+  distances:
+    - "edit"
+    - "embed"
+    - "bleu"
+    
+  tau_grid: [0.02, 0.05, 0.1, 0.15]
+  
+  sequential:
+    enabled: true
+    alpha: 0.01
+    beta: 0.01
+    method: "empirical_bernstein"
+    
+  timeout: 120  # 2 minutes per challenge
+
+leakage:
+  rhos: [0.0, 0.1, 0.25, 0.35]
+
+resource_monitoring:
+  track_memory: true
+  track_latency: true
+  save_metrics: true
