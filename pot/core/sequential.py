@@ -163,6 +163,9 @@ def sprt_test(stream: Iterable[float], mu0: float, mu1: float,
         return 'accept_H1', tester.n
 
 
+# Import boundaries module for CSState and eb_radius
+from .boundaries import CSState, eb_radius as compute_eb_radius
+
 # New enhanced implementations
 
 @dataclass
@@ -367,3 +370,127 @@ class UnifiedSequentialTester:
                 self.tester.tau0,
                 self.tester.tau1
             )
+
+
+def sequential_verify(
+    stream: Iterable[float],
+    tau: float,
+    alpha: float,
+    beta: float,
+    n_max: int
+) -> Tuple[Dict[str, Any], List[Tuple[int, float, float, float]]]:
+    """
+    Sequential verification orchestrator with optional stopping.
+    
+    Uses confidence sequences with separate radii for accept (alpha) and reject (beta) decisions.
+    Implements anytime-valid inference with early stopping.
+    
+    Args:
+        stream: Iterator/iterable of Z values (similarity scores)
+        tau: Decision threshold
+        alpha: Type I error rate (false acceptance)
+        beta: Type II error rate (false rejection)
+        n_max: Maximum number of samples before forced decision
+    
+    Returns:
+        Tuple of:
+        - Decision dict with keys:
+            - 'type': 'accept_id', 'reject_id', or 'conservative_reject'
+            - 'stopping_time': Number of samples used
+            - 'final_mean': Final empirical mean
+            - 'final_radius_alpha': Final radius for alpha
+            - 'final_radius_beta': Final radius for beta
+        - Trail: List of (t, mean, r_alpha, r_beta) tuples for visualization
+    """
+    state = CSState()
+    trail = []
+    
+    for t, z_raw in enumerate(stream, start=1):
+        # Clip Z values to [0,1]
+        z = max(0.0, min(1.0, float(z_raw)))
+        
+        # Update state with new observation
+        state.update(z)
+        
+        # Compute radii for both error rates
+        # Alpha radius for acceptance (tighter bound)
+        r_alpha = compute_eb_radius(state, alpha)
+        # Beta radius for rejection (may be different)
+        r_beta = compute_eb_radius(state, beta)
+        
+        # Record trail for visualization
+        trail.append((t, state.mean, r_alpha, r_beta))
+        
+        # Early stopping decisions
+        # Accept if upper bound with alpha is below threshold
+        if state.mean + r_alpha <= tau:
+            decision = {
+                'type': 'accept_id',
+                'stopping_time': t,
+                'final_mean': state.mean,
+                'final_radius_alpha': r_alpha,
+                'final_radius_beta': r_beta,
+                'confidence_interval': (max(0, state.mean - r_alpha), 
+                                       min(1, state.mean + r_alpha))
+            }
+            return decision, trail
+        
+        # Reject if lower bound with beta is above threshold
+        if state.mean - r_beta > tau:
+            decision = {
+                'type': 'reject_id',
+                'stopping_time': t,
+                'final_mean': state.mean,
+                'final_radius_alpha': r_alpha,
+                'final_radius_beta': r_beta,
+                'confidence_interval': (max(0, state.mean - r_beta),
+                                       min(1, state.mean + r_beta))
+            }
+            return decision, trail
+        
+        # Check if we've reached maximum samples
+        if t >= n_max:
+            # Conservative rejection at max samples
+            # Decision based on which hypothesis the mean is closer to
+            decision_type = 'accept_id' if state.mean <= tau else 'conservative_reject'
+            decision = {
+                'type': decision_type,
+                'stopping_time': t,
+                'final_mean': state.mean,
+                'final_radius_alpha': r_alpha,
+                'final_radius_beta': r_beta,
+                'confidence_interval': (max(0, state.mean - r_alpha),
+                                       min(1, state.mean + r_alpha)),
+                'forced_stop': True
+            }
+            return decision, trail
+    
+    # If stream ends before n_max (shouldn't happen with proper usage)
+    # Make conservative decision based on current state
+    t = state.n
+    if t > 0:
+        r_alpha = compute_eb_radius(state, alpha)
+        r_beta = compute_eb_radius(state, beta)
+        decision_type = 'accept_id' if state.mean <= tau else 'conservative_reject'
+        decision = {
+            'type': decision_type,
+            'stopping_time': t,
+            'final_mean': state.mean,
+            'final_radius_alpha': r_alpha,
+            'final_radius_beta': r_beta,
+            'confidence_interval': (max(0, state.mean - r_alpha),
+                                   min(1, state.mean + r_alpha)),
+            'stream_ended': True
+        }
+        return decision, trail
+    else:
+        # No samples processed
+        decision = {
+            'type': 'conservative_reject',
+            'stopping_time': 0,
+            'final_mean': 0.0,
+            'final_radius_alpha': float('inf'),
+            'final_radius_beta': float('inf'),
+            'no_samples': True
+        }
+        return decision, []
