@@ -1,8 +1,13 @@
 experiment: "mock_exp"
 models:
-  reference: "tests.mock_models:ReferenceModel"
-  identical: "tests.mock_models:IdenticalModel"
-  variant: "tests.mock_models:VariantModel"
+  reference:
+    type: python
+    name: tests.mock_models:ReferenceModel
+  variants:
+    - type: identical
+      name: tests.mock_models:IdenticalModel
+    - type: variant
+      name: tests.mock_models:VariantModel
 challenges:
   family: "vision:freq"
   params:

@@ -1,6 +1,6 @@
 import pytest
 
-from wrapper_detection import WrapperAttackDetector
+from pot.core.wrapper_detection import WrapperAttackDetector
 
 
 def test_perfect_response_and_quality():

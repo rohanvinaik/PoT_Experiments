@@ -69,6 +69,7 @@ check_dependencies() {
     print_info "Checking required packages..."
     
     ${PYTHON} -c "import numpy" 2>/dev/null && print_success "NumPy installed" || print_error "NumPy not found"
+    ${PYTHON} -c "import pytest" 2>/dev/null && print_success "PyTest installed" || print_error "PyTest not found"
     
     # Check optional dependencies
     ${PYTHON} -c "import torch" 2>/dev/null && print_success "PyTorch installed" || print_info "PyTorch not found (optional)"
