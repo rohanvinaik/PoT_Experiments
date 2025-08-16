@@ -141,6 +141,10 @@ $$\\mathbb{E}\[d(f\_{\\text{tuned}}(C), f^*(C))\] \\geq \\epsilon \\cdot ||\\the
 
 where $\\epsilon$ depends on gradient alignment between $D$ and $C$.
 
+### **4.4 Regulatory Context**
+
+Our adversary assumptions map to regulatory frameworks. The EU AI Act treats model tampering and unlogged modification as high-risk behaviors, motivating our limits on query budgets and challenge leakage. The NIST AI Risk Management Framework emphasizes provenance, auditability, and controlled access, so deployments must retain challenge/response logs and run verification over authenticated channels.
+
 ---
 
 ## **5\. Challenge Design Theory**
@@ -182,9 +186,13 @@ where $I$ is mutual information.
 
 ---
 
-## **6\. Practical Considerations**
+## **6\. Empirical Evaluation**
 
-### **6.1 Language Model Determinism Reality**
+Our experiments quantify PoT performance on vision and language models. For CIFAR-10 variants, AUROC reaches 1.00 for identical and seed variants with FAR=FRR=0; targeted fine-tuning yields AUROC 0.9883 with FAR 0.0234 and FRR 0, while pruned and quantized models show FRR≈0.5 and AUROC ≈0.72–0.75 at FAR 0.0117. Across challenge families, FAR stays ≤0.0039 with FRR=0 at tolerance 0.05. The average query budget is ~272 challenges, and sequential empirical-Bernstein testing reduces this to roughly 2–3 queries per decision.
+
+## **7\. Practical Considerations**
+
+### **7.1 Language Model Determinism Reality**
 
 **Current LLM APIs provide:**
 
@@ -201,7 +209,7 @@ LM\_Tolerance:
   semantic\_embedding\_cosine: ≥ 0.9  
   version\_drift\_allowance: 0.02 per month
 
-### **6.2 Challenge Governance**
+### **7.2 Challenge Governance**
 
 **Algorithm 3: Cryptographic Challenge Derivation with Rotation**
 
@@ -218,9 +226,9 @@ Output: Challenge set C
 
 ---
 
-## **7\. Comparative Analysis**
+## **8\. Comparative Analysis**
 
-### **7.1 Comparison with Existing Approaches**
+### **8.1 Comparison with Existing Approaches**
 
 | Method | Training Modification | Query Complexity | Adversary Resistance | Practical Deployment |
 | ----- | ----- | ----- | ----- | ----- |
@@ -230,7 +238,7 @@ Output: Challenge set C
 | **TEE Attestation** | None | O(1) | High | Hard (hardware required) |
 | **ZK Proofs** | None | O(model size) | Perfect | Very Hard |
 
-### **7.2 Theoretical Advantages**
+### **8.2 Theoretical Advantages**
 
 **Versus Watermarking:**
 
@@ -250,7 +258,7 @@ Output: Challenge set C
 * Works across different deployment environments  
 * Verifiable by any party with black-box access
 
-### **7.3 Hybrid Approaches**
+### **8.3 Hybrid Approaches**
 
 PoT can complement existing methods:
 
@@ -260,9 +268,9 @@ PoT can complement existing methods:
 
 ---
 
-## **8\. Implementation Guidelines**
+## **9\. Implementation Guidelines**
 
-### **8.1 Vision Model Verification**
+### **9.1 Vision Model Verification**
 
 class VisionVerifier:  
     def \_\_init\_\_(self, reference\_model, tolerance=1e-3):  
@@ -286,7 +294,7 @@ class VisionVerifier:
           
         return bound \< self.threshold
 
-### **8.2 Language Model Verification**
+### **9.2 Language Model Verification**
 
 class LMVerifier:  
     def \_\_init\_\_(self, reference\_model):  
@@ -318,16 +326,16 @@ class LMVerifier:
 
 ---
 
-## **9\. Future Work**
+## **10\. Future Work**
 
-### **9.1 Open Problems**
+### **10.1 Open Problems**
 
 1. **Optimal challenge design** for specific model architectures  
 2. **Formal analysis** of active learning for challenge selection  
 3. **Cross-architecture verification** (verifying functionality across different architectures)  
 4. **Privacy-preserving verification** with differential privacy guarantees
 
-### **9.2 Extensions**
+### **10.2 Extensions**
 
 * **Multi-modal models**: Challenges spanning text, vision, audio  
 * **Continual learning**: Verification under legitimate model updates  
@@ -336,7 +344,7 @@ class LMVerifier:
 
 ---
 
-## **10\. Conclusion**
+## **11\. Conclusion**
 
 We presented PoT, a practical framework for black-box neural network verification that addresses real-world challenges including non-IID outputs, inherent nondeterminism, and sophisticated adversaries. By employing empirical Bernstein bounds, sequential testing, and fuzzy hashing, PoT provides robust verification with statistical guarantees. Our analysis of the coverage-separation trade-off provides principled guidance for challenge design, while our comprehensive adversary model addresses realistic attack scenarios.
 

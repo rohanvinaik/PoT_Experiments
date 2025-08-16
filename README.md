@@ -50,6 +50,7 @@ Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (i
   export CUBLAS_WORKSPACE_CONFIG=:4096:8
   torch.use_deterministic_algorithms(True)
   ```
+- **Integration tests**: require PyTorch and NumPy; run `PYTHONPATH=. pytest tests/test_attacks_integration.py` to exercise end-to-end attack scenarios.
 
 ## Quick start
 
