@@ -11,6 +11,8 @@ except ImportError:
     torch = None
     nn = None
     HAS_TORCH = False
+    import warnings
+    warnings.warn("PyTorch not available; attack utilities will be limited.")
 
 
 def targeted_finetune(

@@ -11,6 +11,14 @@ NC='\033[0m'
 
 echo -e "${BLUE}=== PROOF-OF-TRAINING QUICK VALIDATION ===${NC}\n"
 
+# Detect optional dependencies
+if ! python3 -c "import torch" >/dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: PyTorch not installed. Some checks will be skipped.${NC}"
+fi
+if ! python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1; then
+    echo -e "${YELLOW}Warning: CUDA not available. GPU checks disabled.${NC}"
+fi
+
 TESTS_PASSED=0
 TESTS_FAILED=0
 
@@ -19,13 +27,26 @@ test_module() {
     local name=$1
     local cmd=$2
     echo -n "Testing $name... "
-    if eval "$cmd" > /dev/null 2>&1; then
+    set +e
+    output=$(eval "$cmd" 2>&1)
+    status=$?
+    if [ $status -eq 0 ]; then
         echo -e "${GREEN}✓${NC}"
+        if [ -n "$output" ]; then
+            echo -e "${YELLOW}Warning: $output${NC}"
+        fi
         ((TESTS_PASSED++))
     else
         echo -e "${RED}✗${NC}"
+        if echo "$output" | grep -qi 'importerror'; then
+            echo -e "${YELLOW}Warning: $output${NC}"
+        else
+            echo "$output"
+        fi
         ((TESTS_FAILED++))
     fi
+    set -e
+    return 0
 }
 
 # Core modules
