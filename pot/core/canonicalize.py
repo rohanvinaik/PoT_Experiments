@@ -2,8 +2,21 @@ import numpy as np
 import re
 
 def canonicalize_logits(logits: np.ndarray, p: int = 6, eps: float = 1e-6):
-    q = np.round(logits, p)
-    q[np.abs(q) < eps] = 0.0
+    # Save original inf locations
+    inf_mask = np.isinf(logits)
+    
+    # For very large values that aren't inf, keep them as-is to avoid overflow
+    large_mask = (np.abs(logits) > 1e100) & ~inf_mask
+    
+    # Round the normal values
+    q = logits.copy()
+    normal_mask = ~inf_mask & ~large_mask
+    q[normal_mask] = np.round(logits[normal_mask], p)
+    
+    # Zero out small values
+    small_mask = (np.abs(q) < eps) & ~inf_mask & ~large_mask
+    q[small_mask] = 0.0
+    
     return q
 
 _whitespace_re = re.compile(r"\s+")

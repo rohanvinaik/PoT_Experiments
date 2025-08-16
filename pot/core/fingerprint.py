@@ -8,6 +8,281 @@ from .canonicalize import canonicalize_logits, canonicalize_text
 
 
 @dataclass
+class CanonicalConfig:
+    """Configuration for canonicalization parameters.
+    
+    Attributes:
+        float_precision: Decimal places for floating point rounding (default: 6)
+        float_eps: Threshold below which values are zeroed (default: 1e-6)
+        text_lower: Convert text to lowercase (default: True)
+        text_strip_punct: Remove punctuation from text (default: True)
+        text_collapse_ws: Collapse whitespace in text (default: True)
+        text_max_len: Maximum text length (default: 512)
+        embedding_dims: Max embedding dimensions to preserve (default: None = all)
+        handle_nan: How to handle NaN values ('zero', 'remove', 'raise') (default: 'zero')
+        handle_inf: How to handle Inf values ('clip', 'remove', 'raise') (default: 'clip')
+        deterministic_ordering: Ensure deterministic ordering for collections (default: True)
+    """
+    float_precision: int = 6
+    float_eps: float = 1e-6
+    text_lower: bool = True
+    text_strip_punct: bool = True
+    text_collapse_ws: bool = True
+    text_max_len: Optional[int] = 512
+    embedding_dims: Optional[int] = None
+    handle_nan: str = 'zero'
+    handle_inf: str = 'clip'
+    deterministic_ordering: bool = True
+
+
+def canonicalize_model_output(output: Any, 
+                             output_type: str = 'auto',
+                             config: Optional[CanonicalConfig] = None) -> Any:
+    """Canonicalize model output for reproducible comparisons.
+    
+    Args:
+        output: Model output to canonicalize
+        output_type: Type of output ('auto', 'text', 'logits', 'embeddings', 'mixed')
+        config: Canonicalization configuration
+        
+    Returns:
+        Canonicalized output preserving behavioral information
+    """
+    if config is None:
+        config = CanonicalConfig()
+    
+    # Auto-detect output type if needed
+    if output_type == 'auto':
+        if isinstance(output, str):
+            output_type = 'text'
+        elif isinstance(output, (list, tuple)) and all(isinstance(x, str) for x in output):
+            output_type = 'text'
+        elif isinstance(output, (np.ndarray, torch.Tensor)):
+            # Heuristic: embeddings typically have more dimensions
+            if isinstance(output, torch.Tensor):
+                output_np = output.detach().cpu().numpy()
+            else:
+                output_np = output
+            
+            # Check shape to distinguish logits from embeddings
+            if output_np.ndim == 1 or (output_np.ndim == 2 and output_np.shape[-1] < 100):
+                output_type = 'logits'
+            else:
+                output_type = 'embeddings'
+        elif isinstance(output, dict):
+            output_type = 'mixed'
+        elif isinstance(output, (list, tuple)):
+            output_type = 'mixed'
+        else:
+            # Default to treating as generic
+            output_type = 'mixed'
+    
+    # Handle text outputs
+    if output_type == 'text':
+        if isinstance(output, str):
+            return canonicalize_text(
+                output,
+                lower=config.text_lower,
+                strip_punct=config.text_strip_punct,
+                collapse_ws=config.text_collapse_ws,
+                max_len=config.text_max_len
+            )
+        elif isinstance(output, (list, tuple)):
+            return [canonicalize_text(
+                text,
+                lower=config.text_lower,
+                strip_punct=config.text_strip_punct,
+                collapse_ws=config.text_collapse_ws,
+                max_len=config.text_max_len
+            ) for text in output]
+    
+    # Handle logits/embeddings
+    elif output_type in ['logits', 'embeddings']:
+        # Convert to numpy if needed
+        if isinstance(output, torch.Tensor):
+            output = output.detach().cpu().numpy()
+        elif not isinstance(output, np.ndarray):
+            output = np.array(output)
+        
+        # Handle NaN values
+        if np.any(np.isnan(output)):
+            if config.handle_nan == 'zero':
+                output = np.nan_to_num(output, nan=0.0)
+            elif config.handle_nan == 'remove':
+                # For embeddings, can't remove individual values, so zero them
+                output = np.nan_to_num(output, nan=0.0)
+            elif config.handle_nan == 'raise':
+                raise ValueError("Output contains NaN values")
+        
+        # Handle Inf values
+        if np.any(np.isinf(output)):
+            if config.handle_inf == 'clip':
+                # Clip to large but finite values
+                # Use a safe value that won't overflow
+                if output.dtype == np.float64:
+                    max_val = 1e308
+                    min_val = -1e308
+                else:
+                    max_val = 1e38
+                    min_val = -1e38
+                output = np.where(np.isinf(output), 
+                                np.where(output > 0, max_val, min_val), 
+                                output)
+            elif config.handle_inf == 'remove':
+                # For embeddings, can't remove, so clip
+                if output.dtype == np.float64:
+                    max_val = 1e308
+                    min_val = -1e308
+                else:
+                    max_val = 1e38
+                    min_val = -1e38
+                output = np.where(np.isinf(output), 
+                                np.where(output > 0, max_val, min_val), 
+                                output)
+            elif config.handle_inf == 'raise':
+                raise ValueError("Output contains Inf values")
+        
+        # Apply dimension reduction for embeddings if specified
+        if output_type == 'embeddings' and config.embedding_dims is not None:
+            if output.ndim == 1:
+                output = output[:config.embedding_dims]
+            elif output.ndim == 2:
+                output = output[:, :config.embedding_dims]
+            elif output.ndim == 3:
+                output = output[:, :, :config.embedding_dims]
+        
+        # Apply canonicalization
+        return canonicalize_logits(output, p=config.float_precision, eps=config.float_eps)
+    
+    # Handle mixed/structured outputs
+    elif output_type == 'mixed':
+        if isinstance(output, dict):
+            # Canonicalize each value, maintaining deterministic order
+            if config.deterministic_ordering:
+                keys = sorted(output.keys())
+                return {k: canonicalize_model_output(output[k], 'auto', config) for k in keys}
+            else:
+                return {k: canonicalize_model_output(v, 'auto', config) for k, v in output.items()}
+        
+        elif isinstance(output, (list, tuple)):
+            # Check if it's homogeneous or mixed
+            canonicalized = []
+            for item in output:
+                canonicalized.append(canonicalize_model_output(item, 'auto', config))
+            return canonicalized if isinstance(output, list) else tuple(canonicalized)
+        
+        else:
+            # For unknown types, preserve numeric types but convert others to string
+            if isinstance(output, (int, float, bool, type(None))):
+                return output  # Keep primitive types as-is
+            else:
+                try:
+                    return canonicalize_text(str(output), max_len=config.text_max_len)
+                except:
+                    return output
+    
+    # Default: return as-is
+    return output
+
+
+def canonicalize_batch_outputs(outputs: List[Any],
+                              output_types: Optional[List[str]] = None,
+                              config: Optional[CanonicalConfig] = None) -> List[Any]:
+    """Process multiple outputs consistently with deterministic ordering.
+    
+    Args:
+        outputs: List of model outputs to canonicalize
+        output_types: Optional list of output types for each output
+        config: Canonicalization configuration
+        
+    Returns:
+        List of canonicalized outputs with consistent processing
+    """
+    if config is None:
+        config = CanonicalConfig()
+    
+    if output_types is None:
+        output_types = ['auto'] * len(outputs)
+    elif len(output_types) != len(outputs):
+        raise ValueError(f"output_types length ({len(output_types)}) must match outputs length ({len(outputs)})")
+    
+    canonicalized = []
+    
+    for output, out_type in zip(outputs, output_types):
+        try:
+            canonical = canonicalize_model_output(output, out_type, config)
+            canonicalized.append(canonical)
+        except Exception as e:
+            # Handle errors gracefully - preserve original on error
+            if isinstance(e, (ValueError, TypeError)) and 'NaN' not in str(e) and 'Inf' not in str(e):
+                # Re-raise structural errors
+                raise
+            # For numeric errors, try to recover
+            canonicalized.append(output)
+    
+    # Ensure deterministic ordering for collections of outputs
+    if config.deterministic_ordering and len(canonicalized) > 0:
+        # Check if outputs are sortable (all same type and comparable)
+        try:
+            if all(isinstance(x, type(canonicalized[0])) for x in canonicalized):
+                if isinstance(canonicalized[0], (str, int, float)):
+                    # Sort simple types directly
+                    indices = sorted(range(len(canonicalized)), key=lambda i: canonicalized[i])
+                    return [canonicalized[i] for i in indices]
+                elif isinstance(canonicalized[0], np.ndarray):
+                    # Sort by hash of array for determinism
+                    indices = sorted(range(len(canonicalized)), 
+                                   key=lambda i: hashlib.sha256(canonicalized[i].tobytes()).hexdigest())
+                    return [canonicalized[i] for i in indices]
+        except:
+            # If sorting fails, maintain original order
+            pass
+    
+    return canonicalized
+
+
+def get_default_config_for_model_type(model_type: str) -> CanonicalConfig:
+    """Get recommended canonicalization config for a model type.
+    
+    Args:
+        model_type: Type of model ('vision', 'lm', 'multimodal')
+        
+    Returns:
+        CanonicalConfig with appropriate defaults
+    """
+    if model_type == 'vision':
+        return CanonicalConfig(
+            float_precision=6,
+            float_eps=1e-6,
+            embedding_dims=512,  # Common vision embedding size
+            handle_nan='zero',
+            handle_inf='clip'
+        )
+    elif model_type == 'lm':
+        return CanonicalConfig(
+            float_precision=5,
+            float_eps=1e-5,
+            text_lower=True,
+            text_strip_punct=True,
+            text_max_len=512,
+            handle_nan='zero',
+            handle_inf='clip'
+        )
+    elif model_type == 'multimodal':
+        return CanonicalConfig(
+            float_precision=6,
+            float_eps=1e-6,
+            text_max_len=512,
+            embedding_dims=768,  # Common multimodal embedding size
+            handle_nan='zero',
+            handle_inf='clip'
+        )
+    else:
+        # Default configuration
+        return CanonicalConfig()
+
+
+@dataclass
 class FingerprintResult:
     """Result of fingerprinting a model on a set of challenges.
     
@@ -366,6 +641,7 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
             - 'jacobian_delta': float, finite difference delta (default: 1e-3)
             - 'jacobian_max_dim': int, max dimensions for Jacobian (default: 256)
             - 'model_type': str, 'vision' or 'lm' (auto-detected if not specified)
+            - 'canonical_config': CanonicalConfig object or dict for canonicalization
             - 'canonicalize_precision': int, precision for numeric canonicalization (default: 6)
             - 'text_max_len': int, max length for text canonicalization (default: 512)
             
@@ -381,8 +657,20 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
     jacobian_delta = cfg.get('jacobian_delta', 1e-3)
     jacobian_max_dim = cfg.get('jacobian_max_dim', 256)
     model_type = cfg.get('model_type', None)
-    precision = cfg.get('canonicalize_precision', 6)
-    text_max_len = cfg.get('text_max_len', 512)
+    
+    # Get canonicalization config
+    canonical_config = cfg.get('canonical_config', None)
+    if canonical_config is None:
+        # Build from individual parameters for backward compatibility
+        precision = cfg.get('canonicalize_precision', 6)
+        text_max_len = cfg.get('text_max_len', 512)
+        canonical_config = CanonicalConfig(
+            float_precision=precision,
+            text_max_len=text_max_len
+        )
+    elif isinstance(canonical_config, dict):
+        # Convert dict to CanonicalConfig
+        canonical_config = CanonicalConfig(**canonical_config)
     
     raw_outputs = []
     canonicalized_outputs = []
@@ -438,40 +726,21 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
         timing_info.append(elapsed)
         raw_outputs.append(output)
         
-        # Canonicalize output based on type
-        if isinstance(output, str):
-            # Text output from language models
-            canonical = canonicalize_text(output, max_len=text_max_len)
-            canonicalized_outputs.append(canonical)
-            
-        elif isinstance(output, (np.ndarray, torch.Tensor)):
-            # Numeric output (logits, embeddings)
-            if isinstance(output, torch.Tensor):
-                output_np = output.detach().cpu().numpy()
-            else:
-                output_np = output
-                
-            # Apply canonicalization for numeric stability
-            canonical = canonicalize_logits(output_np, p=precision)
-            canonicalized_outputs.append(canonical)
-            
-        elif isinstance(output, (list, tuple)):
-            # Handle structured outputs (e.g., multiple logits)
-            canonical = []
-            for item in output:
-                if isinstance(item, str):
-                    canonical.append(canonicalize_text(item, max_len=text_max_len))
-                elif isinstance(item, (np.ndarray, torch.Tensor)):
-                    if isinstance(item, torch.Tensor):
-                        item = item.detach().cpu().numpy()
-                    canonical.append(canonicalize_logits(item, p=precision))
-                else:
-                    canonical.append(item)
-            canonicalized_outputs.append(canonical)
-            
-        else:
-            # For other types, use as-is
-            canonicalized_outputs.append(output)
+        # Use the new canonicalization system
+        # Auto-detect model type from first output if not specified
+        if model_type is None and not isinstance(output, str):
+            if isinstance(challenge, str):
+                model_type = 'lm'
+            elif isinstance(challenge, (np.ndarray, torch.Tensor)):
+                model_type = 'vision'
+        
+        # Get appropriate config if model type is known
+        if model_type and canonical_config == CanonicalConfig():
+            canonical_config = get_default_config_for_model_type(model_type)
+        
+        # Canonicalize the output
+        canonical = canonicalize_model_output(output, 'auto', canonical_config)
+        canonicalized_outputs.append(canonical)
             
         # Compute Jacobian if requested and applicable
         if compute_jacobian and isinstance(challenge, (np.ndarray, torch.Tensor)):
@@ -515,7 +784,7 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
                 pass
     
     # Compute stable IO hash from canonicalized outputs
-    io_hash_value = io_hash(canonicalized_outputs, precision=precision)
+    io_hash_value = io_hash(canonicalized_outputs, precision=canonical_config.float_precision)
     
     # Combine Jacobian sketches if computed
     jacobian_sketch = None
@@ -539,7 +808,13 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
         'avg_time_per_challenge': np.mean([t for t in timing_info if t > 0]) if timing_info else 0,
         'total_time': sum(t for t in timing_info if t > 0),
         'errors': sum(1 for t in timing_info if t < 0),
-        'precision': precision
+        'precision': canonical_config.float_precision,
+        'canonical_config': {
+            'float_precision': canonical_config.float_precision,
+            'text_max_len': canonical_config.text_max_len,
+            'handle_nan': canonical_config.handle_nan,
+            'handle_inf': canonical_config.handle_inf
+        }
     }
     
     if jacobian_layers:
