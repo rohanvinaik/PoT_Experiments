@@ -3,13 +3,13 @@ torchvision
 transformers
 accelerate
 sentence-transformers
-numpy
+numpy>=2.0.0
 scipy
 scikit-learn
 einops
 tqdm
 pyyaml
-matplotlib
+matplotlib>=3.8.0
 seaborn
 xxhash
 

@@ -6,6 +6,13 @@ import numpy as np
 import json
 import time
 from typing import List, Dict, Any
+
+try:
+    import torch
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    torch = None
+
+import pytest
 from token_space_normalizer import (
     TokenSpaceNormalizer,
     StochasticDecodingController,
@@ -16,7 +23,6 @@ from token_space_normalizer import (
     AlignmentResult,
     MockTokenizer
 )
-import torch
 
 
 def test_text_normalization():
@@ -387,6 +393,8 @@ def test_generation_variants():
 
 def test_hf_model_generation_with_metadata():
     """Ensure HuggingFace-style models generate text and log metadata"""
+    if torch is None:
+        pytest.skip("PyTorch not installed")
 
     controller = StochasticDecodingController(seed=0)
 
