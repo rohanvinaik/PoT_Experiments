@@ -1,7 +1,7 @@
 """Shared attack implementations for both vision and language models."""
 
 import numpy as np
-from typing import Any, Dict, Optional, Literal, Tuple
+from typing import Any, Dict, Optional, Literal, Tuple, Callable
 
 try:
     import torch
@@ -13,62 +13,273 @@ except ImportError:
     HAS_TORCH = False
 
 
-def targeted_finetune(model: Any, target_outputs: np.ndarray, epochs: int = 10) -> Any:
-    """Targeted fine-tuning attack on model.
-    
+def targeted_finetune(
+    model: Any,
+    data_loader: Any,
+    epochs: int = 1,
+    lr: float = 1e-3,
+    device: str = "cpu",
+) -> Any:
+    """Targeted fine-tuning attack on a model.
+
+    This performs standard supervised fine-tuning using a provided
+    :class:`~torch.utils.data.DataLoader`.  The goal is simply to modify the
+    model's parameters so that its outputs change in a predictable way, which is
+    sufficient for the integration tests in this repository.
+
     Args:
-        model: Model to attack
-        target_outputs: Target outputs to fine-tune towards
-        epochs: Number of fine-tuning epochs
-        
+        model: Model to attack.
+        data_loader: ``DataLoader`` yielding ``(inputs, targets)`` pairs.
+        epochs: Number of training epochs.
+        lr: Learning rate for SGD optimizer.
+        device: Device on which to run the training loop.
+
     Returns:
-        Fine-tuned model
+        The fine-tuned model (same instance mutated in-place).
     """
-    # Placeholder for actual fine-tuning logic
+    if not HAS_TORCH:
+        print("Warning: PyTorch not available, returning original model")
+        return model
+
+    model.to(device)
+    model.train()
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    loss_fn = nn.MSELoss()
+
+    for _ in range(epochs):
+        for batch in data_loader:
+            if isinstance(batch, (list, tuple)):
+                inputs, targets = batch[0], batch[1]
+            else:
+                inputs, targets = batch
+
+            inputs = inputs.to(device)
+            targets = targets.to(device)
+
+            preds = model(inputs)
+            loss = loss_fn(preds, targets)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+    model.eval()
     return model
 
 
-def limited_distillation(teacher_model: Any, budget: int = 1000, temperature: float = 4.0) -> Any:
-    """Limited distillation attack.
-    
+def limited_distillation(
+    teacher_model: Any,
+    student_model: Any,
+    data_loader: Any,
+    budget: int = 1000,
+    temperature: float = 4.0,
+    epochs: int = 1,
+    lr: float = 1e-3,
+    device: str = "cpu",
+) -> Any:
+    """Limited-budget knowledge distillation.
+
+    The teacher model is queried up to ``budget`` times to generate soft targets
+    for the student model, which is then optimised to match the teacher's
+    outputs.  For multi-dimensional outputs this uses KL divergence with
+    temperature scaling; otherwise mean-squared error is used.
+
     Args:
-        teacher_model: Model to distill from
-        budget: Query budget for distillation
-        temperature: Distillation temperature
-        
+        teacher_model: Model to distil from (kept frozen).
+        student_model: Model being trained.
+        data_loader: ``DataLoader`` providing unlabeled inputs.
+        budget: Maximum number of samples to query the teacher with.
+        temperature: Distillation temperature.
+        epochs: Number of passes over ``data_loader``.
+        lr: Learning rate for SGD optimiser.
+        device: Device on which to run training.
+
     Returns:
-        Distilled student model
+        The trained student model (mutated in-place).
     """
-    # Placeholder for actual distillation logic
-    return teacher_model
+    if not HAS_TORCH:
+        print("Warning: PyTorch not available, returning original student model")
+        return student_model
+
+    teacher_model.to(device)
+    student_model.to(device)
+    teacher_model.eval()
+    student_model.train()
+    optimizer = torch.optim.SGD(student_model.parameters(), lr=lr)
+
+    samples_used = 0
+    kl = nn.KLDivLoss(reduction="batchmean")
+    mse = nn.MSELoss()
+
+    for _ in range(epochs):
+        for batch in data_loader:
+            if samples_used >= budget:
+                break
+
+            if isinstance(batch, (list, tuple)):
+                inputs = batch[0]
+            else:
+                inputs = batch
+
+            inputs = inputs.to(device)
+            batch_size = inputs.size(0)
+
+            with torch.no_grad():
+                teacher_logits = teacher_model(inputs)
+
+            student_logits = student_model(inputs)
+
+            if teacher_logits.ndim > 1 and teacher_logits.size(-1) > 1:
+                loss = kl(
+                    torch.log_softmax(student_logits / temperature, dim=-1),
+                    torch.softmax(teacher_logits / temperature, dim=-1),
+                ) * (temperature ** 2)
+            else:
+                loss = mse(student_logits, teacher_logits)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            samples_used += batch_size
+
+        if samples_used >= budget:
+            break
+
+    student_model.eval()
+    return student_model
 
 
-def wrapper_attack(model: Any, routing_logic: Optional[Dict] = None) -> Any:
-    """Wrapper attack that routes queries.
-    
+def wrapper_attack(model: Any, routing_logic: Optional[Dict[Callable[[Any], bool], Any]] = None) -> Any:
+    """Create a model wrapper that routes inputs based on predicates.
+
+    ``routing_logic`` maps predicate callables to alternative models.  During
+    the forward pass each sample is evaluated against the predicates in the
+    order provided; the first predicate returning ``True`` determines which
+    model processes that sample.  Samples that do not satisfy any predicate are
+    passed to the original ``model``.
+
     Args:
-        model: Model to wrap
-        routing_logic: Optional routing configuration
-        
+        model: Base model to wrap.
+        routing_logic: Mapping from predicate functions to alternative models.
+
     Returns:
-        Wrapped model with routing
+        A new ``nn.Module`` implementing the routing behaviour.  If PyTorch is
+        unavailable or no routing is specified, the original model is returned.
     """
-    # Placeholder for wrapper attack
-    return model
+    if not HAS_TORCH or not routing_logic:
+        return model
+
+    class WrappedModel(nn.Module):
+        def __init__(self, base: nn.Module, routes: Dict[Callable[[Any], bool], nn.Module]):
+            super().__init__()
+            self.base = base
+            self.routes = routes
+
+        def forward(self, x):
+            outputs = []
+            for i in range(x.size(0)):
+                sample = x[i : i + 1]
+                used = False
+                for pred, alt in self.routes.items():
+                    try:
+                        if pred(sample):
+                            outputs.append(alt(sample))
+                            used = True
+                            break
+                    except Exception:
+                        continue
+                if not used:
+                    outputs.append(self.base(sample))
+            return torch.cat(outputs, dim=0)
+
+    return WrappedModel(model, routing_logic)
 
 
-def extraction_attack(model: Any, query_budget: int = 10000) -> Any:
-    """Model extraction attack.
-    
+def extraction_attack(
+    model: Any,
+    data_loader: Any,
+    query_budget: int = 10000,
+    epochs: int = 1,
+    lr: float = 1e-3,
+    device: str = "cpu",
+) -> Any:
+    """Train a surrogate model to mimic a victim model.
+
+    The victim model is queried for up to ``query_budget`` samples drawn from
+    ``data_loader``.  A fresh surrogate with the same architecture is trained on
+    those query/response pairs using mean-squared error.
+
     Args:
-        model: Model to extract
-        query_budget: Number of queries allowed
-        
+        model: Victim model to extract from.
+        data_loader: ``DataLoader`` providing unlabeled inputs.
+        query_budget: Maximum number of queries to the victim.
+        epochs: Number of training epochs.
+        lr: Learning rate for the surrogate optimiser.
+        device: Device on which to run training.
+
     Returns:
-        Extracted model approximation
+        Trained surrogate model approximating ``model``.  If a new model cannot
+        be constructed, the original model is returned.
     """
-    # Placeholder for extraction attack
-    return model
+    if not HAS_TORCH:
+        print("Warning: PyTorch not available, returning original model")
+        return model
+
+    # Attempt to build a fresh surrogate with same architecture
+    surrogate: nn.Module
+    if isinstance(model, nn.Linear):
+        surrogate = nn.Linear(model.in_features, model.out_features, bias=model.bias is not None)
+    else:
+        try:
+            import copy
+
+            surrogate = copy.deepcopy(model)
+            for p in surrogate.parameters():
+                if p.requires_grad:
+                    nn.init.normal_(p, mean=0.0, std=0.02)
+        except Exception:
+            return model
+
+    model.to(device)
+    surrogate.to(device)
+    model.eval()
+    surrogate.train()
+
+    optimizer = torch.optim.SGD(surrogate.parameters(), lr=lr)
+    loss_fn = nn.MSELoss()
+
+    samples_used = 0
+    for _ in range(epochs):
+        for batch in data_loader:
+            if samples_used >= query_budget:
+                break
+
+            if isinstance(batch, (list, tuple)):
+                inputs = batch[0]
+            else:
+                inputs = batch
+
+            inputs = inputs.to(device)
+            batch_size = inputs.size(0)
+
+            with torch.no_grad():
+                targets = model(inputs)
+
+            outputs = surrogate(inputs)
+            loss = loss_fn(outputs, targets)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            samples_used += batch_size
+
+        if samples_used >= query_budget:
+            break
+
+    surrogate.eval()
+    return surrogate
 
 
 def compression_attack(model: Any, 
