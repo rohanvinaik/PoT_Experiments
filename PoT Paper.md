@@ -188,7 +188,35 @@ where $I$ is mutual information.
 
 ## **6\. Empirical Evaluation**
 
-Our experiments quantify PoT performance on vision and language models. For CIFAR-10 variants, AUROC reaches 1.00 for identical and seed variants with FAR=FRR=0; targeted fine-tuning yields AUROC 0.9883 with FAR 0.0234 and FRR 0, while pruned and quantized models show FRR≈0.5 and AUROC ≈0.72–0.75 at FAR 0.0117. Across challenge families, FAR stays ≤0.0039 with FRR=0 at tolerance 0.05. The average query budget is ~272 challenges, and sequential empirical-Bernstein testing reduces this to roughly 2–3 queries per decision.
+We evaluate PoT on vision and language tasks. Table 1 reports AUROC and error rates for CIFAR-10 variants of a ResNet-18 reference model. Table 2 summarizes false alarm (FAR) and false reject (FRR) rates across challenge families for both domains. Average query consumption is approximately 272 challenges, while sequential SPRT cuts verification to roughly 2–3 queries per decision.
+
+**Table 1 – ResNet-18 variants (vision, E1)**
+
+| Variant | n | τ | FAR | FRR | AUROC |
+|---|---|---|---|---|---|
+| identical | 256 | 0.01 | 0.0 | 0.0 | 1.00 |
+| seed_variant | 256 | 0.02 | 0.0 | 0.0 | 1.00 |
+| fine_tuned | 256 | 0.10 | 0.0234 | 0.0 | 0.9883 |
+| pruned | 256 | 0.10 | 0.0117 | 0.5508 | 0.7188 |
+| quantized | 256 | 0.10 | 0.0117 | 0.5000 | 0.7441 |
+| distilled | 256 | 0.10 | 0.0117 | 0.4961 | 0.7461 |
+
+**Table 2 – Verification across challenge families**
+
+| Dataset | Exp | Challenge | n | τ | FAR | FRR |
+|---|---|---|---|---|---|---|
+| lm_small | E7 | lm:templates | 256 | 0.05 | 0.0039 | 0.0 |
+| lm_small | E2 | lm:templates | 512 | 0.05 | 0.0039 | 0.0 |
+| lm_small | E3 | lm:templates | 256 | 0.05 | 0.0039 | 0.0 |
+| vision_cifar10 | E7 | vision:freq | 256 | 0.05 | 0.0039 | 0.0 |
+| vision_cifar10 | E7 | vision:texture | 256 | 0.05 | 0.0039 | 0.0 |
+| vision_cifar10 | E5 | vision:freq | 128 | 0.05 | 0.0 | 0.0 |
+| vision_cifar10 | E3 | vision:freq | 256 | 0.05 | 0.0039 | 0.0 |
+| vision_cifar10 | E4 | vision:freq | 256 | 0.05 | 0.0039 | 0.0 |
+
+### **Experimental Setup**
+
+Vision experiments use CIFAR10 test images resized to 224×224 with a ResNet-18 reference model and variants (seed, finetune, prune, quantize, distill). Challenge families include `vision:freq` and `vision:texture` with 256 queries each. Language-model experiments employ TinyLlama‑1.1B and variants (seed, LoRA finetune, quantize, distill) using the `lm:templates` challenge family with 512 canonicalized templates.
 
 ## **7\. Practical Considerations**
 
