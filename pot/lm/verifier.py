@@ -15,7 +15,10 @@ import time
 from transformers import AutoTokenizer
 
 from ..core.stats import empirical_bernstein_bound, t_statistic
-from ..core.sequential import SequentialTester, SPRTResult
+from ..core.sequential import (
+    SequentialTester, SPRTResult, sequential_verify,
+    SequentialState, welford_update, compute_empirical_variance
+)
 from ..core.challenge import generate_challenges, ChallengeConfig
 from ..core.fingerprint import fingerprint_run, FingerprintConfig, FingerprintResult, compare_jacobian_sketches
 from ..core.canonicalize import canonicalize_text, canonicalize_logits
@@ -34,6 +37,7 @@ class LMVerificationResult:
     time_elapsed: float
     fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
     fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
+    sequential_result: Optional[SPRTResult]  # Sequential verification result with trajectory
     metadata: Dict[str, Any]
 
 
@@ -44,7 +48,8 @@ class LMVerifier:
     """
     
     def __init__(self, reference_model: LM, delta: float = 0.01, 
-                 use_sequential: bool = True, use_fingerprinting: bool = True,
+                 use_sequential: bool = True, sequential_mode: str = 'legacy',
+                 use_fingerprinting: bool = True,
                  fingerprint_config: Optional[FingerprintConfig] = None):
         """
         Initialize LM verifier
@@ -52,13 +57,15 @@ class LMVerifier:
         Args:
             reference_model: Reference language model f*
             delta: Confidence parameter (1-delta confidence)
-            use_sequential: Whether to use SPRT for early stopping
+            use_sequential: Whether to use sequential testing for early stopping
+            sequential_mode: 'legacy' for old SPRT, 'enhanced' for new EB-based sequential verification
             use_fingerprinting: Whether to compute behavioral fingerprints
             fingerprint_config: Configuration for fingerprinting (uses default LM config if None)
         """
         self.reference_model = reference_model
         self.delta = delta
         self.use_sequential = use_sequential
+        self.sequential_mode = sequential_mode
         self.use_fingerprinting = use_fingerprinting
         
         # Set up fingerprinting configuration
@@ -282,16 +289,19 @@ class LMVerifier:
     
     def verify(self, model: LM, challenges: List[Dict[str, Any]],
               tolerance: float = 0.1, method: str = 'fuzzy',
-              compute_reference_fingerprint: bool = False) -> LMVerificationResult:
+              compute_reference_fingerprint: bool = False,
+              alpha: float = None, beta: float = None) -> LMVerificationResult:
         """
         Verify a language model against reference.
 
         Args:
             model: Model to verify (f)
             challenges: List of challenges to evaluate
-            tolerance: Maximum acceptable average distance
+            tolerance: Maximum acceptable average distance (tau threshold)
             method: Distance computation method (default ``'fuzzy'``)
             compute_reference_fingerprint: Whether to compute reference fingerprint if not already done
+            alpha: Type I error rate for sequential testing (defaults to self.delta)
+            beta: Type II error rate for sequential testing (defaults to self.delta)
 
         Returns:
             LMVerificationResult with verification outcome
@@ -299,6 +309,12 @@ class LMVerifier:
         start_time = time.time()
         distances = []
         fuzzy_similarities = []
+        
+        # Set error rates if not provided
+        if alpha is None:
+            alpha = self.delta
+        if beta is None:
+            beta = self.delta
         
         # Compute behavioral fingerprint if enabled
         model_fingerprint = None
@@ -351,52 +367,118 @@ class LMVerifier:
                 if fingerprint_similarity < 0.3:  # Very low threshold for text
                     print("[LM Fingerprint] Warning: Low similarity detected")
         
-        # Reset sequential tester if using
-        if self.use_sequential:
+        # Initialize sequential testing based on mode
+        sequential_result = None
+        
+        if self.use_sequential and self.sequential_mode == 'enhanced':
+            # Use new EB-based sequential verification
+            def distance_stream():
+                for challenge in challenges:
+                    model_output, distance = self.evaluate_challenge(model, challenge, method=method)
+                    distances.append(distance)
+                    
+                    # Compute fuzzy similarity for additional validation
+                    ref_output = self.reference_model.generate(
+                        self._challenge_to_prompt(challenge), 
+                        max_new_tokens=64
+                    )
+                    
+                    tokens_model = self.tokenizer.encode(model_output, add_special_tokens=False)
+                    tokens_ref = self.tokenizer.encode(ref_output, add_special_tokens=False)
+                    
+                    hash_model = self.fuzzy_hasher.compute_fuzzy_hash(tokens_model)
+                    hash_ref = self.fuzzy_hasher.compute_fuzzy_hash(tokens_ref)
+                    
+                    similarity = self.fuzzy_hasher.jaccard_similarity(hash_model, hash_ref)
+                    fuzzy_similarities.append(similarity)
+                    
+                    yield distance
+            
+            # Run sequential verification
+            sequential_result = sequential_verify(
+                stream=distance_stream(),
+                tau=tolerance,
+                alpha=alpha,
+                beta=beta,
+                max_samples=len(challenges),
+                compute_p_value=True
+            )
+            
+            # Early stopping achieved
+            if sequential_result.stopped_at < len(challenges):
+                print(f"[LM Sequential] Early stopping at n={sequential_result.stopped_at}")
+                
+        elif self.use_sequential and self.sequential_mode == 'legacy':
+            # Use legacy SPRT
             self.sequential_tester = SequentialTester(
-                alpha=self.delta, beta=self.delta,
+                alpha=alpha, beta=beta,
                 tau0=tolerance/2, tau1=tolerance*2
             )
-        
-        for i, challenge in enumerate(challenges):
-            # Evaluate challenge
-            model_output, distance = self.evaluate_challenge(model, challenge, method=method)
-            distances.append(distance)
             
-            # Compute fuzzy similarity for additional validation
-            ref_output = self.reference_model.generate(
-                self._challenge_to_prompt(challenge), 
-                max_new_tokens=64
-            )
-            
-            tokens_model = self.tokenizer.encode(model_output, add_special_tokens=False)
-            tokens_ref = self.tokenizer.encode(ref_output, add_special_tokens=False)
-            
-            hash_model = self.fuzzy_hasher.compute_fuzzy_hash(tokens_model)
-            hash_ref = self.fuzzy_hasher.compute_fuzzy_hash(tokens_ref)
-            
-            similarity = self.fuzzy_hasher.jaccard_similarity(hash_model, hash_ref)
-            fuzzy_similarities.append(similarity)
-            
-            # Sequential testing for early stopping
-            if self.use_sequential:
+            for i, challenge in enumerate(challenges):
+                # Evaluate challenge
+                model_output, distance = self.evaluate_challenge(model, challenge, method=method)
+                distances.append(distance)
+                
+                # Compute fuzzy similarity for additional validation
+                ref_output = self.reference_model.generate(
+                    self._challenge_to_prompt(challenge), 
+                    max_new_tokens=64
+                )
+                
+                tokens_model = self.tokenizer.encode(model_output, add_special_tokens=False)
+                tokens_ref = self.tokenizer.encode(ref_output, add_special_tokens=False)
+                
+                hash_model = self.fuzzy_hasher.compute_fuzzy_hash(tokens_model)
+                hash_ref = self.fuzzy_hasher.compute_fuzzy_hash(tokens_ref)
+                
+                similarity = self.fuzzy_hasher.jaccard_similarity(hash_model, hash_ref)
+                fuzzy_similarities.append(similarity)
+                
+                # Sequential testing for early stopping
                 result = self.sequential_tester.update(distance)
                 if result.decision != 'continue':
                     # Early stopping
-                    distances = result.distances
                     break
+        else:
+            # No sequential testing - evaluate all challenges
+            for challenge in challenges:
+                model_output, distance = self.evaluate_challenge(model, challenge, method=method)
+                distances.append(distance)
+                
+                # Compute fuzzy similarity for additional validation
+                ref_output = self.reference_model.generate(
+                    self._challenge_to_prompt(challenge), 
+                    max_new_tokens=64
+                )
+                
+                tokens_model = self.tokenizer.encode(model_output, add_special_tokens=False)
+                tokens_ref = self.tokenizer.encode(ref_output, add_special_tokens=False)
+                
+                hash_model = self.fuzzy_hasher.compute_fuzzy_hash(tokens_model)
+                hash_ref = self.fuzzy_hasher.compute_fuzzy_hash(tokens_ref)
+                
+                similarity = self.fuzzy_hasher.jaccard_similarity(hash_model, hash_ref)
+                fuzzy_similarities.append(similarity)
         
         # Compute test statistic and confidence radius
         distances_array = np.array(distances)
         test_statistic = t_statistic(distances_array)
         conf_radius = empirical_bernstein_bound(distances_array, self.delta)
         
-        # Decision: accept if test statistic + radius <= tolerance
-        accepted = (test_statistic + conf_radius) <= tolerance
-        
-        # If using sequential testing, override with its decision
-        if self.use_sequential and self.sequential_tester.decided():
-            accepted = self.sequential_tester.accept()
+        # Decision logic based on sequential mode
+        if sequential_result is not None:
+            # Use enhanced sequential result
+            accepted = sequential_result.decision == 'H0'
+            test_statistic = sequential_result.final_mean
+            conf_radius = sequential_result.confidence_radius
+        elif self.use_sequential and self.sequential_mode == 'legacy' and hasattr(self, 'sequential_tester'):
+            # Use legacy SPRT decision
+            if self.sequential_tester.decided():
+                accepted = self.sequential_tester.accept()
+        else:
+            # Fixed-sample decision: accept if test statistic + radius <= tolerance
+            accepted = (test_statistic + conf_radius) <= tolerance
         
         elapsed = time.time() - start_time
         
@@ -450,15 +532,32 @@ class LMVerifier:
             
             metadata["advanced_fuzzy"] = advanced_results
         
+        # Add sequential result info to metadata if available
+        if sequential_result is not None:
+            metadata['sequential'] = {
+                'mode': 'enhanced',
+                'stopped_at': sequential_result.stopped_at,
+                'decision': sequential_result.decision,
+                'p_value': sequential_result.p_value,
+                'trajectory_length': len(sequential_result.trajectory) if sequential_result.trajectory else 0,
+                'forced_stop': sequential_result.forced_stop
+            }
+        elif self.use_sequential and self.sequential_mode == 'legacy':
+            metadata['sequential'] = {
+                'mode': 'legacy',
+                'stopped_at': len(distances)
+            }
+        
         return LMVerificationResult(
             accepted=accepted,
             distance=float(test_statistic),
             confidence_radius=float(conf_radius),
             n_challenges=len(distances),
-            fuzzy_similarity=float(np.mean(fuzzy_similarities)),
+            fuzzy_similarity=float(np.mean(fuzzy_similarities)) if fuzzy_similarities else 0.0,
             time_elapsed=elapsed,
             fingerprint=model_fingerprint,
             fingerprint_match=fingerprint_similarity,
+            sequential_result=sequential_result,
             metadata=metadata
         )
     

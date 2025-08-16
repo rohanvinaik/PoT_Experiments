@@ -14,7 +14,10 @@ import torchvision.transforms as transforms
 import xxhash
 
 from ..core.stats import empirical_bernstein_bound, t_statistic
-from ..core.sequential import SequentialTester, SPRTResult
+from ..core.sequential import (
+    SequentialTester, SPRTResult, sequential_verify,
+    SequentialState, welford_update, compute_empirical_variance
+)
 from ..core.challenge import generate_challenges, ChallengeConfig
 from ..core.wrapper_detection import WrapperAttackDetector
 from ..core.fingerprint import fingerprint_run, FingerprintConfig, FingerprintResult, compare_jacobian_sketches
@@ -33,6 +36,7 @@ class VisionVerificationResult:
     wrapper_detection: Optional[Dict[str, Any]]
     fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
     fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
+    sequential_result: Optional[SPRTResult]  # Sequential verification result with trajectory
     metadata: Dict[str, Any]
 
 
@@ -43,7 +47,8 @@ class VisionVerifier:
     """
     
     def __init__(self, reference_model: VisionModel, delta: float = 0.01,
-                 use_sequential: bool = True, detect_wrappers: bool = True,
+                 use_sequential: bool = True, sequential_mode: str = 'legacy',
+                 detect_wrappers: bool = True,
                  use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
         """
         Initialize vision verifier
@@ -51,7 +56,8 @@ class VisionVerifier:
         Args:
             reference_model: Reference vision model f*
             delta: Confidence parameter (1-delta confidence)
-            use_sequential: Whether to use SPRT for early stopping
+            use_sequential: Whether to use sequential testing for early stopping
+            sequential_mode: 'legacy' for old SPRT, 'enhanced' for new EB-based sequential verification
             detect_wrappers: Whether to detect wrapper attacks
             use_fingerprinting: Whether to compute behavioral fingerprints
             fingerprint_config: Configuration for fingerprinting (uses default vision config if None)
@@ -59,6 +65,7 @@ class VisionVerifier:
         self.reference_model = reference_model
         self.delta = delta
         self.use_sequential = use_sequential
+        self.sequential_mode = sequential_mode
         self.detect_wrappers = detect_wrappers
         self.use_fingerprinting = use_fingerprinting
         
@@ -482,16 +489,20 @@ class VisionVerifier:
               challenges: List[torch.Tensor],
               tolerance: float = 0.05,
               challenge_types: List[str] = None,
-              compute_reference_fingerprint: bool = False) -> VisionVerificationResult:
+              compute_reference_fingerprint: bool = False,
+              alpha: float = None,
+              beta: float = None) -> VisionVerificationResult:
         """
         Verify a vision model against reference
         
         Args:
             model: Model to verify (f)
             challenges: List of challenge images
-            tolerance: Maximum acceptable average distance
+            tolerance: Maximum acceptable average distance (tau threshold)
             challenge_types: Optional list indicating challenge type for each challenge
             compute_reference_fingerprint: Whether to compute reference fingerprint if not already done
+            alpha: Type I error rate for sequential testing (defaults to self.delta)
+            beta: Type II error rate for sequential testing (defaults to self.delta)
             
         Returns:
             VisionVerificationResult with verification outcome
@@ -501,6 +512,12 @@ class VisionVerifier:
         perceptual_similarities = []
         response_times = []
         challenge_responses = []
+        
+        # Set error rates if not provided
+        if alpha is None:
+            alpha = self.delta
+        if beta is None:
+            beta = self.delta
         
         # Compute behavioral fingerprint if enabled
         model_fingerprint = None
@@ -541,44 +558,85 @@ class VisionVerifier:
                 # if fingerprint_similarity < 0.5:  # Threshold can be configurable
                 #     print("[Fingerprint] Early rejection: similarity too low")
         
-        # Reset sequential tester if using
-        if self.use_sequential:
+        # Initialize sequential testing based on mode
+        sequential_result = None
+        
+        if self.use_sequential and self.sequential_mode == 'enhanced':
+            # Use new EB-based sequential verification
+            def distance_stream():
+                for challenge in challenges:
+                    features, distance, resp_time = self.evaluate_challenge(model, challenge)
+                    distances.append(distance)
+                    response_times.append(resp_time)
+                    challenge_responses.append(features)
+                    perceptual_similarities.append(1 - distance)
+                    yield distance
+            
+            # Run sequential verification
+            sequential_result = sequential_verify(
+                stream=distance_stream(),
+                tau=tolerance,
+                alpha=alpha,
+                beta=beta,
+                max_samples=len(challenges),
+                compute_p_value=True
+            )
+            
+            # Early stopping achieved
+            if sequential_result.stopped_at < len(challenges):
+                print(f"[Sequential] Early stopping at n={sequential_result.stopped_at}")
+                
+        elif self.use_sequential and self.sequential_mode == 'legacy':
+            # Use legacy SPRT
             self.sequential_tester = SequentialTester(
-                alpha=self.delta, beta=self.delta,
+                alpha=alpha, beta=beta,
                 tau0=tolerance/2, tau1=tolerance*2
             )
-        
-        for i, challenge in enumerate(challenges):
-            # Evaluate challenge
-            features, distance, resp_time = self.evaluate_challenge(model, challenge)
             
-            distances.append(distance)
-            response_times.append(resp_time)
-            challenge_responses.append(features)
-            
-            # Compute perceptual similarity
-            perceptual_sim = 1 - distance
-            perceptual_similarities.append(perceptual_sim)
-            
-            # Sequential testing for early stopping
-            if self.use_sequential:
+            for i, challenge in enumerate(challenges):
+                # Evaluate challenge
+                features, distance, resp_time = self.evaluate_challenge(model, challenge)
+                
+                distances.append(distance)
+                response_times.append(resp_time)
+                challenge_responses.append(features)
+                
+                # Compute perceptual similarity
+                perceptual_sim = 1 - distance
+                perceptual_similarities.append(perceptual_sim)
+                
+                # Sequential testing for early stopping
                 result = self.sequential_tester.update(distance)
                 if result.decision != 'continue':
                     # Early stopping
-                    distances = result.distances
                     break
+        else:
+            # No sequential testing - evaluate all challenges
+            for challenge in challenges:
+                features, distance, resp_time = self.evaluate_challenge(model, challenge)
+                distances.append(distance)
+                response_times.append(resp_time)
+                challenge_responses.append(features)
+                perceptual_similarities.append(1 - distance)
         
         # Compute test statistic and confidence radius
         distances_array = np.array(distances)
         test_statistic = t_statistic(distances_array)
         conf_radius = empirical_bernstein_bound(distances_array, self.delta)
         
-        # Decision: accept if test statistic + radius <= tolerance
-        accepted = (test_statistic + conf_radius) <= tolerance
-        
-        # If using sequential testing, override with its decision
-        if self.use_sequential and self.sequential_tester.decided():
-            accepted = self.sequential_tester.accept()
+        # Decision logic based on sequential mode
+        if sequential_result is not None:
+            # Use enhanced sequential result
+            accepted = sequential_result.decision == 'H0'
+            test_statistic = sequential_result.final_mean
+            conf_radius = sequential_result.confidence_radius
+        elif self.use_sequential and self.sequential_mode == 'legacy' and hasattr(self, 'sequential_tester'):
+            # Use legacy SPRT decision
+            if self.sequential_tester.decided():
+                accepted = self.sequential_tester.accept()
+        else:
+            # Fixed-sample decision: accept if test statistic + radius <= tolerance
+            accepted = (test_statistic + conf_radius) <= tolerance
         
         # Wrapper detection if enabled
         wrapper_result = None
@@ -638,16 +696,33 @@ class VisionVerifier:
             if self.reference_fingerprint is not None:
                 metadata['fingerprint']['reference_io_hash'] = self.reference_fingerprint.io_hash
         
+        # Add sequential result info to metadata if available
+        if sequential_result is not None:
+            metadata['sequential'] = {
+                'mode': 'enhanced',
+                'stopped_at': sequential_result.stopped_at,
+                'decision': sequential_result.decision,
+                'p_value': sequential_result.p_value,
+                'trajectory_length': len(sequential_result.trajectory) if sequential_result.trajectory else 0,
+                'forced_stop': sequential_result.forced_stop
+            }
+        elif self.use_sequential and self.sequential_mode == 'legacy':
+            metadata['sequential'] = {
+                'mode': 'legacy',
+                'stopped_at': len(distances)
+            }
+        
         return VisionVerificationResult(
             accepted=accepted,
             distance=float(test_statistic),
             confidence_radius=float(conf_radius),
             n_challenges=len(distances),
-            perceptual_similarity=float(np.mean(perceptual_similarities)),
+            perceptual_similarity=float(np.mean(perceptual_similarities)) if perceptual_similarities else 0.0,
             time_elapsed=elapsed,
             wrapper_detection=wrapper_result,
             fingerprint=model_fingerprint,
             fingerprint_match=fingerprint_similarity,
+            sequential_result=sequential_result,
             metadata=metadata
         )
     

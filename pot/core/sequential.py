@@ -352,7 +352,8 @@ class SequentialTester:
             SPRTResult with current decision status
         """
         if self._decided:
-            return SPRTResult(self._decision, self.S, self.n, self.distances)
+            # Already decided, return current state
+            return self._create_result()
         
         self.n += 1
         self.distances.append(distance)
@@ -386,7 +387,42 @@ class SequentialTester:
         else:
             self._decision = 'continue'
         
-        return SPRTResult(self._decision, self.S, self.n, self.distances)
+        return self._create_result()
+    
+    def _create_result(self) -> SPRTResult:
+        """Create SPRTResult from current state"""
+        # Compute statistics for backward compatibility
+        if len(self.distances) > 0:
+            mean = np.mean(self.distances)
+            variance = np.var(self.distances) if len(self.distances) > 1 else 0.0
+            std = np.sqrt(variance)
+            # Simple approximation of confidence radius
+            conf_radius = 1.96 * std / np.sqrt(len(self.distances)) if len(self.distances) > 0 else 0.0
+        else:
+            mean = 0.0
+            variance = 0.0
+            conf_radius = 0.0
+        
+        # Map legacy decision to new format
+        if self._decision == 'accept_H0':
+            decision = 'H0'
+        elif self._decision == 'accept_H1':
+            decision = 'H1'
+        else:
+            decision = 'continue'
+        
+        # Return SPRTResult with all required fields
+        return SPRTResult(
+            decision=decision,
+            stopped_at=self.n,
+            final_mean=mean,
+            final_variance=variance,
+            confidence_radius=conf_radius,
+            trajectory=[],  # Legacy mode doesn't track full trajectory
+            p_value=None,
+            confidence_interval=(max(0, mean - conf_radius), min(1, mean + conf_radius)),
+            forced_stop=False
+        )
     
     def decided(self) -> bool:
         """Check if test has reached a decision"""

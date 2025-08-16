@@ -144,20 +144,28 @@ PoT_Experiments/
   - Compliance documentation format
   - Verification result serialization
 
-### 4. Vision Components (`pot/vision/`)
-- **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting
-  - `VisionVerifier`: Main verification class with integrated fingerprinting
+### 4. Vision Components (`pot/vision/`) (UPDATED 2025-08-16)
+- **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting and sequential testing
+  - `VisionVerifier`: Main verification class with integrated fingerprinting and sequential verification
     - `use_fingerprinting`: Enable behavioral fingerprinting
     - `fingerprint_config`: Configuration for fingerprint computation
+    - `use_sequential`: Enable sequential testing for early stopping
+    - `sequential_mode`: 'legacy' (old SPRT) or 'enhanced' (new EB-based)
     - `compute_reference_fingerprint`: Generate reference model fingerprint
     - `compute_fingerprint_similarity`: Compare fingerprints
-  - `VisionVerificationResult`: Enhanced with fingerprint fields
+  - `VisionVerificationResult`: Enhanced with fingerprint and sequential fields
     - `fingerprint`: FingerprintResult object
     - `fingerprint_match`: Similarity score to reference
+    - `sequential_result`: SPRTResult with trajectory and p-values
   - Sine grating and texture challenge generation
   - Perceptual distance computation (cosine, L2, L1)
   - Augmentation-based robustness testing
   - `BatchVisionVerifier`: Multi-model verification with fingerprinting
+  - **Sequential Integration** (NEW):
+    - Enhanced mode uses EB-based sequential verification
+    - Early stopping reduces evaluations by up to 90%
+    - Complete trajectory recording for audit
+    - Anytime-valid p-values and confidence intervals
   - **Fingerprint Integration**:
     - Automatic fingerprint computation during verification
     - Early rejection based on fingerprint mismatch
@@ -171,21 +179,29 @@ PoT_Experiments/
   - Texture synthesis (Perlin noise, Gabor filters)
   - Geometric patterns (checkerboards)
 
-### 5. Language Model Components (`pot/lm/`)
-- **LM Verifier** (`verifier.py`): Language model verification with fingerprinting
-  - `LMVerifier`: Main verification class with integrated fingerprinting
+### 5. Language Model Components (`pot/lm/`) (UPDATED 2025-08-16)
+- **LM Verifier** (`verifier.py`): Language model verification with fingerprinting and sequential testing
+  - `LMVerifier`: Main verification class with integrated fingerprinting and sequential verification
     - `use_fingerprinting`: Enable behavioral fingerprinting for text
     - `fingerprint_config`: LM-specific fingerprint configuration
+    - `use_sequential`: Enable sequential testing for early stopping
+    - `sequential_mode`: 'legacy' (old SPRT) or 'enhanced' (new EB-based)
     - `compute_reference_fingerprint`: Generate fingerprint from prompts
     - `compute_fingerprint_similarity`: Text-aware similarity comparison
-  - `LMVerificationResult`: Enhanced with fingerprint fields
+  - `LMVerificationResult`: Enhanced with fingerprint and sequential fields
     - `fingerprint`: FingerprintResult for text outputs
     - `fingerprint_match`: Similarity using fuzzy text matching
+    - `sequential_result`: SPRTResult with trajectory and p-values
   - Template-based challenge generation
   - Output distance computation (fuzzy, exact, edit, embedding)
   - Time-tolerance verification for model drift
   - `BatchLMVerifier`: Multi-model verification with fingerprinting
   - Adaptive verification with dynamic challenge counts
+  - **Sequential Integration** (NEW):
+    - Enhanced mode uses EB-based sequential verification
+    - Early stopping with text-specific distance metrics
+    - Handles variable-length outputs gracefully
+    - Maintains fuzzy similarity tracking alongside sequential tests
   - **Fingerprint Integration**:
     - Text canonicalization for consistent hashing
     - Fuzzy matching for fingerprint comparison
@@ -401,27 +417,42 @@ from pot.core.fingerprint import batch_compare_fingerprints
 similarities = batch_compare_fingerprints(fingerprints, reference=ref_fp)
 ```
 
-### Integrated Verification with Fingerprinting
+### Integrated Verification with Fingerprinting and Sequential Testing (UPDATED 2025-08-16)
 ```python
 from pot.vision.verifier import VisionVerifier
 from pot.lm.verifier import LMVerifier
 
-# Vision model with fingerprinting
+# Vision model with fingerprinting and enhanced sequential testing
 vision_verifier = VisionVerifier(
     reference_model=ref_model,
     use_fingerprinting=True,
+    use_sequential=True,
+    sequential_mode='enhanced',  # NEW: Use EB-based sequential verification
     fingerprint_config=FingerprintConfig.for_vision_model()
 )
-result = vision_verifier.verify(model, challenges)
+result = vision_verifier.verify(
+    model, 
+    challenges,
+    tolerance=0.05,
+    alpha=0.01,  # Type I error rate
+    beta=0.01    # Type II error rate
+)
 print(f"Fingerprint match: {result.fingerprint_match:.3f}")
+if result.sequential_result:
+    print(f"Early stopping at: {result.sequential_result.stopped_at}")
+    print(f"P-value: {result.sequential_result.p_value:.6f}")
+    print(f"Trajectory length: {len(result.sequential_result.trajectory)}")
 
-# Language model with fingerprinting
+# Language model with fingerprinting and sequential testing
 lm_verifier = LMVerifier(
     reference_model=ref_lm,
     use_fingerprinting=True,
+    use_sequential=True,
+    sequential_mode='enhanced',
     fingerprint_config=FingerprintConfig.for_language_model()
 )
-result = lm_verifier.verify(model, prompts)
+result = lm_verifier.verify(model, prompts, alpha=0.01, beta=0.01)
+print(f"Decision: {result.accepted}, stopped at {result.n_challenges} challenges")
 ```
 
 ### Challenge Generation
