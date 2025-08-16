@@ -1,11 +1,28 @@
 from dataclasses import dataclass
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import numpy as np
 import xxhash
 import secrets
 import hashlib
 import os
-from .prf import prf_derive_key, prf_derive_seed, prf_floats, prf_integers, prf_choice
+from .prf import prf_derive_key, prf_derive_seed, prf_floats, prf_integers, prf_choice, prf_bytes
+
+@dataclass
+class Challenge:
+    """Individual challenge with unique ID and parameters."""
+    challenge_id: str      # Unique identifier for this challenge
+    index: int            # Challenge index in sequence
+    family: str           # Challenge family (e.g., "vision:freq")
+    parameters: Dict[str, Any]  # Challenge-specific parameters
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "challenge_id": self.challenge_id,
+            "index": self.index,
+            "family": self.family,
+            "parameters": self.parameters
+        }
 
 @dataclass
 class ChallengeConfig:
@@ -14,6 +31,7 @@ class ChallengeConfig:
     n: int
     family: str            # "vision:freq", "vision:texture", "lm:templates", ...
     params: Dict[str, Any] # family-specific args (freq ranges, token masks, etc.)
+    model_id: Optional[str] = None  # Model identifier for challenge derivation
 
 def kdf(master_key_hex: str, label: str, nonce_hex: str) -> bytes:
     """
@@ -28,36 +46,151 @@ def seeded_rng(seed: bytes) -> np.random.Generator:
     s = int.from_bytes(seed, "big") % (2**63 - 1)
     return np.random.default_rng(s)
 
+def generate_vision_freq_challenges(cfg: ChallengeConfig, seed: bytes, salt: str) -> List[Challenge]:
+    """
+    Generate sine grating challenges for the vision:freq family.
+    
+    Following the paper's specification, generates deterministic parameters:
+    - frequency: cycles per degree (in specified range)
+    - theta: orientation in degrees (0-180)
+    - phase: phase offset in radians (0-2π)
+    - contrast: Michelson contrast (0-1 or specified range)
+    
+    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    
+    Args:
+        cfg: Challenge configuration with freq_range and contrast_range
+        seed: Deterministic seed derived from master key and model_id
+        salt: Salt for commit-reveal protocol
+    
+    Returns:
+        List of Challenge objects with sine grating parameters
+    """
+    challenges = []
+    
+    # Extract parameter ranges
+    freq_range = cfg.params.get("freq_range", [0.1, 10.0])  # cycles per degree
+    contrast_range = cfg.params.get("contrast_range", [0.1, 1.0])  # Michelson contrast
+    
+    for i in range(cfg.n):
+        # Create unique derivation info for each challenge
+        # Following paper: c_i = KDF(master_seed || model_id || i || salt)
+        if cfg.model_id:
+            challenge_info = f"challenge_{cfg.model_id}_{i}_{salt}".encode()
+        else:
+            challenge_info = f"challenge_{i}_{salt}".encode()
+        
+        # Generate deterministic parameters using PRF
+        # Frequency in cycles per degree
+        freq = prf_floats(seed, challenge_info + b":freq", 1, 
+                         freq_range[0], freq_range[1])[0]
+        
+        # Orientation/theta in degrees (0-180)
+        theta_deg = prf_floats(seed, challenge_info + b":theta", 1, 0, 180)[0]
+        
+        # Phase in radians (0-2π)
+        phase_rad = prf_floats(seed, challenge_info + b":phase", 1, 0, 2 * np.pi)[0]
+        
+        # Contrast (Michelson contrast between 0 and 1)
+        contrast = prf_floats(seed, challenge_info + b":contrast", 1,
+                             contrast_range[0], contrast_range[1])[0]
+        
+        # Create unique challenge ID using xxhash
+        # Hash all parameters plus index for uniqueness
+        param_str = f"freq:{freq:.6f}_theta:{theta_deg:.6f}_phase:{phase_rad:.6f}_contrast:{contrast:.6f}_idx:{i}"
+        challenge_id = xxhash.xxh3_64_hexdigest(param_str.encode() + seed[:8])
+        
+        # Create Challenge object with all parameters
+        challenge = Challenge(
+            challenge_id=challenge_id,
+            index=i,
+            family="vision:freq",
+            parameters={
+                "freq": float(freq),           # cycles per degree
+                "theta": float(theta_deg),      # orientation in degrees
+                "theta_rad": float(np.deg2rad(theta_deg)),  # also provide in radians
+                "phase": float(phase_rad),      # phase in radians
+                "contrast": float(contrast),    # Michelson contrast
+                # Additional metadata
+                "freq_range": freq_range,
+                "contrast_range": contrast_range
+            }
+        )
+        
+        challenges.append(challenge)
+    
+    return challenges
+
 def generate_challenges(cfg: ChallengeConfig) -> Dict[str, Any]:
     """
     Generate challenges using PRF-based derivation for cryptographic security.
     
+    Implements the paper's specification:
+    c_i = KDF(master_seed || model_id || i || salt)
+    
     Returns:
       dict with keys:
-        'challenge_id' : hex string
+        'challenge_id' : hex string (overall challenge set ID)
         'family'       : cfg.family
         'items'        : list of serialized challenge items
+        'challenges'   : list of Challenge objects
         'salt'         : hex string used for commit-reveal
     """
-    # Use PRF to derive seed with family and params mixed in
+    # Use PRF to derive seed with family, params, and model_id mixed in
     master_key = bytes.fromhex(cfg.master_key_hex)
     nonce = bytes.fromhex(cfg.session_nonce_hex)
-    seed = prf_derive_seed(master_key, cfg.family, cfg.params, nonce)
     
-    # Option 1: Use PRF directly for sampling (more secure)
-    items = _sample_family_prf(cfg.family, cfg.params, cfg.n, seed)
+    # Include model_id in the seed derivation if provided
+    if cfg.model_id:
+        # Mix model_id into params for seed derivation
+        params_with_model = {**cfg.params, "model_id": cfg.model_id}
+        seed = prf_derive_seed(master_key, cfg.family, params_with_model, nonce)
+    else:
+        seed = prf_derive_seed(master_key, cfg.family, cfg.params, nonce)
     
-    # Generate deterministic salt from PRF (instead of secrets.token_hex)
+    # Generate deterministic salt from PRF
     salt_key = prf_derive_key(master_key, "salt", nonce)
     salt = salt_key[:16].hex()
     
+    # Generate challenges based on family
+    if cfg.family == "vision:freq":
+        challenges = generate_vision_freq_challenges(cfg, seed, salt)
+    else:
+        # Fallback to old method for other families
+        items = _sample_family_prf(cfg.family, cfg.params, cfg.n, seed)
+        # Create Challenge objects for backward compatibility
+        challenges = []
+        for i, item in enumerate(items):
+            # Generate unique challenge ID for each item
+            challenge_bytes = prf_bytes(seed, f"challenge_{i}".encode(), 16)
+            challenge_id = xxhash.xxh3_64_hexdigest(challenge_bytes)
+            challenges.append(Challenge(
+                challenge_id=challenge_id,
+                index=i,
+                family=cfg.family,
+                parameters=item
+            ))
+    
+    # Extract items for backward compatibility
+    items = [c.parameters for c in challenges]
+    
+    # Generate overall challenge set ID
     cid = xxhash.xxh3_128_hexdigest(repr(items).encode() + bytes.fromhex(salt))
-    return {"challenge_id": cid, "family": cfg.family, "items": items, "salt": salt}
+    
+    return {
+        "challenge_id": cid,
+        "family": cfg.family,
+        "items": items,
+        "challenges": challenges,
+        "salt": salt
+    }
 
 def _sample_family_prf(family: str, params: Dict[str, Any], n: int, seed: bytes):
     """Sample challenges using PRF for cryptographic security."""
     if family == "vision:freq":
         # sine gratings: frequency, orientation, phase, contrast
+        # Note: This is kept for backward compatibility
+        # New code should use generate_vision_freq_challenges
         items = []
         for i in range(n):
             # Use different info for each item to ensure independence
@@ -66,6 +199,7 @@ def _sample_family_prf(family: str, params: Dict[str, Any], n: int, seed: bytes)
             # Generate parameters using PRF
             freq_vals = prf_floats(seed, item_info + b":freq", 1, 
                                    params["freq_range"][0], params["freq_range"][1])
+            # Keep theta in radians for backward compatibility
             theta_vals = prf_floats(seed, item_info + b":theta", 1, 0, np.pi)
             phase_vals = prf_floats(seed, item_info + b":phase", 1, 0, 2*np.pi)
             contrast_vals = prf_floats(seed, item_info + b":contrast", 1,
@@ -73,7 +207,7 @@ def _sample_family_prf(family: str, params: Dict[str, Any], n: int, seed: bytes)
             
             items.append({
                 "freq": float(freq_vals[0]),
-                "theta": float(theta_vals[0]),
+                "theta": float(theta_vals[0]),  # radians for backward compatibility
                 "phase": float(phase_vals[0]),
                 "contrast": float(contrast_vals[0])
             })
