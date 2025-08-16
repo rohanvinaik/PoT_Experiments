@@ -122,6 +122,170 @@ def generate_vision_freq_challenges(cfg: ChallengeConfig, seed: bytes, salt: str
     
     return challenges
 
+def generate_vision_texture_challenges(cfg: ChallengeConfig, seed: bytes, salt: str) -> List[Challenge]:
+    """
+    Generate texture-based challenges for the vision:texture family.
+    
+    Following the paper's specification, generates deterministic texture patterns:
+    - Perlin noise: multi-octave noise with persistence and scale
+    - Gabor filters: oriented sinusoidal gratings with Gaussian envelope
+    - Checkerboard: regular grid patterns with varying size and contrast
+    
+    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    
+    Args:
+        cfg: Challenge configuration with texture parameters
+        seed: Deterministic seed derived from master key and model_id
+        salt: Salt for commit-reveal protocol
+    
+    Returns:
+        List of Challenge objects with texture parameters
+    """
+    challenges = []
+    
+    # Define available texture types
+    texture_types = cfg.params.get("texture_types", ["perlin", "gabor", "checkerboard"])
+    
+    # Extract parameter ranges for each texture type
+    # Perlin noise parameters
+    perlin_params = cfg.params.get("perlin", {})
+    octaves_range = perlin_params.get("octaves", [1, 5])  # Number of noise octaves
+    persistence_range = perlin_params.get("persistence", [0.3, 0.7])  # Amplitude falloff
+    scale_range = perlin_params.get("scale", [0.01, 0.1])  # Frequency scale
+    
+    # Gabor filter parameters
+    gabor_params = cfg.params.get("gabor", {})
+    wavelength_range = gabor_params.get("wavelength", [5.0, 30.0])  # Sinusoid wavelength in pixels
+    orientation_range = gabor_params.get("orientation", [0, 180])  # Orientation in degrees
+    phase_range = gabor_params.get("phase", [0, 2 * np.pi])  # Phase offset
+    sigma_range = gabor_params.get("sigma", [3.0, 15.0])  # Gaussian envelope std dev
+    aspect_ratio_range = gabor_params.get("aspect_ratio", [0.3, 1.0])  # Ellipticity
+    
+    # Checkerboard parameters
+    checker_params = cfg.params.get("checkerboard", {})
+    square_size_range = checker_params.get("square_size", [8, 32])  # Size of squares in pixels
+    contrast_range = checker_params.get("contrast", [0.3, 1.0])  # Contrast level
+    rotation_range = checker_params.get("rotation", [0, 45])  # Rotation in degrees
+    
+    for i in range(cfg.n):
+        # Create unique derivation info for each challenge
+        # Following paper: c_i = KDF(master_seed || model_id || i || salt)
+        if cfg.model_id:
+            challenge_info = f"challenge_{cfg.model_id}_{i}_{salt}".encode()
+        else:
+            challenge_info = f"challenge_{i}_{salt}".encode()
+        
+        # Deterministically select texture type
+        texture_type = prf_choice(seed, challenge_info + b":texture_type", texture_types)
+        
+        # Generate parameters based on texture type
+        if texture_type == "perlin":
+            # Generate Perlin noise parameters
+            octaves = prf_integers(seed, challenge_info + b":octaves", 1,
+                                  octaves_range[0], octaves_range[1])[0]
+            persistence = prf_floats(seed, challenge_info + b":persistence", 1,
+                                   persistence_range[0], persistence_range[1])[0]
+            scale = prf_floats(seed, challenge_info + b":scale", 1,
+                             scale_range[0], scale_range[1])[0]
+            
+            # Generate random seed for Perlin noise generation
+            noise_seed = prf_integers(seed, challenge_info + b":noise_seed", 1, 0, 2**31)[0]
+            
+            parameters = {
+                "texture_type": "perlin",
+                "octaves": int(octaves),
+                "persistence": float(persistence),
+                "scale": float(scale),
+                "seed": int(noise_seed),
+                # Metadata
+                "octaves_range": octaves_range,
+                "persistence_range": persistence_range,
+                "scale_range": scale_range
+            }
+            
+        elif texture_type == "gabor":
+            # Generate Gabor filter parameters
+            wavelength = prf_floats(seed, challenge_info + b":wavelength", 1,
+                                   wavelength_range[0], wavelength_range[1])[0]
+            orientation_deg = prf_floats(seed, challenge_info + b":orientation", 1,
+                                        orientation_range[0], orientation_range[1])[0]
+            phase = prf_floats(seed, challenge_info + b":phase", 1,
+                             phase_range[0], phase_range[1])[0]
+            sigma = prf_floats(seed, challenge_info + b":sigma", 1,
+                             sigma_range[0], sigma_range[1])[0]
+            aspect_ratio = prf_floats(seed, challenge_info + b":aspect_ratio", 1,
+                                     aspect_ratio_range[0], aspect_ratio_range[1])[0]
+            
+            parameters = {
+                "texture_type": "gabor",
+                "wavelength": float(wavelength),
+                "orientation": float(orientation_deg),  # in degrees
+                "orientation_rad": float(np.deg2rad(orientation_deg)),  # also in radians
+                "phase": float(phase),
+                "sigma": float(sigma),
+                "aspect_ratio": float(aspect_ratio),
+                # Metadata
+                "wavelength_range": wavelength_range,
+                "orientation_range": orientation_range,
+                "phase_range": phase_range,
+                "sigma_range": sigma_range,
+                "aspect_ratio_range": aspect_ratio_range
+            }
+            
+        elif texture_type == "checkerboard":
+            # Generate checkerboard parameters
+            square_size = prf_integers(seed, challenge_info + b":square_size", 1,
+                                      square_size_range[0], square_size_range[1])[0]
+            contrast = prf_floats(seed, challenge_info + b":contrast", 1,
+                                contrast_range[0], contrast_range[1])[0]
+            rotation_deg = prf_floats(seed, challenge_info + b":rotation", 1,
+                                    rotation_range[0], rotation_range[1])[0]
+            
+            # Generate phase offset for shifted checkerboards
+            phase_x = prf_integers(seed, challenge_info + b":phase_x", 1, 0, square_size)[0]
+            phase_y = prf_integers(seed, challenge_info + b":phase_y", 1, 0, square_size)[0]
+            
+            parameters = {
+                "texture_type": "checkerboard",
+                "square_size": int(square_size),
+                "contrast": float(contrast),
+                "rotation": float(rotation_deg),  # in degrees
+                "rotation_rad": float(np.deg2rad(rotation_deg)),  # also in radians
+                "phase_x": int(phase_x),
+                "phase_y": int(phase_y),
+                # Metadata
+                "square_size_range": square_size_range,
+                "contrast_range": contrast_range,
+                "rotation_range": rotation_range
+            }
+            
+        else:
+            # Fallback to simple Perlin noise for unknown types
+            octaves = prf_integers(seed, challenge_info + b":octaves", 1, 2, 4)[0]
+            scale = prf_floats(seed, challenge_info + b":scale", 1, 0.02, 0.08)[0]
+            
+            parameters = {
+                "texture_type": texture_type,
+                "octaves": int(octaves),
+                "scale": float(scale)
+            }
+        
+        # Create unique challenge ID by hashing all parameters
+        param_str = f"type:{texture_type}_params:{sorted(parameters.items())}_idx:{i}"
+        challenge_id = xxhash.xxh3_64_hexdigest(param_str.encode() + seed[:8])
+        
+        # Create Challenge object
+        challenge = Challenge(
+            challenge_id=challenge_id,
+            index=i,
+            family="vision:texture",
+            parameters=parameters
+        )
+        
+        challenges.append(challenge)
+    
+    return challenges
+
 def generate_lm_templates_challenges(cfg: ChallengeConfig, seed: bytes, salt: str) -> List[Challenge]:
     """
     Generate template-based text challenges for the lm:templates family.
@@ -277,6 +441,8 @@ def generate_challenges(cfg: ChallengeConfig) -> Dict[str, Any]:
     # Generate challenges based on family
     if cfg.family == "vision:freq":
         challenges = generate_vision_freq_challenges(cfg, seed, salt)
+    elif cfg.family == "vision:texture":
+        challenges = generate_vision_texture_challenges(cfg, seed, salt)
     elif cfg.family == "lm:templates":
         challenges = generate_lm_templates_challenges(cfg, seed, salt)
     else:
