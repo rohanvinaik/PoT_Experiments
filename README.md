@@ -53,15 +53,56 @@ Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (i
 
 ## Quick start
 
-### Installation
+### Environment setup
+
+- **Python**: 3.10
+- **GPU**: NVIDIA A100 40GB (≥16GB VRAM recommended)
+- **CUDA/cuDNN**: 12.0 / 9.x
+- **Non-default deps**: `ssdeep`, `py-tlsh` for fuzzy hashing
 
 ```bash
 git clone https://github.com/yourusername/PoT_Experiments.git
 cd PoT_Experiments
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Optional fuzzy-hash dependencies:
+### Dataset setup
+
+#### Vision (CIFAR-10)
+
+The vision experiments use CIFAR-10. The dataset will be downloaded automatically, or you can pre-fetch it:
+
+```bash
+python - <<'PY'
+import torchvision
+_ = torchvision.datasets.CIFAR10(root="data", download=True)
+PY
+```
+
+Dataset site: [https://www.cs.toronto.edu/~kriz/cifar.html](https://www.cs.toronto.edu/~kriz/cifar.html)
+
+#### Language (TinyLlama + small SFT)
+
+Language experiments pull `TinyLlama/TinyLlama-1.1B` and a small SFT dataset. Use Hugging Face tools:
+
+```bash
+pip install huggingface_hub datasets
+huggingface-cli download TinyLlama/TinyLlama-1.1B --local-dir models/TinyLlama-1.1B
+python - <<'PY'
+from datasets import load_dataset
+load_dataset('tatsu-lab/alpaca', split='train[:1000]').save_to_disk('data/small_sft')
+PY
+```
+
+Model page: [https://huggingface.co/TinyLlama/TinyLlama-1.1B](https://huggingface.co/TinyLlama/TinyLlama-1.1B)<br>
+Dataset page: [https://huggingface.co/datasets/tatsu-lab/alpaca](https://huggingface.co/datasets/tatsu-lab/alpaca)
+
+### Optional fuzzy-hash dependencies
+
+These features require native libraries and are installed via an optional extra:
 
 ```bash
 pip install ".[fuzzy]"  # installs ssdeep/tlsh

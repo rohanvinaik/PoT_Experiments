@@ -27,6 +27,8 @@ python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
 python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```
 
+**Runtime & Resources**: ~3h on 1×A100 40GB (≈8GB VRAM; CIFAR-10 download ≈170MB).
+
 ### E2: Leakage Ablation (Theorem 2 Empirical)
 
 **Purpose**: Test robustness to challenge leakage.
@@ -52,6 +54,8 @@ python scripts/run_verify.py --config configs/lm_small.yaml --challenge_family l
 python scripts/run_plots.py --exp_dir outputs/lm_small/E2 --plot_type leakage
 ```
 
+**Runtime & Resources**: ~4h on 1×A100 40GB (≈14GB VRAM; TinyLlama weights ≈2GB, SFT data ≈50MB).
+
 ### E3: Non-IID Drift & Determinism Stress
 
 **Purpose**: Test robustness to distribution shifts and hardware variations.
@@ -64,6 +68,8 @@ python scripts/run_plots.py --exp_dir outputs/lm_small/E2 --plot_type leakage
 **Expected Results**:
 - FAR/FRR degradation < 10% under minor drift
 - Maintain verification accuracy across hardware
+
+**Runtime & Resources**: ~2h on 1×A100 40GB (vision runs use ≈8GB VRAM; LM runs ≈14GB).
 
 ### E4: Adversarial Attacks
 
@@ -84,6 +90,8 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack wrapp
 python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack distillation --budget 10000
 ```
 
+**Runtime & Resources**: ~5h on 1×A100 40GB (≈16GB VRAM; attack logging generates ≈1GB of artifacts).
+
 ### E5: Sequential Testing
 
 **Purpose**: Reduce query requirements through early stopping.
@@ -96,6 +104,8 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack disti
 **Expected Results**:
 - 30-50% query reduction with sequential testing
 - Maintain target error rates
+
+**Runtime & Resources**: ~1.5h on 1×A100 40GB (≈8GB VRAM; sequential traces <100MB).
 
 ### E6: Baseline Comparisons
 
@@ -113,6 +123,8 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack disti
 - Average queries
 - Robustness to variations
 
+**Runtime & Resources**: ~2h on 1×A100 40GB (≈8GB VRAM; additional baselines may require extra CPU time).
+
 ### E7: Ablation Studies
 
 **Purpose**: Understand contribution of individual components.
@@ -122,6 +134,8 @@ python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack disti
 - Threshold calibration: with vs without τ calibration
 - Score clipping: bounded vs unbounded
 - Challenge families: freq vs texture (vision), arithmetic vs robustness (LM)
+
+**Runtime & Resources**: ~1h on 1×A100 40GB (≈8GB VRAM; results artifacts <100MB).
 
 ## Experimental Protocol
 
