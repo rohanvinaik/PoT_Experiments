@@ -11,12 +11,19 @@ from pathlib import Path
 import sys
 import os
 from typing import Dict, Any, List, Tuple
+import math
 
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from pot.core.jsonenc import safe_json_dump
 from pot.core.utils import sha256_bytes
+from pot.eval.baselines import (
+    benign_input_fingerprint,
+    adversarial_trajectory_fingerprint,
+    fixed_n_aggregation_distance,
+    sequential_hoeffding_test,
+)
 
 
 class BaselineMethod:
@@ -200,6 +207,129 @@ class ExternalBaseline(BaselineMethod):
         }
 
 
+class FBIBaseline(BaselineMethod):
+    """Benign-input fingerprint baseline"""
+
+    def __init__(self):
+        super().__init__("fbi")
+
+    def verify(self, outputs1: List, outputs2: List) -> Dict[str, Any]:
+        start_time = time.time()
+        fp1 = benign_input_fingerprint(outputs1)
+        fp2 = benign_input_fingerprint(outputs2)
+        match = fp1 == fp2
+        return {
+            "method": self.name,
+            "decision": "accept" if match else "reject",
+            "confidence": 1.0 if match else 0.0,
+            "time": time.time() - start_time,
+            "metadata": {"fp1": fp1[:16] + "...", "fp2": fp2[:16] + "..."},
+        }
+
+
+class AdversarialTrajectoryBaseline(BaselineMethod):
+    """Adversarial-trajectory fingerprint baseline"""
+
+    def __init__(self):
+        super().__init__("adv_traj")
+
+    def verify(self, outputs1: List, outputs2: List) -> Dict[str, Any]:
+        start_time = time.time()
+        fp1 = adversarial_trajectory_fingerprint(outputs1)
+        fp2 = adversarial_trajectory_fingerprint(outputs2)
+        match = fp1 == fp2
+        return {
+            "method": self.name,
+            "decision": "accept" if match else "reject",
+            "confidence": 1.0 if match else 0.0,
+            "time": time.time() - start_time,
+            "metadata": {"fp1": fp1[:16] + "...", "fp2": fp2[:16] + "..."},
+        }
+
+
+class FixedNAggregationBaseline(BaselineMethod):
+    """Fixed-n distance aggregation baseline"""
+
+    def __init__(self, n: int = 32, metric: str = "l2", threshold: float = 0.1):
+        super().__init__(f"fixedn_{metric}")
+        self.n = n
+        self.metric = metric
+        self.threshold = threshold
+
+    def verify(self, outputs1: List, outputs2: List) -> Dict[str, Any]:
+        start_time = time.time()
+        dist = fixed_n_aggregation_distance(outputs1, outputs2, n=self.n, metric=self.metric)
+        accept = dist < self.threshold
+        return {
+            "method": self.name,
+            "decision": "accept" if accept else "reject",
+            "confidence": float(math.exp(-dist / max(self.threshold, 1e-8))),
+            "time": time.time() - start_time,
+            "metadata": {"distance": dist, "n": self.n, "metric": self.metric},
+        }
+
+
+class SequentialHoeffdingBaseline(BaselineMethod):
+    """Sequential Hoeffding test baseline"""
+
+    def __init__(self, epsilon: float = 0.05):
+        super().__init__("seq_hoeffding")
+        self.epsilon = epsilon
+
+    def verify(self, outputs1: List, outputs2: List) -> Dict[str, Any]:
+        start_time = time.time()
+        decision, n_q = sequential_hoeffding_test(outputs1, outputs2, epsilon=self.epsilon)
+        return {
+            "method": self.name,
+            "decision": decision,
+            "confidence": 1.0 if decision == "accept" else 0.0,
+            "time": time.time() - start_time,
+            "metadata": {"n_queries": n_q, "epsilon": self.epsilon},
+        }
+
+
+class SequentialSPRTBaseline(BaselineMethod):
+    """Simple SPRT baseline for mean differences"""
+
+    def __init__(self, alpha: float = 0.05, beta: float = 0.05, mu0: float = 0.0, mu1: float = 0.1, sigma: float = 1.0):
+        super().__init__("seq_sprt")
+        self.alpha = alpha
+        self.beta = beta
+        self.mu0 = mu0
+        self.mu1 = mu1
+        self.sigma = sigma
+
+    def verify(self, outputs1: List, outputs2: List) -> Dict[str, Any]:
+        start_time = time.time()
+        arr1 = np.asarray(outputs1, dtype=np.float64).flatten()
+        arr2 = np.asarray(outputs2, dtype=np.float64).flatten()
+
+        llr = 0.0
+        n_q = 0
+        A = math.log((1 - self.beta) / self.alpha)
+        B = math.log(self.beta / (1 - self.alpha))
+        decision = "accept"
+
+        for o1, o2 in zip(arr1, arr2):
+            n_q += 1
+            x = o1 - o2
+            llr += ((x - self.mu0) ** 2 - (x - self.mu1) ** 2) / (2 * self.sigma ** 2)
+            if llr >= A:
+                decision = "reject"
+                break
+            if llr <= B:
+                decision = "accept"
+                break
+
+        return {
+            "method": self.name,
+            "decision": decision,
+            "confidence": 1.0,
+            "time": time.time() - start_time,
+            "metadata": {"n_queries": n_q, "llr": llr},
+        }
+
+
 def generate_test_outputs(n_samples: int = 100, 
                          output_dim: int = 10,
                          noise_level: float = 0.1) -> Tuple[List, List, List]:
@@ -277,7 +407,11 @@ def run_baseline_comparison(baselines: List[BaselineMethod],
             "fpr": fp,  # False positive rate
             "fnr": fn,  # False negative rate
             "avg_time": (gen_res["time"] + imp_res["time"]) / 2,
-            "avg_confidence": (gen_res["confidence"] + imp_res["confidence"]) / 2
+            "avg_confidence": (gen_res["confidence"] + imp_res["confidence"]) / 2,
+            "avg_queries": (
+                gen_res["metadata"].get("n_queries", len(genuine1))
+                + imp_res["metadata"].get("n_queries", len(impostor))
+            ) / 2,
         }
     
     return results
@@ -311,6 +445,12 @@ def main():
         SimpleDistanceBaseline(threshold=0.2, metric="cosine"),
         SimpleDistanceBaseline(threshold=0.5, metric="l1"),
         StatisticalBaseline(alpha=0.05),
+        FBIBaseline(),
+        AdversarialTrajectoryBaseline(),
+        FixedNAggregationBaseline(n=32, metric="l2"),
+        FixedNAggregationBaseline(n=32, metric="hamming"),
+        SequentialHoeffdingBaseline(epsilon=0.05),
+        SequentialSPRTBaseline(alpha=0.05, beta=0.05),
     ]
     
     # Add external baselines if available
@@ -348,29 +488,34 @@ def main():
     print("\n" + "=" * 70)
     print("BASELINE COMPARISON SUMMARY")
     print("=" * 70)
-    print(f"{'Method':<30} {'Accuracy':<10} {'TPR':<10} {'FPR':<10} {'Time(ms)':<10}")
+    print(f"{'Method':<30} {'Accuracy':<10} {'TPR':<10} {'FPR':<10} {'Queries':<10}")
     print("-" * 70)
-    
+
     for method_name, stats in results["summary"].items():
-        print(f"{method_name:<30} "
-              f"{stats['accuracy']:<10.2f} "
-              f"{stats['tpr']:<10.2f} "
-              f"{stats['fpr']:<10.2f} "
-              f"{stats['avg_time']*1000:<10.2f}")
+        print(
+            f"{method_name:<30} "
+            f"{stats['accuracy']:<10.2f} "
+            f"{stats['tpr']:<10.2f} "
+            f"{stats['fpr']:<10.2f} "
+            f"{stats.get('avg_queries', 0):<10.2f}"
+        )
     
     # Generate comparison CSV
     csv_file = output_dir / "baseline_comparison.csv"
     with open(csv_file, 'w') as f:
-        f.write("method,accuracy,tpr,tnr,fpr,fnr,avg_time_ms,avg_confidence\n")
+        f.write("method,accuracy,tpr,tnr,fpr,fnr,avg_time_ms,avg_confidence,avg_queries\n")
         for method_name, stats in results["summary"].items():
-            f.write(f"{method_name},"
-                   f"{stats['accuracy']},"
-                   f"{stats['tpr']},"
-                   f"{stats['tnr']},"
-                   f"{stats['fpr']},"
-                   f"{stats['fnr']},"
-                   f"{stats['avg_time']*1000},"
-                   f"{stats['avg_confidence']}\n")
+            f.write(
+                f"{method_name},"
+                f"{stats['accuracy']},"
+                f"{stats['tpr']},"
+                f"{stats['tnr']},"
+                f"{stats['fpr']},"
+                f"{stats['fnr']},"
+                f"{stats['avg_time']*1000},"
+                f"{stats['avg_confidence']},"
+                f"{stats.get('avg_queries', 0)}\n"
+            )
     print(f"\nCSV saved to {csv_file}")
     
     # Identify best baseline

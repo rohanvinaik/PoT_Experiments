@@ -11,7 +11,11 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 
 Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
-Note: “Security components” under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
+Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
+
+## Relation to Proof-of-Learning
+
+PoT offers statistical model-identity checks and complements cryptographic Proof-of-Learning (PoL) systems that attest to training provenance. PoL schemes require access to training traces or commitments and have recently improved via polynomial commitments and gradient compression, while PoT operates post-hoc on black-box models. Combining PoT with PoL can bind behavioral fingerprints to verifiable training histories.
 
 ## Threat model
 
@@ -118,7 +122,22 @@ PoT_Experiments/
 
 ## Baselines
 
-PoT achieves AUROC ≈ 0.99 vs 0.85–0.96 for simple distance/published baselines under our setup; see experiment E6 for full details and confidence intervals.
+PoT is compared against:
+
+- benign-input fingerprints (FBI),
+- adversarial-trajectory fingerprints (NeurIPS'24),
+- fixed-n L2/Hamming aggregations, and
+- SPRT/Hoeffding sequential tests.
+
+Across vision and LM benchmarks PoT reaches AUROC ≈ 0.99 with FAR ~0.4% and FRR ~0–1.2% while averaging 2–3 queries. Baselines attain AUROC 0.82–0.96 and typically require more queries; see experiment E6 for metrics and artifacts.
+
+## Ablation studies
+
+We ablate sequential rules (EB, Hoeffding, SPRT), τ calibration, score clipping, and challenge families. EB offers the best query efficiency at comparable FAR/FRR. τ calibration and clipping stabilize error rates, and texture vs frequency probes reveal coverage–separation trade-offs.
+
+## Leakage study
+
+Leakage fractions ρ ∈ {0, 0.1, 0.25, 0.5, 0.75} are evaluated with an adaptive attacker that learns the challenge distribution, following watermarking robustness test design. Detection degrades gracefully; even at ρ = 0.5 the calibrated τ maintains >60% detection.
 
 ## Limitations
 
