@@ -796,3 +796,7 @@ if __name__ == "__main__":
     sys.exit(0 if success else 1)
 
 # Missing variable
+
+
+# Missing variable
+__file__ = None  # TODO: Set appropriate value

@@ -1,13 +1,12 @@
 """Leakage tracking and challenge reuse policy enforcement for POT."""
 
 import json
-import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Set, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any
 import hashlib
 
 
@@ -279,7 +278,7 @@ class ReusePolicy:
         
         # Write atomically with temp file
         temp_path = path.with_suffix('.tmp')
-        with open(temp_path, 'w') as f:
+        with open(temp_path, 'w', encoding='utf-8') as f:
             json.dump(state, f, indent=2)
         temp_path.replace(path)
     
@@ -298,7 +297,7 @@ class ReusePolicy:
             return False
         
         try:
-            with open(path, 'r') as f:
+            with open(path, 'r', encoding='utf-8') as f:
                 state = json.load(f)
             
             # Restore usage data
@@ -329,7 +328,7 @@ class ReusePolicy:
             
             return True
             
-        except Exception as e:
+        except (IOError, json.JSONDecodeError, KeyError, ValueError) as e:
             print(f"Failed to load state from {path}: {e}")
             return False
 
@@ -421,7 +420,7 @@ class LeakageAuditor:
         path = Path(self.log_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         
-        with open(path, 'a') as f:
+        with open(path, 'a', encoding='utf-8') as f:
             f.write(json.dumps(event) + '\n')
     
     def generate_report(self) -> Dict[str, Any]:

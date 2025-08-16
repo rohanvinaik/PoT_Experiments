@@ -164,7 +164,7 @@ def write_audit_record(
     filepath = output_dir / filename
     
     # Write audit record
-    with open(filepath, 'w') as f:
+    with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(audit_record, f, indent=2, sort_keys=True)
     
     return audit_record
@@ -180,7 +180,7 @@ def load_audit_record(filepath: Union[str, Path]) -> Dict[str, Any]:
     Returns:
         The audit record dictionary
     """
-    with open(filepath, 'r') as f:
+    with open(filepath, 'r', encoding='utf-8') as f:
         record = json.load(f)
     
     # Convert hex strings back to bytes for nonce and commitment if present

@@ -1,4 +1,4 @@
-from typing import Iterable, Callable, Tuple, Optional, Literal, Dict, Any, List
+from typing import Iterable, Tuple, Literal, Dict, Any, List
 import numpy as np
 from math import log, sqrt
 from dataclasses import dataclass
@@ -323,6 +323,10 @@ class UnifiedSequentialTester:
         """
         self.observations.append(observation)
         
+        # Initialize defaults to prevent uninitialized variable errors
+        decision = "continue"
+        metadata = {}
+        
         if self.method == "eb":
             result = sequential_eb(iter(self.observations), self.config)
             decision = result["decision"]
@@ -346,6 +350,8 @@ class UnifiedSequentialTester:
                 "n": result.n_samples,
                 "llr": result.log_likelihood_ratio
             }
+        else:
+            raise ValueError(f"Unknown method: {self.method}")
         
         self.decisions.append({
             "n": len(self.observations),
