@@ -1,0 +1,239 @@
+{
+  "timestamp": "2025-08-16T07:50:30.316475",
+  "experiments": [
+    {
+      "name": "Verification Types",
+      "data": [
+        {
+          "type": "exact",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00021719932556152344
+        },
+        {
+          "type": "exact",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00017714500427246094
+        },
+        {
+          "type": "exact",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00015807151794433594
+        },
+        {
+          "type": "fuzzy",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 9.393692016601562e-05
+        },
+        {
+          "type": "fuzzy",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.0001347064971923828
+        },
+        {
+          "type": "fuzzy",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00013208389282226562
+        },
+        {
+          "type": "statistical",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 9.107589721679688e-05
+        },
+        {
+          "type": "statistical",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00013327598571777344
+        },
+        {
+          "type": "statistical",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00012302398681640625
+        }
+      ]
+    },
+    {
+      "name": "Security Levels",
+      "data": [
+        {
+          "level": "low",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false
+          }
+        },
+        {
+          "level": "medium",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false
+          }
+        },
+        {
+          "level": "high",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Model Types",
+      "data": [
+        {
+          "model_type": "vision",
+          "num_challenges": 3,
+          "challenge_types": "ndarray"
+        },
+        {
+          "model_type": "language",
+          "num_challenges": 3,
+          "challenge_types": "str"
+        },
+        {
+          "model_type": "multimodal",
+          "num_challenges": 2,
+          "challenge_types": "dict"
+        },
+        {
+          "model_type": "generic",
+          "num_challenges": 3,
+          "challenge_types": "ndarray"
+        }
+      ]
+    },
+    {
+      "name": "Challenge Effectiveness",
+      "data": [
+        {
+          "topology": "complex",
+          "dimension": 100,
+          "mean": -0.10161605868910145,
+          "std": 1.1731471281992105,
+          "sparsity": 0.01
+        },
+        {
+          "topology": "complex",
+          "dimension": 500,
+          "mean": 0.010020606294247926,
+          "std": 1.192793318588757,
+          "sparsity": 0.002
+        },
+        {
+          "topology": "complex",
+          "dimension": 1000,
+          "mean": 0.026415679547241097,
+          "std": 1.178912842652262,
+          "sparsity": 0.003
+        },
+        {
+          "topology": "sparse",
+          "dimension": 100,
+          "mean": 0.016546399013520008,
+          "std": 0.278638167695573,
+          "sparsity": 0.9
+        },
+        {
+          "topology": "sparse",
+          "dimension": 500,
+          "mean": 0.01866508171331803,
+          "std": 0.307731408240359,
+          "sparsity": 0.902
+        },
+        {
+          "topology": "sparse",
+          "dimension": 1000,
+          "mean": 0.00929683499281477,
+          "std": 0.32245173143706085,
+          "sparsity": 0.9
+        },
+        {
+          "topology": "normal",
+          "dimension": 100,
+          "mean": -0.10384651739409384,
+          "std": 0.9036161766446296,
+          "sparsity": 0.01
+        },
+        {
+          "topology": "normal",
+          "dimension": 500,
+          "mean": 0.006837994588647575,
+          "std": 0.9802715029966268,
+          "sparsity": 0.006
+        },
+        {
+          "topology": "normal",
+          "dimension": 1000,
+          "mean": 0.01933205582232549,
+          "std": 0.9787262077473543,
+          "sparsity": 0.004
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "data": [
+        {
+          "operation": "fuzzy_hash",
+          "size": 100,
+          "hash_time": 3.314018249511719e-05,
+          "verify_time": 2.6941299438476562e-05
+        },
+        {
+          "operation": "fuzzy_hash",
+          "size": 1000,
+          "hash_time": 2.4080276489257812e-05,
+          "verify_time": 2.5033950805664062e-05
+        },
+        {
+          "operation": "fuzzy_hash",
+          "size": 10000,
+          "hash_time": 6.29425048828125e-05,
+          "verify_time": 2.193450927734375e-05
+        },
+        {
+          "operation": "provenance",
+          "num_events": 10,
+          "log_time": 0.0002617835998535156,
+          "proof_time": 0.00011229515075683594
+        },
+        {
+          "operation": "provenance",
+          "num_events": 50,
+          "log_time": 0.001081228256225586,
+          "proof_time": 0.0003597736358642578
+        },
+        {
+          "operation": "provenance",
+          "num_events": 100,
+          "log_time": 0.0019969940185546875,
+          "proof_time": 0.0005340576171875
+        }
+      ]
+    }
+  ]
+}

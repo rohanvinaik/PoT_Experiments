@@ -416,9 +416,28 @@ def experiment_performance():
     
     return results
 
+def convert_numpy_types(obj):
+    """Convert NumPy types to Python types for JSON serialization"""
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(item) for item in obj]
+    return obj
+
 if __name__ == "__main__":
     print("Starting comprehensive experimental validation...")
     results = run_experiments()
+    
+    # Convert NumPy types before saving
+    results = convert_numpy_types(results)
     
     # Save results
     with open('validation_results.json', 'w') as f:
