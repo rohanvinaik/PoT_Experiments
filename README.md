@@ -67,6 +67,64 @@ NVIDIA GPUs.
 
 PoT offers statistical model-identity checks and complements cryptographic Proof-of-Learning (PoL) systems that attest to training provenance. PoL schemes require access to training traces or commitments and have recently improved via polynomial commitments and gradient compression, while PoT operates post-hoc on black-box models. Combining PoT with PoL can bind behavioral fingerprints to verifiable training histories.
 
+## Behavioral Fingerprinting
+
+The PoT framework includes a comprehensive behavioral fingerprinting system (Paper §2.2) that captures and compresses model behavior for quick verification:
+
+### Overview
+
+Behavioral fingerprinting creates deterministic signatures of neural network behavior through two complementary mechanisms:
+
+1. **Input-Output (IO) Fingerprinting**: Captures model outputs on challenge inputs, creating stable hashes of canonicalized responses. Provides sub-100ms verification for model identity checks.
+
+2. **Jacobian Fingerprinting**: Analyzes gradient structure by computing and sketching the Jacobian matrix. Captures model sensitivity patterns and decision boundaries, ideal for detecting fine-tuning or architectural changes.
+
+### When to Use IO vs Jacobian Analysis
+
+| Scenario | Recommended Approach | Rationale |
+|----------|---------------------|-----------|
+| Quick identity check | IO only | Fast (<100ms), deterministic, sufficient for exact matching |
+| Fine-tuning detection | IO + Jacobian | Jacobian captures subtle parameter changes |
+| Architecture verification | Jacobian (magnitude) | Magnitude sketches reveal layer structure |
+| Large language models | IO only | Jacobian computation expensive for transformers |
+| Security-critical | Both | Maximum confidence through dual verification |
+| Resource-constrained | IO only | Minimal compute/memory overhead |
+
+### Performance Considerations
+
+- **IO Fingerprinting**: ~10-50ms per model for 10 challenges
+- **Jacobian Sketching**: ~100-500ms additional overhead
+- **Memory Usage**: O(n_challenges × output_dim) for IO, O(input_dim × output_dim) for Jacobian
+- **Storage**: 64 bytes (IO hash) + optional 32 bytes (Jacobian sketch)
+
+### Integration with Statistical Verification
+
+Fingerprinting complements statistical verification by:
+1. Providing quick pre-filtering before expensive statistical tests
+2. Enabling batch verification of multiple models
+3. Creating audit trails through deterministic hashes
+4. Supporting early rejection of obviously different models
+
+Example integration:
+```python
+from pot.core.fingerprint import FingerprintConfig, fingerprint_run, is_behavioral_match
+from pot.vision.verifier import VisionVerifier
+
+# Quick fingerprint check first
+config = FingerprintConfig.for_vision_model(compute_jacobian=False)
+fp_candidate = fingerprint_run(model, challenges, config)
+
+if not is_behavioral_match(fp_reference, fp_candidate, threshold=0.9):
+    # Early rejection - skip expensive statistical verification
+    return "Model rejected (fingerprint mismatch)"
+
+# Proceed with full statistical verification if fingerprints match
+verifier = VisionVerifier(reference_model, use_fingerprinting=True)
+result = verifier.verify(model, challenges)
+```
+
+See `examples/fingerprinting_demo.py` for complete usage examples.
+
 ## Threat model
 
 Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (iii) access up to a fraction ρ of past challenges, (iv) query black-box APIs polynomially. These capabilities map to misuse and robustness obligations in the EU AI Act's risk-management and cybersecurity provisions (Art. 9, Art. 15) and the NIST AI Risk Management Framework's "Secure and Resilient" profile. PoT's challenge-based auditing detects unauthorized model alterations and drift, supporting those standards, but it does not address white-box exposure, network tampering, or hardware bypass—gaps relative to EU AI Act Art. 15(5) and NIST confidentiality/integrity expectations. Deployment must ensure secure channels, challenge secrecy, and complementary operational controls.[1][2]

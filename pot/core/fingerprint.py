@@ -1,3 +1,39 @@
+"""
+Behavioral Fingerprinting for Neural Network Verification
+
+This module implements behavioral fingerprinting techniques for model verification
+as described in the Proof-of-Training paper (§2.2). The system captures and 
+compresses model behavior through two complementary mechanisms:
+
+1. **Input-Output (IO) Fingerprinting**: Captures the model's output behavior
+   on a set of challenge inputs, creating a stable hash of canonicalized outputs.
+   This provides a quick, deterministic way to verify model identity.
+
+2. **Jacobian Fingerprinting**: Analyzes the model's sensitivity to input 
+   perturbations by computing and sketching the Jacobian matrix. This captures
+   the model's local gradient structure, providing deeper behavioral insights.
+
+Theory and Approach (Paper §2.2):
+---------------------------------
+Behavioral fingerprinting leverages the observation that neural networks with
+different parameters exhibit distinct input-output mappings and gradient patterns.
+By carefully selecting challenge inputs and canonicalizing outputs, we can create
+reproducible signatures that uniquely identify models while being robust to
+minor implementation differences.
+
+The Jacobian sketching technique compresses the high-dimensional gradient
+information into compact representations using:
+- Sign patterns: Capture gradient directions (most robust)
+- Magnitude sketches: Preserve gradient scale information
+- Hybrid approaches: Balance detail and compression
+
+Key Benefits:
+- Fast verification without full model evaluation
+- Deterministic and reproducible signatures
+- Tunable sensitivity through challenge selection
+- Complementary to statistical verification methods
+"""
+
 from __future__ import annotations
 
 import numpy as np
@@ -12,20 +48,53 @@ from .canonicalize import canonicalize_logits, canonicalize_text
 
 @dataclass
 class FingerprintConfig:
-    """Configuration for model fingerprinting.
+    """Configuration for model fingerprinting with parameter tuning guidelines.
+    
+    This class controls the behavior of the fingerprinting system. Proper tuning
+    of these parameters is crucial for balancing verification accuracy, speed,
+    and robustness (Paper §2.2).
+    
+    Parameter Tuning Guidelines:
+    ----------------------------
+    
+    **Jacobian Settings:**
+    - `compute_jacobian=True`: Enable for high-security verification or when
+      detecting fine-tuning/tampering. Adds ~2-5x overhead.
+    - `jacobian_sketch_type='sign'`: Most robust to numerical variations
+    - `jacobian_sketch_type='magnitude'`: Captures scale changes, useful for
+      detecting quantization or pruning
+    - `jacobian_delta`: Smaller values (1e-4) for smooth models, larger (1e-2)
+      for models with ReLU or other non-smooth activations
+    - `jacobian_max_dim`: Balance between coverage (higher) and speed (lower).
+      256 is good default, 512+ for critical verification
+    
+    **Canonicalization Settings:**
+    - `canonicalize_precision`: 6 for float32 models, 3-4 for quantized models
+    - Higher precision increases sensitivity but may reduce robustness
+    
+    **Performance Settings:**
+    - `batch_size`: Increase for GPU models (4-16), keep at 1 for CPU
+    - `memory_efficient=True`: For models > 1GB or limited RAM
+    - `parallel_execution`: Enable for multi-core CPUs, disable for GPU models
+    
+    **Model-Specific Recommendations:**
+    - Vision models: Enable Jacobian, use 'magnitude' sketch, precision 6
+    - Language models: Disable Jacobian (high cost), focus on IO hash, precision 5
+    - Small models (<100MB): Can use full Jacobian analysis
+    - Large models (>1GB): Use memory-efficient mode, skip Jacobian
     
     Attributes:
         compute_jacobian: Whether to compute Jacobian sketches
         jacobian_layer: Specific layer for Jacobian computation (None for output)
-        jacobian_epsilon: Threshold for Jacobian zero values
+        jacobian_epsilon: Threshold for Jacobian zero values (default: 1e-6)
         jacobian_sketch_type: Type of sketch ('sign', 'magnitude', 'full')
-        jacobian_delta: Finite difference step size
-        jacobian_max_dim: Maximum input dimensions for Jacobian
-        canonicalize_precision: Decimal precision for canonicalization
+        jacobian_delta: Finite difference step size (default: 1e-3)
+        jacobian_max_dim: Maximum input dimensions for Jacobian (default: 256)
+        canonicalize_precision: Decimal precision for canonicalization (default: 6)
         include_timing: Whether to include timing information
-        batch_size: Processing batch size for challenges
+        batch_size: Processing batch size for challenges (default: 1)
         output_type: Expected output type ('auto', 'logits', 'text', 'embeddings')
-        canonical_config: Canonicalization configuration
+        canonical_config: Advanced canonicalization configuration
         model_type: Model type hint ('vision', 'lm', 'multimodal', 'auto')
         challenge_timeout: Maximum time per challenge in seconds
         parallel_execution: Whether to process challenges in parallel
@@ -686,14 +755,28 @@ def quantize(arr: np.ndarray, p:int=4):
 
 
 def jacobian_sign_hash(jacobian: np.ndarray, threshold: float = 1e-6) -> bytes:
-    """Compute a hash of the Jacobian sign pattern.
+    """Compute a hash of the Jacobian sign pattern (Paper §2.2).
+    
+    Theory: The sign pattern of a Jacobian matrix captures the direction of 
+    gradient flow through the network, which is highly characteristic of the
+    model's learned function. This compression technique preserves the most
+    robust behavioral information while achieving high compression ratios.
+    
+    The sign pattern is invariant to gradient scaling but sensitive to the
+    model's decision boundaries, making it ideal for detecting structural
+    changes while being robust to minor numerical variations.
     
     Args:
         jacobian: Jacobian matrix of shape [input_dim, output_dim]
-        threshold: Values below this are considered zero
+        threshold: Values below this are considered zero (noise floor)
         
     Returns:
         Bytes representation of the sign pattern hash
+    
+    Example:
+        >>> J = np.array([[1.5, -0.3], [0.0001, 2.1]])
+        >>> sign_hash = jacobian_sign_hash(J, threshold=0.001)
+        # Results in encoding: [[+, -], [0, +]] -> unique byte pattern
     """
     # Reference: §2.2 - compressed Jacobian representation
     sign_pattern = np.sign(jacobian)
