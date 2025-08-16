@@ -1,0 +1,133 @@
+======================================================================
+ATTACK SIMULATION REPORT
+======================================================================
+
+Generated: 2025-08-15T23:39:23.882935
+Scenarios tested: 10
+
+============================== SUMMARY ==============================
+Overall detection rate: 51.00%
+Overall attack success rate: 49.00%
+False positive rate: 0.00%
+
+============================== BY ATTACK TYPE ==============================
+
+WRAPPER:
+  Average detection rate: 100.00%
+  Average success rate: 0.00%
+  Scenarios: 3
+
+COMPRESSION:
+  Average detection rate: 36.67%
+  Average success rate: 63.33%
+  Scenarios: 3
+
+COMBINED:
+  Average detection rate: 100.00%
+  Average success rate: 0.00%
+  Scenarios: 1
+
+FINE_TUNING:
+  Average detection rate: 0.00%
+  Average success rate: 100.00%
+  Scenarios: 3
+
+============================== DETAILED RESULTS ==============================
+
+Simple Wrapper:
+  Type: wrapper
+  Detection rate: 100.00%
+  Success rate: 0.00%
+  Average similarity: -0.0909
+  Computational cost: 0.00s
+
+Adaptive Wrapper:
+  Type: wrapper
+  Detection rate: 100.00%
+  Success rate: 0.00%
+  Average similarity: 0.4395
+  Computational cost: 0.03s
+
+Sophisticated Wrapper:
+  Type: wrapper
+  Detection rate: 100.00%
+  Success rate: 0.00%
+  Average similarity: 0.0044
+  Computational cost: 0.01s
+
+Minimal Fine-tuning:
+  Type: fine_tuning
+  Detection rate: 0.00%
+  Success rate: 100.00%
+  Average similarity: 1.0000
+  Computational cost: 0.00s
+
+Moderate Fine-tuning:
+  Type: fine_tuning
+  Detection rate: 0.00%
+  Success rate: 100.00%
+  Average similarity: 1.0000
+  Computational cost: 0.00s
+
+Aggressive Fine-tuning:
+  Type: fine_tuning
+  Detection rate: 0.00%
+  Success rate: 100.00%
+  Average similarity: 0.9863
+  Computational cost: 0.00s
+
+Light Compression:
+  Type: compression
+  Detection rate: 0.00%
+  Success rate: 100.00%
+  Average similarity: 0.9988
+  Computational cost: 0.00s
+
+Medium Compression:
+  Type: compression
+  Detection rate: 10.00%
+  Success rate: 90.00%
+  Average similarity: 0.8769
+  Computational cost: 0.00s
+
+Heavy Compression:
+  Type: compression
+  Detection rate: 100.00%
+  Success rate: 0.00%
+  Average similarity: 0.5421
+  Computational cost: 0.00s
+
+Multi-technique Attack:
+  Type: combined
+  Detection rate: 100.00%
+  Success rate: 0.00%
+  Average similarity: 0.5341
+  Computational cost: 0.01s
+
+============================== SECURITY ASSESSMENT ==============================
+
+⚠ CRITICAL VULNERABILITIES:
+  - Minimal Fine-tuning: Only 0.00% detection rate
+  - Moderate Fine-tuning: Only 0.00% detection rate
+  - Aggressive Fine-tuning: Only 0.00% detection rate
+  - Light Compression: Only 0.00% detection rate
+  - Medium Compression: Only 10.00% detection rate
+
+✓ STRONG DEFENSES:
+  - Simple Wrapper: 100.00% detection rate
+  - Adaptive Wrapper: 100.00% detection rate
+  - Sophisticated Wrapper: 100.00% detection rate
+  - Heavy Compression: 100.00% detection rate
+  - Multi-technique Attack: 100.00% detection rate
+
+============================== RECOMMENDATIONS ==============================
+
+1. URGENT: Strengthen detection mechanisms
+   - Increase challenge complexity
+   - Add more verification rounds
+   - Implement adaptive thresholds
+
+3. Enhance fine-tuning detection:
+   - Increase parameter sensitivity
+   - Add gradient analysis
+   - Implement weight distribution checks
