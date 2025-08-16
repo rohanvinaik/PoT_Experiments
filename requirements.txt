@@ -1,18 +1,20 @@
-torch
-torchvision
-transformers
-accelerate
-sentence-transformers
+torch==2.2.0
+torchvision==0.17.0
+transformers==4.31.0
+accelerate==0.21.0
+sentence-transformers==2.2.2
 numpy>=2.0.0
-scipy
-scikit-learn
-einops
-tqdm
-pyyaml
-matplotlib>=3.8.0
-seaborn
-xxhash
+scipy==1.10.1
+scikit-learn==1.3.0
+einops==0.6.1
+tqdm==4.65.0
+pyyaml==6.0
+matplotlib>=3.8.2
+seaborn==0.12.2
+xxhash==3.4.1
 
 # Required for fuzzy hashing (core PoT functionality)
-ssdeep
-py-tlsh
+ssdeep==3.4
+py-tlsh==4.7.2
+
+pytest>=7.0.0

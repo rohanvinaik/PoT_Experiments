@@ -14,3 +14,4 @@ pyyaml
 matplotlib>=3.8.0
 seaborn
 xxhash
+pytest>=7.0.0
