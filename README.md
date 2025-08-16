@@ -8,6 +8,7 @@ Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 - 2–3 avg queries to decision via sequential EB (vs 256–512 fixed);
 - Robust to ρ=0.25 challenge leakage;
 - Outperforms simple distance baselines (E6).
+- Fuzzy hashing outperforms exact token matching on sample LMs ([docs/lm_hashing_benchmark.md](docs/lm_hashing_benchmark.md)).
 
 Reproduce with: `bash run_all.sh` (details in [EXPERIMENTS.md](EXPERIMENTS.md)).
 
