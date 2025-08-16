@@ -250,6 +250,104 @@ result = pot.perform_verification(model, model_id="model_v1", profile="standard"
 
 `pot/prototypes/training_provenance_auditor.py` provides an experimental training-provenance auditor and optional blockchain logging sink.
 
+## Challenge Generation System
+
+The PoT framework uses cryptographically secure challenge generation to ensure deterministic yet unpredictable test inputs for model verification. This implements the KDF-based approach from §2.3 of the paper.
+
+### Cryptographic Foundation
+
+All challenges follow the pattern: `c_i = KDF(master_seed || model_id || i || salt)`
+
+This ensures:
+- **Determinism**: Same inputs always produce identical challenges
+- **Unpredictability**: Without the master key, challenges appear random
+- **Model-specificity**: Different models receive different challenges when model_id is provided
+- **Session uniqueness**: Each verification session gets fresh challenges via nonce
+
+### PRF/KDF Implementation
+
+The system uses a hybrid approach for performance and security:
+- **HMAC-SHA256**: Cryptographic strength for key derivation and small outputs
+- **xxhash**: Fast non-cryptographic hashing for challenge IDs and large data
+- **NIST SP 800-108**: Counter mode construction for variable-length PRF output
+
+```python
+from pot.core.challenge import ChallengeConfig, generate_challenges
+
+# Generate deterministic challenges for a specific model
+config = ChallengeConfig(
+    master_key_hex='deadbeef' * 8,  # 256-bit master key
+    session_nonce_hex='cafebabe' * 4,  # 128-bit session nonce
+    n=10,  # Number of challenges
+    family='vision:freq',  # Challenge type
+    params={'freq_range': [0.5, 10.0], 'contrast_range': [0.2, 1.0]},
+    model_id='resnet50_v1'  # Optional: model-specific challenges
+)
+
+result = generate_challenges(config)
+# result['challenges'] contains Challenge objects with unique IDs
+```
+
+### Supported Challenge Families
+
+#### Vision Challenges
+
+1. **vision:freq** - Sine grating patterns
+   - Parameters: frequency (cycles/degree), orientation (degrees), phase (radians), contrast
+   - Use case: Testing frequency response and orientation selectivity
+
+2. **vision:texture** - Complex texture patterns
+   - Types: Perlin noise, Gabor filters, checkerboard patterns
+   - Parameters vary by type (octaves, wavelength, square_size, etc.)
+   - Use case: Testing response to naturalistic and synthetic textures
+
+#### Language Model Challenges
+
+1. **lm:templates** - Template-based text generation
+   - Grammatical slots: subject, verb, object, adjective, adverb
+   - Deterministic slot filling from provided vocabularies
+   - Use case: Testing consistent language understanding and generation
+
+### Extending with New Challenge Families
+
+To add a new challenge family:
+
+1. **Define the generation function** in `pot/core/challenge.py`:
+```python
+def generate_[family]_challenges(cfg: ChallengeConfig, seed: bytes, salt: str) -> List[Challenge]:
+    """Generate challenges for new family."""
+    challenges = []
+    for i in range(cfg.n):
+        # Use PRF functions for deterministic parameter generation
+        param = prf_floats(seed, f'challenge_{i}_param'.encode(), 1, min_val, max_val)[0]
+        
+        # Create unique challenge ID
+        challenge_id = xxhash.xxh3_64_hexdigest(...)
+        
+        challenges.append(Challenge(
+            challenge_id=challenge_id,
+            index=i,
+            family='new:family',
+            parameters={...}
+        ))
+    return challenges
+```
+
+2. **Register in generate_challenges()** dispatcher:
+```python
+elif cfg.family == "new:family":
+    challenges = generate_new_family_challenges(cfg, seed, salt)
+```
+
+3. **Update verifiers** to use the new challenges in the appropriate domain verifier.
+
+### Security Considerations
+
+- Master keys should be generated using cryptographically secure random sources
+- Session nonces must be unique per verification session
+- Challenge reuse is tracked via the leakage tracking system (`pot/security/leakage.py`)
+- The salt parameter enables commit-reveal protocols for tamper-evident verification
+
 ## Project structure
 
 ```

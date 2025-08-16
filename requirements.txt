@@ -11,7 +11,9 @@ tqdm==4.67.1
 pyyaml==6.0.2
 matplotlib>=3.10.5
 seaborn==0.13.2
-xxhash==3.5.0
+
+# Cryptographic and hashing dependencies
+xxhash==3.5.0  # Fast non-cryptographic hash for challenge IDs and performance-critical paths
 
 # Fuzzy hashing support (optional)
 # ssdeep requires libfuzzy system library; install separately if needed

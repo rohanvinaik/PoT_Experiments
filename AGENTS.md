@@ -578,3 +578,54 @@ The system is designed to be extensible. To add new:
 - **Model types**: Extend `ModelType` enum and `ChallengeLibrary`
 - **Hash algorithms**: Add to `FuzzyHashVerifier`
 - **Proof types**: Extend `ProofType` in `TrainingProvenanceAuditor`
+
+## Documentation Requirements for Contributors
+
+When adding substantial functionality to the PoT codebase, please ensure comprehensive documentation:
+
+### 1. Code Documentation
+
+- **Docstrings**: Add detailed docstrings to all functions and classes
+  - Include cryptographic properties for security functions
+  - Specify parameter ranges and types
+  - Add usage examples
+  - Reference paper sections (e.g., §2.3 for challenge generation)
+
+- **Inline Comments**: Add comments that:
+  - Reference specific paper sections for algorithms
+  - Explain non-obvious implementation choices
+  - Mark security-critical sections
+  - Note performance vs security trade-offs
+
+### 2. File Updates
+
+When adding new features, update these files:
+
+- **AGENTS.md** (this file): Add integration examples and API documentation
+- **CLAUDE.md**: Update with implementation details and best practices
+- **README.md**: Add new challenge families or verification modes
+- **requirements.txt**: Document new dependencies with version pins
+
+### 3. Challenge Family Extensions
+
+When adding new challenge families:
+1. Implement generation function in `pot/core/challenge.py`
+2. Register in the `generate_challenges()` dispatcher
+3. Update verifiers to use new challenges
+4. Add unit tests in `tests/`
+5. Document in README.md under "Supported Challenge Families"
+
+### 4. Testing Requirements
+
+- Add unit tests for all new functions
+- Include integration tests for new workflows
+- Ensure tests are deterministic with fixed seeds
+- Document test coverage in pull requests
+
+### 5. Security Considerations
+
+For security-related changes:
+- Document threat model assumptions
+- Explain cryptographic choices
+- Note any security/performance trade-offs
+- Update security level recommendations if needed

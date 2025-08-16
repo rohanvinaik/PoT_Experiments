@@ -51,21 +51,30 @@ def generate_vision_freq_challenges(cfg: ChallengeConfig, seed: bytes, salt: str
     """
     Generate sine grating challenges for the vision:freq family.
     
-    Following the paper's specification, generates deterministic parameters:
-    - frequency: cycles per degree (in specified range)
-    - theta: orientation in degrees (0-180)
-    - phase: phase offset in radians (0-2π)
-    - contrast: Michelson contrast (0-1 or specified range)
+    Implements vision-specific challenges from paper §3.1 (Vision Models),
+    generating deterministic sine grating patterns for perceptual verification.
     
-    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    Generated Parameters:
+    - frequency: Spatial frequency in cycles per degree [freq_range]
+    - theta: Orientation angle in degrees [0, 180]
+    - phase: Phase offset in radians [0, 2π]
+    - contrast: Michelson contrast [contrast_range]
+    
+    Each challenge follows: c_i = KDF(master_seed || model_id || i || salt)
     
     Args:
-        cfg: Challenge configuration with freq_range and contrast_range
-        seed: Deterministic seed derived from master key and model_id
+        cfg: Challenge configuration with:
+            - freq_range: [min, max] cycles per degree (default [0.1, 10.0])
+            - contrast_range: [min, max] contrast (default [0.1, 1.0])
+        seed: Deterministic seed from master key and model_id
         salt: Salt for commit-reveal protocol
     
     Returns:
         List of Challenge objects with sine grating parameters
+    
+    Example:
+        >>> # Challenges will produce sine gratings like:
+        >>> # I(x,y) = 0.5 + 0.5 * contrast * sin(2π * freq * (x*cos(θ) + y*sin(θ)) + phase)
     """
     challenges = []
     
@@ -126,16 +135,33 @@ def generate_vision_texture_challenges(cfg: ChallengeConfig, seed: bytes, salt: 
     """
     Generate texture-based challenges for the vision:texture family.
     
-    Following the paper's specification, generates deterministic texture patterns:
-    - Perlin noise: multi-octave noise with persistence and scale
-    - Gabor filters: oriented sinusoidal gratings with Gaussian envelope
-    - Checkerboard: regular grid patterns with varying size and contrast
+    Implements advanced texture patterns from paper §3.1, extending beyond
+    simple gratings to test model responses to complex visual patterns.
     
-    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    Texture Types:
+    1. Perlin Noise:
+       - octaves: Number of noise layers [1-5]
+       - persistence: Amplitude decay per octave [0.3-0.7]
+       - scale: Base frequency scale [0.01-0.1]
+    
+    2. Gabor Filters:
+       - wavelength: Sinusoid wavelength in pixels [5-30]
+       - orientation: Filter angle in degrees [0-180]
+       - phase: Phase offset [0-2π]
+       - sigma: Gaussian envelope width [3-15]
+       - aspect_ratio: Filter ellipticity [0.3-1.0]
+    
+    3. Checkerboard:
+       - square_size: Grid square size in pixels [8-32]
+       - contrast: Pattern contrast [0.3-1.0]
+       - rotation: Grid rotation in degrees [0-45]
+       - phase_x/y: Grid offset for alignment variation
+    
+    Each challenge follows: c_i = KDF(master_seed || model_id || i || salt)
     
     Args:
-        cfg: Challenge configuration with texture parameters
-        seed: Deterministic seed derived from master key and model_id
+        cfg: Challenge configuration with texture_types and per-type params
+        seed: Deterministic seed from master key and model_id
         salt: Salt for commit-reveal protocol
     
     Returns:
@@ -290,20 +316,36 @@ def generate_lm_templates_challenges(cfg: ChallengeConfig, seed: bytes, salt: st
     """
     Generate template-based text challenges for the lm:templates family.
     
-    Following the paper's specification, generates deterministic prompts:
-    - Templates with slots for grammatical components
-    - Subjects, verbs, objects, modifiers/adjectives
-    - Complete prompts like "The [adjective] [subject] [verb] the [object]"
+    Implements language model challenges from paper §3.2 (Language Models),
+    using slot-based templates to generate diverse yet controlled prompts.
     
-    Each challenge has a unique ID: c_i = KDF(master_seed || model_id || i || salt)
+    Template System:
+    - Templates contain slots marked with {slot_name}
+    - Slots are filled deterministically from provided vocabularies
+    - Supports grammatical variation (subject, verb, object, etc.)
+    
+    Default Slot Categories:
+    - subject/subject2: Actors in the sentence
+    - verb/verb_past: Action words (present/past tense)
+    - object: Target of actions
+    - adjective: Descriptive modifiers
+    - adverb: Action modifiers
+    
+    Each challenge follows: c_i = KDF(master_seed || model_id || i || salt)
     
     Args:
-        cfg: Challenge configuration with templates and slot values
-        seed: Deterministic seed derived from master key and model_id
+        cfg: Challenge configuration with:
+            - templates: List of template strings with {slots}
+            - slots: Dict mapping slot names to value lists
+        seed: Deterministic seed from master key and model_id
         salt: Salt for commit-reveal protocol
     
     Returns:
-        List of Challenge objects with templated prompts
+        List of Challenge objects with completed prompts
+    
+    Example:
+        >>> # Template: "The {adjective} {subject} {verb} the {object}."
+        >>> # Might generate: "The clever cat chases the ball."
     """
     challenges = []
     
@@ -411,16 +453,44 @@ def generate_challenges(cfg: ChallengeConfig) -> Dict[str, Any]:
     """
     Generate challenges using PRF-based derivation for cryptographic security.
     
-    Implements the paper's specification:
-    c_i = KDF(master_seed || model_id || i || salt)
+    Central challenge generation function implementing the KDF pattern from
+    paper §2.3 (Challenge Generation):
+    
+        c_i = KDF(master_seed || model_id || i || salt)
+    
+    This ensures challenges are:
+    1. Deterministic: Same inputs always produce same challenges
+    2. Unpredictable: Without the master key, challenges appear random
+    3. Model-specific: Different models get different challenges when model_id is provided
+    4. Session-unique: Each session gets fresh challenges via nonce
+    
+    Supported Challenge Families:
+    - 'vision:freq': Sine grating patterns with frequency/orientation/phase
+    - 'vision:texture': Perlin noise, Gabor filters, checkerboards
+    - 'lm:templates': Template-based text prompts with slot filling
+    
+    Args:
+        cfg: ChallengeConfig with master_key, nonce, family, params, and optional model_id
     
     Returns:
-      dict with keys:
-        'challenge_id' : hex string (overall challenge set ID)
-        'family'       : cfg.family
-        'items'        : list of serialized challenge items
-        'challenges'   : list of Challenge objects
-        'salt'         : hex string used for commit-reveal
+        dict with keys:
+            'challenge_id': Overall challenge set ID (hex string)
+            'family': Challenge family identifier
+            'items': List of challenge parameters (backward compatibility)
+            'challenges': List of Challenge objects with unique IDs
+            'salt': Hex string for commit-reveal protocol
+    
+    Example:
+        >>> config = ChallengeConfig(
+        ...     master_key_hex='deadbeef' * 8,
+        ...     session_nonce_hex='cafebabe' * 4,
+        ...     n=10,
+        ...     family='vision:freq',
+        ...     params={'freq_range': [0.5, 10.0], 'contrast_range': [0.2, 1.0]},
+        ...     model_id='resnet50_v1'
+        ... )
+        >>> challenges = generate_challenges(config)
+        >>> print(f"Generated {len(challenges['challenges'])} challenges")
     """
     # Use PRF to derive seed with family, params, and model_id mixed in
     master_key = bytes.fromhex(cfg.master_key_hex)

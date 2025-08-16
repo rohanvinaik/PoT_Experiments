@@ -1,4 +1,25 @@
-"""PRF-based challenge derivation for cryptographically secure challenge generation."""
+"""PRF-based challenge derivation for cryptographically secure challenge generation.
+
+This module implements pseudorandom functions (PRFs) for deterministic yet unpredictable
+challenge generation, following the paper's approach in §2.3 (Challenge Generation).
+
+Cryptographic Properties:
+- Determinism: Same inputs always produce same outputs
+- Unpredictability: Without the key, outputs appear random
+- Domain separation: Different labels produce independent outputs
+- Forward security: Past outputs don't compromise future ones
+
+Usage Example:
+    >>> master_key = bytes.fromhex('deadbeef' * 8)
+    >>> nonce = bytes.fromhex('cafebabe' * 4)
+    >>> 
+    >>> # Derive a key for specific purpose
+    >>> derived = prf_derive_key(master_key, 'vision:freq', nonce)
+    >>> 
+    >>> # Generate pseudorandom values
+    >>> random_bytes = prf_bytes(derived, b'challenge_0', 32)
+    >>> random_floats = prf_floats(derived, b'params', 5, 0.0, 1.0)
+"""
 
 import hashlib
 import hmac
@@ -11,13 +32,25 @@ def prf_derive_key(master_key: bytes, label: str, nonce: bytes) -> bytes:
     """
     Derive a key from master key using HMAC-SHA256 as PRF.
     
+    Implements key derivation following paper §2.3, ensuring domain separation
+    between different challenge families and sessions.
+    
+    Cryptographic Properties:
+    - Uses HMAC-SHA256 for cryptographic strength
+    - Label provides domain separation (e.g., 'vision:freq' vs 'lm:templates')
+    - Nonce ensures session uniqueness
+    
     Args:
-        master_key: Master key bytes
-        label: String label for key separation
-        nonce: Random nonce for this derivation
+        master_key: Master key bytes (typically 32 bytes from hex string)
+        label: String label for key separation (e.g., 'challenge:vision:freq')
+        nonce: Random nonce for this derivation (typically 16 bytes)
     
     Returns:
-        32-byte derived key
+        32-byte derived key suitable for further PRF operations
+    
+    Example:
+        >>> key = prf_derive_key(master_key, 'vision:texture', session_nonce)
+        >>> # Use key for generating texture challenges deterministically
     """
     # Combine label and nonce as info for key derivation
     info = label.encode('utf-8') + nonce
@@ -32,16 +65,28 @@ def prf_bytes(key: bytes, info: bytes, nbytes: int) -> bytes:
     """
     Generate deterministic pseudorandom bytes using HMAC-SHA256.
     
-    Uses counter mode with HMAC-SHA256 to generate arbitrary length output.
-    This follows NIST SP 800-108 counter mode construction.
+    Implements NIST SP 800-108 counter mode construction for KDF,
+    as referenced in paper §2.3 for secure challenge generation.
+    
+    Cryptographic Properties:
+    - Output is computationally indistinguishable from random
+    - Deterministic: same (key, info) always produces same output
+    - Variable length: can generate any number of bytes
+    - No output correlations: different info values produce independent outputs
     
     Args:
         key: PRF key (typically output from prf_derive_key)
-        info: Context/info bytes for this generation
-        nbytes: Number of bytes to generate
+        info: Context/info bytes for this generation (e.g., b'challenge_0')
+        nbytes: Number of bytes to generate (must be positive)
     
     Returns:
         Pseudorandom bytes of requested length
+    
+    Example:
+        >>> # Generate 16 random bytes for challenge ID
+        >>> challenge_id = prf_bytes(key, b'challenge_42', 16)
+        >>> # Generate seed for texture generation
+        >>> seed_bytes = prf_bytes(key, b'texture_seed', 8)
     """
     if nbytes <= 0:
         raise ValueError("nbytes must be positive")
@@ -71,14 +116,30 @@ def prf_derive_seed(master_key: bytes, family: str, params: dict, nonce: bytes) 
     """
     Derive a deterministic seed for challenge generation.
     
+    Central function for challenge seed derivation, implementing the
+    KDF pattern from paper §2.3: seed = KDF(master_key || family || params || nonce)
+    
+    Cryptographic Properties:
+    - Family separation: Different families get independent seeds
+    - Parameter binding: Seed depends on all parameters
+    - Session uniqueness: Nonce ensures fresh seeds per session
+    - Deterministic: Same inputs always produce same seed
+    
     Args:
-        master_key: Master key bytes
-        family: Challenge family identifier
-        params: Parameters dict (will be hashed)
-        nonce: Session nonce
+        master_key: Master key bytes (base secret)
+        family: Challenge family identifier (e.g., 'vision:freq', 'lm:templates')
+        params: Parameters dict (will be hashed deterministically)
+        nonce: Session nonce for uniqueness
     
     Returns:
-        32-byte seed for RNG initialization
+        32-byte seed for RNG initialization or further PRF operations
+    
+    Example:
+        >>> seed = prf_derive_seed(
+        ...     master_key, 'vision:texture',
+        ...     {'texture_types': ['perlin', 'gabor']},
+        ...     session_nonce
+        ... )
     """
     # Create deterministic representation of params
     # Sort keys for determinism
@@ -96,7 +157,20 @@ def prf_derive_seed(master_key: bytes, family: str, params: dict, nonce: bytes) 
 
 def prf_expand(key: bytes, info: bytes, length: int) -> bytes:
     """
-    Expand key material using HKDF-like expansion with xxhash for speed.
+    Expand key material using hybrid HMAC/xxhash approach for performance.
+    
+    Optimized for generating large amounts of pseudorandom data while
+    maintaining cryptographic security properties from paper §2.3.
+    
+    Cryptographic Properties:
+    - Secure for small outputs: Uses HMAC-SHA256 directly
+    - Fast for large outputs: xxhash with periodic HMAC re-mixing
+    - Deterministic and unpredictable
+    - Suitable for non-cryptographic randomness (e.g., visual patterns)
+    
+    Performance vs Security Trade-off:
+    - Small outputs (≤32 bytes): Full HMAC security
+    - Large outputs: xxhash speed with HMAC checkpoints
     
     This implements an HKDF-Expand-like function using xxhash64 for performance
     while maintaining cryptographic properties through HMAC-SHA256 mixing.
@@ -199,17 +273,32 @@ def prf_integers(key: bytes, info: bytes, count: int, min_val: int, max_val: int
 
 def prf_floats(key: bytes, info: bytes, count: int, min_val: float = 0.0, max_val: float = 1.0) -> list[float]:
     """
-    Generate deterministic pseudorandom floats in a range.
+    Generate deterministic pseudorandom floats in a specified range.
+    
+    Core function for continuous parameter generation in challenges (paper §2.3),
+    including frequencies, phases, contrasts, and other real-valued parameters.
+    
+    Cryptographic Properties:
+    - Uniform distribution over [min_val, max_val]
+    - High precision (uses 8 bytes per float)
+    - Deterministic and unpredictable
+    - No correlation between consecutive values
     
     Args:
-        key: PRF key
-        info: Context info
+        key: PRF key for deterministic generation
+        info: Context info (e.g., b'frequency_param')
         count: Number of floats to generate
-        min_val: Minimum value (inclusive)
-        max_val: Maximum value (exclusive)
+        min_val: Minimum value (inclusive), default 0.0
+        max_val: Maximum value (inclusive), default 1.0
     
     Returns:
-        List of floats in range [min_val, max_val)
+        List of floats in range [min_val, max_val]
+    
+    Example:
+        >>> # Generate sine grating frequency
+        >>> freq = prf_floats(key, b'grating_freq', 1, 0.5, 10.0)[0]
+        >>> # Generate multiple phase values
+        >>> phases = prf_floats(key, b'phases', 5, 0, 2*3.14159)
     """
     if min_val >= max_val:
         raise ValueError("min_val must be less than max_val")
@@ -237,12 +326,20 @@ def prf_floats(key: bytes, info: bytes, count: int, min_val: float = 0.0, max_va
 
 def prf_choice(key: bytes, info: bytes, choices: List[Any]) -> Any:
     """
-    Deterministically select a single item from choices.
+    Deterministically select one item from a list of choices.
+    
+    Used for template and parameter selection in challenge generation (paper §2.3),
+    ensuring reproducible yet unpredictable choices.
+    
+    Cryptographic Properties:
+    - Uniform selection probability
+    - Deterministic based on key and info
+    - No bias in selection
     
     Args:
-        key: PRF key
-        info: Context info
-        choices: List of items to choose from
+        key: PRF key for deterministic selection
+        info: Context info (e.g., b'template_selection')
+        choices: List of items to choose from (must be non-empty)
     
     Returns:
         Single chosen item

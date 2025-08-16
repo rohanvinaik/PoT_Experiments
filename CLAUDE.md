@@ -206,6 +206,43 @@ proof = pot.generate_verification_proof(result)
 4. **Implement proper error handling** in production code
 5. **Document any deviations** from the experimental protocol
 
+## Documentation Guidelines
+
+When adding substantial functionality to the codebase:
+
+1. **Add comprehensive docstrings** to all new functions and classes:
+   - Include cryptographic properties for security-related functions
+   - Specify parameter ranges and types clearly
+   - Provide usage examples in docstrings
+   - Reference relevant paper sections (e.g., §2.3 for challenge generation)
+
+2. **Update this CLAUDE.md file** with:
+   - New module descriptions and their purposes
+   - Important implementation details
+   - Usage patterns and best practices
+   - Any new dependencies or requirements
+
+3. **Update AGENTS.md** if the functionality affects:
+   - Integration patterns with external systems
+   - API interfaces or protocols
+   - Agent-based verification workflows
+
+4. **Add inline comments** that:
+   - Reference specific paper sections for algorithms
+   - Explain non-obvious implementation choices
+   - Mark security-critical code sections
+   - Note performance vs security trade-offs
+
+5. **Update requirements.txt** when adding dependencies:
+   - Include version pins for reproducibility
+   - Add comments explaining why each dependency is needed
+   - Group related dependencies together
+
+6. **Maintain the README.md** by:
+   - Adding new challenge families to the documentation
+   - Updating usage examples for new features
+   - Documenting any new verification profiles or modes
+
 ## Contact & Support
 
 - Check EXPERIMENTS.md for detailed experimental protocols
