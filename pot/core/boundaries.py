@@ -78,12 +78,53 @@ class CSState:
         )
 
 
-def eb_radius(state: CSState, alpha: float) -> float:
+def log_log_correction(t: int, alpha: float) -> float:
     """
-    Compute empirical Bernstein confidence radius with log-log term.
+    Implement the log(log(t)) correction factor for anytime validity.
     
-    The EB radius formula is:
-    r_t(α) = sqrt(2*V_t*ln(3*ln(2t)/α)/t) + 3*ln(3*ln(2t)/α)/t
+    This correction ensures the confidence sequence remains valid
+    at all stopping times (anytime-valid property).
+    
+    Reference: §2.4 of the paper
+    
+    Args:
+        t: Current time/sample count (must be >= 1)
+        alpha: Significance level (e.g., 0.05 for 95% confidence)
+    
+    Returns:
+        The log-log correction factor: log(log(max(e, t)) / α)
+    
+    Note:
+        - For small t (t < e ≈ 2.718), we use log(e) = 1 to avoid log(log(t)) < 0
+        - This ensures the correction factor is always positive
+    """
+    if t < 1:
+        raise ValueError(f"t must be >= 1, got {t}")
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError(f"Alpha must be in (0,1), got {alpha}")
+    
+    # Use max(e, t) to ensure log(log(t)) >= 0
+    # Since log(e) = 1, log(log(e)) = log(1) = 0
+    e = math.e
+    t_corrected = max(e, t)
+    
+    # Compute log(log(t) / α)
+    log_log_term = math.log(math.log(t_corrected) / alpha)
+    
+    return log_log_term
+
+
+def eb_radius(state: CSState, alpha: float, c: float = 1.0) -> float:
+    """
+    Compute Empirical-Bernstein confidence radius with log-log term.
+    
+    The EB radius formula from §2.4 of the paper:
+    r_t(α) = sqrt(2 * σ²_t * log(log(t) / α) / t) + c * log(log(t) / α) / t
+    
+    Where:
+    - σ²_t is the empirical variance estimate at time t
+    - The log-log term ensures anytime validity
+    - c is a constant (typically 1.0) for the bias/concentration term
     
     This provides anytime-valid confidence sequences that are always valid
     with probability at least 1-α, no matter when you stop.
@@ -91,9 +132,13 @@ def eb_radius(state: CSState, alpha: float) -> float:
     Args:
         state: Current CSState with running statistics
         alpha: Significance level (e.g., 0.05 for 95% confidence)
+        c: Constant for bias term (default 1.0, can be tuned for tightness)
     
     Returns:
         Confidence radius for the empirical mean
+        
+    Reference:
+        §2.4 of the paper for Empirical-Bernstein bounds
     """
     if state.n < 1:
         return float('inf')
@@ -102,24 +147,78 @@ def eb_radius(state: CSState, alpha: float) -> float:
         raise ValueError(f"Alpha must be in (0,1), got {alpha}")
     
     t = state.n
-    V_t = state.empirical_variance
+    sigma_squared_t = state.empirical_variance
     
-    # Compute log-log term: ln(3*ln(2t)/α)
-    # Add small epsilon to avoid log(0) issues
-    eps = 1e-10
-    log_term = math.log(max(3 * math.log(max(2 * t, 2)) / alpha, eps))
+    # Get log-log correction factor
+    log_log_term = log_log_correction(t, alpha)
     
-    # Compute radius components
-    # First term: sqrt(2*V_t*log_term/t)
-    variance_term = math.sqrt(2 * V_t * log_term / t)
+    # Compute radius components according to paper formula
+    # First term: sqrt(2 * σ²_t * log(log(t) / α) / t)
+    variance_term = math.sqrt(2 * sigma_squared_t * log_log_term / t)
     
-    # Second term: 3*log_term/t
-    bias_term = 3 * log_term / t
+    # Second term: c * log(log(t) / α) / t
+    bias_term = c * log_log_term / t
     
     # Total radius
     radius = variance_term + bias_term
     
     return radius
+
+
+def eb_confidence_interval(mean: float, variance: float, n: int, alpha: float, c: float = 1.0) -> Tuple[float, float]:
+    """
+    Return (lower, upper) confidence bounds using Empirical-Bernstein radius.
+    
+    This function computes anytime-valid confidence intervals for bounded
+    random variables in [0, 1] using the Empirical-Bernstein inequality.
+    
+    Args:
+        mean: Sample mean of observations
+        variance: Sample variance (should be empirical variance for EB)
+        n: Number of samples
+        alpha: Significance level (e.g., 0.05 for 95% confidence)
+        c: Constant for bias term in EB radius (default 1.0)
+    
+    Returns:
+        (lower, upper): Tuple of confidence bounds, clipped to [0, 1]
+        
+    Reference:
+        §2.4 of the paper for confidence interval construction
+    """
+    if n < 1:
+        return (0.0, 1.0)  # Uninformative interval
+    
+    if not (0.0 <= mean <= 1.0):
+        raise ValueError(f"Mean must be in [0,1], got {mean}")
+    if variance < 0:
+        raise ValueError(f"Variance must be non-negative, got {variance}")
+    if alpha <= 0 or alpha >= 1:
+        raise ValueError(f"Alpha must be in (0,1), got {alpha}")
+    
+    # Create a temporary state for radius computation
+    temp_state = CSState()
+    temp_state.n = n
+    temp_state.mean = mean
+    # Set M2 such that variance = M2 / (n - 1) matches input variance
+    # But cap variance at 0.25 (max for [0,1] bounded variables)
+    capped_variance = min(variance, 0.25)
+    if n > 1:
+        temp_state.M2 = capped_variance * (n - 1)
+    else:
+        temp_state.M2 = 0.0
+    
+    # Compute EB radius
+    radius = eb_radius(temp_state, alpha, c)
+    
+    # Compute confidence bounds
+    lower = mean - radius
+    upper = mean + radius
+    
+    # Clip to [0, 1] since we know values are bounded
+    lower = max(0.0, lower)
+    upper = min(1.0, upper)
+    
+    return (lower, upper)
 
 
 def decide_one_sided(
