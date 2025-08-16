@@ -1,10 +1,368 @@
+from __future__ import annotations
+
 import numpy as np
 import hashlib
 import time
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Callable, Optional, Union
 import torch
+
 from .canonicalize import canonicalize_logits, canonicalize_text
+
+
+@dataclass
+class FingerprintConfig:
+    """Configuration for model fingerprinting.
+    
+    Attributes:
+        compute_jacobian: Whether to compute Jacobian sketches
+        jacobian_layer: Specific layer for Jacobian computation (None for output)
+        jacobian_epsilon: Threshold for Jacobian zero values
+        jacobian_sketch_type: Type of sketch ('sign', 'magnitude', 'full')
+        jacobian_delta: Finite difference step size
+        jacobian_max_dim: Maximum input dimensions for Jacobian
+        canonicalize_precision: Decimal precision for canonicalization
+        include_timing: Whether to include timing information
+        batch_size: Processing batch size for challenges
+        output_type: Expected output type ('auto', 'logits', 'text', 'embeddings')
+        canonical_config: Canonicalization configuration
+        model_type: Model type hint ('vision', 'lm', 'multimodal', 'auto')
+        challenge_timeout: Maximum time per challenge in seconds
+        parallel_execution: Whether to process challenges in parallel
+        memory_efficient: Use memory-efficient processing for large models
+    """
+    # Jacobian computation settings
+    compute_jacobian: bool = False
+    jacobian_layer: Optional[str] = None
+    jacobian_epsilon: float = 1e-6
+    jacobian_sketch_type: str = 'sign'  # 'sign', 'magnitude', 'full'
+    jacobian_delta: float = 1e-3
+    jacobian_max_dim: int = 256
+    
+    # Canonicalization settings
+    canonicalize_precision: int = 6
+    canonical_config: Optional[CanonicalConfig] = None
+    
+    # Execution settings
+    include_timing: bool = False
+    batch_size: int = 1
+    output_type: str = 'auto'  # 'auto', 'logits', 'text', 'embeddings'
+    model_type: str = 'auto'  # 'vision', 'lm', 'multimodal', 'auto'
+    
+    # Performance settings
+    challenge_timeout: Optional[float] = None
+    parallel_execution: bool = False
+    memory_efficient: bool = False
+    
+    def __post_init__(self):
+        """Initialize canonical config if not provided."""
+        if self.canonical_config is None:
+            self.canonical_config = CanonicalConfig(
+                float_precision=self.canonicalize_precision
+            )
+    
+    def validate(self) -> None:
+        """Validate configuration parameters.
+        
+        Raises:
+            ValueError: If configuration is invalid
+        """
+        # Validate jacobian_sketch_type
+        valid_sketch_types = {'sign', 'magnitude', 'full'}
+        if self.jacobian_sketch_type not in valid_sketch_types:
+            raise ValueError(
+                f"jacobian_sketch_type must be one of {valid_sketch_types}, "
+                f"got {self.jacobian_sketch_type}"
+            )
+        
+        # Validate output_type
+        valid_output_types = {'auto', 'logits', 'text', 'embeddings', 'mixed'}
+        if self.output_type not in valid_output_types:
+            raise ValueError(
+                f"output_type must be one of {valid_output_types}, "
+                f"got {self.output_type}"
+            )
+        
+        # Validate model_type
+        valid_model_types = {'vision', 'lm', 'multimodal', 'auto'}
+        if self.model_type not in valid_model_types:
+            raise ValueError(
+                f"model_type must be one of {valid_model_types}, "
+                f"got {self.model_type}"
+            )
+        
+        # Validate numeric parameters
+        if self.jacobian_epsilon <= 0:
+            raise ValueError(f"jacobian_epsilon must be positive, got {self.jacobian_epsilon}")
+        
+        if self.jacobian_delta <= 0:
+            raise ValueError(f"jacobian_delta must be positive, got {self.jacobian_delta}")
+        
+        if self.jacobian_max_dim <= 0:
+            raise ValueError(f"jacobian_max_dim must be positive, got {self.jacobian_max_dim}")
+        
+        if self.canonicalize_precision < 0:
+            raise ValueError(
+                f"canonicalize_precision must be non-negative, got {self.canonicalize_precision}"
+            )
+        
+        if self.batch_size <= 0:
+            raise ValueError(f"batch_size must be positive, got {self.batch_size}")
+        
+        if self.challenge_timeout is not None and self.challenge_timeout <= 0:
+            raise ValueError(f"challenge_timeout must be positive, got {self.challenge_timeout}")
+        
+        # Validate Jacobian settings consistency
+        if self.jacobian_layer is not None and not self.compute_jacobian:
+            raise ValueError("jacobian_layer specified but compute_jacobian is False")
+        
+        # Validate memory-efficient mode constraints
+        if self.memory_efficient and self.jacobian_sketch_type == 'full':
+            raise ValueError(
+                "memory_efficient mode is incompatible with jacobian_sketch_type='full'"
+            )
+        
+        if self.memory_efficient and self.batch_size > 1:
+            # In memory-efficient mode, we should process one at a time
+            self.batch_size = 1
+    
+    @classmethod
+    def for_vision_model(cls, 
+                        compute_jacobian: bool = False,
+                        include_timing: bool = False,
+                        memory_efficient: bool = False) -> 'FingerprintConfig':
+        """Create configuration optimized for vision models.
+        
+        Args:
+            compute_jacobian: Whether to compute Jacobian sketches
+            include_timing: Whether to include timing information
+            memory_efficient: Use memory-efficient processing
+            
+        Returns:
+            FingerprintConfig optimized for vision models
+        """
+        canonical_config = CanonicalConfig(
+            float_precision=6,
+            float_eps=1e-6,
+            embedding_dims=512,
+            handle_nan='zero',
+            handle_inf='clip',
+            deterministic_ordering=True
+        )
+        
+        config = cls(
+            compute_jacobian=compute_jacobian,
+            jacobian_epsilon=1e-6,
+            jacobian_sketch_type='sign' if memory_efficient else 'magnitude',
+            jacobian_delta=1e-3,
+            jacobian_max_dim=256 if memory_efficient else 512,
+            canonicalize_precision=6,
+            canonical_config=canonical_config,
+            include_timing=include_timing,
+            batch_size=1 if memory_efficient else 4,
+            output_type='logits',
+            model_type='vision',
+            memory_efficient=memory_efficient,
+            parallel_execution=not memory_efficient
+        )
+        
+        config.validate()
+        return config
+    
+    @classmethod
+    def for_language_model(cls,
+                          compute_jacobian: bool = False,
+                          include_timing: bool = True,
+                          memory_efficient: bool = False) -> 'FingerprintConfig':
+        """Create configuration optimized for language models.
+        
+        Args:
+            compute_jacobian: Whether to compute Jacobian sketches
+            include_timing: Whether to include timing information (default True for LMs)
+            memory_efficient: Use memory-efficient processing
+            
+        Returns:
+            FingerprintConfig optimized for language models
+        """
+        canonical_config = CanonicalConfig(
+            float_precision=5,
+            float_eps=1e-5,
+            text_lower=True,
+            text_strip_punct=True,
+            text_collapse_ws=True,
+            text_max_len=512,
+            handle_nan='zero',
+            handle_inf='clip',
+            deterministic_ordering=True
+        )
+        
+        config = cls(
+            compute_jacobian=compute_jacobian,
+            jacobian_epsilon=1e-5,
+            jacobian_sketch_type='sign',  # LMs typically use sign sketches
+            jacobian_delta=1e-4,
+            jacobian_max_dim=128,  # Lower for text embeddings
+            canonicalize_precision=5,
+            canonical_config=canonical_config,
+            include_timing=include_timing,  # More important for LMs
+            batch_size=1,  # Process one prompt at a time
+            output_type='text',
+            model_type='lm',
+            challenge_timeout=30.0,  # LMs can be slow
+            memory_efficient=memory_efficient,
+            parallel_execution=False  # LMs typically sequential
+        )
+        
+        config.validate()
+        return config
+    
+    @classmethod
+    def for_multimodal_model(cls,
+                            compute_jacobian: bool = False,
+                            include_timing: bool = True,
+                            memory_efficient: bool = False) -> 'FingerprintConfig':
+        """Create configuration optimized for multimodal models.
+        
+        Args:
+            compute_jacobian: Whether to compute Jacobian sketches
+            include_timing: Whether to include timing information
+            memory_efficient: Use memory-efficient processing
+            
+        Returns:
+            FingerprintConfig optimized for multimodal models
+        """
+        canonical_config = CanonicalConfig(
+            float_precision=6,
+            float_eps=1e-6,
+            text_lower=True,
+            text_strip_punct=True,
+            text_max_len=512,
+            embedding_dims=768,  # Common for multimodal
+            handle_nan='zero',
+            handle_inf='clip',
+            deterministic_ordering=True
+        )
+        
+        config = cls(
+            compute_jacobian=compute_jacobian,
+            jacobian_epsilon=1e-6,
+            jacobian_sketch_type='magnitude',
+            jacobian_delta=1e-3,
+            jacobian_max_dim=384,  # Middle ground
+            canonicalize_precision=6,
+            canonical_config=canonical_config,
+            include_timing=include_timing,
+            batch_size=1 if memory_efficient else 2,
+            output_type='mixed',
+            model_type='multimodal',
+            challenge_timeout=60.0,  # Multimodal can be slowest
+            memory_efficient=memory_efficient,
+            parallel_execution=not memory_efficient
+        )
+        
+        config.validate()
+        return config
+    
+    @classmethod
+    def minimal(cls) -> 'FingerprintConfig':
+        """Create minimal configuration for fast fingerprinting.
+        
+        Returns:
+            Minimal FingerprintConfig for speed
+        """
+        return cls(
+            compute_jacobian=False,
+            include_timing=False,
+            batch_size=8,
+            memory_efficient=False,
+            parallel_execution=True
+        )
+    
+    @classmethod
+    def comprehensive(cls, model_type: str = 'auto') -> 'FingerprintConfig':
+        """Create comprehensive configuration for detailed fingerprinting.
+        
+        Args:
+            model_type: Type of model ('vision', 'lm', 'multimodal', 'auto')
+            
+        Returns:
+            Comprehensive FingerprintConfig
+        """
+        if model_type == 'vision':
+            base_config = cls.for_vision_model(
+                compute_jacobian=True,
+                include_timing=True,
+                memory_efficient=False
+            )
+        elif model_type == 'lm':
+            base_config = cls.for_language_model(
+                compute_jacobian=True,
+                include_timing=True,
+                memory_efficient=False
+            )
+        elif model_type == 'multimodal':
+            base_config = cls.for_multimodal_model(
+                compute_jacobian=True,
+                include_timing=True,
+                memory_efficient=False
+            )
+        else:
+            # Auto mode with all features enabled
+            base_config = cls(
+                compute_jacobian=True,
+                jacobian_sketch_type='magnitude',
+                include_timing=True,
+                batch_size=1,
+                model_type='auto'
+            )
+        
+        # Enhance for comprehensive analysis
+        base_config.jacobian_sketch_type = 'magnitude'
+        base_config.canonicalize_precision = 8  # Higher precision
+        if base_config.canonical_config:
+            base_config.canonical_config.float_precision = 8
+        
+        base_config.validate()
+        return base_config
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert config to dictionary for serialization.
+        
+        Returns:
+            Dictionary representation of config
+        """
+        result = {
+            'compute_jacobian': self.compute_jacobian,
+            'jacobian_layer': self.jacobian_layer,
+            'jacobian_epsilon': self.jacobian_epsilon,
+            'jacobian_sketch_type': self.jacobian_sketch_type,
+            'jacobian_delta': self.jacobian_delta,
+            'jacobian_max_dim': self.jacobian_max_dim,
+            'canonicalize_precision': self.canonicalize_precision,
+            'include_timing': self.include_timing,
+            'batch_size': self.batch_size,
+            'output_type': self.output_type,
+            'model_type': self.model_type,
+            'challenge_timeout': self.challenge_timeout,
+            'parallel_execution': self.parallel_execution,
+            'memory_efficient': self.memory_efficient
+        }
+        
+        if self.canonical_config:
+            result['canonical_config'] = {
+                'float_precision': self.canonical_config.float_precision,
+                'float_eps': self.canonical_config.float_eps,
+                'text_lower': self.canonical_config.text_lower,
+                'text_strip_punct': self.canonical_config.text_strip_punct,
+                'text_collapse_ws': self.canonical_config.text_collapse_ws,
+                'text_max_len': self.canonical_config.text_max_len,
+                'embedding_dims': self.canonical_config.embedding_dims,
+                'handle_nan': self.canonical_config.handle_nan,
+                'handle_inf': self.canonical_config.handle_inf,
+                'deterministic_ordering': self.canonical_config.deterministic_ordering
+            }
+        
+        return result
 
 
 @dataclass
@@ -625,7 +983,9 @@ def compare_jacobian_sketches(sketch1: bytes, sketch2: bytes, method: str = 'ham
         raise ValueError(f"Unknown comparison method: {method}")
 
 
-def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, Any]] = None) -> FingerprintResult:
+def fingerprint_run(f: Callable, 
+                   challenges: List[Any], 
+                   cfg: Optional[Union[Dict[str, Any], FingerprintConfig]] = None) -> FingerprintResult:
     """Capture model behavior through input-output mappings and optional Jacobian analysis.
     
     Reference: §2.2 System Architecture - Behavioral Fingerprinter
@@ -635,42 +995,75 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
            For vision models: f(image_tensor) -> logits/embeddings
            For language models: f(text_prompt) -> generated_text or logits
         challenges: List of challenge inputs (images, text prompts, tensors)
-        cfg: Optional configuration dictionary with keys:
-            - 'compute_jacobian': bool, whether to compute Jacobian (default: False)
-            - 'jacobian_layers': List[str], specific layers for Jacobian computation
-            - 'jacobian_delta': float, finite difference delta (default: 1e-3)
-            - 'jacobian_max_dim': int, max dimensions for Jacobian (default: 256)
-            - 'model_type': str, 'vision' or 'lm' (auto-detected if not specified)
-            - 'canonical_config': CanonicalConfig object or dict for canonicalization
-            - 'canonicalize_precision': int, precision for numeric canonicalization (default: 6)
-            - 'text_max_len': int, max length for text canonicalization (default: 512)
+        cfg: Configuration as FingerprintConfig object or dict (for backward compatibility).
+            Can also be None for default configuration.
             
     Returns:
         FingerprintResult containing io_hash, optional jacobian_sketch, 
         canonicalized outputs, and timing information
     """
-    cfg = cfg or {}
+    # Handle configuration
+    if cfg is None:
+        # Use default minimal config
+        config = FingerprintConfig.minimal()
+    elif isinstance(cfg, FingerprintConfig):
+        # Use provided config directly
+        config = cfg
+        config.validate()  # Ensure it's valid
+    elif isinstance(cfg, dict):
+        # Backward compatibility: convert dict to FingerprintConfig
+        # Try to extract relevant fields
+        fp_config_args = {}
+        
+        # Map old names to new
+        if 'compute_jacobian' in cfg:
+            fp_config_args['compute_jacobian'] = cfg['compute_jacobian']
+        if 'jacobian_layers' in cfg:
+            # Note: old used plural, new uses singular
+            fp_config_args['jacobian_layer'] = cfg['jacobian_layers'][0] if cfg['jacobian_layers'] else None
+        elif 'jacobian_layer' in cfg:
+            fp_config_args['jacobian_layer'] = cfg['jacobian_layer']
+        if 'jacobian_delta' in cfg:
+            fp_config_args['jacobian_delta'] = cfg['jacobian_delta']
+        if 'jacobian_max_dim' in cfg:
+            fp_config_args['jacobian_max_dim'] = cfg['jacobian_max_dim']
+        if 'model_type' in cfg:
+            fp_config_args['model_type'] = cfg['model_type']
+        if 'canonicalize_precision' in cfg:
+            fp_config_args['canonicalize_precision'] = cfg['canonicalize_precision']
+        if 'include_timing' in cfg:
+            fp_config_args['include_timing'] = cfg['include_timing']
+        if 'output_type' in cfg:
+            fp_config_args['output_type'] = cfg['output_type']
+        
+        # Handle canonical_config
+        if 'canonical_config' in cfg:
+            if isinstance(cfg['canonical_config'], CanonicalConfig):
+                fp_config_args['canonical_config'] = cfg['canonical_config']
+            elif isinstance(cfg['canonical_config'], dict):
+                fp_config_args['canonical_config'] = CanonicalConfig(**cfg['canonical_config'])
+        elif 'text_max_len' in cfg:
+            # Build canonical config from old parameters
+            fp_config_args['canonical_config'] = CanonicalConfig(
+                float_precision=cfg.get('canonicalize_precision', 6),
+                text_max_len=cfg.get('text_max_len', 512)
+            )
+        
+        config = FingerprintConfig(**fp_config_args)
+    else:
+        raise TypeError(f"cfg must be FingerprintConfig, dict, or None, got {type(cfg)}")
     
-    # Extract configuration
-    compute_jacobian = cfg.get('compute_jacobian', False)
-    jacobian_layers = cfg.get('jacobian_layers', None)
-    jacobian_delta = cfg.get('jacobian_delta', 1e-3)
-    jacobian_max_dim = cfg.get('jacobian_max_dim', 256)
-    model_type = cfg.get('model_type', None)
-    
-    # Get canonicalization config
-    canonical_config = cfg.get('canonical_config', None)
-    if canonical_config is None:
-        # Build from individual parameters for backward compatibility
-        precision = cfg.get('canonicalize_precision', 6)
-        text_max_len = cfg.get('text_max_len', 512)
-        canonical_config = CanonicalConfig(
-            float_precision=precision,
-            text_max_len=text_max_len
-        )
-    elif isinstance(canonical_config, dict):
-        # Convert dict to CanonicalConfig
-        canonical_config = CanonicalConfig(**canonical_config)
+    # Extract configuration values
+    compute_jacobian = config.compute_jacobian
+    jacobian_layer = config.jacobian_layer
+    jacobian_delta = config.jacobian_delta
+    jacobian_max_dim = config.jacobian_max_dim
+    jacobian_epsilon = config.jacobian_epsilon
+    jacobian_sketch_type = config.jacobian_sketch_type
+    model_type = config.model_type if config.model_type != 'auto' else None
+    canonical_config = config.canonical_config
+    include_timing = config.include_timing
+    output_type = config.output_type
     
     raw_outputs = []
     canonicalized_outputs = []
@@ -678,7 +1071,7 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
     jacobian_sketches = []
     
     for challenge in challenges:
-        start_time = time.perf_counter()
+        start_time = time.perf_counter() if include_timing else None
         
         try:
             # Execute model on challenge
@@ -717,13 +1110,15 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
         except Exception as e:
             # Record error but continue with other challenges
             output = f"ERROR: {str(e)}"
-            timing_info.append(-1.0)
+            if include_timing:
+                timing_info.append(-1.0)
             raw_outputs.append(output)
             canonicalized_outputs.append(output)
             continue
             
-        elapsed = time.perf_counter() - start_time
-        timing_info.append(elapsed)
+        if include_timing:
+            elapsed = time.perf_counter() - start_time
+            timing_info.append(elapsed)
         raw_outputs.append(output)
         
         # Use the new canonicalization system
@@ -774,8 +1169,21 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
                     max_dim=jacobian_max_dim
                 )
                 
-                # Compute sign-pattern hash of Jacobian
-                j_hash = jacobian_sign_hash(jacobian)
+                # Compute Jacobian sketch based on type
+                if jacobian_sketch_type == 'sign':
+                    j_hash = jacobian_sign_hash(jacobian, threshold=jacobian_epsilon)
+                elif jacobian_sketch_type == 'magnitude':
+                    j_hash = jacobian_magnitude_sketch(jacobian, num_bins=8)
+                elif jacobian_sketch_type == 'full':
+                    # For full, we'll store a compressed version
+                    # Use both sign and magnitude for comprehensive sketch
+                    sign_hash = jacobian_sign_hash(jacobian, threshold=jacobian_epsilon)
+                    mag_hash = jacobian_magnitude_sketch(jacobian, num_bins=16)
+                    j_hash = hashlib.sha256(sign_hash + mag_hash).digest()[:16]
+                else:
+                    # Default to sign
+                    j_hash = jacobian_sign_hash(jacobian, threshold=jacobian_epsilon)
+                
                 # Convert bytes to hex string for storage
                 jacobian_sketches.append(j_hash.hex())
                 
@@ -805,20 +1213,21 @@ def fingerprint_run(f: Callable, challenges: List[Any], cfg: Optional[Dict[str, 
         'model_type': model_type,
         'num_challenges': len(challenges),
         'compute_jacobian': compute_jacobian,
-        'avg_time_per_challenge': np.mean([t for t in timing_info if t > 0]) if timing_info else 0,
-        'total_time': sum(t for t in timing_info if t > 0),
-        'errors': sum(1 for t in timing_info if t < 0),
         'precision': canonical_config.float_precision,
-        'canonical_config': {
-            'float_precision': canonical_config.float_precision,
-            'text_max_len': canonical_config.text_max_len,
-            'handle_nan': canonical_config.handle_nan,
-            'handle_inf': canonical_config.handle_inf
-        }
+        'fingerprint_config': config.to_dict()
     }
     
-    if jacobian_layers:
-        metadata['jacobian_layers'] = jacobian_layers
+    # Add timing info only if collected
+    if include_timing and timing_info:
+        metadata['avg_time_per_challenge'] = np.mean([t for t in timing_info if t > 0]) if timing_info else 0
+        metadata['total_time'] = sum(t for t in timing_info if t > 0)
+        metadata['errors'] = sum(1 for t in timing_info if t < 0)
+    
+    if jacobian_layer:
+        metadata['jacobian_layer'] = jacobian_layer
+        
+    if jacobian_sketch_type != 'sign':
+        metadata['jacobian_sketch_type'] = jacobian_sketch_type
         
     return FingerprintResult(
         io_hash=io_hash_value,
