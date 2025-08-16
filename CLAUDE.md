@@ -56,6 +56,12 @@ python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
 ```bash
 # Run all tests including security components
 bash run_all.sh
+
+# Faster smoke test (skips heavy benchmarks)
+bash run_all_quick.sh
+
+# Python-only unit tests
+pytest -q
 ```
 
 ## Important Guidelines

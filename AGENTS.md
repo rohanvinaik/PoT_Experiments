@@ -22,6 +22,19 @@ The PoT system consists of two main components:
 
 ## Quick Start Guide
 
+### Test Suite
+
+```bash
+# Full experimental validation
+bash run_all.sh
+
+# Faster smoke tests for iteration
+bash run_all_quick.sh
+
+# Python-only unit tests
+pytest -q
+```
+
 ### 1. Running Experiments
 
 To run the core experiments (E1-E7), follow the experimental protocol:
