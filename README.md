@@ -29,23 +29,13 @@ dependencies:
 bash setup_env.sh
 source .venv/bin/activate
 ```
+### Reproducible environment
 
-After activating the environment you can run the project as usual:
-
-```bash
-# run validation pipeline
-bash run_all.sh
-# or execute the unit tests
-pytest -q
-```
-
-If you prefer a one-command container run, use:
+For a clean setup that includes all pinned dependencies, use the provided Dockerfile:
 
 ```bash
-make test
-```
-
-When finished, deactivate the environment with `deactivate`.
+docker build -t pot-experiments .
+docker run --rm pot-experiments bash -lc "bash run_all.sh"
 The container installs packages from `requirements.txt` and sets `PYTHONPATH`
 so the `pot` modules can be imported without additional configuration.
 
