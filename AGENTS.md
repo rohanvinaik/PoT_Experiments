@@ -187,19 +187,21 @@ def distance_stream():
     for challenge in challenges:
         yield compute_distance(model, challenge)
 
-# NEW: Returns SPRTResult with complete audit trail
+# NEW: Returns SPRTResult with complete audit trail and p-values
 result = sequential_verify(
     stream=distance_stream(),
     tau=0.05,           # Identity threshold
     alpha=0.01,         # Type I error bound
     beta=0.01,          # Type II error bound  
-    max_samples=500     # Maximum challenges
+    max_samples=500,    # Maximum challenges
+    compute_p_value=True  # NEW: Compute anytime-valid p-value
 )
 
 # Access result details
 print(f"Decision: {result.decision} at n={result.stopped_at}")
 print(f"Final mean: {result.final_mean:.3f}, variance: {result.final_variance:.3f}")
 print(f"CI: {result.confidence_interval}")
+print(f"P-value: {result.p_value:.6f}")  # NEW: Anytime-valid p-value
 print(f"Trajectory length: {len(result.trajectory)}")
 
 # Option 2: Manual confidence sequence tracking with EB bounds
@@ -716,10 +718,15 @@ class VerifiedModel(pl.LightningModule):
   - `eb_radius()`: Anytime-valid EB radius computation
   - `eb_confidence_interval()`: Confidence bounds using EB
   - `log_log_correction()`: Correction factor for anytime validity
-- `sequential.py`: Sequential testing with early stopping
+- `sequential.py`: Sequential testing with early stopping (UPDATED 2025-08-16)
   - `SequentialState`: Online state tracking with Welford's algorithm
-  - `SPRTResult`: Complete test result with trajectory
+  - `SPRTResult`: Complete test result with trajectory and p-values
   - `sequential_verify()`: Main verification with EB bounds
+  - **Numerical Stability Helpers**:
+    - `welford_update()`: Numerically stable online updates
+    - `compute_empirical_variance()`: Robust variance computation
+    - `check_stopping_condition()`: EB-based stopping logic
+    - `compute_anytime_p_value()`: Martingale-based p-values
 - `fingerprint.py`: Model behavioral fingerprinting
 - `canonicalize.py`: Output normalization
 - `stats.py`: Statistical utilities

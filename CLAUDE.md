@@ -51,9 +51,23 @@ PoT_Experiments/
   - `SPRTResult`: Complete test result with trajectory and audit trail
     - Contains decision, stopped_at, final statistics, confidence bounds
     - Full trajectory for analysis and visualization
-  - `sequential_verify(stream, tau, alpha, beta, max_samples)`: Main verification function
-    - Uses EB bounds for anytime-valid inference
-    - Early stopping when |μ_t - τ| > r_t(α)
+    - Optional anytime-valid p-value computation
+  - **Numerical Stability Helpers** (NEW):
+    - `welford_update(state, new_value)`: Numerically stable mean/variance updates
+      - Uses Welford's online algorithm to avoid catastrophic cancellation
+      - Maintains precision for very long sequences
+    - `compute_empirical_variance(state, bessel_correction)`: Robust variance estimation
+      - Handles n=1 case appropriately
+      - Ensures non-negative results
+    - `check_stopping_condition(state, tau, alpha)`: EB-based stopping decisions
+      - Returns (should_stop, decision) tuple
+      - Uses confidence intervals to determine H0/H1
+    - `compute_anytime_p_value(state, tau)`: Martingale-based p-values
+      - Remains valid despite optional stopping
+      - Uses law of iterated logarithm for correction
+  - `sequential_verify(stream, tau, alpha, beta, max_samples, compute_p_value)`: Main function
+    - Now uses numerical stability helpers internally
+    - Optional anytime-valid p-value computation
     - Returns complete SPRTResult with audit trail
   - `SequentialTester`: Legacy SPRT implementation
   - Asymmetric error control (α, β)

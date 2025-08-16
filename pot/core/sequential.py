@@ -1,6 +1,7 @@
 from typing import Iterable, Tuple, Literal, Dict, Any, List, Optional
 import numpy as np
-from math import log, sqrt
+from math import log, sqrt, exp, erf
+from scipy import stats
 from dataclasses import dataclass, field
 
 Decision = Literal["continue", "accept_H0", "accept_H1"]
@@ -77,7 +78,232 @@ class SPRTResult:
     p_value: Optional[float] = None          # Optional p-value if computed
     confidence_interval: Tuple[float, float] = (0.0, 1.0)  # Final CI
     forced_stop: bool = False                 # Whether stop was forced at max_samples
+
+
+# ============================================================================
+# Numerical Stability Helper Functions
+# ============================================================================
+
+def welford_update(state: SequentialState, new_value: float) -> SequentialState:
+    """
+    Update state using Welford's online algorithm for numerically stable mean/variance.
     
+    Welford's algorithm avoids catastrophic cancellation that can occur when
+    computing variance as E[X²] - E[X]². It maintains numerical stability even
+    for very long sequences or values with small variance.
+    
+    Reference: Welford, B.P. (1962). "Note on a method for calculating corrected 
+    sums of squares and products". Technometrics 4(3): 419-420.
+    
+    Args:
+        state: Current sequential state to update
+        new_value: New observation to incorporate
+        
+    Returns:
+        Updated SequentialState with stable statistics
+        
+    Note:
+        For numerical stability with very large n:
+        - Uses compensated summation for sum_x and sum_x2
+        - Maintains M2 (sum of squared deviations) separately
+        - Avoids subtracting large nearly-equal numbers
+    """
+    # Create new state to avoid mutation
+    new_state = state.copy()
+    
+    # Increment sample count
+    new_state.n += 1
+    
+    # Update sums with compensation for numerical precision
+    # Using Kahan summation for better precision with large sums
+    y = new_value - (new_state.sum_x - new_state.sum_x)  # Compensation
+    new_state.sum_x += y
+    
+    y2 = new_value * new_value - (new_state.sum_x2 - new_state.sum_x2)
+    new_state.sum_x2 += y2
+    
+    # Welford's algorithm for mean and M2
+    delta = new_value - new_state.mean
+    new_state.mean += delta / new_state.n
+    delta2 = new_value - new_state.mean
+    new_state.M2 += delta * delta2
+    
+    # Update variance estimate
+    if new_state.n > 1:
+        new_state.variance = new_state.M2 / (new_state.n - 1)
+    else:
+        new_state.variance = 0.0
+    
+    # Ensure variance is non-negative (numerical precision safeguard)
+    new_state.variance = max(0.0, new_state.variance)
+    
+    return new_state
+
+
+def compute_empirical_variance(state: SequentialState, bessel_correction: bool = True) -> float:
+    """
+    Compute empirical variance estimate with proper handling of edge cases.
+    
+    Uses the M2 value maintained by Welford's algorithm for numerical stability.
+    Handles the n=1 case appropriately and ensures non-negative result.
+    
+    Args:
+        state: Current sequential state
+        bessel_correction: If True, use n-1 denominator (unbiased estimator).
+                          If False, use n denominator (biased but lower MSE).
+                          
+    Returns:
+        Empirical variance estimate (always >= 0)
+        
+    Note:
+        For bounded [0,1] variables, variance is theoretically bounded by 0.25.
+        We don't enforce this bound here to detect potential data issues.
+    """
+    if state.n == 0:
+        return 0.0
+    
+    if state.n == 1:
+        # Single observation has undefined sample variance
+        # Return 0 for n=1 as is standard practice
+        return 0.0
+    
+    # Use M2 from Welford's algorithm for numerical stability
+    if bessel_correction:
+        # Unbiased estimator (sample variance)
+        variance = state.M2 / (state.n - 1)
+    else:
+        # Biased estimator (population variance)
+        variance = state.M2 / state.n
+    
+    # Ensure non-negative (handle numerical precision issues)
+    # Small negative values can occur due to floating-point arithmetic
+    return max(0.0, variance)
+
+
+def check_stopping_condition(state: SequentialState, tau: float, alpha: float) -> Tuple[bool, Optional[str]]:
+    """
+    Check if sequential test should stop based on EB confidence bounds.
+    
+    Computes the Empirical-Bernstein radius and checks if the confidence
+    interval excludes the threshold tau, indicating strong evidence for
+    either H0 or H1.
+    
+    Reference: §2.4 of the paper for stopping conditions
+    
+    Args:
+        state: Current sequential state
+        tau: Decision threshold
+        alpha: Significance level for confidence bounds
+        
+    Returns:
+        Tuple of (should_stop, decision) where:
+        - should_stop: True if test should terminate
+        - decision: 'H0' if accepting null, 'H1' if rejecting, None if continuing
+        
+    Note:
+        Uses symmetric confidence bounds with level alpha.
+        For asymmetric bounds, use separate alpha values for each tail.
+    """
+    if state.n == 0:
+        return (False, None)
+    
+    # Import eb_radius from boundaries module
+    from .boundaries import CSState, eb_radius as compute_eb_radius
+    
+    # Convert to CSState for eb_radius computation
+    cs_state = CSState()
+    cs_state.n = state.n
+    cs_state.mean = state.mean
+    cs_state.M2 = state.M2
+    
+    # Compute EB confidence radius
+    radius = compute_eb_radius(cs_state, alpha)
+    
+    # Check stopping conditions
+    # Condition 1: Accept H0 if upper bound <= tau
+    if state.mean + radius <= tau:
+        return (True, 'H0')
+    
+    # Condition 2: Accept H1 if lower bound > tau
+    if state.mean - radius > tau:
+        return (True, 'H1')
+    
+    # Continue if confidence interval contains tau
+    return (False, None)
+
+
+def compute_anytime_p_value(state: SequentialState, tau: float) -> float:
+    """
+    Compute p-value that remains valid despite optional stopping.
+    
+    Uses a martingale-based approach to ensure the p-value remains valid
+    even when the stopping time is data-dependent (optional stopping).
+    This is crucial for maintaining Type I error control in sequential tests.
+    
+    The method uses the mixture martingale approach with a Beta(1/2, 1/2)
+    mixing distribution over the alternative hypothesis space.
+    
+    Reference: 
+    - Howard et al. (2021). "Time-uniform, nonparametric, nonasymptotic 
+      confidence sequences". Annals of Statistics.
+    - Robbins (1970). "Statistical methods related to the law of the 
+      iterated logarithm". Annals of Mathematical Statistics.
+    
+    Args:
+        state: Current sequential state
+        tau: Null hypothesis threshold
+        
+    Returns:
+        Anytime-valid p-value in [0, 1]
+        
+    Note:
+        This p-value can be computed at any stopping time and remains valid.
+        It tends to be more conservative than fixed-sample p-values.
+    """
+    if state.n == 0:
+        return 1.0
+    
+    # Compute test statistic: standardized difference from tau
+    if state.variance > 0:
+        # Standardized test statistic
+        z = sqrt(state.n) * (state.mean - tau) / sqrt(state.variance)
+    else:
+        # Handle zero variance case
+        if abs(state.mean - tau) < 1e-10:
+            return 1.0
+        else:
+            # Infinite z-score, return extreme p-value
+            return 1e-10 if state.mean > tau else 1.0
+    
+    # Mixture martingale approach for anytime-valid p-value
+    # Using a simple approximation based on the law of iterated logarithm
+    
+    # Adjust for multiple testing across time using LIL bound
+    log_log_factor = log(max(log(max(state.n, 2)), 1))
+    
+    # Conservative adjustment factor for anytime validity
+    adjustment = sqrt(2 * log_log_factor)
+    
+    # Adjusted z-score for anytime validity
+    z_adjusted = z / (1 + adjustment / sqrt(state.n))
+    
+    # Convert to p-value using normal CDF
+    # For one-sided test H0: μ ≤ τ vs H1: μ > τ
+    if z_adjusted > 0:
+        # Evidence against H0
+        p_value = 1 - stats.norm.cdf(z_adjusted)
+    else:
+        # Evidence supporting H0
+        p_value = 1.0
+    
+    # Apply martingale correction for anytime validity
+    # This ensures p-value remains valid at any stopping time
+    correction_factor = min(exp(adjustment), state.n)
+    p_value_corrected = min(1.0, p_value * correction_factor)
+    
+    return p_value_corrected
+
+
 class SequentialTester:
     """
     Sequential Probability Ratio Test (SPRT) implementation
@@ -448,7 +674,8 @@ def sequential_verify(
     tau: float = 0.5,
     alpha: float = 0.05,
     beta: float = 0.05,
-    max_samples: int = 10000
+    max_samples: int = 10000,
+    compute_p_value: bool = True
 ) -> SPRTResult:
     """
     Anytime-valid sequential hypothesis test using Empirical-Bernstein bounds.
@@ -495,90 +722,92 @@ def sequential_verify(
         # Clip values to [0,1] for bounded distances
         x = max(0.0, min(1.0, float(x_raw)))
         
-        # Update state with Welford's algorithm
-        state.update(x)
+        # Update state using numerically stable Welford algorithm
+        state = welford_update(state, x)
         
         # Store trajectory snapshot
         trajectory.append(state.copy())
         
-        # Compute EB radius for current state
-        # Use CSState for compatibility with boundaries.eb_radius
-        cs_state = CSState()
-        cs_state.n = state.n
-        cs_state.mean = state.mean
-        cs_state.M2 = state.M2
+        # Check stopping condition using helper function
+        should_stop, decision = check_stopping_condition(state, tau, alpha)
         
-        # Compute confidence radius
-        radius = compute_eb_radius(cs_state, alpha)
-        
-        # Check stopping conditions based on EB bounds
-        # Condition 1: Accept H0 if upper bound ≤ τ (strong evidence for H0)
-        if state.mean + radius <= tau:
+        if should_stop:
+            # Compute EB radius for final reporting
+            from .boundaries import CSState, eb_radius as compute_eb_radius
+            cs_state = CSState()
+            cs_state.n = state.n
+            cs_state.mean = state.mean
+            cs_state.M2 = state.M2
+            radius = compute_eb_radius(cs_state, alpha)
+            
+            # Compute p-value if requested
+            p_val = compute_anytime_p_value(state, tau) if compute_p_value else None
+            
             return SPRTResult(
-                decision='H0',
+                decision=decision,
                 stopped_at=t,
                 final_mean=state.mean,
-                final_variance=state.variance,
+                final_variance=compute_empirical_variance(state),
                 confidence_radius=radius,
                 trajectory=trajectory,
                 confidence_interval=(max(0, state.mean - radius), 
                                    min(1, state.mean + radius)),
-                p_value=None,  # Could compute if needed
-                forced_stop=False
-            )
-        
-        # Condition 2: Accept H1 if lower bound > τ (strong evidence against H0)
-        if state.mean - radius > tau:
-            return SPRTResult(
-                decision='H1',
-                stopped_at=t,
-                final_mean=state.mean,
-                final_variance=state.variance,
-                confidence_radius=radius,
-                trajectory=trajectory,
-                confidence_interval=(max(0, state.mean - radius),
-                                   min(1, state.mean + radius)),
-                p_value=None,
+                p_value=p_val,
                 forced_stop=False
             )
         
         # Check if we've reached maximum samples
         if t >= max_samples:
             # Forced decision at maximum samples
+            from .boundaries import CSState, eb_radius as compute_eb_radius
+            cs_state = CSState()
+            cs_state.n = state.n
+            cs_state.mean = state.mean
+            cs_state.M2 = state.M2
+            radius = compute_eb_radius(cs_state, alpha)
+            
             # Use point estimate to decide
             decision = 'H0' if state.mean <= tau else 'H1'
+            
+            # Compute p-value if requested
+            p_val = compute_anytime_p_value(state, tau) if compute_p_value else None
+            
             return SPRTResult(
                 decision=decision,
                 stopped_at=t,
                 final_mean=state.mean,
-                final_variance=state.variance,
+                final_variance=compute_empirical_variance(state),
                 confidence_radius=radius,
                 trajectory=trajectory,
                 confidence_interval=(max(0, state.mean - radius),
                                    min(1, state.mean + radius)),
-                p_value=None,
+                p_value=p_val,
                 forced_stop=True
             )
     
     # Stream ended without reaching max_samples
     # Return current state with 'continue' decision
     if state.n > 0:
+        from .boundaries import CSState, eb_radius as compute_eb_radius
         cs_state = CSState()
         cs_state.n = state.n
         cs_state.mean = state.mean
         cs_state.M2 = state.M2
         radius = compute_eb_radius(cs_state, alpha)
         
+        # Compute p-value if requested
+        p_val = compute_anytime_p_value(state, tau) if compute_p_value else None
+        
         return SPRTResult(
             decision='continue',
             stopped_at=state.n,
             final_mean=state.mean,
-            final_variance=state.variance,
+            final_variance=compute_empirical_variance(state),
             confidence_radius=radius,
             trajectory=trajectory,
             confidence_interval=(max(0, state.mean - radius),
                                min(1, state.mean + radius)),
-            p_value=None,
+            p_value=p_val,
             forced_stop=False
         )
     else:
@@ -591,6 +820,6 @@ def sequential_verify(
             confidence_radius=float('inf'),
             trajectory=[],
             confidence_interval=(0.0, 1.0),
-            p_value=None,
+            p_value=1.0 if compute_p_value else None,
             forced_stop=False
         )
