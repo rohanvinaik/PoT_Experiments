@@ -72,6 +72,70 @@ from .behavioral_fingerprint import (
     create_behavioral_monitor
 )
 
+# Topographical learning components
+from .topography import (
+    TopographicalMethod,
+    NeighborhoodMetric,
+    TopographicalConfig,
+    TopographicalEmbedding,
+    TopologicalStructure,
+    TopographicalMapper,
+    UMAPMapper,
+    TSNEMapper,
+    SOMMapper,
+    SOMProjector,
+    TopographicalAnalyzer,
+    TopographicalProjector,
+    TopographicalEvolutionTracker,
+    ConceptSpaceNavigator,
+    create_topographical_analyzer,
+    compare_topographies
+)
+
+from .topography_utils import (
+    compute_distance_matrix,
+    compute_neighborhood_preservation,
+    compute_stress_metrics,
+    estimate_intrinsic_dimension,
+    compute_geodesic_distances,
+    compute_persistence_diagram,
+    compute_bottleneck_distance,
+    compute_wasserstein_distance,
+    subsample_data,
+    align_embeddings,
+    compute_local_quality,
+    detect_outliers_topological,
+    interpolate_manifold
+)
+
+from .topography_visualizer import (
+    plot_projection,
+    plot_density_map,
+    plot_som_grid_extended,
+    create_interactive_plot,
+    create_evolution_animation_interactive,
+    compare_projections,
+    plot_embedding,
+    plot_neighborhood_graph,
+    plot_quality_heatmap,
+    plot_persistence_diagram,
+    plot_som_grid,
+    plot_concept_trajectory,
+    create_interactive_embedding,
+    plot_distance_preservation,
+    plot_manifold_density,
+    plot_som_u_matrix,
+    plot_som_component_planes,
+    plot_som_hit_map,
+    plot_som_clusters,
+    create_som_dashboard,
+    plot_evolution_trajectory,
+    plot_drift_metrics_dashboard,
+    create_evolution_animation,
+    plot_cluster_evolution_heatmap,
+    create_dashboard
+)
+
 __all__ = [
     # Types
     'ConceptVector',
@@ -123,6 +187,66 @@ __all__ = [
     'FingerprintHistory',
     'ContinuousMonitor',
     'create_behavioral_monitor',
+    
+    # Topographical learning
+    'TopographicalMethod',
+    'NeighborhoodMetric',
+    'TopographicalConfig',
+    'TopographicalEmbedding',
+    'TopologicalStructure',
+    'TopographicalMapper',
+    'UMAPMapper',
+    'TSNEMapper',
+    'SOMMapper',
+    'SOMProjector',
+    'TopographicalAnalyzer',
+    'TopographicalProjector',
+    'TopographicalEvolutionTracker',
+    'ConceptSpaceNavigator',
+    'create_topographical_analyzer',
+    'compare_topographies',
+    
+    # Topography utilities
+    'compute_distance_matrix',
+    'compute_neighborhood_preservation',
+    'compute_stress_metrics',
+    'estimate_intrinsic_dimension',
+    'compute_geodesic_distances',
+    'compute_persistence_diagram',
+    'compute_bottleneck_distance',
+    'compute_wasserstein_distance',
+    'subsample_data',
+    'align_embeddings',
+    'compute_local_quality',
+    'detect_outliers_topological',
+    'interpolate_manifold',
+    
+    # Topography visualization
+    'plot_projection',
+    'plot_density_map',
+    'plot_som_grid_extended',
+    'create_interactive_plot',
+    'create_evolution_animation_interactive',
+    'compare_projections',
+    'plot_embedding',
+    'plot_neighborhood_graph',
+    'plot_quality_heatmap',
+    'plot_persistence_diagram',
+    'plot_som_grid',
+    'plot_concept_trajectory',
+    'create_interactive_embedding',
+    'plot_distance_preservation',
+    'plot_manifold_density',
+    'plot_som_u_matrix',
+    'plot_som_component_planes',
+    'plot_som_hit_map',
+    'plot_som_clusters',
+    'create_som_dashboard',
+    'plot_evolution_trajectory',
+    'plot_drift_metrics_dashboard',
+    'create_evolution_animation',
+    'plot_cluster_evolution_heatmap',
+    'create_dashboard',
     
     # Optimization flag
     'OPTIMIZED_AVAILABLE'

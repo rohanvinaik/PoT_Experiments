@@ -21,3 +21,9 @@ py-tlsh==4.7.2
 
 pytest>=7.0.0
 
+# Topographical learning dependencies
+umap-learn>=0.5.0  # UMAP dimensionality reduction
+minisom>=2.3.0  # Self-Organizing Maps
+plotly>=5.0.0  # Interactive visualizations
+# Note: scikit-learn already included above for t-SNE and other methods
+
