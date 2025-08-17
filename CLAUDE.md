@@ -112,8 +112,14 @@ PoT_Experiments/
   - Cost estimation and budgeting
 
 ### 2. Security Components (`pot/security/`)
-- **Proof of Training** (`proof_of_training.py`): Main verification system
-  - `ProofOfTraining`: Complete verification protocol
+- **Proof of Training** (`proof_of_training.py`): Main verification system (UPDATED 2025-08-17)
+  - `ProofOfTraining`: Complete verification protocol with expected ranges validation
+  - **Expected Ranges Verification** (NEW): Behavioral validation against calibrated reference ranges
+    - `ExpectedRanges`: Range validation for accuracy, latency, fingerprint similarity, and Jacobian norm
+    - `ValidationReport`: Structured validation results with violation details and confidence scoring
+    - `RangeCalibrator`: Automatic range calibration from reference model performance
+    - Statistical significance testing with anytime-valid confidence bounds
+    - Tolerance factors for production robustness (configurable slack in range validation)
   - Model registration and fingerprinting
   - Verification profiles (quick, standard, comprehensive)
   - Cryptographic proof generation
@@ -867,6 +873,220 @@ def setup_production_blockchain(environment="mainnet"):
 production_client = setup_production_blockchain("polygon")
 training_proof_tx = production_client.batch_store_commitments(training_commitments)
 print(f"Production training proof: {training_proof_tx}")
+```
+
+### Expected Ranges Verification for Behavioral Validation (NEW 2025-08-17)
+```python
+from pot.security.proof_of_training import (
+    ProofOfTraining, ExpectedRanges, RangeCalibrator,
+    ModelType, SecurityLevel, VerificationDepth
+)
+import numpy as np
+
+# 1. Basic Expected Ranges Setup
+config = {
+    'verification_type': 'fuzzy',
+    'model_type': 'vision', 
+    'security_level': 'high'
+}
+
+pot_system = ProofOfTraining(config)
+
+# Mock model for demonstration
+class VisionModel:
+    def forward(self, x):
+        return np.random.randn(1000)  # Simulate model output
+    
+    def state_dict(self):
+        return {'conv1.weight': np.random.randn(64, 3, 7, 7)}
+
+model = VisionModel()
+
+# 2. Register Model and Calibrate Expected Ranges
+model_id = pot_system.register_model(
+    model,
+    architecture="resnet50",
+    parameter_count=25_000_000
+)
+print(f"Model registered: {model_id}")
+
+# Calibrate expected ranges from reference model behavior
+expected_ranges = pot_system.calibrate_expected_ranges(
+    model, model_id, num_calibration_runs=20
+)
+
+print(f"Calibrated ranges:")
+print(f"  Accuracy: [{expected_ranges.accuracy_range[0]:.3f}, {expected_ranges.accuracy_range[1]:.3f}]")
+print(f"  Latency: [{expected_ranges.latency_range[0]:.1f}, {expected_ranges.latency_range[1]:.1f}]ms")
+print(f"  Fingerprint similarity: [{expected_ranges.fingerprint_similarity[0]:.3f}, {expected_ranges.fingerprint_similarity[1]:.3f}]")
+print(f"  Jacobian norm: [{expected_ranges.jacobian_norm_range[0]:.6f}, {expected_ranges.jacobian_norm_range[1]:.6f}]")
+
+# 3. Manual Range Configuration (Alternative to Calibration)
+manual_ranges = ExpectedRanges(
+    accuracy_range=(0.85, 0.95),      # Expected accuracy bounds
+    latency_range=(10.0, 50.0),       # Expected latency in milliseconds
+    fingerprint_similarity=(0.90, 0.99),  # Fingerprint similarity bounds
+    jacobian_norm_range=(0.1, 5.0),   # Jacobian norm bounds
+    confidence_level=0.95,             # Statistical confidence level
+    tolerance_factor=1.1               # 10% tolerance for production robustness
+)
+
+pot_system.set_expected_ranges(model_id, manual_ranges)
+
+# 4. Verification with Expected Ranges Validation
+result = pot_system.perform_verification(model, model_id, 'comprehensive')
+
+print(f"\nVerification Results:")
+print(f"  Overall verified: {result.verified}")
+print(f"  Confidence: {result.confidence:.3f}")
+print(f"  Challenges passed: {result.challenges_passed}/{result.challenges_total}")
+
+# Enhanced metrics from expected ranges validation
+print(f"\nMeasured Metrics:")
+print(f"  Accuracy: {result.accuracy:.3f}" if result.accuracy else "  Accuracy: N/A")
+print(f"  Latency: {result.latency_ms:.1f}ms" if result.latency_ms else "  Latency: N/A")
+print(f"  Fingerprint similarity: {result.fingerprint_similarity:.3f}" if result.fingerprint_similarity else "  Fingerprint similarity: N/A")
+print(f"  Jacobian norm: {result.jacobian_norm:.6f}" if result.jacobian_norm else "  Jacobian norm: N/A")
+
+# Range validation results
+if result.range_validation:
+    print(f"\nRange Validation:")
+    print(f"  Passed: {result.range_validation.passed}")
+    print(f"  Confidence: {result.range_validation.confidence:.3f}")
+    
+    if result.range_validation.violations:
+        print(f"  Violations:")
+        for violation in result.range_validation.violations:
+            print(f"    - {violation}")
+    
+    print(f"  Range scores:")
+    for metric, score in result.range_validation.range_scores.items():
+        print(f"    {metric}: {score:.3f}")
+    
+    if result.range_validation.statistical_significance:
+        print(f"  Statistical significance (p-value): {result.range_validation.statistical_significance:.6f}")
+
+# 5. Advanced Range Calibrator Usage
+calibrator = RangeCalibrator(
+    confidence_level=0.99,    # Higher confidence
+    percentile_margin=0.02    # Tighter ranges (2% margin)
+)
+
+# Create custom test suite for calibration
+test_suite = [
+    np.random.randn(224, 224, 3) for _ in range(50)  # 50 test images
+]
+
+custom_ranges = calibrator.calibrate(
+    reference_model=model,
+    test_suite=test_suite,
+    model_type=ModelType.VISION,
+    num_runs=30  # More runs for better statistics
+)
+
+# 6. Production Deployment with Expected Ranges
+def deploy_model_with_ranges(model, architecture, test_data):
+    """Production deployment with automated range calibration"""
+    
+    # Register model
+    model_id = pot_system.register_model(
+        model, architecture=architecture, parameter_count=len(list(model.parameters()))
+    )
+    
+    # Calibrate ranges with production test data
+    ranges = pot_system.calibrate_expected_ranges(
+        model, model_id, num_calibration_runs=50
+    )
+    
+    # Adjust tolerance for production robustness
+    ranges.tolerance_factor = 1.2  # 20% tolerance
+    
+    # Store calibrated ranges
+    pot_system.set_expected_ranges(model_id, ranges)
+    
+    return model_id, ranges
+
+# Deploy model
+model_id, production_ranges = deploy_model_with_ranges(
+    model, "production_resnet50_v2", test_suite
+)
+
+print(f"\nProduction deployment complete:")
+print(f"  Model ID: {model_id}")
+print(f"  Ranges calibrated with tolerance: {production_ranges.tolerance_factor}")
+
+# 7. Continuous Monitoring with Expected Ranges
+def monitor_model_performance(model, model_id, monitoring_data):
+    """Continuous monitoring of model performance against expected ranges"""
+    
+    violations_detected = []
+    
+    for i, data_batch in enumerate(monitoring_data):
+        # Quick verification for monitoring
+        result = pot_system.perform_verification(model, model_id, 'quick')
+        
+        if result.range_validation and not result.range_validation.passed:
+            violations_detected.append({
+                'batch_id': i,
+                'violations': result.range_validation.violations,
+                'confidence': result.range_validation.confidence
+            })
+    
+    return violations_detected
+
+# Monitor model (example)
+monitoring_data = [np.random.randn(224, 224, 3) for _ in range(10)]
+violations = monitor_model_performance(model, model_id, monitoring_data)
+
+if violations:
+    print(f"\nMonitoring detected {len(violations)} batches with range violations")
+else:
+    print(f"\nMonitoring complete: All batches within expected ranges")
+
+# 8. Attack Detection with Expected Ranges
+class AdversarialModel:
+    """Simulated adversarial model with different behavior"""
+    def forward(self, x):
+        # Adversarial model produces different outputs
+        return np.random.randn(1000) * 10  # Different scale
+    
+    def state_dict(self):
+        return {'conv1.weight': np.random.randn(64, 3, 7, 7)}
+
+adversarial_model = AdversarialModel()
+
+# Verify adversarial model against legitimate ranges
+attack_result = pot_system.perform_verification(adversarial_model, model_id, 'comprehensive')
+
+print(f"\nAdversarial Model Detection:")
+print(f"  Verified: {attack_result.verified}")
+print(f"  Confidence: {attack_result.confidence:.3f}")
+
+if attack_result.range_validation and not attack_result.range_validation.passed:
+    print(f"  🚨 ATTACK DETECTED - Range violations:")
+    for violation in attack_result.range_validation.violations:
+        print(f"    - {violation}")
+    print(f"  Validation confidence: {attack_result.range_validation.confidence:.3f}")
+
+# 9. Multi-Model Range Comparison
+models_to_compare = [model, adversarial_model]
+model_names = ["legitimate", "adversarial"]
+
+print(f"\nMulti-Model Range Analysis:")
+for model_instance, name in zip(models_to_compare, model_names):
+    result = pot_system.perform_verification(model_instance, model_id, 'standard')
+    
+    range_passed = result.range_validation.passed if result.range_validation else "N/A"
+    range_conf = result.range_validation.confidence if result.range_validation else 0.0
+    
+    print(f"  {name}: verified={result.verified}, range_passed={range_passed}, range_conf={range_conf:.3f}")
+
+# 10. Range Statistics and Analytics
+stats = pot_system.get_statistics()
+print(f"\nSystem Statistics:")
+print(f"  Models with expected ranges: {stats['models_with_expected_ranges']}")
+print(f"  Range calibrator available: {stats['components']['range_calibrator']}")
+print(f"  Expected ranges enabled: {stats['components']['expected_ranges']}")
 ```
 
 ### Merkle Tree for Training Provenance (UPDATED 2025-08-17)

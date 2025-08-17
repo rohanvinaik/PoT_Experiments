@@ -113,6 +113,479 @@ class VerificationResult:
     details: Dict[str, Any]
     timestamp: datetime
     duration_seconds: float
+    # Enhanced fields for expected ranges validation
+    accuracy: Optional[float] = None
+    latency_ms: Optional[float] = None
+    fingerprint_similarity: Optional[float] = None
+    jacobian_norm: Optional[float] = None
+    range_validation: Optional['ValidationReport'] = None
+
+
+@dataclass
+class ValidationReport:
+    """Report for expected ranges validation"""
+    passed: bool
+    violations: List[str]
+    confidence: float
+    range_scores: Dict[str, float]
+    statistical_significance: Optional[float] = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+@dataclass
+class ExpectedRanges:
+    """Expected ranges for model behavior validation"""
+    accuracy_range: Tuple[float, float]  # (min, max) accuracy bounds
+    latency_range: Tuple[float, float]   # (min, max) latency in milliseconds
+    fingerprint_similarity: Tuple[float, float]  # (min, max) fingerprint similarity
+    jacobian_norm_range: Tuple[float, float]     # (min, max) Jacobian norm bounds
+    
+    # Statistical parameters
+    confidence_level: float = 0.95  # Confidence level for range validation
+    tolerance_factor: float = 1.1   # Tolerance multiplier for ranges
+    
+    def validate(self, results: VerificationResult) -> ValidationReport:
+        """
+        Check if results fall within expected ranges
+        
+        Args:
+            results: VerificationResult to validate
+            
+        Returns:
+            ValidationReport with validation details
+        """
+        violations = []
+        range_scores = {}
+        
+        # Validate accuracy
+        if results.accuracy is not None:
+            score = self._compute_range_score(
+                results.accuracy, self.accuracy_range, "accuracy"
+            )
+            range_scores["accuracy"] = score
+            
+            if not self._is_in_range(results.accuracy, self.accuracy_range):
+                violations.append(
+                    f"Accuracy {results.accuracy:.3f} outside range "
+                    f"[{self.accuracy_range[0]:.3f}, {self.accuracy_range[1]:.3f}]"
+                )
+        
+        # Validate latency
+        if results.latency_ms is not None:
+            score = self._compute_range_score(
+                results.latency_ms, self.latency_range, "latency"
+            )
+            range_scores["latency"] = score
+            
+            if not self._is_in_range(results.latency_ms, self.latency_range):
+                violations.append(
+                    f"Latency {results.latency_ms:.1f}ms outside range "
+                    f"[{self.latency_range[0]:.1f}, {self.latency_range[1]:.1f}]ms"
+                )
+        
+        # Validate fingerprint similarity
+        if results.fingerprint_similarity is not None:
+            score = self._compute_range_score(
+                results.fingerprint_similarity, self.fingerprint_similarity, "fingerprint"
+            )
+            range_scores["fingerprint_similarity"] = score
+            
+            if not self._is_in_range(results.fingerprint_similarity, self.fingerprint_similarity):
+                violations.append(
+                    f"Fingerprint similarity {results.fingerprint_similarity:.3f} outside range "
+                    f"[{self.fingerprint_similarity[0]:.3f}, {self.fingerprint_similarity[1]:.3f}]"
+                )
+        
+        # Validate Jacobian norm
+        if results.jacobian_norm is not None:
+            score = self._compute_range_score(
+                results.jacobian_norm, self.jacobian_norm_range, "jacobian_norm"
+            )
+            range_scores["jacobian_norm"] = score
+            
+            if not self._is_in_range(results.jacobian_norm, self.jacobian_norm_range):
+                violations.append(
+                    f"Jacobian norm {results.jacobian_norm:.6f} outside range "
+                    f"[{self.jacobian_norm_range[0]:.6f}, {self.jacobian_norm_range[1]:.6f}]"
+                )
+        
+        # Compute overall confidence
+        overall_confidence = self._compute_confidence(range_scores, violations)
+        
+        # Compute statistical significance if we have enough data
+        statistical_significance = None
+        if len(range_scores) >= 2:
+            statistical_significance = self._compute_statistical_significance(range_scores)
+        
+        return ValidationReport(
+            passed=len(violations) == 0,
+            violations=violations,
+            confidence=overall_confidence,
+            range_scores=range_scores,
+            statistical_significance=statistical_significance
+        )
+    
+    def _is_in_range(self, value: float, range_bounds: Tuple[float, float]) -> bool:
+        """Check if value is within range bounds with tolerance"""
+        min_val, max_val = range_bounds
+        
+        # Apply tolerance factor
+        tolerance = (max_val - min_val) * (self.tolerance_factor - 1.0) / 2.0
+        adjusted_min = min_val - tolerance
+        adjusted_max = max_val + tolerance
+        
+        return adjusted_min <= value <= adjusted_max
+    
+    def _compute_range_score(self, value: float, range_bounds: Tuple[float, float], 
+                           metric_name: str) -> float:
+        """
+        Compute normalized score for how well value fits within range
+        
+        Returns:
+            Score from 0.0 (far outside) to 1.0 (center of range)
+        """
+        min_val, max_val = range_bounds
+        range_width = max_val - min_val
+        
+        if range_width == 0:
+            return 1.0 if value == min_val else 0.0
+        
+        # Distance from center of range
+        center = (min_val + max_val) / 2.0
+        distance_from_center = abs(value - center)
+        max_distance = range_width / 2.0
+        
+        # Normalize to [0, 1] where 1 is center, 0 is at range boundaries
+        # Use small epsilon for floating point comparison
+        eps = 1e-10
+        if distance_from_center <= max_distance + eps:
+            score = 1.0 - (distance_from_center / max_distance) if max_distance > 0 else 1.0
+            # Ensure edge values still get a small positive score
+            if score <= 0.01:  # Close to edge
+                score = 0.01  # Small positive score for edge values
+        else:
+            # Penalize values outside range
+            excess_distance = distance_from_center - max_distance
+            penalty = min(1.0, excess_distance / max_distance) if max_distance > 0 else 1.0
+            score = -penalty
+        
+        return max(0.0, score)
+    
+    def _compute_confidence(self, range_scores: Dict[str, float], 
+                          violations: List[str]) -> float:
+        """Compute overall confidence in range validation"""
+        if not range_scores:
+            return 0.0
+        
+        # Base confidence from average range scores
+        avg_score = np.mean(list(range_scores.values()))
+        
+        # Penalty for violations
+        violation_penalty = len(violations) * 0.2
+        
+        # Confidence boost for consistent scores
+        score_std = np.std(list(range_scores.values())) if len(range_scores) > 1 else 0.0
+        consistency_boost = max(0.0, 0.2 * (1.0 - score_std))
+        
+        confidence = avg_score - violation_penalty + consistency_boost
+        return max(0.0, min(1.0, confidence))
+    
+    def _compute_statistical_significance(self, range_scores: Dict[str, float]) -> float:
+        """
+        Compute statistical significance of range validation
+        
+        Uses one-sample t-test against expected mean of 0.5 (center of ranges)
+        """
+        try:
+            from scipy import stats
+        except ImportError:
+            logger.debug("scipy not available for statistical significance")
+            return None
+        
+        scores = list(range_scores.values())
+        if len(scores) < 2:
+            return None
+        
+        # Test against null hypothesis that mean score = 0.5 (random performance)
+        try:
+            t_stat, p_value = stats.ttest_1samp(scores, 0.5)
+            return p_value
+        except Exception:
+            return None
+
+
+class RangeCalibrator:
+    """Calibrate expected ranges from reference model performance"""
+    
+    def __init__(self, confidence_level: float = 0.95, 
+                 percentile_margin: float = 0.05):
+        """
+        Initialize range calibrator
+        
+        Args:
+            confidence_level: Statistical confidence level for ranges
+            percentile_margin: Margin for percentile-based range calculation
+        """
+        self.confidence_level = confidence_level
+        self.percentile_margin = percentile_margin
+        
+    def calibrate(self, reference_model: Any, test_suite: List[Any],
+                 model_type: ModelType = ModelType.GENERIC,
+                 num_runs: int = 10) -> ExpectedRanges:
+        """
+        Calibrate expected ranges from reference model
+        
+        Args:
+            reference_model: Reference model to calibrate against
+            test_suite: Test challenges/inputs
+            model_type: Type of model for specialized metrics
+            num_runs: Number of calibration runs for statistics
+            
+        Returns:
+            Calibrated ExpectedRanges
+        """
+        logger.info(f"Calibrating expected ranges with {num_runs} runs on {len(test_suite)} test cases")
+        
+        # Collect metrics from multiple runs
+        accuracy_samples = []
+        latency_samples = []
+        fingerprint_samples = []
+        jacobian_samples = []
+        
+        for run_idx in range(num_runs):
+            logger.debug(f"Calibration run {run_idx + 1}/{num_runs}")
+            
+            for test_case_idx, test_input in enumerate(test_suite):
+                try:
+                    # Measure accuracy (model-specific)
+                    accuracy = self._measure_accuracy(reference_model, test_input, model_type)
+                    if accuracy is not None:
+                        accuracy_samples.append(accuracy)
+                    
+                    # Measure latency
+                    latency = self._measure_latency(reference_model, test_input)
+                    if latency is not None:
+                        latency_samples.append(latency)
+                    
+                    # Measure fingerprint similarity (compare with itself)
+                    fingerprint_sim = self._measure_fingerprint_similarity(
+                        reference_model, test_input
+                    )
+                    if fingerprint_sim is not None:
+                        fingerprint_samples.append(fingerprint_sim)
+                    
+                    # Measure Jacobian norm
+                    jacobian_norm = self._measure_jacobian_norm(reference_model, test_input)
+                    if jacobian_norm is not None:
+                        jacobian_samples.append(jacobian_norm)
+                        
+                except Exception as e:
+                    logger.warning(f"Error in calibration run {run_idx}, test {test_case_idx}: {e}")
+                    continue
+        
+        # Compute ranges from samples
+        accuracy_range = self._compute_range_from_samples(accuracy_samples, "accuracy")
+        latency_range = self._compute_range_from_samples(latency_samples, "latency")
+        fingerprint_range = self._compute_range_from_samples(fingerprint_samples, "fingerprint")
+        jacobian_range = self._compute_range_from_samples(jacobian_samples, "jacobian_norm")
+        
+        logger.info(f"Calibration complete:")
+        logger.info(f"  Accuracy range: [{accuracy_range[0]:.3f}, {accuracy_range[1]:.3f}]")
+        logger.info(f"  Latency range: [{latency_range[0]:.1f}, {latency_range[1]:.1f}]ms")
+        logger.info(f"  Fingerprint range: [{fingerprint_range[0]:.3f}, {fingerprint_range[1]:.3f}]")
+        logger.info(f"  Jacobian range: [{jacobian_range[0]:.6f}, {jacobian_range[1]:.6f}]")
+        
+        return ExpectedRanges(
+            accuracy_range=accuracy_range,
+            latency_range=latency_range,
+            fingerprint_similarity=fingerprint_range,
+            jacobian_norm_range=jacobian_range,
+            confidence_level=self.confidence_level
+        )
+    
+    def _measure_accuracy(self, model: Any, test_input: Any, 
+                         model_type: ModelType) -> Optional[float]:
+        """Measure model accuracy on test input"""
+        try:
+            if model_type == ModelType.VISION:
+                # For vision models, use synthetic accuracy metric
+                output = self._get_model_output(model, test_input)
+                if output is not None:
+                    # Synthetic accuracy based on output characteristics
+                    if isinstance(output, np.ndarray):
+                        # Use entropy as proxy for confidence/accuracy
+                        normalized_output = np.abs(output) / (np.sum(np.abs(output)) + 1e-8)
+                        entropy = -np.sum(normalized_output * np.log(normalized_output + 1e-8))
+                        # Convert entropy to accuracy-like metric [0, 1]
+                        max_entropy = np.log(len(normalized_output))
+                        accuracy = 1.0 - (entropy / max_entropy) if max_entropy > 0 else 0.5
+                        return accuracy
+                    
+            elif model_type == ModelType.LANGUAGE:
+                # For language models, use perplexity-based accuracy
+                output = self._get_model_output(model, test_input)
+                if output is not None:
+                    # Synthetic accuracy from output consistency
+                    if isinstance(output, (str, list)):
+                        # Simple length-based accuracy proxy
+                        output_str = str(output)
+                        accuracy = min(1.0, len(output_str) / 100.0)  # Normalize by expected length
+                        return accuracy
+            
+            else:  # GENERIC or others
+                # Generic accuracy measurement
+                output = self._get_model_output(model, test_input)
+                if output is not None:
+                    # Use output magnitude as accuracy proxy
+                    if isinstance(output, np.ndarray):
+                        magnitude = np.linalg.norm(output)
+                        # Normalize to [0, 1] range
+                        accuracy = min(1.0, magnitude / 10.0)
+                        return accuracy
+                    elif isinstance(output, (int, float)):
+                        return min(1.0, abs(float(output)) / 10.0)
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Error measuring accuracy: {e}")
+            return None
+    
+    def _measure_latency(self, model: Any, test_input: Any) -> Optional[float]:
+        """Measure model inference latency in milliseconds"""
+        try:
+            start_time = time.time()
+            _ = self._get_model_output(model, test_input)
+            end_time = time.time()
+            
+            latency_ms = (end_time - start_time) * 1000.0
+            return latency_ms
+            
+        except Exception as e:
+            logger.debug(f"Error measuring latency: {e}")
+            return None
+    
+    def _measure_fingerprint_similarity(self, model: Any, test_input: Any) -> Optional[float]:
+        """Measure fingerprint similarity (model with itself)"""
+        try:
+            # Get two outputs from the same model+input (should be identical for deterministic models)
+            output1 = self._get_model_output(model, test_input)
+            output2 = self._get_model_output(model, test_input)
+            
+            if output1 is not None and output2 is not None:
+                # Compute similarity between outputs
+                if isinstance(output1, np.ndarray) and isinstance(output2, np.ndarray):
+                    # Cosine similarity
+                    dot_product = np.dot(output1.flatten(), output2.flatten())
+                    norm1 = np.linalg.norm(output1.flatten())
+                    norm2 = np.linalg.norm(output2.flatten())
+                    
+                    if norm1 > 0 and norm2 > 0:
+                        similarity = dot_product / (norm1 * norm2)
+                        return max(0.0, min(1.0, similarity))  # Clamp to [0.0, 1.0]
+                elif isinstance(output1, str) and isinstance(output2, str):
+                    # String similarity (for language models)
+                    if output1 == output2:
+                        return 1.0
+                    else:
+                        # Jaccard similarity
+                        set1 = set(output1.split())
+                        set2 = set(output2.split())
+                        if len(set1) == 0 and len(set2) == 0:
+                            return 1.0
+                        intersection = len(set1.intersection(set2))
+                        union = len(set1.union(set2))
+                        return intersection / union if union > 0 else 0.0
+                else:
+                    # Exact match for other types
+                    return 1.0 if output1 == output2 else 0.0
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Error measuring fingerprint similarity: {e}")
+            return None
+    
+    def _measure_jacobian_norm(self, model: Any, test_input: Any) -> Optional[float]:
+        """Measure Jacobian norm (gradient magnitude)"""
+        try:
+            # For simplicity, use output magnitude as proxy for Jacobian norm
+            # In practice, would compute actual gradients
+            output = self._get_model_output(model, test_input)
+            
+            if output is not None:
+                if isinstance(output, np.ndarray):
+                    # Use output norm as proxy for Jacobian norm
+                    norm = np.linalg.norm(output)
+                    return norm
+                elif isinstance(output, (int, float)):
+                    return abs(float(output))
+                else:
+                    # For other types, use hash-based norm
+                    hash_val = hash(str(output))
+                    return abs(hash_val) / 1e6  # Normalize
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Error measuring Jacobian norm: {e}")
+            return None
+    
+    def _get_model_output(self, model: Any, test_input: Any) -> Any:
+        """Get model output for given input"""
+        try:
+            if hasattr(model, 'forward'):
+                return model.forward(test_input)
+            elif hasattr(model, 'predict'):
+                return model.predict(test_input)
+            elif callable(model):
+                return model(test_input)
+            else:
+                return None
+        except Exception as e:
+            logger.debug(f"Error getting model output: {e}")
+            return None
+    
+    def _compute_range_from_samples(self, samples: List[float], 
+                                  metric_name: str) -> Tuple[float, float]:
+        """Compute range bounds from sample data"""
+        if not samples:
+            logger.warning(f"No samples for {metric_name}, using default range")
+            return (0.0, 1.0)
+        
+        samples_array = np.array(samples)
+        
+        # Remove outliers using IQR method
+        q1 = np.percentile(samples_array, 25)
+        q3 = np.percentile(samples_array, 75)
+        iqr = q3 - q1
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        
+        # Filter outliers
+        filtered_samples = samples_array[
+            (samples_array >= lower_bound) & (samples_array <= upper_bound)
+        ]
+        
+        if len(filtered_samples) == 0:
+            filtered_samples = samples_array
+        
+        # Compute percentile-based range
+        margin_percent = self.percentile_margin * 100
+        min_val = np.percentile(filtered_samples, margin_percent)
+        max_val = np.percentile(filtered_samples, 100 - margin_percent)
+        
+        # Ensure minimum range width
+        min_range_width = 0.01
+        range_width = max_val - min_val
+        if range_width < min_range_width:
+            center = (min_val + max_val) / 2.0
+            min_val = center - min_range_width / 2.0
+            max_val = center + min_range_width / 2.0
+        
+        logger.debug(f"{metric_name}: {len(samples)} samples -> range [{min_val:.6f}, {max_val:.6f}]")
+        
+        return (float(min_val), float(max_val))
 
 
 class ChallengeLibrary:
@@ -315,6 +788,15 @@ class ProofOfTraining:
         # Verification cache
         self.verification_cache = {}
         
+        # Expected ranges for validation
+        self.expected_ranges = {}  # model_id -> ExpectedRanges
+        
+        # Range calibrator
+        self.range_calibrator = RangeCalibrator(
+            confidence_level=0.95,
+            percentile_margin=0.05
+        )
+        
         logger.info(f"ProofOfTraining initialized with {self.verification_type.value} verification")
     
     def _initialize_components(self):
@@ -462,6 +944,82 @@ class ProofOfTraining:
         
         return model_id
     
+    def calibrate_expected_ranges(self, model: Any, model_id: str,
+                                num_calibration_runs: int = 10) -> ExpectedRanges:
+        """
+        Calibrate expected ranges for a registered model
+        
+        Args:
+            model: Model to calibrate
+            model_id: Registered model ID
+            num_calibration_runs: Number of calibration runs for statistics
+            
+        Returns:
+            Calibrated ExpectedRanges
+        """
+        if model_id not in self.model_registry:
+            raise ValueError(f"Model {model_id} not registered")
+        
+        registration = self.model_registry[model_id]
+        
+        # Get test suite from reference challenges
+        test_suite = []
+        for challenge_type, challenges in registration.reference_challenges.items():
+            test_suite.extend(challenges)
+        
+        if not test_suite:
+            logger.warning(f"No test suite available for model {model_id}")
+            # Return default ranges
+            return ExpectedRanges(
+                accuracy_range=(0.0, 1.0),
+                latency_range=(0.1, 1000.0),
+                fingerprint_similarity=(0.8, 1.0),
+                jacobian_norm_range=(0.01, 10.0)
+            )
+        
+        logger.info(f"Calibrating expected ranges for model {model_id} with {len(test_suite)} test cases")
+        
+        # Calibrate ranges
+        expected_ranges = self.range_calibrator.calibrate(
+            reference_model=model,
+            test_suite=test_suite,
+            model_type=registration.model_type,
+            num_runs=num_calibration_runs
+        )
+        
+        # Store ranges for this model
+        self.expected_ranges[model_id] = expected_ranges
+        
+        logger.info(f"Expected ranges calibrated for model {model_id}")
+        
+        return expected_ranges
+    
+    def set_expected_ranges(self, model_id: str, expected_ranges: ExpectedRanges):
+        """
+        Manually set expected ranges for a model
+        
+        Args:
+            model_id: Registered model ID
+            expected_ranges: Expected ranges to set
+        """
+        if model_id not in self.model_registry:
+            raise ValueError(f"Model {model_id} not registered")
+        
+        self.expected_ranges[model_id] = expected_ranges
+        logger.info(f"Expected ranges set for model {model_id}")
+    
+    def get_expected_ranges(self, model_id: str) -> Optional[ExpectedRanges]:
+        """
+        Get expected ranges for a model
+        
+        Args:
+            model_id: Registered model ID
+            
+        Returns:
+            Expected ranges if available, None otherwise
+        """
+        return self.expected_ranges.get(model_id)
+    
     def generate_adaptive_challenges(self, model_architecture: str,
                                    parameter_count: int) -> Dict[str, List[Any]]:
         """
@@ -591,6 +1149,12 @@ class ProofOfTraining:
         challenges_total = 0
         similarity_scores = []
         
+        # Collect metrics for expected ranges validation
+        accuracy_measurements = []
+        latency_measurements = []
+        fingerprint_measurements = []
+        jacobian_measurements = []
+        
         for challenge_type, challenges in registration.reference_challenges.items():
             reference_responses = registration.reference_responses.get(challenge_type, [])
             
@@ -606,6 +1170,9 @@ class ProofOfTraining:
                 challenges_total += 1
                 
                 try:
+                    # Measure latency
+                    start_time = time.time()
+                    
                     # Get model response
                     if hasattr(model, 'forward'):
                         response = model.forward(challenge)
@@ -615,6 +1182,33 @@ class ProofOfTraining:
                         response = model(challenge)
                     else:
                         response = f"mock_response_{challenge_type}"
+                    
+                    # Record latency
+                    latency_ms = (time.time() - start_time) * 1000.0
+                    latency_measurements.append(latency_ms)
+                    
+                    # Measure additional metrics for expected ranges
+                    if depth == VerificationDepth.COMPREHENSIVE:
+                        # Accuracy measurement
+                        accuracy = self.range_calibrator._measure_accuracy(
+                            model, challenge, registration.model_type
+                        )
+                        if accuracy is not None:
+                            accuracy_measurements.append(accuracy)
+                        
+                        # Fingerprint similarity
+                        fingerprint_sim = self.range_calibrator._measure_fingerprint_similarity(
+                            model, challenge
+                        )
+                        if fingerprint_sim is not None:
+                            fingerprint_measurements.append(fingerprint_sim)
+                        
+                        # Jacobian norm
+                        jacobian_norm = self.range_calibrator._measure_jacobian_norm(
+                            model, challenge
+                        )
+                        if jacobian_norm is not None:
+                            jacobian_measurements.append(jacobian_norm)
                     
                     # Verify based on verification type
                     if self.verification_type == VerificationType.EXACT:
@@ -693,7 +1287,48 @@ class ProofOfTraining:
         confidence = pass_rate * avg_similarity
         verified = confidence >= confidence_threshold
         
-        # Create result
+        # Compute average measurements for expected ranges validation
+        avg_accuracy = np.mean(accuracy_measurements) if accuracy_measurements else None
+        avg_latency = np.mean(latency_measurements) if latency_measurements else None
+        avg_fingerprint_sim = np.mean(fingerprint_measurements) if fingerprint_measurements else None
+        avg_jacobian_norm = np.mean(jacobian_measurements) if jacobian_measurements else None
+        
+        # Perform expected ranges validation if available
+        range_validation = None
+        if model_id in self.expected_ranges:
+            expected_ranges = self.expected_ranges[model_id]
+            
+            # Create temporary result for validation
+            temp_result = VerificationResult(
+                verified=verified,
+                confidence=confidence,
+                verification_type=self.verification_type.value,
+                model_id=model_id,
+                challenges_passed=challenges_passed,
+                challenges_total=challenges_total,
+                fuzzy_similarity=avg_similarity if self.verification_type == VerificationType.FUZZY else None,
+                statistical_score=avg_similarity if self.verification_type == VerificationType.STATISTICAL else None,
+                provenance_verified=provenance_verified,
+                details={},
+                timestamp=datetime.now(timezone.utc),
+                duration_seconds=time.time() - start_time,
+                accuracy=avg_accuracy,
+                latency_ms=avg_latency,
+                fingerprint_similarity=avg_fingerprint_sim,
+                jacobian_norm=avg_jacobian_norm
+            )
+            
+            # Validate against expected ranges
+            range_validation = expected_ranges.validate(temp_result)
+            
+            # Update verification status based on range validation
+            if range_validation and not range_validation.passed:
+                logger.warning(f"Expected ranges validation failed: {range_validation.violations}")
+                # Optionally reduce confidence or fail verification
+                confidence *= range_validation.confidence
+                verified = verified and range_validation.passed
+        
+        # Create final result
         result = VerificationResult(
             verified=verified,
             confidence=confidence,
@@ -708,10 +1343,22 @@ class ProofOfTraining:
                 'pass_rate': pass_rate,
                 'verification_depth': depth.value,
                 'security_level': self.security_level.value,
-                'model_type': self.model_type.value
+                'model_type': self.model_type.value,
+                'range_validation_enabled': range_validation is not None,
+                'measurements_collected': {
+                    'accuracy_samples': len(accuracy_measurements),
+                    'latency_samples': len(latency_measurements),
+                    'fingerprint_samples': len(fingerprint_measurements),
+                    'jacobian_samples': len(jacobian_measurements)
+                }
             },
             timestamp=datetime.now(timezone.utc),
-            duration_seconds=time.time() - start_time
+            duration_seconds=time.time() - start_time,
+            accuracy=avg_accuracy,
+            latency_ms=avg_latency,
+            fingerprint_similarity=avg_fingerprint_sim,
+            jacobian_norm=avg_jacobian_norm,
+            range_validation=range_validation
         )
         
         # Cache result
@@ -951,13 +1598,16 @@ class ProofOfTraining:
         return {
             'registered_models': len(self.model_registry),
             'cached_verifications': len(self.verification_cache),
+            'models_with_expected_ranges': len(self.expected_ranges),
             'verification_type': self.verification_type.value,
             'model_type': self.model_type.value,
             'security_level': self.security_level.value,
             'components': {
                 'fuzzy_verifier': self.fuzzy_verifier is not None,
                 'provenance_tracker': self.provenance_tracker is not None,
-                'token_normalizer': self.token_normalizer is not None
+                'token_normalizer': self.token_normalizer is not None,
+                'range_calibrator': self.range_calibrator is not None,
+                'expected_ranges': len(self.expected_ranges) > 0
             }
         }
 
@@ -1018,6 +1668,37 @@ if __name__ == "__main__":
     print(f"  Verified: {result.verified}")
     print(f"  Confidence: {result.confidence:.2%}")
     print(f"  Challenges: {result.challenges_passed}/{result.challenges_total}")
+    
+    # Demonstrate expected ranges calibration
+    print("\n" + "=" * 70)
+    print("Expected Ranges Calibration")
+    print("=" * 70)
+    
+    # Calibrate expected ranges for the model
+    expected_ranges = pot_system.calibrate_expected_ranges(model, model_id, num_calibration_runs=3)
+    print(f"✓ Expected ranges calibrated:")
+    print(f"  Accuracy range: [{expected_ranges.accuracy_range[0]:.3f}, {expected_ranges.accuracy_range[1]:.3f}]")
+    print(f"  Latency range: [{expected_ranges.latency_range[0]:.1f}, {expected_ranges.latency_range[1]:.1f}]ms")
+    print(f"  Fingerprint similarity: [{expected_ranges.fingerprint_similarity[0]:.3f}, {expected_ranges.fingerprint_similarity[1]:.3f}]")
+    print(f"  Jacobian norm: [{expected_ranges.jacobian_norm_range[0]:.6f}, {expected_ranges.jacobian_norm_range[1]:.6f}]")
+    
+    # Comprehensive verification with range validation
+    result_comprehensive = pot_system.perform_verification(model, model_id, 'comprehensive')
+    print(f"\nComprehensive Verification with Range Validation:")
+    print(f"  Verified: {result_comprehensive.verified}")
+    print(f"  Confidence: {result_comprehensive.confidence:.2%}")
+    print(f"  Accuracy: {result_comprehensive.accuracy:.3f}" if result_comprehensive.accuracy else "  Accuracy: N/A")
+    print(f"  Latency: {result_comprehensive.latency_ms:.1f}ms" if result_comprehensive.latency_ms else "  Latency: N/A")
+    print(f"  Fingerprint similarity: {result_comprehensive.fingerprint_similarity:.3f}" if result_comprehensive.fingerprint_similarity else "  Fingerprint similarity: N/A")
+    print(f"  Jacobian norm: {result_comprehensive.jacobian_norm:.6f}" if result_comprehensive.jacobian_norm else "  Jacobian norm: N/A")
+    
+    if result_comprehensive.range_validation:
+        print(f"  Range validation passed: {result_comprehensive.range_validation.passed}")
+        if result_comprehensive.range_validation.violations:
+            print(f"  Violations: {result_comprehensive.range_validation.violations}")
+        print(f"  Range confidence: {result_comprehensive.range_validation.confidence:.3f}")
+        if result_comprehensive.range_validation.statistical_significance:
+            print(f"  Statistical significance: {result_comprehensive.range_validation.statistical_significance:.6f}")
     
     # Generate proof
     print("\n" + "=" * 70)
