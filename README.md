@@ -4,6 +4,8 @@
 
 A comprehensive, production-ready framework for verifying the authenticity and integrity of neural network training processes through pure black-box access. PoT enables model developers to prove that deployed models were trained according to specified procedures without revealing proprietary training data or methods.
 
+> 📊 **Paper Claims Validation**: Run `bash scripts/run_validation_report.sh` to generate a detailed report showing how all paper claims are validated through systematic testing. See [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md) for complete documentation.
+
 ## 🎯 Key Features
 
 - **Black-Box Verification**: No access to model internals required
@@ -62,6 +64,18 @@ pip install -r requirements.txt
 # Run quick validation
 bash scripts/run_all_quick.sh
 ```
+
+### Validate Paper Claims
+
+```bash
+# Generate comprehensive validation report
+bash scripts/run_validation_report.sh
+
+# View validation results
+cat test_results/validation_report_latest.md
+```
+
+📖 See [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md) for detailed validation documentation.
 
 ### Basic Verification
 
@@ -182,7 +196,32 @@ protected_result = defense.comprehensive_defense(
 - **User Guides**: [`docs/guides/`](docs/guides/)
 - **Formal Proofs**: [`proofs/`](proofs/)
 
-## 🧪 Testing
+## 🧪 Testing & Validation
+
+### Paper Claims Validation
+
+The framework includes comprehensive validation tools that map each test to specific paper claims:
+
+```bash
+# Generate detailed validation report showing how tests validate paper claims
+bash scripts/run_validation_report.sh
+
+# View the latest validation report
+cat test_results/validation_report_latest.md
+
+# Generate Python-based validation with metrics
+python scripts/generate_validation_report.py
+```
+
+The validation system provides:
+- **Claim-by-claim validation** with pass/fail status
+- **Direct paper references** for each tested claim
+- **Detailed test output** showing measured vs expected results
+- **Multiple report formats** (Markdown, JSON, logs)
+
+See [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md) for complete documentation on how each test validates specific paper claims.
+
+### Test Suites
 
 ```bash
 # Quick smoke tests (~30s)
@@ -199,6 +238,14 @@ python -m pot.core.test_sequential_verify
 python -m pot.vision.test_models
 python -m pot.security.test_proof_of_training
 ```
+
+### Understanding Test Results
+
+- ✅ **GREEN**: Test passed, claim validated
+- ❌ **RED**: Test failed, investigation needed
+- ⚠️ **YELLOW**: Warning or skipped (e.g., no GPU)
+- 📊 **Metrics**: Detailed performance measurements
+- 📄 **Reports**: Generated in `test_results/` directory
 
 ## 🔧 Configuration
 
