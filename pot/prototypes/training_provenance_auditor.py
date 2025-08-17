@@ -98,16 +98,264 @@ class TrainingEvent:
         }
 
 
-@dataclass
 class MerkleNode:
-    """Node in a Merkle tree"""
-    hash_value: str
-    left: Optional['MerkleNode'] = None
-    right: Optional['MerkleNode'] = None
-    data: Optional[Any] = None
+    """Node in a Merkle tree for cryptographic provenance tracking."""
+    
+    def __init__(self, data: Optional[bytes] = None, 
+                 left: Optional['MerkleNode'] = None,
+                 right: Optional['MerkleNode'] = None):
+        """
+        Initialize a Merkle tree node.
+        
+        Args:
+            data: Raw data for leaf nodes (None for internal nodes)
+            left: Left child node (None for leaf nodes)
+            right: Right child node (None for leaf nodes)
+        """
+        self.data = data
+        self.left = left
+        self.right = right
+        self.hash = self._compute_hash()
+    
+    def _compute_hash(self) -> bytes:
+        """
+        Compute SHA256 hash for this node.
+        
+        For leaf nodes: hash the data directly
+        For internal nodes: hash the concatenation of child hashes
+        
+        Returns:
+            SHA256 hash as bytes
+        """
+        if self.data is not None:
+            # Leaf node: hash the data
+            return hashlib.sha256(self.data).digest()
+        elif self.left and self.right:
+            # Internal node: hash concatenated child hashes
+            return hashlib.sha256(self.left.hash + self.right.hash).digest()
+        else:
+            # Empty node
+            return b''
     
     def is_leaf(self) -> bool:
+        """Check if this is a leaf node."""
         return self.left is None and self.right is None
+    
+    def get_hex_hash(self) -> str:
+        """Get hexadecimal representation of hash."""
+        return self.hash.hex()
+
+
+def build_merkle_tree(data_blocks: List[bytes]) -> MerkleNode:
+    """
+    Build a complete Merkle tree from leaf data blocks.
+    
+    Constructs a binary tree where each leaf contains a data block
+    and each internal node contains the hash of its children.
+    Handles odd number of nodes by duplicating the last node.
+    
+    Args:
+        data_blocks: List of data blocks as bytes
+        
+    Returns:
+        Root node of the constructed Merkle tree
+        
+    Raises:
+        ValueError: If data_blocks is empty
+    """
+    if not data_blocks:
+        raise ValueError("Cannot build Merkle tree from empty data blocks")
+    
+    # Special case: single block tree
+    if len(data_blocks) == 1:
+        return MerkleNode(data=data_blocks[0])
+    
+    # Create leaf nodes - pad to make even number if needed
+    leaf_nodes = [MerkleNode(data=block) for block in data_blocks]
+    
+    # If odd number of blocks, duplicate the last block
+    if len(leaf_nodes) % 2 == 1:
+        leaf_nodes.append(MerkleNode(data=data_blocks[-1]))
+    
+    current_level = leaf_nodes
+    
+    # Build tree bottom-up
+    while len(current_level) > 1:
+        next_level = []
+        
+        # If odd number of nodes, duplicate the last one
+        if len(current_level) % 2 == 1:
+            current_level.append(current_level[-1])
+        
+        # Process pairs of nodes
+        for i in range(0, len(current_level), 2):
+            left = current_level[i]
+            right = current_level[i + 1]  # Should always exist after padding
+            
+            # Create parent node
+            parent = MerkleNode(left=left, right=right)
+            next_level.append(parent)
+        
+        current_level = next_level
+    
+    return current_level[0]
+
+
+def compute_merkle_root(data_blocks: List[bytes]) -> bytes:
+    """
+    Compute the Merkle root hash for a list of data blocks.
+    
+    Args:
+        data_blocks: List of data blocks as bytes
+        
+    Returns:
+        Root hash as bytes
+        
+    Raises:
+        ValueError: If data_blocks is empty
+    """
+    if not data_blocks:
+        raise ValueError("Cannot compute Merkle root from empty data blocks")
+    
+    tree = build_merkle_tree(data_blocks)
+    return tree.hash
+
+
+def generate_merkle_proof(tree: MerkleNode, index: int) -> List[Tuple[bytes, bool]]:
+    """
+    Generate a Merkle proof for a leaf at the given index.
+    
+    The proof consists of sibling hashes along the path from leaf to root,
+    with boolean indicators for whether each sibling is on the left (False) 
+    or right (True) side.
+    
+    Args:
+        tree: Root node of the Merkle tree
+        index: Index of the leaf to prove (0-based)
+        
+    Returns:
+        List of (sibling_hash, is_right) tuples representing the proof path
+        
+    Raises:
+        ValueError: If index is invalid or tree structure is incorrect
+    """
+    # For single leaf tree, no proof needed
+    if tree.is_leaf():
+        if index != 0:
+            raise ValueError(f"Invalid leaf index {index}, tree has 1 leaf")
+        return []
+    
+    # Collect all leaf nodes in order
+    leaves = _collect_leaves(tree)
+    
+    # Check if index is valid
+    if index < 0 or index >= len(leaves):
+        raise ValueError(f"Invalid leaf index {index}, tree has {len(leaves)} leaves")
+    
+    proof = []
+    current_index = index
+    current_node = tree
+    
+    # Traverse from root to leaf, collecting sibling hashes
+    while not current_node.is_leaf():
+        # Calculate the size of left subtree
+        left_subtree_size = _get_subtree_size(current_node.left)
+        
+        if current_index < left_subtree_size:
+            # Target is in left subtree
+            sibling_hash = current_node.right.hash
+            is_right = True  # Sibling is on the right
+            current_node = current_node.left
+        else:
+            # Target is in right subtree
+            sibling_hash = current_node.left.hash
+            is_right = False  # Sibling is on the left
+            current_node = current_node.right
+            current_index -= left_subtree_size
+        
+        proof.append((sibling_hash, is_right))
+    
+    # Reverse the proof to go from leaf to root
+    proof.reverse()
+    
+    return proof
+
+
+def verify_merkle_proof(leaf_hash: bytes, proof: List[Tuple[bytes, bool]], root_hash: bytes) -> bool:
+    """
+    Verify that a leaf hash is part of a Merkle tree with the given root.
+    
+    Reconstructs the path from leaf to root using the proof and checks
+    if the computed root matches the expected root hash.
+    
+    Args:
+        leaf_hash: Hash of the leaf to verify
+        proof: List of (sibling_hash, is_right) tuples from generate_merkle_proof
+        root_hash: Expected root hash of the tree
+        
+    Returns:
+        True if the proof is valid, False otherwise
+    """
+    current_hash = leaf_hash
+    
+    # Traverse the proof path, computing hashes along the way
+    for sibling_hash, is_right in proof:
+        if is_right:
+            # Sibling is on the right, so current hash goes on the left
+            combined = current_hash + sibling_hash
+        else:
+            # Sibling is on the left, so current hash goes on the right
+            combined = sibling_hash + current_hash
+        
+        # Compute hash of combined data
+        current_hash = hashlib.sha256(combined).digest()
+    
+    # Check if computed root matches expected root
+    return current_hash == root_hash
+
+
+def _collect_leaves(node: MerkleNode) -> List[MerkleNode]:
+    """
+    Collect all leaf nodes from a Merkle tree in left-to-right order.
+    
+    Args:
+        node: Root node of the tree
+        
+    Returns:
+        List of leaf nodes in order
+    """
+    if node.is_leaf():
+        return [node]
+    
+    leaves = []
+    if node.left:
+        leaves.extend(_collect_leaves(node.left))
+    if node.right:
+        leaves.extend(_collect_leaves(node.right))
+    
+    return leaves
+
+
+def _get_subtree_size(node: MerkleNode) -> int:
+    """
+    Get the number of leaf nodes in a subtree.
+    
+    Args:
+        node: Root of the subtree
+        
+    Returns:
+        Number of leaf nodes
+    """
+    if node.is_leaf():
+        return 1
+    
+    size = 0
+    if node.left:
+        size += _get_subtree_size(node.left)
+    if node.right:
+        size += _get_subtree_size(node.right)
+    
+    return size
 
 
 class MerkleTree:

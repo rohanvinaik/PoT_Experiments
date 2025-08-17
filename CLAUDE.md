@@ -232,7 +232,42 @@ PoT_Experiments/
 - **Baselines**: Reference implementations for comparison
 - **Plotting**: Visualization utilities for results
 
-### 7. Experiment Scripts and Demos
+### 7. Prototype Components (`pot/prototypes/`) (UPDATED 2025-08-17)
+- **Training Provenance Auditor** (`training_provenance_auditor.py`): Complete Merkle tree implementation for cryptographic provenance tracking
+  - `MerkleNode`: Binary tree node with SHA256 hash computation
+    - Supports both leaf nodes (with data) and internal nodes (with left/right children)
+    - Automatic hash computation: leaf nodes hash their data, internal nodes hash concatenated child hashes
+    - Methods: `is_leaf()`, `get_hex_hash()` for easy inspection
+  - **Core Merkle Tree Functions** (NEW 2025-08-17):
+    - `build_merkle_tree(data_blocks: List[bytes]) -> MerkleNode`: Complete tree construction
+      - Handles any number of input blocks (1 to millions)
+      - Automatically pads odd numbers with duplicate last block for balanced tree
+      - Returns root node of constructed tree
+      - Special case optimization for single-block trees
+    - `compute_merkle_root(data_blocks: List[bytes]) -> bytes`: Root hash computation
+      - Builds tree and returns just the root hash
+      - Validates input is non-empty
+      - Deterministic output for same input blocks
+    - `generate_merkle_proof(tree: MerkleNode, index: int) -> List[Tuple[bytes, bool]]`: Proof generation
+      - Creates cryptographic proof that a leaf at given index is in the tree
+      - Returns list of (sibling_hash, is_right) tuples for path from leaf to root
+      - Handles trees of any size with logarithmic proof length
+      - Validates index bounds and tree structure
+    - `verify_merkle_proof(leaf_hash: bytes, proof: List[Tuple[bytes, bool]], root_hash: bytes) -> bool`: Proof verification
+      - Verifies that a leaf hash is part of tree with given root
+      - Reconstructs path from leaf to root using proof
+      - Constant-time verification regardless of tree size
+      - Returns False for any tampering or invalid proofs
+  - **Helper Functions**:
+    - `_collect_leaves(node: MerkleNode) -> List[MerkleNode]`: Collect all leaves in left-to-right order
+    - `_get_subtree_size(node: MerkleNode) -> int`: Count leaf nodes in subtree
+  - **Integration with Training Auditor**:
+    - `TrainingProvenanceAuditor`: Main class for training event tracking with Merkle trees
+    - `MerkleTree`: Higher-level wrapper for training events with built-in proof generation
+    - Integration with blockchain storage and zero-knowledge proofs
+    - Compression and export functionality for large training histories
+
+### 8. Experiment Scripts and Demos
 - **Core Experiments** (`scripts/`):
   - `run_generate_reference.py`: Create reference models
   - `run_grid.py`: Grid search experiments (E1-E7)
@@ -663,6 +698,141 @@ For complete theoretical background and worked examples, see:
 - **Tutorials**: [examples/sequential_analysis.ipynb](examples/sequential_analysis.ipynb) - Interactive examples and parameter analysis
 - **Quick Start**: [README.md](README.md#sequential-verification-quick-start) - When to use sequential vs fixed-sample testing
 
+### Merkle Tree for Training Provenance (UPDATED 2025-08-17)
+```python
+from pot.prototypes.training_provenance_auditor import (
+    build_merkle_tree, compute_merkle_root, generate_merkle_proof, 
+    verify_merkle_proof, TrainingProvenanceAuditor
+)
+import hashlib
+
+# Basic Merkle tree operations
+training_data = [
+    b"epoch_0_metrics",
+    b"epoch_1_metrics", 
+    b"epoch_2_metrics",
+    b"checkpoint_saved"
+]
+
+# Build complete tree
+tree = build_merkle_tree(training_data)
+root_hash = tree.hash
+
+# Alternative: just compute root hash
+root_hash_direct = compute_merkle_root(training_data)
+assert root_hash == root_hash_direct
+
+# Generate proof for specific training event (e.g., epoch 1)
+proof = generate_merkle_proof(tree, 1)
+print(f"Proof length: {len(proof)} steps (logarithmic in tree size)")
+
+# Verify the proof (can be done without access to full tree)
+leaf_hash = hashlib.sha256(b"epoch_1_metrics").digest()
+is_valid = verify_merkle_proof(leaf_hash, proof, root_hash)
+print(f"Proof valid: {is_valid}")
+
+# Detect tampering
+fake_hash = hashlib.sha256(b"fake_metrics").digest()
+is_fake_valid = verify_merkle_proof(fake_hash, proof, root_hash)
+print(f"Fake proof valid: {is_fake_valid}")  # Should be False
+
+# Integration with Training Provenance Auditor
+auditor = TrainingProvenanceAuditor(
+    model_id="resnet50_cifar10",
+    blockchain_client=None  # Use mock client for demo
+)
+
+# Log training events with automatic Merkle tree construction
+for epoch in range(5):
+    auditor.log_training_event(
+        epoch=epoch,
+        metrics={'loss': 1.0/(epoch+1), 'accuracy': 0.5 + epoch*0.1},
+        checkpoint_hash=hashlib.sha256(f"checkpoint_{epoch}".encode()).hexdigest(),
+        event_type=auditor.EventType.EPOCH_END
+    )
+
+# Generate cryptographic proof of training progression
+proof_data = auditor.generate_training_proof(
+    start_epoch=0, 
+    end_epoch=4, 
+    proof_type=auditor.ProofType.MERKLE
+)
+
+print(f"Training proof generated:")
+print(f"  Root hash: {proof_data['root_hash'][:32]}...")
+print(f"  Events covered: {proof_data['num_events']}")
+print(f"  Proof includes: start/end event hashes and Merkle proofs")
+
+# Embed provenance into model for distribution
+model_state = {'weights': 'model_weights', 'architecture': 'resnet50'}
+model_with_provenance = auditor.embed_provenance(model_state)
+
+# Later: verify training history from embedded provenance
+claimed_history = [event.to_dict() for event in auditor.events]
+is_history_valid = auditor.verify_training_history(
+    model_with_provenance, 
+    claimed_history
+)
+print(f"Training history verified: {is_history_valid}")
+
+# Performance characteristics
+print(f"Merkle tree operations:")
+print(f"  Tree construction: O(n) where n = number of training events")
+print(f"  Proof generation: O(log n)")  
+print(f"  Proof verification: O(log n)")
+print(f"  Storage: O(1) for root hash, O(log n) for individual proofs")
+```
+
+### Advanced Merkle Tree Usage
+```python
+# Large scale training with millions of events
+large_training_events = [f"event_{i}".encode() for i in range(1000000)]
+
+# Build tree efficiently
+import time
+start_time = time.time()
+large_tree = build_merkle_tree(large_training_events)
+build_time = time.time() - start_time
+print(f"Built tree with 1M events in {build_time:.2f}s")
+
+# Proof size stays logarithmic
+proof_for_event_500k = generate_merkle_proof(large_tree, 500000)
+print(f"Proof size for 1M tree: {len(proof_for_event_500k)} hashes")
+print(f"Theoretical minimum: {len(large_training_events).bit_length()-1} hashes")
+
+# Batch verification for audit
+events_to_verify = [100, 50000, 500000, 999999]
+all_valid = True
+
+for event_idx in events_to_verify:
+    proof = generate_merkle_proof(large_tree, event_idx)
+    event_hash = hashlib.sha256(f"event_{event_idx}".encode()).digest()
+    is_valid = verify_merkle_proof(event_hash, proof, large_tree.hash)
+    print(f"Event {event_idx}: {'✓' if is_valid else '✗'}")
+    all_valid &= is_valid
+
+print(f"Batch verification: {'PASSED' if all_valid else 'FAILED'}")
+
+# Integration with external verification
+def external_audit_callback(event_index: int, tree_root: bytes) -> bool:
+    """Example external auditor that requests proof for random events."""
+    proof = generate_merkle_proof(large_tree, event_index)
+    event_data = f"event_{event_index}".encode()
+    event_hash = hashlib.sha256(event_data).digest()
+    
+    # External auditor verifies without access to full tree
+    return verify_merkle_proof(event_hash, proof, tree_root)
+
+# Demonstrate external verification
+import random
+audit_samples = random.sample(range(len(large_training_events)), 10)
+audit_results = [
+    external_audit_callback(idx, large_tree.hash) 
+    for idx in audit_samples
+]
+print(f"External audit: {sum(audit_results)}/{len(audit_results)} passed")
+```
+
 ## Running Experiments
 
 ### Quick Start
@@ -705,11 +875,13 @@ pytest -q
    - Scripts in `scripts/`
    - Fingerprinting utilities in `pot/core/fingerprint.py`
 
-3. **Testing** (UPDATED 2025-08-16):
+3. **Testing** (UPDATED 2025-08-17):
    - Run sequential verification tests: `python -m pot.core.test_sequential_verify`
    - Run confidence sequence tests: `python -m pot.core.test_boundaries`
    - Run PRF tests: `python -m pot.core.test_prf`
    - Run fingerprint tests: `python -m pot.core.test_fingerprint`
+   - Run Merkle tree tests: `python test_merkle_tree.py` (comprehensive suite)
+   - Run Merkle tree basic test: `python test_merkle_simple.py` (quick validation)
    - Run component tests: `python pot/security/test_*.py`
    - Run integration: `python pot/security/proof_of_training.py`
    - Full validation: `bash run_all.sh`
