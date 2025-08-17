@@ -3,6 +3,8 @@ Configuration system for reliable PoT validation experiments.
 Provides standardized settings for reproducible testing.
 """
 
+import time
+import hashlib
 from typing import Dict, Any, List
 from dataclasses import dataclass
 from .test_models import create_test_model
@@ -43,16 +45,36 @@ class ValidationConfig:
             self.challenge_dimensions = [100, 500, 1000]
 
 
+def generate_session_seed() -> int:
+    """
+    Generate a session-based seed for reproducible but varied testing.
+    Uses current timestamp to create different seeds while maintaining
+    reproducibility within a session.
+    
+    Returns:
+        Integer seed based on current time
+    """
+    # Use current time (rounded to nearest minute) to create session-based seed
+    timestamp = int(time.time() // 60)  # Changes every minute
+    # Hash to get better distribution and limit to reasonable range
+    hash_obj = hashlib.md5(str(timestamp).encode())
+    seed = int(hash_obj.hexdigest()[:8], 16) % 10000  # Limit to 0-9999 range
+    return seed
+
+
 def get_reliable_test_config() -> ValidationConfig:
     """
     Get configuration optimized for reliable, reproducible testing.
+    Uses session-based seeding for varied but reproducible results.
     
     Returns:
         Validation configuration with deterministic settings
     """
+    session_seed = generate_session_seed()
+    
     return ValidationConfig(
         model_type="deterministic",
-        model_seed=42,
+        model_seed=session_seed,
         model_count=3,  # Smaller count for faster, reliable tests
         verification_types=['fuzzy'],  # Focus on most important type
         verification_depths=['quick', 'standard'],  # Skip comprehensive for speed

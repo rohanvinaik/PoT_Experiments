@@ -248,6 +248,7 @@ def main():
     
     print(f"Configuration:")
     print(f"  Model type: {config.model_type}")
+    print(f"  Session seed: {config.model_seed} (time-based)")
     print(f"  Model count: {config.model_count}")
     print(f"  Verification types: {config.verification_types}")
     print(f"  Verification depths: {config.verification_depths}")

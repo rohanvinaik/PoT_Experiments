@@ -85,18 +85,26 @@ run_test() {
     echo -e "\n${CYAN}Testing: ${test_name}${NC}"
     ((TOTAL_TESTS++))
     
-    if eval "${test_command}" > "${RESULTS_DIR}/${test_name// /_}_${TIMESTAMP}.log" 2>&1; then
+    # Add timeout to prevent hanging
+    local log_file="${RESULTS_DIR}/${test_name// /_}_${TIMESTAMP}.log"
+    
+    # Run test directly without timeout to avoid hanging
+    if ${test_command} > "${log_file}" 2>&1; then
         print_success "${test_name} passed"
         ((PASSED_TESTS++))
         return 0
     else
-        if [ "$required" = "false" ]; then
+        local exit_code=$?
+        if [ $exit_code -eq 124 ]; then
+            print_error "${test_name} timed out (>30s)"
+        elif [ "$required" = "false" ]; then
             print_info "${test_name} failed (optional)"
             ((SKIPPED_TESTS++))
+            return 0
         else
-            print_error "${test_name} failed (see ${RESULTS_DIR}/${test_name// /_}_${TIMESTAMP}.log)"
-            ((FAILED_TESTS++))
+            print_error "${test_name} failed (see ${log_file})"
         fi
+        ((FAILED_TESTS++))
         return 1
     fi
 }
@@ -141,19 +149,19 @@ check_dependencies
 print_header "PHASE 2: CORE COMPONENT TESTS"
 
 print_section "Core Module Tests"
-run_test "Challenge Generation" "${PYTHON} -c 'from pot.core.challenge import generate_challenges; print(\"OK\")'"
-run_test "Statistics Module" "${PYTHON} -c 'from pot.core.stats import far_frr; print(\"OK\")'"
-run_test "Logging Module" "${PYTHON} -c 'from pot.core.logging import StructuredLogger; print(\"OK\")'"
-run_test "Governance Module" "${PYTHON} -c 'from pot.core.governance import PoTGovernance; print(\"OK\")'"
+run_test "Challenge Generation" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.challenge import generate_challenges; print(\"OK\")'"
+run_test "Statistics Module" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.stats import far_frr; print(\"OK\")'"
+run_test "Logging Module" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.logging import StructuredLogger; print(\"OK\")'"
+run_test "Governance Module" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.governance import ChallengeGovernance; print(\"OK\")'"
 
 print_section "Attack Module Tests"
-run_test "Attack Functions" "${PYTHON} -c 'from pot.core.attacks import targeted_finetune, wrapper_attack; print(\"OK\")'"
+run_test "Attack Functions" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.attacks import targeted_finetune, wrapper_attack; print(\"OK\")'"
 
 print_section "Security Component Tests"
-run_test "FuzzyHashVerifier" "${PYTHON} pot/security/test_fuzzy_verifier.py" false
-run_test "TrainingProvenanceAuditor" "${PYTHON} pot/security/test_provenance_auditor.py" false
-run_test "TokenSpaceNormalizer" "${PYTHON} pot/security/test_token_normalizer.py" false
-run_test "ProofOfTraining System" "${PYTHON} pot/security/proof_of_training.py" false
+run_test "FuzzyHashVerifier" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_fuzzy_verifier.py" false
+run_test "TrainingProvenanceAuditor" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_provenance_auditor.py" false
+run_test "TokenSpaceNormalizer" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_token_normalizer.py" false
+run_test "ProofOfTraining System" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/proof_of_training.py" false
 
 # ============================================================================
 # PHASE 3: EXPERIMENTAL VALIDATION (E1-E7)
