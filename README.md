@@ -1015,6 +1015,330 @@ See complete examples in `examples/semantic_verification/`:
 - Visualization: `streamlit run pot/core/visualize_sequential.py`
 - Test suite: `python -m pot.core.test_sequential_verify`
 
+## Blockchain Integration
+
+The PoT framework includes optional blockchain integration for tamper-evident provenance recording during model training. This system provides cryptographic audit trails while maintaining full compatibility with local-only deployments.
+
+### Quick Start
+
+```bash
+# Run demo with local storage
+python examples/provenance_demo.py --mode local
+
+# Try blockchain integration (falls back to local if unavailable)
+python examples/provenance_demo.py --mode blockchain
+
+# Complete demonstration
+python examples/provenance_demo.py --mode both
+```
+
+### Environment Setup
+
+#### For Local Development (No Blockchain)
+
+No additional setup required. The system automatically uses local JSON storage:
+
+```bash
+# Default configuration uses local storage
+python examples/training_with_provenance.py
+```
+
+#### For Blockchain Integration
+
+1. **Install web3 dependency**:
+   ```bash
+   pip install web3>=6.0.0
+   ```
+
+2. **Configure environment variables**:
+   ```bash
+   # Required for blockchain integration
+   export RPC_URL="https://polygon-rpc.com"              # Polygon mainnet
+   export PRIVATE_KEY="0x1234567890abcdef..."           # Your wallet private key
+   export CONTRACT_ADDRESS="0xabcdef1234567890..."      # Deployed contract address
+   
+   # Optional configuration
+   export GAS_PRICE_GWEI="30"                           # Gas price in Gwei
+   export CONFIRMATION_BLOCKS="2"                       # Blocks to wait for confirmation
+   export BLOCKCHAIN_CLIENT_TYPE="auto"                 # "auto", "web3", "local"
+   ```
+
+3. **Test connectivity**:
+   ```bash
+   python scripts/provenance_cli.py test --blockchain
+   ```
+
+### Smart Contract Deployment
+
+#### Using Hardhat (Recommended)
+
+1. **Initialize Hardhat project**:
+   ```bash
+   cd pot/security/contracts
+   npm init -y
+   npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+   npx hardhat init
+   ```
+
+2. **Copy and compile contract**:
+   ```bash
+   cp provenance_contract.sol contracts/
+   npx hardhat compile
+   ```
+
+3. **Deploy to network**:
+   ```bash
+   # Deploy to Polygon Mumbai testnet
+   npx hardhat run scripts/deploy.js --network mumbai
+   
+   # Deploy to Polygon mainnet
+   npx hardhat run scripts/deploy.js --network polygon
+   ```
+
+#### Manual Deployment
+
+```python
+from web3 import Web3
+from eth_account import Account
+import json
+
+# Setup Web3 connection
+w3 = Web3(Web3.HTTPProvider("YOUR_RPC_URL"))
+account = Account.from_key("YOUR_PRIVATE_KEY")
+
+# Load compiled contract
+with open('pot/security/contracts/abi.json', 'r') as f:
+    abi = json.load(f)
+
+# Deploy contract (you'll need the bytecode from compilation)
+contract = w3.eth.contract(abi=abi, bytecode=bytecode)
+transaction = contract.constructor().build_transaction({
+    'from': account.address,
+    'gas': 2000000,
+    'gasPrice': w3.to_wei('30', 'gwei'),
+    'nonce': w3.eth.get_transaction_count(account.address)
+})
+
+signed_txn = account.sign_transaction(transaction)
+tx_hash = w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+print(f"Contract deployed at: {receipt.contractAddress}")
+```
+
+### Usage Examples
+
+#### Basic Provenance Recording
+
+```python
+from pot.core.provenance_integration import ProvenanceRecorder, ProvenanceConfig
+
+# Configure for blockchain (with local fallback)
+config = ProvenanceConfig(
+    enabled=True,
+    blockchain_enabled=True,
+    fingerprint_checkpoints=True
+)
+
+recorder = ProvenanceRecorder(config)
+
+# Record training checkpoint
+checkpoint_id = recorder.record_training_checkpoint(
+    model_hash="0x1234567890abcdef...",
+    metrics={"loss": 0.1, "accuracy": 0.95},
+    epoch=10,
+    model_id="my_model"
+)
+
+# Record validation
+validation_id = recorder.record_validation(
+    model_hash="0x1234567890abcdef...",
+    validator_id="official_validator",
+    validation_result={"accuracy": 0.95, "confidence": 0.9},
+    model_id="my_model"
+)
+
+# Generate proof of training
+proof = recorder.generate_proof_of_training("my_model")
+is_valid = recorder.verify_training_provenance(proof)
+```
+
+#### CLI Operations
+
+```bash
+# Initialize provenance system
+python scripts/provenance_cli.py init --blockchain --fingerprint
+
+# Record training checkpoint
+python scripts/provenance_cli.py checkpoint \
+    --model-hash 0x1234567890abcdef... \
+    --epoch 10 \
+    --metrics '{"loss": 0.1, "accuracy": 0.95}' \
+    --model-id my_model \
+    --blockchain
+
+# Generate proof
+python scripts/provenance_cli.py proof \
+    --model-id my_model \
+    --output my_model_proof.json
+
+# Verify proof
+python scripts/provenance_cli.py verify --proof my_model_proof.json
+
+# View training history
+python scripts/provenance_cli.py history --model-id my_model
+```
+
+### Network Support
+
+| Network | RPC URL | Purpose | Cost |
+|---------|---------|---------|------|
+| **Polygon** | `https://polygon-rpc.com` | Production | Low ($0.001-0.01 per tx) |
+| **Ethereum** | `https://mainnet.infura.io/v3/YOUR_ID` | Production | High ($1-50 per tx) |
+| **Mumbai** | `https://rpc-mumbai.maticvigil.com` | Testing | Free |
+| **Goerli** | `https://goerli.infura.io/v3/YOUR_ID` | Testing | Free |
+
+### Cost Analysis
+
+#### Gas Consumption
+
+| Operation | Gas Used | Polygon Cost | Ethereum Cost |
+|-----------|----------|--------------|---------------|
+| Deploy Contract | ~1,500,000 | $0.01-0.05 | $30-150 |
+| Store Hash | ~80,000 | $0.001-0.01 | $1.5-8 |
+| Retrieve Hash | ~30,000 | Free (read) | Free (read) |
+| Verify Hash | ~25,000 | Free (read) | Free (read) |
+
+#### Optimization Strategies
+
+1. **Batch Operations**: Use Merkle trees to reduce costs by ~90%
+2. **Selective Recording**: Record only critical checkpoints on-chain
+3. **Local Fallback**: Use local storage for development/testing
+4. **Event Logs**: Store minimal data on-chain, detailed data in events
+
+### Troubleshooting
+
+#### Common Issues
+
+**1. Connection Failures**
+```bash
+# Test connection
+python scripts/provenance_cli.py test --blockchain
+
+# Check environment variables
+echo $RPC_URL $CONTRACT_ADDRESS $PRIVATE_KEY
+
+# Verify network connectivity
+curl -X POST $RPC_URL -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+```
+
+**2. Transaction Failures**
+```bash
+# Check account balance
+python -c "
+from web3 import Web3
+w3 = Web3(Web3.HTTPProvider('$RPC_URL'))
+balance = w3.eth.get_balance('YOUR_ADDRESS')
+print(f'Balance: {w3.from_wei(balance, \"ether\")} ETH')
+"
+
+# Check gas price
+python -c "
+from web3 import Web3
+w3 = Web3(Web3.HTTPProvider('$RPC_URL'))
+gas_price = w3.eth.gas_price
+print(f'Current gas price: {w3.from_wei(gas_price, \"gwei\")} Gwei')
+"
+```
+
+**3. Contract Issues**
+```bash
+# Verify contract deployment
+python -c "
+from web3 import Web3
+w3 = Web3(Web3.HTTPProvider('$RPC_URL'))
+code = w3.eth.get_code('$CONTRACT_ADDRESS')
+print(f'Contract code length: {len(code)} bytes')
+"
+```
+
+**4. Import Errors**
+```bash
+# Install web3 if missing
+pip install web3>=6.0.0
+
+# Check installation
+python -c "import web3; print(f'web3 version: {web3.__version__}')"
+```
+
+#### Fallback Behavior
+
+The system automatically falls back to local storage when:
+- Web3 library not installed
+- Environment variables not configured
+- Network connectivity issues
+- Contract deployment issues
+- Insufficient gas fees
+
+Enable verbose logging to see fallback decisions:
+```python
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+
+### Security Considerations
+
+#### Private Key Management
+
+**❌ Never do this:**
+```python
+# Don't hardcode private keys
+private_key = "0x1234567890abcdef..."
+```
+
+**✅ Recommended approaches:**
+```bash
+# Use environment variables
+export PRIVATE_KEY="0x..."
+
+# Use hardware wallets for production
+export WALLET_TYPE="ledger"
+
+# Use key management services
+export KMS_KEY_ID="arn:aws:kms:..."
+```
+
+#### Network Security
+
+- Use HTTPS RPC endpoints
+- Verify contract addresses before deployment
+- Monitor transaction costs and limits
+- Implement rate limiting for high-frequency operations
+- Use testnet for development and testing
+
+#### Access Control
+
+```python
+# Configure client with restricted permissions
+config = ProvenanceConfig(
+    blockchain_enabled=True,
+    client_config={
+        "max_gas_price": "100",  # Gwei limit
+        "daily_tx_limit": 1000,  # Transaction limit
+        "allowed_contracts": ["0xabcd..."]  # Whitelist contracts
+    }
+)
+```
+
+### Integration Examples
+
+See detailed examples in:
+- **[examples/provenance_demo.py](examples/provenance_demo.py)**: Complete demonstration
+- **[examples/training_with_provenance.py](examples/training_with_provenance.py)**: Training integration
+- **[docs/provenance_integration.md](docs/provenance_integration.md)**: Technical documentation
+- **[docs/blockchain_integration.md](docs/blockchain_integration.md)**: Deployment guide
+
 ## Contributing
 
 Contributions are welcome! Please open an issue or submit a pull request. When contributing:

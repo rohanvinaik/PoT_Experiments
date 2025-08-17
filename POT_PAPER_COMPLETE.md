@@ -56,12 +56,88 @@ This definition formalizes the security guarantees of the PoT system: legitimate
 
 ### 2.2 System Architecture
 
-The PoT system consists of four primary components:
+The PoT system consists of five integrated components with optional blockchain recording:
 
 1. **Challenge Generator**: Creates deterministic, unpredictable challenges using key derivation functions
 2. **Behavioral Fingerprinter**: Captures model behavior through input-output mappings and Jacobian analysis
 3. **Statistical Verifier**: Performs sequential hypothesis testing with calibrated error bounds
 4. **Provenance Auditor**: Maintains cryptographic audit trails using Merkle trees and zero-knowledge proofs
+5. **Blockchain Integration Layer**: Provides tamper-evident storage with automatic fallback mechanisms
+
+#### 2.2.1 On-Chain Recording Architecture
+
+The blockchain integration layer operates through a multi-tier architecture designed for production deployment:
+
+**Smart Contract Layer**:
+- Ethereum/Polygon-compatible smart contracts store cryptographic hashes of verification events
+- Gas-optimized storage using event logs and minimal on-chain data
+- Owner-controlled contract management with pause/unpause functionality
+
+**Client Abstraction Layer**:
+- `BlockchainClient` abstract interface supporting multiple blockchain networks
+- `Web3BlockchainClient` for Ethereum-compatible networks with full transaction management
+- `LocalBlockchainClient` for development and testing with JSON-based storage
+
+**Factory Pattern**:
+- Automatic client selection based on configuration and network availability
+- Graceful fallback from blockchain to local storage when networks are unavailable
+- Connection testing and retry logic with exponential backoff
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Training      │    │   Provenance     │    │   Blockchain    │
+│   Pipeline      │───▶│   Recorder       │───▶│   Integration   │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │                        │
+                                ▼                        ▼
+                       ┌──────────────────┐    ┌─────────────────┐
+                       │   Local JSON     │    │  Smart Contract │
+                       │   Storage        │    │  (ETH/Polygon)  │
+                       └──────────────────┘    └─────────────────┘
+```
+
+#### 2.2.2 Local Fallback Mechanism
+
+The system implements a sophisticated fallback hierarchy ensuring continuous operation:
+
+**Automatic Fallback Triggers**:
+- Web3 library unavailable (development environments)
+- Network connectivity issues (RPC endpoint failures)
+- Insufficient gas fees or transaction failures
+- Smart contract unavailability or paused state
+
+**Fallback Storage**:
+- Thread-safe JSON file storage with atomic write operations
+- File locking prevents concurrent access corruption
+- Merkle tree construction maintains verification integrity
+- Compatible proof format allows later blockchain migration
+
+**Configuration Priority**:
+1. Explicit configuration override (`FORCE_LOCAL_BLOCKCHAIN=true`)
+2. Environment variable completeness check
+3. Network connectivity and gas estimation
+4. Graceful degradation with warning logs
+
+#### 2.2.3 Merkle Tree Verification
+
+Batch verification reduces blockchain costs through cryptographic aggregation:
+
+**Tree Construction**:
+- Checkpoint and validation record IDs form tree leaves
+- SHA256 hashing with deterministic sibling pairing
+- Root hash provides single verification point for entire training history
+
+**Proof Generation**:
+- Individual record proofs enable selective verification
+- Proof paths verify specific training events without full data disclosure
+- Compatible with both blockchain and local storage backends
+
+**Cost Optimization**:
+- Single root hash storage vs. individual transaction costs
+- Batch verification reduces gas consumption by ~90%
+- Off-chain proof generation with on-chain verification
+
+The blockchain integration maintains the core PoT security properties while adding tamper-evident persistent storage. The fallback mechanism ensures system reliability across diverse deployment environments, from development laptops to production blockchain infrastructure.
 
 ### 2.3 Challenge Generation
 

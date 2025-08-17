@@ -14,6 +14,7 @@ seaborn==0.13.2
 
 # Cryptographic and hashing dependencies
 xxhash==3.5.0  # Fast non-cryptographic hash for challenge IDs and performance-critical paths
+web3>=6.0.0  # Blockchain integration for Web3BlockchainClient (optional)
 
 # Fuzzy hashing support (optional)
 # ssdeep requires libfuzzy system library; install separately if needed
