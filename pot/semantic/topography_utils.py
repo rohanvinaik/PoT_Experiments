@@ -640,6 +640,378 @@ def detect_outliers_topological(X: np.ndarray,
     return outliers
 
 
+def prepare_latents_for_projection(latents: torch.Tensor,
+                                   normalize: bool = True,
+                                   reduce_dims: Optional[int] = None) -> np.ndarray:
+    """
+    Prepare latent vectors for projection.
+    
+    Args:
+        latents: Input latent vectors (torch.Tensor)
+        normalize: Whether to normalize vectors
+        reduce_dims: Optional dimensionality reduction before projection
+        
+    Returns:
+        Prepared numpy array for projection
+    """
+    # Convert to numpy
+    if isinstance(latents, torch.Tensor):
+        data = latents.detach().cpu().numpy()
+    else:
+        data = np.array(latents)
+    
+    # Handle different shapes
+    if data.ndim == 1:
+        data = data.reshape(1, -1)
+    elif data.ndim > 2:
+        # Flatten if needed
+        data = data.reshape(data.shape[0], -1)
+    
+    # Normalize if requested
+    if normalize:
+        norms = np.linalg.norm(data, axis=1, keepdims=True)
+        data = data / (norms + 1e-10)
+    
+    # Initial dimensionality reduction if requested
+    if reduce_dims is not None and reduce_dims < data.shape[1]:
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=reduce_dims, random_state=42)
+        data = pca.fit_transform(data)
+        logger.info(f"Reduced dimensions from {latents.shape[-1]} to {reduce_dims}")
+    
+    return data
+
+
+def compute_intrinsic_dimension(data: np.ndarray,
+                                method: str = 'mle') -> float:
+    """
+    Estimate intrinsic dimensionality of data.
+    
+    Args:
+        data: Input data
+        method: Estimation method ('mle', 'correlation', 'pca')
+        
+    Returns:
+        Estimated intrinsic dimension
+    """
+    return estimate_intrinsic_dimension(data, method=method)
+
+
+def select_optimal_parameters(data: np.ndarray,
+                              method: str) -> Dict[str, Any]:
+    """
+    Auto-select optimal parameters for projection method.
+    
+    Args:
+        data: Input data for parameter selection
+        method: Projection method name
+        
+    Returns:
+        Dictionary of optimal parameters
+    """
+    n_samples = data.shape[0]
+    n_features = data.shape[1]
+    
+    params = {}
+    
+    if method == 'umap':
+        # UMAP parameter selection
+        n_neighbors = min(15, max(5, int(np.sqrt(n_samples))))
+        min_dist = 0.1 if n_samples < 1000 else 0.01
+        
+        params = {
+            'n_neighbors': n_neighbors,
+            'min_dist': min_dist,
+            'n_components': 2 if n_features > 2 else n_features,
+            'metric': 'euclidean',
+            'random_state': 42
+        }
+        
+    elif method == 'tsne':
+        # t-SNE parameter selection
+        perplexity = min(50, max(5, n_samples // 4))
+        learning_rate = max(10.0, n_samples / 12.0)
+        
+        params = {
+            'perplexity': perplexity,
+            'learning_rate': learning_rate,
+            'n_components': 2,
+            'n_iter': 1000 if n_samples < 5000 else 500,
+            'random_state': 42
+        }
+        
+    elif method == 'som':
+        # SOM parameter selection
+        grid_size = int(np.sqrt(5 * np.sqrt(n_samples)))
+        grid_size = max(5, min(grid_size, 50))
+        
+        params = {
+            'x_size': grid_size,
+            'y_size': grid_size,
+            'input_len': n_features,
+            'sigma': grid_size / 2.0,
+            'learning_rate': 0.5,
+            'num_iteration': max(500, n_samples * 10)
+        }
+        
+    elif method == 'pca':
+        # PCA parameter selection
+        n_components = min(n_features, n_samples, 50)
+        params = {
+            'n_components': n_components,
+            'whiten': True,
+            'random_state': 42
+        }
+    
+    logger.info(f"Auto-selected {method} parameters: {params}")
+    return params
+
+
+def compute_trustworthiness(X_high: np.ndarray,
+                           X_low: np.ndarray,
+                           n_neighbors: int = 5) -> float:
+    """
+    Measure how well local structure is preserved.
+    
+    Args:
+        X_high: High-dimensional data
+        X_low: Low-dimensional embedding
+        n_neighbors: Number of neighbors to consider
+        
+    Returns:
+        Trustworthiness score (0-1, higher is better)
+    """
+    metrics = compute_neighborhood_preservation(X_high, X_low, k=n_neighbors)
+    return metrics.get('trustworthiness', 0.0)
+
+
+def compute_continuity(X_high: np.ndarray,
+                      X_low: np.ndarray,
+                      n_neighbors: int = 5) -> float:
+    """
+    Measure projection continuity.
+    
+    Args:
+        X_high: High-dimensional data
+        X_low: Low-dimensional embedding
+        n_neighbors: Number of neighbors to consider
+        
+    Returns:
+        Continuity score (0-1, higher is better)
+    """
+    metrics = compute_neighborhood_preservation(X_high, X_low, k=n_neighbors)
+    return metrics.get('continuity', 0.0)
+
+
+def compute_shepard_correlation(distances_high: np.ndarray,
+                                distances_low: np.ndarray) -> float:
+    """
+    Compute correlation between high/low dimensional distances.
+    
+    Args:
+        distances_high: Pairwise distances in high-dimensional space
+        distances_low: Pairwise distances in low-dimensional space
+        
+    Returns:
+        Spearman correlation coefficient
+    """
+    # Flatten distance matrices if needed
+    if distances_high.ndim == 2:
+        distances_high = squareform(distances_high)
+    if distances_low.ndim == 2:
+        distances_low = squareform(distances_low)
+    
+    # Compute Spearman correlation
+    corr, _ = spearmanr(distances_high, distances_low)
+    return float(corr) if not np.isnan(corr) else 0.0
+
+
+def identify_clusters_in_projection(projected_data: np.ndarray,
+                                    method: str = 'dbscan',
+                                    **kwargs) -> np.ndarray:
+    """
+    Identify clusters in projected space.
+    
+    Args:
+        projected_data: 2D or 3D projected data
+        method: Clustering method ('dbscan', 'kmeans', 'hierarchical')
+        **kwargs: Additional parameters for clustering method
+        
+    Returns:
+        Array of cluster labels
+    """
+    n_samples = projected_data.shape[0]
+    
+    if method == 'dbscan':
+        try:
+            from sklearn.cluster import DBSCAN
+            
+            # Auto-select eps if not provided
+            if 'eps' not in kwargs:
+                from sklearn.neighbors import NearestNeighbors
+                nbrs = NearestNeighbors(n_neighbors=min(5, n_samples))
+                nbrs.fit(projected_data)
+                distances, _ = nbrs.kneighbors(projected_data)
+                distances = np.sort(distances[:, -1])
+                # Find elbow in k-distance graph
+                eps = np.percentile(distances, 90)
+                kwargs['eps'] = eps
+            
+            clusterer = DBSCAN(min_samples=kwargs.get('min_samples', 5), 
+                              eps=kwargs['eps'])
+            labels = clusterer.fit_predict(projected_data)
+            
+        except ImportError:
+            logger.warning("DBSCAN not available, falling back to KMeans")
+            method = 'kmeans'
+    
+    if method == 'kmeans':
+        from sklearn.cluster import KMeans
+        
+        n_clusters = kwargs.get('n_clusters', min(10, n_samples // 10))
+        clusterer = KMeans(n_clusters=n_clusters, random_state=42)
+        labels = clusterer.fit_predict(projected_data)
+    
+    elif method == 'hierarchical':
+        from sklearn.cluster import AgglomerativeClustering
+        
+        n_clusters = kwargs.get('n_clusters', min(10, n_samples // 10))
+        clusterer = AgglomerativeClustering(n_clusters=n_clusters)
+        labels = clusterer.fit_predict(projected_data)
+    
+    return labels
+
+
+def track_cluster_evolution(snapshots: List[np.ndarray],
+                           method: str = 'dbscan',
+                           **kwargs) -> Dict[str, Any]:
+    """
+    Track how clusters change over time.
+    
+    Args:
+        snapshots: List of projected data at different time points
+        method: Clustering method to use
+        **kwargs: Additional parameters for clustering
+        
+    Returns:
+        Dictionary containing evolution metrics and cluster mappings
+    """
+    evolution = {
+        'n_snapshots': len(snapshots),
+        'cluster_labels': [],
+        'n_clusters': [],
+        'cluster_sizes': [],
+        'transitions': [],
+        'stability_scores': []
+    }
+    
+    prev_labels = None
+    
+    for i, snapshot in enumerate(snapshots):
+        # Identify clusters in current snapshot
+        labels = identify_clusters_in_projection(snapshot, method=method, **kwargs)
+        evolution['cluster_labels'].append(labels)
+        
+        # Count clusters (excluding noise label -1 for DBSCAN)
+        unique_labels = np.unique(labels[labels >= 0])
+        n_clusters = len(unique_labels)
+        evolution['n_clusters'].append(n_clusters)
+        
+        # Compute cluster sizes
+        sizes = {}
+        for label in unique_labels:
+            sizes[int(label)] = np.sum(labels == label)
+        evolution['cluster_sizes'].append(sizes)
+        
+        # Track transitions between snapshots
+        if prev_labels is not None:
+            transitions = compute_cluster_transitions(prev_labels, labels)
+            evolution['transitions'].append(transitions)
+            
+            # Compute stability score
+            stability = compute_cluster_stability(prev_labels, labels)
+            evolution['stability_scores'].append(stability)
+        
+        prev_labels = labels
+    
+    # Compute overall metrics
+    evolution['mean_n_clusters'] = np.mean(evolution['n_clusters'])
+    evolution['cluster_variance'] = np.var(evolution['n_clusters'])
+    
+    if evolution['stability_scores']:
+        evolution['mean_stability'] = np.mean(evolution['stability_scores'])
+    
+    return evolution
+
+
+def compute_cluster_transitions(labels_prev: np.ndarray,
+                                labels_curr: np.ndarray) -> Dict[str, Any]:
+    """
+    Compute transition matrix between cluster assignments.
+    
+    Args:
+        labels_prev: Previous cluster labels
+        labels_curr: Current cluster labels
+        
+    Returns:
+        Dictionary with transition information
+    """
+    unique_prev = np.unique(labels_prev[labels_prev >= 0])
+    unique_curr = np.unique(labels_curr[labels_curr >= 0])
+    
+    # Build transition matrix
+    n_prev = len(unique_prev)
+    n_curr = len(unique_curr)
+    transition_matrix = np.zeros((n_prev, n_curr))
+    
+    for i, label_prev in enumerate(unique_prev):
+        mask_prev = labels_prev == label_prev
+        for j, label_curr in enumerate(unique_curr):
+            mask_curr = labels_curr == label_curr
+            overlap = np.sum(mask_prev & mask_curr)
+            transition_matrix[i, j] = overlap
+    
+    # Normalize by row (previous cluster sizes)
+    row_sums = transition_matrix.sum(axis=1, keepdims=True)
+    transition_probs = transition_matrix / (row_sums + 1e-10)
+    
+    return {
+        'transition_matrix': transition_matrix,
+        'transition_probs': transition_probs,
+        'n_splits': np.sum(transition_probs > 0.1, axis=1),  # Clusters that split
+        'n_merges': np.sum(transition_probs > 0.1, axis=0),  # Clusters that merged
+    }
+
+
+def compute_cluster_stability(labels_prev: np.ndarray,
+                              labels_curr: np.ndarray) -> float:
+    """
+    Compute stability score between two clusterings.
+    
+    Args:
+        labels_prev: Previous cluster labels
+        labels_curr: Current cluster labels
+        
+    Returns:
+        Stability score (0-1, higher is more stable)
+    """
+    # Use Adjusted Rand Index as stability measure
+    try:
+        from sklearn.metrics import adjusted_rand_score
+        
+        # Filter out noise points
+        mask = (labels_prev >= 0) & (labels_curr >= 0)
+        if np.sum(mask) > 0:
+            return adjusted_rand_score(labels_prev[mask], labels_curr[mask])
+        
+    except ImportError:
+        pass
+    
+    # Fallback: simple agreement ratio
+    agreement = np.sum(labels_prev == labels_curr) / len(labels_prev)
+    return agreement
+
+
 def interpolate_manifold(X: np.ndarray,
                         indices: List[int],
                         n_points: int = 10,

@@ -105,7 +105,17 @@ from .topography_utils import (
     align_embeddings,
     compute_local_quality,
     detect_outliers_topological,
-    interpolate_manifold
+    interpolate_manifold,
+    prepare_latents_for_projection,
+    compute_intrinsic_dimension,
+    select_optimal_parameters,
+    compute_trustworthiness,
+    compute_continuity,
+    compute_shepard_correlation,
+    identify_clusters_in_projection,
+    track_cluster_evolution,
+    compute_cluster_transitions,
+    compute_cluster_stability
 )
 
 from .topography_visualizer import (
@@ -220,6 +230,16 @@ __all__ = [
     'compute_local_quality',
     'detect_outliers_topological',
     'interpolate_manifold',
+    'prepare_latents_for_projection',
+    'compute_intrinsic_dimension',
+    'select_optimal_parameters',
+    'compute_trustworthiness',
+    'compute_continuity',
+    'compute_shepard_correlation',
+    'identify_clusters_in_projection',
+    'track_cluster_evolution',
+    'compute_cluster_transitions',
+    'compute_cluster_stability',
     
     # Topography visualization
     'plot_projection',
