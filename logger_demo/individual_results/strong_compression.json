@@ -1,0 +1,21 @@
+{
+  "config": {
+    "attack_type": "compression",
+    "strength": "strong"
+  },
+  "success": true,
+  "attack_type": "compression",
+  "verification_impact": {
+    "impact_measured": true,
+    "post_attack_metrics": {
+      "far": 0.12,
+      "frr": 0.06,
+      "accuracy": 0.85,
+      "auc_roc": 0.88
+    },
+    "attack_success_metrics": {
+      "success_rate": 0.7,
+      "detection_rate": 0.3
+    }
+  }
+}

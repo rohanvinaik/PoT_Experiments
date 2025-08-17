@@ -10,6 +10,15 @@ import time
 from scipy import stats
 from sklearn.ensemble import IsolationForest
 import hashlib
+import warnings
+from collections import defaultdict
+
+try:
+    import torch
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
 
 
 @dataclass
@@ -360,6 +369,625 @@ class WrapperAttackDetector:
             return padded
 
         return []
+
+
+# Statistical Test Functions
+def kolmogorov_smirnov_test(sample: np.ndarray, 
+                           reference: np.ndarray) -> Tuple[float, float]:
+    """
+    KS test for distribution comparison.
+    
+    Args:
+        sample: Sample data to test
+        reference: Reference distribution data
+        
+    Returns:
+        Tuple of (test_statistic, p_value)
+    """
+    try:
+        ks_stat, p_value = stats.ks_2samp(sample, reference)
+        return float(ks_stat), float(p_value)
+    except Exception:
+        return 0.0, 1.0
+
+
+def anderson_darling_test(sample: np.ndarray,
+                        reference: np.ndarray) -> Tuple[float, float]:
+    """
+    Anderson-Darling test for distribution comparison.
+    
+    Args:
+        sample: Sample data to test
+        reference: Reference distribution data
+        
+    Returns:
+        Tuple of (test_statistic, p_value)
+    """
+    try:
+        # Combine samples and sort
+        combined = np.concatenate([sample, reference])
+        combined_sorted = np.sort(combined)
+        
+        # Compute empirical CDFs
+        n1, n2 = len(sample), len(reference)
+        n = n1 + n2
+        
+        # Get ranks
+        sample_ranks = np.searchsorted(combined_sorted, sample, side='right')
+        reference_ranks = np.searchsorted(combined_sorted, reference, side='right')
+        
+        # Compute AD statistic
+        h = np.zeros(n)
+        h[sample_ranks - 1] = 1.0 / n1
+        h[reference_ranks - 1] -= 1.0 / n2
+        
+        h_cumsum = np.cumsum(h)
+        ad_stat = n * np.sum((h_cumsum[:-1] ** 2) / (np.arange(1, n) * (n - np.arange(1, n)) / n))
+        
+        # Approximate p-value (simplified)
+        p_value = np.exp(-1.2337 * ad_stat * (1 + 4.0/n - 25.0/(n*n)))
+        p_value = max(0.0, min(1.0, p_value))
+        
+        return float(ad_stat), float(p_value)
+    except Exception:
+        return 0.0, 1.0
+
+
+def wasserstein_distance(sample: np.ndarray,
+                        reference: np.ndarray) -> float:
+    """
+    Earth mover's distance between distributions.
+    
+    Args:
+        sample: Sample data
+        reference: Reference distribution data
+        
+    Returns:
+        Wasserstein distance
+    """
+    try:
+        distance = stats.wasserstein_distance(sample, reference)
+        return float(distance)
+    except Exception:
+        return 0.0
+
+
+class WrapperDetector:
+    """
+    Comprehensive wrapper detection system with baseline statistics and adaptive thresholds.
+    """
+    
+    def __init__(self, baseline_stats: Dict[str, Any],
+                 detection_thresholds: Dict[str, float] = None):
+        """
+        Initialize with baseline statistics from legitimate model.
+        
+        Args:
+            baseline_stats: Reference timing/behavior statistics
+            detection_thresholds: Configurable detection thresholds
+        """
+        self.baseline_stats = baseline_stats
+        self.thresholds = detection_thresholds or self._default_thresholds()
+        
+        # Extract baseline timing distribution
+        self.baseline_times = np.array(baseline_stats.get('response_times', []))
+        self.baseline_responses = baseline_stats.get('responses', [])
+        
+        # Precompute baseline ECDF for efficiency
+        if len(self.baseline_times) > 0:
+            self.baseline_times_sorted = np.sort(self.baseline_times)
+            self.baseline_ecdf_values = np.arange(1, len(self.baseline_times) + 1) / len(self.baseline_times)
+        else:
+            self.baseline_times_sorted = np.array([])
+            self.baseline_ecdf_values = np.array([])
+    
+    def _default_thresholds(self) -> Dict[str, float]:
+        """Default detection thresholds."""
+        return {
+            'timing_anomaly': 0.15,
+            'behavioral_drift': 0.20,
+            'ks_test_threshold': 0.05,
+            'ad_test_threshold': 0.05,
+            'wasserstein_threshold': 0.1,
+            'ecdf_deviation_threshold': 0.15,
+            'bimodal_threshold': 0.3,
+            'confidence_threshold': 0.7
+        }
+    
+    def detect_wrapper(self, 
+                       response_times: List[float],
+                       responses: List[torch.Tensor] if HAS_TORCH else List[np.ndarray],
+                       metadata: Dict = None) -> Dict[str, Any]:
+        """
+        Main API for wrapper detection.
+        
+        Args:
+            response_times: List of response times
+            responses: List of model responses
+            metadata: Optional metadata
+            
+        Returns:
+            {
+                'is_wrapped': bool,
+                'confidence': float,
+                'evidence': {
+                    'timing_anomaly': float,
+                    'ecdf_deviation': float,
+                    'behavioral_drift': float,
+                    'statistical_tests': dict
+                }
+            }
+        """
+        # Convert inputs to numpy arrays
+        times = np.array(response_times)
+        
+        # Compute individual scores
+        timing_score = self.compute_timing_score(times)
+        behavioral_score = self.compute_behavioral_score(responses)
+        
+        # Statistical tests
+        statistical_tests = self._run_statistical_tests(times, responses)
+        
+        # ECDF deviation
+        ecdf_deviation = self._compute_ecdf_deviation(times)
+        
+        # Combine evidence
+        evidence = {
+            'timing_anomaly': timing_score,
+            'ecdf_deviation': ecdf_deviation,
+            'behavioral_drift': behavioral_score,
+            'statistical_tests': statistical_tests
+        }
+        
+        # Overall detection decision
+        is_wrapped, confidence = self._make_detection_decision(evidence)
+        
+        return {
+            'is_wrapped': is_wrapped,
+            'confidence': confidence,
+            'evidence': evidence,
+            'metadata': metadata or {}
+        }
+    
+    def compute_timing_score(self, times: List[float]) -> float:
+        """
+        Analyze timing patterns for wrapper signatures.
+        
+        Args:
+            times: Response times to analyze
+            
+        Returns:
+            Timing anomaly score (0-1, higher = more suspicious)
+        """
+        if len(times) < 5:
+            return 0.0
+        
+        times_array = np.array(times)
+        
+        # 1. Check for bimodal distribution
+        bimodal_score = self._detect_bimodal_timing(times_array)
+        
+        # 2. Check coefficient of variation (too consistent is suspicious)
+        cv = np.std(times_array) / (np.mean(times_array) + 1e-8)
+        consistency_score = 1.0 if cv < 0.05 else 0.0
+        
+        # 3. Check for outliers indicating routing delays
+        q75, q25 = np.percentile(times_array, [75, 25])
+        iqr = q75 - q25
+        outlier_threshold = q75 + 1.5 * iqr
+        outlier_ratio = np.sum(times_array > outlier_threshold) / len(times_array)
+        outlier_score = min(1.0, outlier_ratio * 5)  # Scale to [0,1]
+        
+        # 4. Compare with baseline if available
+        baseline_score = 0.0
+        if len(self.baseline_times) > 0:
+            ks_stat, ks_p = kolmogorov_smirnov_test(times_array, self.baseline_times)
+            baseline_score = 1.0 if ks_p < self.thresholds['ks_test_threshold'] else 0.0
+        
+        # Combine scores
+        overall_score = (
+            bimodal_score * 0.4 +
+            consistency_score * 0.2 +
+            outlier_score * 0.2 +
+            baseline_score * 0.2
+        )
+        
+        return min(1.0, overall_score)
+    
+    def _detect_bimodal_timing(self, times: np.ndarray) -> float:
+        """Detect bimodal distribution in timing data."""
+        if len(times) < 10:
+            return 0.0
+        
+        # Use Hartigan's dip test approximation
+        sorted_times = np.sort(times)
+        n = len(sorted_times)
+        
+        # Compute uniform distribution for comparison
+        uniform_spacing = (sorted_times[-1] - sorted_times[0]) / (n - 1)
+        expected_times = sorted_times[0] + np.arange(n) * uniform_spacing
+        
+        # Compare actual vs expected using ECDF
+        actual_ecdf = np.arange(1, n + 1) / n
+        expected_ecdf = (sorted_times - sorted_times[0]) / (sorted_times[-1] - sorted_times[0])
+        
+        max_deviation = np.max(np.abs(actual_ecdf - expected_ecdf))
+        
+        return 1.0 if max_deviation > self.thresholds['bimodal_threshold'] else 0.0
+    
+    def compute_behavioral_score(self, responses: List) -> float:
+        """
+        Analyze response patterns for wrapper artifacts.
+        
+        Args:
+            responses: List of model responses
+            
+        Returns:
+            Behavioral anomaly score (0-1, higher = more suspicious)
+        """
+        if len(responses) < 5:
+            return 0.0
+        
+        # Convert responses to numerical features
+        features = self._extract_response_features(responses)
+        
+        if len(features) == 0:
+            return 0.0
+        
+        features_array = np.array(features)
+        
+        # 1. Check output variance consistency
+        variance_score = self._check_output_variance(features_array)
+        
+        # 2. Check for clustering in response space
+        clustering_score = self._detect_response_clustering(features_array)
+        
+        # 3. Compare with baseline responses if available
+        baseline_score = 0.0
+        if self.baseline_responses:
+            baseline_features = self._extract_response_features(self.baseline_responses)
+            if len(baseline_features) > 0:
+                baseline_array = np.array(baseline_features)
+                baseline_score = self._compare_response_distributions(features_array, baseline_array)
+        
+        # Combine scores
+        overall_score = (
+            variance_score * 0.4 +
+            clustering_score * 0.3 +
+            baseline_score * 0.3
+        )
+        
+        return min(1.0, overall_score)
+    
+    def _extract_response_features(self, responses: List) -> List[np.ndarray]:
+        """Extract numerical features from responses."""
+        features = []
+        
+        for response in responses:
+            if HAS_TORCH and torch.is_tensor(response):
+                features.append(response.detach().cpu().numpy().flatten())
+            elif isinstance(response, np.ndarray):
+                features.append(response.flatten())
+            elif isinstance(response, (list, tuple)):
+                features.append(np.array(response).flatten())
+            elif isinstance(response, (int, float)):
+                features.append(np.array([response]))
+            elif isinstance(response, str):
+                # Hash string for consistent numerical representation
+                hash_val = int(hashlib.md5(response.encode()).hexdigest()[:8], 16)
+                features.append(np.array([hash_val / 2**32]))
+            else:
+                features.append(np.array([0.0]))
+        
+        # Normalize feature lengths
+        if features:
+            max_len = max(len(f) for f in features)
+            normalized_features = []
+            for f in features:
+                if len(f) < max_len:
+                    padded = np.pad(f, (0, max_len - len(f)), mode='constant')
+                    normalized_features.append(padded)
+                else:
+                    normalized_features.append(f[:max_len])
+            return normalized_features
+        
+        return []
+    
+    def _check_output_variance(self, features: np.ndarray) -> float:
+        """Check if output variance is suspiciously low or high."""
+        if features.shape[0] < 3:
+            return 0.0
+        
+        # Compute variance across samples for each feature dimension
+        variances = np.var(features, axis=0)
+        mean_variance = np.mean(variances)
+        
+        # Very low variance suggests memorization/caching
+        # Very high variance suggests random responses
+        if mean_variance < 1e-6:
+            return 1.0  # Suspiciously low variance
+        elif mean_variance > 1000:
+            return 0.8  # Suspiciously high variance
+        else:
+            return 0.0
+    
+    def _detect_response_clustering(self, features: np.ndarray) -> float:
+        """Detect if responses cluster in suspicious ways."""
+        if features.shape[0] < 10:
+            return 0.0
+        
+        try:
+            from sklearn.cluster import KMeans
+            
+            # Try k=2 clustering to detect bimodal responses
+            kmeans = KMeans(n_clusters=2, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(features)
+            
+            # Check cluster balance
+            cluster_sizes = np.bincount(labels)
+            min_cluster_size = np.min(cluster_sizes)
+            max_cluster_size = np.max(cluster_sizes)
+            
+            # Suspicious if one cluster is very small (< 10% of data)
+            if min_cluster_size / len(features) < 0.1:
+                return 0.8
+            
+            # Suspicious if clusters are very separated
+            centroids = kmeans.cluster_centers_
+            centroid_distance = np.linalg.norm(centroids[0] - centroids[1])
+            
+            # Normalize by average intra-cluster distance
+            intra_cluster_distances = []
+            for i in range(2):
+                cluster_points = features[labels == i]
+                if len(cluster_points) > 1:
+                    centroid = centroids[i]
+                    distances = np.linalg.norm(cluster_points - centroid, axis=1)
+                    intra_cluster_distances.extend(distances)
+            
+            if intra_cluster_distances:
+                avg_intra_distance = np.mean(intra_cluster_distances)
+                separation_ratio = centroid_distance / (avg_intra_distance + 1e-8)
+                
+                if separation_ratio > 5.0:  # Very well separated clusters
+                    return 0.6
+            
+            return 0.0
+            
+        except ImportError:
+            # Fallback without sklearn
+            return 0.0
+    
+    def _compare_response_distributions(self, current: np.ndarray, baseline: np.ndarray) -> float:
+        """Compare current responses with baseline distribution."""
+        # Flatten for distribution comparison
+        current_flat = current.flatten()
+        baseline_flat = baseline.flatten()
+        
+        # KS test
+        ks_stat, ks_p = kolmogorov_smirnov_test(current_flat, baseline_flat)
+        
+        # Wasserstein distance
+        w_distance = wasserstein_distance(current_flat, baseline_flat)
+        
+        # Anderson-Darling test
+        ad_stat, ad_p = anderson_darling_test(current_flat, baseline_flat)
+        
+        # Combine test results
+        ks_score = 1.0 if ks_p < self.thresholds['ks_test_threshold'] else 0.0
+        ad_score = 1.0 if ad_p < self.thresholds['ad_test_threshold'] else 0.0
+        w_score = 1.0 if w_distance > self.thresholds['wasserstein_threshold'] else 0.0
+        
+        return (ks_score + ad_score + w_score) / 3.0
+    
+    def _compute_ecdf_deviation(self, times: np.ndarray) -> float:
+        """Compute ECDF deviation from baseline."""
+        if len(self.baseline_times_sorted) == 0 or len(times) == 0:
+            return 0.0
+        
+        # Compute ECDF for current times
+        times_sorted = np.sort(times)
+        current_ecdf = np.arange(1, len(times) + 1) / len(times)
+        
+        # Interpolate baseline ECDF at current time points
+        baseline_ecdf_interp = np.interp(times_sorted, self.baseline_times_sorted, self.baseline_ecdf_values)
+        
+        # Compute maximum deviation
+        max_deviation = np.max(np.abs(current_ecdf - baseline_ecdf_interp))
+        
+        return max_deviation
+    
+    def _run_statistical_tests(self, times: np.ndarray, responses: List) -> Dict[str, Dict[str, float]]:
+        """Run comprehensive statistical tests."""
+        tests = {}
+        
+        # Timing tests against baseline
+        if len(self.baseline_times) > 0:
+            ks_stat, ks_p = kolmogorov_smirnov_test(times, self.baseline_times)
+            ad_stat, ad_p = anderson_darling_test(times, self.baseline_times)
+            w_dist = wasserstein_distance(times, self.baseline_times)
+            
+            tests['timing'] = {
+                'ks_statistic': ks_stat,
+                'ks_p_value': ks_p,
+                'ad_statistic': ad_stat,
+                'ad_p_value': ad_p,
+                'wasserstein_distance': w_dist
+            }
+        
+        # Response tests against baseline
+        if self.baseline_responses:
+            response_features = self._extract_response_features(responses)
+            baseline_features = self._extract_response_features(self.baseline_responses)
+            
+            if response_features and baseline_features:
+                current_flat = np.array(response_features).flatten()
+                baseline_flat = np.array(baseline_features).flatten()
+                
+                ks_stat, ks_p = kolmogorov_smirnov_test(current_flat, baseline_flat)
+                ad_stat, ad_p = anderson_darling_test(current_flat, baseline_flat)
+                w_dist = wasserstein_distance(current_flat, baseline_flat)
+                
+                tests['responses'] = {
+                    'ks_statistic': ks_stat,
+                    'ks_p_value': ks_p,
+                    'ad_statistic': ad_stat,
+                    'ad_p_value': ad_p,
+                    'wasserstein_distance': w_dist
+                }
+        
+        return tests
+    
+    def _make_detection_decision(self, evidence: Dict[str, Any]) -> Tuple[bool, float]:
+        """Make final detection decision based on evidence."""
+        # Weighted combination of evidence
+        weights = {
+            'timing_anomaly': 0.3,
+            'ecdf_deviation': 0.2,
+            'behavioral_drift': 0.3,
+            'statistical_significance': 0.2
+        }
+        
+        # Compute statistical significance score
+        stat_tests = evidence.get('statistical_tests', {})
+        stat_score = 0.0
+        
+        for test_name, test_results in stat_tests.items():
+            ks_significant = test_results.get('ks_p_value', 1.0) < self.thresholds['ks_test_threshold']
+            ad_significant = test_results.get('ad_p_value', 1.0) < self.thresholds['ad_test_threshold']
+            w_significant = test_results.get('wasserstein_distance', 0.0) > self.thresholds['wasserstein_threshold']
+            
+            test_score = (int(ks_significant) + int(ad_significant) + int(w_significant)) / 3.0
+            stat_score = max(stat_score, test_score)
+        
+        # Compute overall score
+        overall_score = (
+            evidence['timing_anomaly'] * weights['timing_anomaly'] +
+            evidence['ecdf_deviation'] * weights['ecdf_deviation'] +
+            evidence['behavioral_drift'] * weights['behavioral_drift'] +
+            stat_score * weights['statistical_significance']
+        )
+        
+        # Make decision
+        is_wrapped = overall_score > self.thresholds['confidence_threshold']
+        confidence = min(1.0, overall_score * 1.2) if is_wrapped else 1.0 - overall_score
+        
+        return is_wrapped, confidence
+
+
+class AdaptiveThresholdManager:
+    """
+    Adaptive threshold management for wrapper detection.
+    """
+    
+    def __init__(self, initial_thresholds: Dict[str, float] = None):
+        """Initialize with optional initial thresholds."""
+        self.thresholds = initial_thresholds or {}
+        self.performance_history = defaultdict(list)
+        self.labeled_data = []
+        
+    def update_thresholds(self, new_data: Dict[str, Any], 
+                         labels: np.ndarray) -> None:
+        """
+        Update detection thresholds based on new labeled data.
+        
+        Args:
+            new_data: Dictionary with detection scores for each sample
+            labels: Binary labels (1 = wrapper, 0 = legitimate)
+        """
+        self.labeled_data.append((new_data, labels))
+        
+        # Keep only recent data (last 1000 samples)
+        if len(self.labeled_data) > 1000:
+            self.labeled_data = self.labeled_data[-1000:]
+        
+        # Recompute optimal thresholds
+        self._optimize_thresholds()
+    
+    def _optimize_thresholds(self):
+        """Optimize thresholds using labeled data."""
+        if len(self.labeled_data) < 10:
+            return
+        
+        # Combine all labeled data
+        all_scores = defaultdict(list)
+        all_labels = []
+        
+        for data, labels in self.labeled_data:
+            for key, scores in data.items():
+                if isinstance(scores, (list, np.ndarray)):
+                    all_scores[key].extend(scores)
+                else:
+                    all_scores[key].append(scores)
+            all_labels.extend(labels)
+        
+        all_labels = np.array(all_labels)
+        
+        # Optimize threshold for each score type
+        for score_name, scores in all_scores.items():
+            scores_array = np.array(scores)
+            
+            if len(scores_array) == len(all_labels):
+                optimal_threshold = self._find_optimal_threshold(scores_array, all_labels)
+                self.thresholds[score_name] = optimal_threshold
+    
+    def _find_optimal_threshold(self, scores: np.ndarray, labels: np.ndarray, 
+                               target_far: float = 0.05) -> float:
+        """Find optimal threshold for given target false acceptance rate."""
+        if len(np.unique(labels)) < 2:
+            return 0.5  # Default if no class diversity
+        
+        # Try different thresholds
+        thresholds = np.linspace(np.min(scores), np.max(scores), 100)
+        best_threshold = 0.5
+        best_score = -np.inf
+        
+        for threshold in thresholds:
+            predictions = (scores > threshold).astype(int)
+            
+            # Compute metrics
+            tp = np.sum((predictions == 1) & (labels == 1))
+            fp = np.sum((predictions == 1) & (labels == 0))
+            tn = np.sum((predictions == 0) & (labels == 0))
+            fn = np.sum((predictions == 0) & (labels == 1))
+            
+            if tp + fn == 0:  # No positive samples
+                continue
+            if tn + fp == 0:  # No negative samples
+                continue
+            
+            tpr = tp / (tp + fn)  # True positive rate
+            fpr = fp / (fp + tn)  # False positive rate
+            
+            # Objective: maximize TPR while keeping FPR <= target_far
+            if fpr <= target_far:
+                score = tpr
+                if score > best_score:
+                    best_score = score
+                    best_threshold = threshold
+        
+        return best_threshold
+    
+    def get_optimal_threshold(self, score_name: str, target_far: float = 0.01) -> float:
+        """
+        Get optimal threshold for target false acceptance rate.
+        
+        Args:
+            score_name: Name of the score to get threshold for
+            target_far: Target false acceptance rate
+            
+        Returns:
+            Optimal threshold value
+        """
+        if score_name in self.thresholds:
+            return self.thresholds[score_name]
+        
+        # Return conservative default
+        return 0.7
+    
+    def get_all_thresholds(self) -> Dict[str, float]:
+        """Get all current thresholds."""
+        return self.thresholds.copy()
 
 
 class AdversarySimulator:

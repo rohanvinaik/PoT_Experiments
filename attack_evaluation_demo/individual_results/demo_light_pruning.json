@@ -1,0 +1,68 @@
+{
+  "config": {
+    "name": "demo_light_pruning",
+    "attack_type": "pruning",
+    "budget": {
+      "compression_ratio": 0.2,
+      "compute_time": 20.0,
+      "queries": 10000
+    },
+    "strength": "weak",
+    "success_metrics": {
+      "accuracy_drop": 0.05
+    },
+    "parameters": {
+      "fine_tune_epochs": 1
+    },
+    "metadata": {
+      "custom": true
+    }
+  },
+  "attack_execution": {
+    "config": {
+      "name": "demo_light_pruning",
+      "attack_type": "pruning",
+      "budget": {
+        "compression_ratio": 0.2,
+        "compute_time": 20.0,
+        "queries": 10000
+      },
+      "strength": "weak",
+      "success_metrics": {
+        "accuracy_drop": 0.05
+      },
+      "parameters": {
+        "fine_tune_epochs": 1
+      },
+      "metadata": {
+        "custom": true
+      }
+    },
+    "success": false,
+    "metrics": {
+      "compression_ratio": 0.0,
+      "accuracy_drop": 0.1,
+      "compression_time": 0.0,
+      "fine_tune_success": false
+    },
+    "execution_time": 0.007050991058349609,
+    "resources_used": {
+      "compression_time": 0.0,
+      "fine_tune_time": 0.0,
+      "total_time": 0.0
+    },
+    "error_message": null,
+    "detailed_results": {
+      "error": "The size of tensor a (10) must match the size of tensor b (8) at non-singleton dimension 1"
+    }
+  },
+  "verification_impact": {
+    "impact_measured": false,
+    "reason": "Attack failed",
+    "post_attack_metrics": null
+  },
+  "attack_type": "pruning",
+  "attack_name": "demo_light_pruning",
+  "success": false,
+  "timestamp": 1755409108.862164
+}
