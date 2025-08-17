@@ -96,7 +96,7 @@ quick_test "Audit Demo" "test -f scripts/audit_log_demo.py"
 quick_test "API Verifier" "test -f scripts/run_api_verify.py"
 quick_test "Grid Enhanced" "test -f scripts/run_grid_enhanced.py"
 quick_test "Attack Realistic" "test -f scripts/run_attack_realistic.py"
-quick_test "Experimental Report" "test -f experimental_report.py"
+quick_test "Experimental Report" "test -f scripts/experimental_report.py"
 
 print_header "CONFIGURATIONS"
 

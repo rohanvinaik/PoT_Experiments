@@ -84,7 +84,7 @@ test_module "Proof Docs" "test -f docs/proofs/README.md && echo OK"
 
 # Run experimental validation with timeout
 echo -e "\n${YELLOW}Running Experimental Validation:${NC}"
-if timeout 30 python3 experimental_report.py > /dev/null 2>&1; then
+if timeout 30 python3 scripts/experimental_report.py > /dev/null 2>&1; then
     echo -e "Experimental validation: ${GREEN}✓${NC}"
     TESTS_PASSED=$((TESTS_PASSED + 1))
 else

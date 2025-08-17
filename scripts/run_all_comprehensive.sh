@@ -147,7 +147,7 @@ run_test "ProofOfTraining System" "${PYTHON} pot/security/proof_of_training.py" 
 print_header "PHASE 3: EXPERIMENTAL VALIDATION (E1-E7)"
 
 print_info "Running comprehensive experimental validation..."
-run_test "Experimental Report Generation" "${PYTHON} experimental_report.py"
+run_test "Experimental Report Generation" "${PYTHON} scripts/experimental_report.py"
 
 # Check if validation results exist
 if [ -f "validation_results.json" ]; then
