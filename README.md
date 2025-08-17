@@ -249,13 +249,13 @@ See [`VALIDATION_GUIDE.md`](VALIDATION_GUIDE.md) for complete documentation on h
 ### Test Suites
 
 ```bash
-# Standard validation with deterministic models (100% success rate)
-bash scripts/run_standard_validation.sh
+# All validation scripts now include deterministic testing as primary method:
+bash scripts/run_all_quick.sh           # Quick validation with deterministic tests (~30s)
+bash scripts/run_all.sh                 # Full validation with deterministic tests (~5min)  
+bash scripts/run_all_comprehensive.sh   # Comprehensive validation with deterministic tests (~30min)
 
-# Legacy test suites (may show inconsistent results):
-bash scripts/run_all_quick.sh           # Quick smoke tests (~30s)
-bash scripts/run_all.sh                 # Full test suite (~5min)  
-bash scripts/run_all_comprehensive.sh   # Comprehensive validation (~30min)
+# Direct deterministic validation:
+bash scripts/run_standard_validation.sh # Deterministic testing only
 
 # Specific module tests
 python -m pot.core.test_sequential_verify
