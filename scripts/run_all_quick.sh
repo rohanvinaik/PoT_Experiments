@@ -9,7 +9,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== PROOF-OF-TRAINING QUICK VALIDATION ===${NC}\n"
+echo -e "${BLUE}=== PROOF-OF-TRAINING QUICK VALIDATION ===${NC}"
+echo -e "${CYAN}📖 For detailed validation info, see: VALIDATION_GUIDE.md${NC}"
+echo -e "${CYAN}📊 Generate full report with: bash scripts/run_validation_report.sh${NC}\n"
 
 # Detect optional dependencies
 if ! python3 -c "import torch" >/dev/null 2>&1; then
