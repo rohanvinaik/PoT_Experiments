@@ -42,8 +42,9 @@ class ValidationResultsHistory:
         self.history['metadata']['last_updated'] = datetime.now().isoformat()
         self.history['metadata']['total_runs'] = len(self.history['runs'])
         
-        with open(self.history_file, 'w') as f:
-            json.dump(self.history, f, indent=2)
+        # Use atomic write to prevent corruption
+        from pot.core.jsonenc import atomic_json_dump
+        atomic_json_dump(self.history, self.history_file)
     
     def collect_new_results(self) -> List[Dict[str, Any]]:
         """Collect new validation results from files."""

@@ -276,11 +276,9 @@ class ReusePolicy:
             "timestamp": time.time()
         }
         
-        # Write atomically with temp file
-        temp_path = path.with_suffix('.tmp')
-        with open(temp_path, 'w', encoding='utf-8') as f:
-            json.dump(state, f, indent=2)
-        temp_path.replace(path)
+        # Use atomic JSON write for robustness
+        from ..core.jsonenc import atomic_json_dump
+        atomic_json_dump(state, path)
     
     def load_state(self) -> bool:
         """

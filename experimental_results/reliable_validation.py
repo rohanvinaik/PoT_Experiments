@@ -305,8 +305,9 @@ def main():
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             results_file = f"reliable_validation_results_{timestamp}.json"
             
-            with open(results_file, 'w') as f:
-                json.dump(all_results, f, indent=2)
+            # Use atomic write to prevent corruption
+            from pot.core.jsonenc import atomic_json_dump
+            atomic_json_dump(all_results, results_file)
             
             print(f"\nResults saved to: {results_file}")
             
