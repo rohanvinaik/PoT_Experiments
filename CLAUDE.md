@@ -134,15 +134,22 @@ PoT_Experiments/
   - `LeakageAuditor`: Track and report leakage ratio (ρ)
   - Session-based tracking with JSON persistence
 
-### 3. Audit Infrastructure (`pot/audit/`)
-- **Commit-Reveal Protocol** (`commit_reveal.py`): Tamper-evident trails
-  - `make_commitment`: Generate cryptographic commitments
-  - `verify_commitment`: Validate audit trails
-  - HMAC-based commitment scheme
+### 3. Audit Infrastructure (`pot/audit/`) (UPDATED 2025-08-17)
+- **Commit-Reveal Protocol** (`commit_reveal.py`): Complete cryptographic audit trail system
+  - `CommitmentRecord`: Dataclass for commitment records with metadata
+  - `serialize_for_commit(data)`: Canonical JSON serialization with timestamps and versioning
+  - `compute_commitment(data, salt)`: SHA256-based commitment generation with automatic salt
+  - `verify_reveal(commitment, revealed_data, salt)`: Constant-time verification with timestamp checks
+  - `write_commitment_record(record, filepath)`: Atomic writes for commitment records with integrity checks
+  - `write_audit_record(record_dict, filepath)`: Atomic writes for audit records with schema validation
+  - `read_and_verify_audit_trail(filepath)`: Complete trail verification with type detection and checksum validation
+  - `read_commitment_records(filepath)`: Specialized reader for commitment records only
+  - **Legacy compatibility**: Maintains existing HMAC-based API (`make_commitment`, `verify_commitment`)
+  - **Security features**: Constant-time comparisons, atomic file operations, tamper detection
 - **Audit Schema** (`schema.py`): Structured audit records
-  - JSON schema definitions for audit logs
-  - Compliance documentation format
-  - Verification result serialization
+  - JSON schema definitions for audit logs with validation
+  - Compliance documentation format with integrity metadata
+  - Verification result serialization with checksum verification
 
 ### 4. Vision Components (`pot/vision/`) (UPDATED 2025-08-16)
 - **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting and sequential testing
@@ -278,16 +285,29 @@ PoT_Experiments/
 - **medium**: 85% threshold, staging use
 - **high**: 95% threshold, production use
 
+### Cryptographic Audit Protocols (UPDATED 2025-08-17)
+1. **Commit-Reveal Protocol**: Complete tamper-evident verification workflow
+   - Pre-verification commitment with SHA256 hashing and automatic salt generation
+   - Post-verification reveal with constant-time verification and timestamp validation
+   - Deterministic serialization for reproducible hashing across platforms
+   - Atomic file operations with integrity checksums for corruption prevention
+   - Support for both commitment records and traditional audit records
+   - Legacy HMAC-based compatibility for existing integrations
+   - Use: Ensuring verification parameters cannot be modified after commitment
+
 ## Enhanced Verification Protocol
 
 ### Protocol Features (Updated 2025-08-16)
 
 The POT system now includes a complete cryptographic verification protocol:
 
-1. **Commit-Reveal Protocol** (`pot/audit/commit_reveal.py`)
-   - Pre-verification commitment generation
-   - Post-verification reveal with proof
-   - Tamper-evident audit trails
+1. **Commit-Reveal Protocol** (`pot/audit/commit_reveal.py`) (UPDATED 2025-08-17)
+   - Complete cryptographic commitment system with SHA256 hashing
+   - Pre-verification commitment generation with automatic salt
+   - Post-verification reveal with constant-time verification
+   - Tamper-evident audit trails with integrity checksums
+   - Atomic file operations to prevent corruption
+   - Schema validation and timestamp consistency checks
 
 2. **PRF-Based Challenge Generation** (`pot/core/prf.py`)
    - NIST SP 800-108 counter mode construction
@@ -753,6 +773,80 @@ from pot.security.proof_of_training import ProofOfTraining
 pot = ProofOfTraining(config)
 result = pot.perform_verification(model, model_id, 'comprehensive')
 proof = pot.generate_verification_proof(result)
+```
+
+### Cryptographic Commit-Reveal Protocol (NEW 2025-08-17)
+```python
+from pot.audit.commit_reveal import (
+    CommitmentRecord, serialize_for_commit, compute_commitment,
+    verify_reveal, write_audit_record, read_and_verify_audit_trail
+)
+
+# 1. Pre-verification commitment
+verification_data = {
+    'model_id': 'resnet50_v1',
+    'challenges': challenge_list,
+    'parameters': {'alpha': 0.01, 'tau': 0.05},
+    'session_id': 'session_abc123'
+}
+
+# Create commitment with automatic salt generation
+commitment = compute_commitment(verification_data)
+print(f"Commitment hash: {commitment.commitment_hash}")
+
+# Write commitment to audit trail
+write_commitment_record(commitment, 'audit_logs/commitment_phase.json')
+
+# 2. Post-verification reveal
+verification_results = {
+    'decision': 'accept',
+    'confidence': 0.95,
+    'challenges_used': [1, 3, 5, 7],
+    'completion_time': '2025-08-17T10:30:45Z'
+}
+
+# Verify reveal matches original commitment
+salt = bytes.fromhex(commitment.salt)
+is_valid = verify_reveal(commitment, verification_results, salt)
+print(f"Verification valid: {is_valid}")
+
+# 3. Audit trail verification
+trail = read_commitment_records('audit_logs/verification_session.json')
+print(f"Loaded {len(trail)} verified commitment records")
+
+# 4. Complete verification workflow with audit
+def audited_verification(model, challenges, config):
+    # Pre-commit to verification parameters
+    pre_commit_data = {
+        'model_id': config['model_id'],
+        'challenge_count': len(challenges),
+        'verification_params': config,
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
+    }
+    
+    commitment = compute_commitment(pre_commit_data)
+    write_commitment_record(commitment, f"audit_{config['session_id']}_pre.json")
+    
+    # Perform verification...
+    result = perform_verification(model, challenges, config)
+    
+    # Post-verification reveal
+    reveal_data = {
+        'verification_result': result,
+        'actual_challenges_used': result.challenges_used,
+        'completion_metadata': {
+            'duration': result.duration,
+            'final_decision': result.decision
+        }
+    }
+    
+    # Verify consistency with commitment
+    salt = bytes.fromhex(commitment.salt)
+    if verify_reveal(commitment, reveal_data, salt):
+        print("Verification audit trail validated successfully")
+        return result
+    else:
+        raise ValueError("Audit trail verification failed - possible tampering")
 ```
 
 ## Debugging Tips

@@ -67,9 +67,17 @@ The PoT system provides comprehensive model verification through multiple compon
 - **IntegratedVerification** (`integrated_verification.py`): Combined protocols
 - **LeakageTracking** (`leakage.py`): Challenge reuse policy (ρ ≤ ρ_max)
 
-### 3. Audit Infrastructure (`pot/audit/`)
-- **CommitReveal** (`commit_reveal.py`): Tamper-evident verification
-- **Schema** (`schema.py`): Structured audit records with JSON schemas
+### 3. Audit Infrastructure (`pot/audit/`) (UPDATED 2025-08-17)
+- **CommitReveal** (`commit_reveal.py`): Complete cryptographic commit-reveal protocol
+  - `CommitmentRecord`: Structured commitment with salt, hash, and metadata
+  - `compute_commitment(data, salt)`: SHA256-based commitment generation with automatic salt
+  - `verify_reveal(commitment, data, salt)`: Constant-time verification with timestamp validation
+  - `serialize_for_commit(data)`: Deterministic JSON serialization for reproducible hashing
+  - `write_commitment_record(record, filepath)`: Atomic file operations with integrity checks
+  - `read_commitment_records(filepath)`: Comprehensive trail verification with type detection
+  - **Security features**: Tamper detection, atomic writes, constant-time comparisons
+  - **Legacy compatibility**: Maintains HMAC-based API for existing integrations
+- **Schema** (`schema.py`): Structured audit records with JSON schemas and validation
 
 ### 4. Vision Components (`pot/vision/`)
 - **VisionVerifier** (`verifier.py`): Vision model verification with fingerprinting
@@ -257,6 +265,148 @@ The framework now includes extensive documentation for statistical verification:
 - **Sequential Decision Rules**: Accept H₀ if X̄_t + r_t(α) ≤ τ, Reject if X̄_t - r_t(α) > τ
 - **Error Control**: P(Type I error) ≤ α and P(Type II error) ≤ β uniformly over all stopping times
 - **Efficiency**: 70-90% sample reduction compared to fixed-sample methods
+
+### Cryptographic Commit-Reveal Protocol (NEW 2025-08-17)
+
+The system now includes a complete commit-reveal protocol for tamper-evident verification with pre-verification commitments and post-verification reveals:
+
+```python
+from pot.audit.commit_reveal import (
+    CommitmentRecord, compute_commitment, verify_reveal,
+    write_commitment_record, read_commitment_records,
+    serialize_for_commit
+)
+
+# Complete commit-reveal workflow for audit trail
+def audited_verification_workflow(model, challenges, config):
+    """Complete verification with cryptographic audit trail."""
+    
+    # 1. Pre-verification commitment
+    pre_commit_data = {
+        'model_id': config['model_id'],
+        'challenge_family': config['family'],
+        'verification_params': {
+            'alpha': config['alpha'],
+            'beta': config['beta'], 
+            'tau': config['tau']
+        },
+        'challenge_count': len(challenges),
+        'session_id': config['session_id'],
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
+    }
+    
+    # Generate cryptographic commitment
+    commitment = compute_commitment(pre_commit_data)
+    print(f"Pre-verification commitment: {commitment.commitment_hash[:32]}...")
+    
+    # Write commitment to audit trail (tamper-evident)
+    commitment_file = f"audit/commit_{config['session_id']}.json"
+    write_commitment_record(commitment, commitment_file)
+    
+    # 2. Perform verification (cannot be changed after commitment)
+    verification_result = perform_model_verification(model, challenges, config)
+    
+    # 3. Post-verification reveal
+    reveal_data = {
+        'verification_result': {
+            'decision': verification_result.decision,
+            'confidence': verification_result.confidence,
+            'challenges_used': verification_result.challenges_used,
+            'final_distance': verification_result.final_distance
+        },
+        'completion_metadata': {
+            'duration_seconds': verification_result.duration,
+            'samples_used': verification_result.n_samples,
+            'early_stopping': verification_result.early_stopped
+        },
+        'audit_info': {
+            'reveal_timestamp': datetime.utcnow().isoformat() + 'Z',
+            'original_commitment': commitment.commitment_hash
+        }
+    }
+    
+    # 4. Verify reveal against original commitment
+    salt = bytes.fromhex(commitment.salt)
+    
+    # NOTE: This should fail - we're revealing different data than committed
+    reveal_valid = verify_reveal(commitment, reveal_data, salt)
+    print(f"Reveal validation (different data): {reveal_valid}")  # Should be False
+    
+    # Correct verification - reveal the original pre-commit data
+    original_reveal_valid = verify_reveal(commitment, pre_commit_data, salt)
+    print(f"Original commitment validation: {original_reveal_valid}")  # Should be True
+    
+    # 5. Complete audit trail verification
+    try:
+        # Read and verify all commitment records
+        audit_records = read_commitment_records(commitment_file)
+        print(f"Audit trail: {len(audit_records)} records verified")
+        
+        # Verify integrity of loaded records
+        for record in audit_records:
+            loaded_salt = bytes.fromhex(record.salt)
+            trail_valid = verify_reveal(record, pre_commit_data, loaded_salt)
+            print(f"Record {record.commitment_hash[:16]}... valid: {trail_valid}")
+            
+    except Exception as e:
+        print(f"Audit trail verification failed: {e}")
+        return None
+    
+    return {
+        'verification_result': verification_result,
+        'commitment': commitment,
+        'audit_trail_valid': original_reveal_valid,
+        'audit_file': commitment_file
+    }
+
+# Integration with existing verification
+from pot.core.sequential import sequential_verify
+
+def secure_sequential_verification(model, challenges, config):
+    """Sequential verification with complete audit trail."""
+    
+    # Pre-commit to verification parameters
+    commitment_data = {
+        'protocol': 'sequential_verify',
+        'parameters': {
+            'tau': config['tau'],
+            'alpha': config['alpha'], 
+            'beta': config['beta'],
+            'max_samples': config.get('max_samples', 500)
+        },
+        'model_signature': compute_model_signature(model),
+        'challenge_signature': compute_challenge_signature(challenges)
+    }
+    
+    commitment = compute_commitment(commitment_data)
+    
+    # Perform sequential verification
+    def distance_stream():
+        for challenge in challenges:
+            yield compute_distance(model, challenge)
+    
+    result = sequential_verify(
+        stream=distance_stream(),
+        tau=config['tau'],
+        alpha=config['alpha'],
+        beta=config['beta'],
+        max_samples=config.get('max_samples', 500),
+        compute_p_value=True
+    )
+    
+    # Verify commitment consistency
+    salt = bytes.fromhex(commitment.salt)
+    is_consistent = verify_reveal(commitment, commitment_data, salt)
+    
+    if not is_consistent:
+        raise ValueError("Verification parameters were tampered with!")
+    
+    return {
+        'sequential_result': result,
+        'commitment_verified': is_consistent,
+        'audit_commitment': commitment
+    }
+```
 
 ### Enhanced Verification Protocol (Mathematical Implementation)
 
