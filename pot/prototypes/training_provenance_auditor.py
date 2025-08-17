@@ -22,6 +22,10 @@ import secrets
 import base64
 from collections import OrderedDict
 import numpy as np
+import asyncio
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +52,174 @@ class ProofType(Enum):
     ZERO_KNOWLEDGE = "zero_knowledge"
     SIGNATURE = "signature"
     TIMESTAMP = "timestamp"
+
+
+class ChainType(Enum):
+    """Supported blockchain networks"""
+    ETHEREUM = "ethereum"
+    POLYGON = "polygon"
+    BSC = "bsc"
+    ARBITRUM = "arbitrum"
+    OPTIMISM = "optimism"
+    LOCAL = "local"
+
+
+@dataclass
+class BlockchainConfig:
+    """Configuration for blockchain client connections"""
+    chain_type: ChainType
+    rpc_url: str
+    chain_id: int
+    private_key: Optional[str] = None
+    account_address: Optional[str] = None
+    contract_address: Optional[str] = None
+    contract_abi: Optional[List[Dict]] = None
+    gas_limit: int = 500000
+    gas_price_gwei: Optional[float] = None
+    max_fee_per_gas_gwei: Optional[float] = None
+    max_priority_fee_per_gas_gwei: Optional[float] = None
+    confirmation_blocks: int = 1
+    timeout_seconds: int = 300
+    retry_attempts: int = 3
+    retry_delay_seconds: float = 1.0
+    batch_size: int = 100
+    
+    # Predefined chain configurations
+    @classmethod
+    def ethereum_mainnet(cls, rpc_url: str, private_key: str = None) -> 'BlockchainConfig':
+        return cls(
+            chain_type=ChainType.ETHEREUM,
+            rpc_url=rpc_url,
+            chain_id=1,
+            private_key=private_key,
+            gas_limit=500000,
+            confirmation_blocks=3
+        )
+    
+    @classmethod
+    def polygon_mainnet(cls, rpc_url: str, private_key: str = None) -> 'BlockchainConfig':
+        return cls(
+            chain_type=ChainType.POLYGON,
+            rpc_url=rpc_url,
+            chain_id=137,
+            private_key=private_key,
+            gas_limit=500000,
+            confirmation_blocks=5
+        )
+    
+    @classmethod
+    def local_ganache(cls, rpc_url: str = "http://127.0.0.1:8545") -> 'BlockchainConfig':
+        return cls(
+            chain_type=ChainType.LOCAL,
+            rpc_url=rpc_url,
+            chain_id=1337,
+            gas_limit=6721975,
+            confirmation_blocks=1
+        )
+
+
+@dataclass
+class CommitmentRecord:
+    """Record for blockchain commitment storage"""
+    commitment_hash: str
+    metadata: Dict[str, Any]
+    tx_hash: str
+    block_number: int
+    timestamp: str
+    gas_used: Optional[int] = None
+    confirmations: int = 0
+
+
+@dataclass
+class BatchCommitmentRecord:
+    """Record for batch commitment storage using Merkle root"""
+    merkle_root: str
+    commitment_hashes: List[str]
+    tx_hash: str
+    block_number: int
+    timestamp: str
+    gas_used: Optional[int] = None
+    proofs: Dict[str, List[Tuple[str, bool]]] = field(default_factory=dict)
+
+
+class BlockchainError(Exception):
+    """Base exception for blockchain operations"""
+    pass
+
+
+class ConnectionError(BlockchainError):
+    """Raised when blockchain connection fails"""
+    pass
+
+
+class TransactionError(BlockchainError):
+    """Raised when transaction fails"""
+    pass
+
+
+class ContractError(BlockchainError):
+    """Raised when smart contract interaction fails"""
+    pass
+
+
+def retry_on_failure(max_attempts: int = 3, delay: float = 1.0, backoff: float = 2.0):
+    """Decorator for retrying failed blockchain operations"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            
+            for attempt in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    last_exception = e
+                    if attempt < max_attempts - 1:
+                        wait_time = delay * (backoff ** attempt)
+                        logger.warning(f"Attempt {attempt + 1} failed: {e}. Retrying in {wait_time:.2f}s...")
+                        time.sleep(wait_time)
+                    else:
+                        logger.error(f"All {max_attempts} attempts failed. Last error: {e}")
+                        
+            raise last_exception
+        return wrapper
+    return decorator
+
+
+def gas_price_oracle(web3, strategy: str = "fast") -> Dict[str, int]:
+    """Get current gas prices from the network"""
+    try:
+        # Try to get gas price from network
+        if hasattr(web3.eth, 'gas_price'):
+            base_price = web3.eth.gas_price
+        else:
+            base_price = web3.eth.get_block('latest')['baseFeePerGas']
+        
+        # Convert to Gwei for easier handling
+        base_gwei = web3.from_wei(base_price, 'gwei')
+        
+        # Define strategies
+        strategies = {
+            'slow': {'multiplier': 1.0, 'priority': 1},
+            'standard': {'multiplier': 1.2, 'priority': 2},
+            'fast': {'multiplier': 1.5, 'priority': 3},
+            'fastest': {'multiplier': 2.0, 'priority': 5}
+        }
+        
+        config = strategies.get(strategy, strategies['fast'])
+        
+        return {
+            'gas_price': int(base_gwei * config['multiplier']),
+            'max_fee_per_gas': int(base_gwei * config['multiplier']),
+            'max_priority_fee_per_gas': config['priority']
+        }
+    except Exception as e:
+        logger.warning(f"Failed to get dynamic gas price: {e}. Using defaults.")
+        return {
+            'gas_price': 20,  # 20 Gwei default
+            'max_fee_per_gas': 20,
+            'max_priority_fee_per_gas': 2
+        }
 
 
 @dataclass
@@ -542,121 +714,738 @@ class ZeroKnowledgeProof:
 
 
 class BlockchainClient:
-    """Blockchain client using web3.py for provenance storage"""
+    """Advanced blockchain client for on-chain commitment storage with multi-chain support"""
 
-    def __init__(
-        self,
-        web3: Optional[Any] = None,
-        provider_url: Optional[str] = None,
-        default_account: Optional[str] = None,
-    ) -> None:
-        """Create blockchain client.
-
+    def __init__(self, config: BlockchainConfig):
+        """
+        Initialize blockchain client with comprehensive configuration.
+        
         Args:
-            web3: Pre-configured Web3 instance. If ``None``, a new instance
-                will be created using ``provider_url``.
-            provider_url: RPC endpoint for the blockchain. Defaults to
-                ``http://127.0.0.1:8545`` if not provided.
-            default_account: Account to use for transactions. If not
-                provided, the first account from the provider is used.
+            config: BlockchainConfig containing connection and transaction parameters
         """
-        from web3 import Web3  # Imported lazily to avoid hard dependency
+        self.config = config
+        self.web3 = None
+        self.contract = None
+        self.account = None
+        self._lock = threading.Lock()
+        self._connection_established = False
+        
+        # Default smart contract ABI for commitment storage
+        self._default_abi = [
+            {
+                "inputs": [
+                    {"name": "commitmentHash", "type": "bytes32"},
+                    {"name": "metadata", "type": "string"}
+                ],
+                "name": "storeCommitment",
+                "outputs": [{"name": "", "type": "bool"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"name": "merkleRoot", "type": "bytes32"},
+                    {"name": "commitmentCount", "type": "uint256"}
+                ],
+                "name": "storeBatchCommitments",
+                "outputs": [{"name": "", "type": "bool"}],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"name": "commitmentHash", "type": "bytes32"}
+                ],
+                "name": "getCommitment",
+                "outputs": [
+                    {"name": "exists", "type": "bool"},
+                    {"name": "blockNumber", "type": "uint256"},
+                    {"name": "timestamp", "type": "uint256"},
+                    {"name": "metadata", "type": "string"}
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {"name": "commitmentHash", "type": "bytes32"}
+                ],
+                "name": "verifyCommitment",
+                "outputs": [{"name": "", "type": "bool"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ]
+        
+        logger.info(f"Initialized BlockchainClient for {config.chain_type.value} (Chain ID: {config.chain_id})")
 
-        self.web3 = web3 or Web3(Web3.HTTPProvider(provider_url or "http://127.0.0.1:8545"))
-        if not self.web3.is_connected():
-            raise ConnectionError("Unable to connect to blockchain provider")
-
-        self.default_account = (
-            default_account or (self.web3.eth.accounts[0] if self.web3.eth.accounts else None)
-        )
-        if self.default_account is None:
-            raise ValueError("No default account available for blockchain transactions")
-
-    def store_hash(self, hash_value: str, metadata: Dict) -> str:
-        """Store hash and metadata on blockchain.
-
-        The hash and metadata are embedded in the transaction's data field as
-        a JSON payload. The transaction hash is returned as the identifier.
+    @retry_on_failure(max_attempts=3, delay=2.0)
+    def connect(self) -> bool:
         """
-
-        payload = json.dumps({"hash": hash_value, "metadata": metadata}, sort_keys=True).encode()
-        tx = {
-            "from": self.default_account,
-            "to": self.default_account,
-            "value": 0,
-            "data": self.web3.to_hex(payload),
-            "gas": 100000,
-        }
-
-        tx_hash = self.web3.eth.send_transaction(tx)
-        self.web3.eth.wait_for_transaction_receipt(tx_hash)
-        tx_hex = tx_hash.hex()
-        logger.info(f"Stored hash on blockchain: {tx_hex}")
-        return tx_hex
-
-    def retrieve_hash(self, transaction_id: str) -> Optional[Dict]:
-        """Retrieve stored hash and metadata from blockchain."""
-
-        from web3.exceptions import TransactionNotFound
-
+        Establish blockchain connection with retry logic.
+        
+        Returns:
+            True if connection successful, False otherwise
+            
+        Raises:
+            ConnectionError: If unable to connect after retries
+        """
         try:
-            tx = self.web3.eth.get_transaction(transaction_id)
-        except TransactionNotFound:
+            from web3 import Web3
+            from eth_account import Account
+            
+            # Create Web3 instance with appropriate provider
+            if self.config.rpc_url.startswith('ws'):
+                from web3.providers import WebsocketProvider
+                provider = WebsocketProvider(self.config.rpc_url)
+            else:
+                from web3.providers import HTTPProvider
+                provider = HTTPProvider(self.config.rpc_url)
+            
+            self.web3 = Web3(provider)
+            
+            # Test connection
+            if not self.web3.is_connected():
+                raise ConnectionError(f"Failed to connect to {self.config.rpc_url}")
+            
+            # Verify chain ID
+            actual_chain_id = self.web3.eth.chain_id
+            if actual_chain_id != self.config.chain_id:
+                logger.warning(f"Chain ID mismatch: expected {self.config.chain_id}, got {actual_chain_id}")
+            
+            # Setup account
+            if self.config.private_key:
+                self.account = Account.from_key(self.config.private_key)
+                self.web3.eth.default_account = self.account.address
+                logger.info(f"Using account: {self.account.address}")
+            elif self.config.account_address:
+                self.web3.eth.default_account = self.config.account_address
+                logger.info(f"Using provided account: {self.config.account_address}")
+            else:
+                # Try to use first available account (for local development)
+                accounts = self.web3.eth.accounts
+                if accounts:
+                    self.web3.eth.default_account = accounts[0]
+                    logger.info(f"Using first available account: {accounts[0]}")
+                else:
+                    raise ConnectionError("No account available for transactions")
+            
+            # Setup smart contract if configured
+            if self.config.contract_address:
+                contract_abi = self.config.contract_abi or self._default_abi
+                self.contract = self.web3.eth.contract(
+                    address=self.config.contract_address,
+                    abi=contract_abi
+                )
+                logger.info(f"Connected to contract at {self.config.contract_address}")
+            
+            self._connection_established = True
+            logger.info(f"Successfully connected to {self.config.chain_type.value} blockchain")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to connect to blockchain: {e}")
+            raise ConnectionError(f"Blockchain connection failed: {e}")
+
+    def _ensure_connected(self):
+        """Ensure blockchain connection is established"""
+        if not self._connection_established:
+            self.connect()
+
+    def _get_gas_params(self) -> Dict[str, Any]:
+        """Get optimized gas parameters for transactions"""
+        self._ensure_connected()
+        
+        gas_params = {'gas': self.config.gas_limit}
+        
+        try:
+            # Use configured gas prices if available
+            if self.config.gas_price_gwei:
+                gas_params['gasPrice'] = self.web3.to_wei(self.config.gas_price_gwei, 'gwei')
+            elif self.config.max_fee_per_gas_gwei and self.config.max_priority_fee_per_gas_gwei:
+                # EIP-1559 transaction
+                gas_params['maxFeePerGas'] = self.web3.to_wei(self.config.max_fee_per_gas_gwei, 'gwei')
+                gas_params['maxPriorityFeePerGas'] = self.web3.to_wei(self.config.max_priority_fee_per_gas_gwei, 'gwei')
+            else:
+                # Use dynamic gas pricing
+                gas_info = gas_price_oracle(self.web3)
+                if 'maxFeePerGas' in gas_info and self.web3.eth.chain_id != 1337:  # Skip EIP-1559 for local
+                    gas_params['maxFeePerGas'] = self.web3.to_wei(gas_info['max_fee_per_gas'], 'gwei')
+                    gas_params['maxPriorityFeePerGas'] = self.web3.to_wei(gas_info['max_priority_fee_per_gas'], 'gwei')
+                else:
+                    gas_params['gasPrice'] = self.web3.to_wei(gas_info['gas_price'], 'gwei')
+                    
+        except Exception as e:
+            logger.warning(f"Failed to get dynamic gas pricing: {e}. Using default.")
+            gas_params['gasPrice'] = self.web3.to_wei(20, 'gwei')  # 20 Gwei fallback
+        
+        return gas_params
+
+    @retry_on_failure(max_attempts=3, delay=1.0)
+    def store_commitment(self, commitment_hash: bytes, metadata: Dict[str, Any]) -> str:
+        """
+        Store commitment on blockchain.
+        
+        Args:
+            commitment_hash: 32-byte commitment hash
+            metadata: Additional metadata to store
+            
+        Returns:
+            Transaction hash
+            
+        Raises:
+            TransactionError: If transaction fails
+        """
+        self._ensure_connected()
+        
+        try:
+            commitment_hex = commitment_hash.hex() if isinstance(commitment_hash, bytes) else commitment_hash
+            metadata_json = json.dumps(metadata, sort_keys=True)
+            
+            if self.contract:
+                # Use smart contract
+                return self._store_commitment_contract(commitment_hash, metadata_json)
+            else:
+                # Store in transaction data
+                return self._store_commitment_data(commitment_hex, metadata)
+                
+        except Exception as e:
+            logger.error(f"Failed to store commitment: {e}")
+            raise TransactionError(f"Commitment storage failed: {e}")
+
+    def _store_commitment_contract(self, commitment_hash: bytes, metadata_json: str) -> str:
+        """Store commitment using smart contract"""
+        try:
+            # Build transaction
+            gas_params = self._get_gas_params()
+            
+            # Get nonce
+            nonce = self.web3.eth.get_transaction_count(self.web3.eth.default_account)
+            
+            # Build contract function call
+            function_call = self.contract.functions.storeCommitment(
+                commitment_hash,
+                metadata_json
+            )
+            
+            # Build transaction
+            transaction = function_call.build_transaction({
+                'from': self.web3.eth.default_account,
+                'nonce': nonce,
+                **gas_params
+            })
+            
+            # Sign and send transaction
+            if self.account:
+                signed_txn = self.web3.eth.account.sign_transaction(transaction, self.config.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            else:
+                tx_hash = self.web3.eth.send_transaction(transaction)
+            
+            # Wait for confirmation
+            receipt = self.web3.eth.wait_for_transaction_receipt(
+                tx_hash, 
+                timeout=self.config.timeout_seconds
+            )
+            
+            logger.info(f"Commitment stored via contract: {tx_hash.hex()}")
+            return tx_hash.hex()
+            
+        except Exception as e:
+            raise TransactionError(f"Contract transaction failed: {e}")
+
+    def _store_commitment_data(self, commitment_hex: str, metadata: Dict[str, Any]) -> str:
+        """Store commitment in transaction data field"""
+        try:
+            # Prepare payload
+            payload = {
+                "commitment": commitment_hex,
+                "metadata": metadata,
+                "timestamp": datetime.utcnow().isoformat() + 'Z',
+                "version": "1.0"
+            }
+            
+            payload_bytes = json.dumps(payload, sort_keys=True).encode('utf-8')
+            
+            # Build transaction
+            gas_params = self._get_gas_params()
+            nonce = self.web3.eth.get_transaction_count(self.web3.eth.default_account)
+            
+            transaction = {
+                'from': self.web3.eth.default_account,
+                'to': self.web3.eth.default_account,  # Self-transaction
+                'value': 0,
+                'data': payload_bytes,
+                'nonce': nonce,
+                **gas_params
+            }
+            
+            # Sign and send
+            if self.account:
+                signed_txn = self.web3.eth.account.sign_transaction(transaction, self.config.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            else:
+                tx_hash = self.web3.eth.send_transaction(transaction)
+            
+            # Wait for confirmation
+            receipt = self.web3.eth.wait_for_transaction_receipt(
+                tx_hash,
+                timeout=self.config.timeout_seconds
+            )
+            
+            logger.info(f"Commitment stored in transaction data: {tx_hash.hex()}")
+            return tx_hash.hex()
+            
+        except Exception as e:
+            raise TransactionError(f"Data transaction failed: {e}")
+
+    @retry_on_failure(max_attempts=2, delay=0.5)
+    def retrieve_commitment(self, tx_hash: str) -> Optional[CommitmentRecord]:
+        """
+        Retrieve commitment from blockchain.
+        
+        Args:
+            tx_hash: Transaction hash containing the commitment
+            
+        Returns:
+            CommitmentRecord if found, None otherwise
+        """
+        self._ensure_connected()
+        
+        try:
+            # Get transaction and receipt
+            tx = self.web3.eth.get_transaction(tx_hash)
+            receipt = self.web3.eth.get_transaction_receipt(tx_hash)
+            block = self.web3.eth.get_block(tx['blockNumber'])
+            
+            if self.contract and tx['to'] == self.config.contract_address:
+                # Retrieve from contract logs
+                return self._retrieve_from_contract_logs(receipt, block)
+            else:
+                # Retrieve from transaction data
+                return self._retrieve_from_transaction_data(tx, receipt, block)
+                
+        except Exception as e:
+            logger.error(f"Failed to retrieve commitment from {tx_hash}: {e}")
             return None
 
-        data_bytes = bytes(tx["input"])
+    def _retrieve_from_contract_logs(self, receipt, block) -> Optional[CommitmentRecord]:
+        """Retrieve commitment from smart contract logs"""
         try:
-            payload = json.loads(data_bytes.decode())
-        except Exception:
+            # Parse contract logs for commitment events
+            for log in receipt['logs']:
+                # This would need to be adapted based on actual contract events
+                pass
+            
+            # For now, return basic info
+            return CommitmentRecord(
+                commitment_hash="",  # Would extract from logs
+                metadata={},
+                tx_hash=receipt['transactionHash'].hex(),
+                block_number=receipt['blockNumber'],
+                timestamp=datetime.fromtimestamp(block['timestamp'], timezone.utc).isoformat(),
+                gas_used=receipt['gasUsed'],
+                confirmations=self.web3.eth.block_number - receipt['blockNumber']
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to parse contract logs: {e}")
             return None
 
-        block = self.web3.eth.get_block(tx["blockNumber"])
-        return {
-            "hash": payload.get("hash"),
-            "metadata": payload.get("metadata"),
-            "from": tx["from"],
-            "to": tx["to"],
-            "block_number": tx["blockNumber"],
-            "timestamp": datetime.fromtimestamp(block["timestamp"], timezone.utc).isoformat(),
-            "tx_hash": transaction_id,
-        }
+    def _retrieve_from_transaction_data(self, tx, receipt, block) -> Optional[CommitmentRecord]:
+        """Retrieve commitment from transaction data field"""
+        try:
+            # Parse transaction data
+            data_bytes = bytes(tx['input'])
+            if not data_bytes:
+                return None
+                
+            payload = json.loads(data_bytes.decode('utf-8'))
+            
+            return CommitmentRecord(
+                commitment_hash=payload.get('commitment', ''),
+                metadata=payload.get('metadata', {}),
+                tx_hash=receipt['transactionHash'].hex(),
+                block_number=receipt['blockNumber'],
+                timestamp=datetime.fromtimestamp(block['timestamp'], timezone.utc).isoformat(),
+                gas_used=receipt['gasUsed'],
+                confirmations=self.web3.eth.block_number - receipt['blockNumber']
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to parse transaction data: {e}")
+            return None
 
-    def verify_hash(self, hash_value: str, transaction_id: str) -> bool:
-        """Verify that the given hash matches blockchain record."""
+    @retry_on_failure(max_attempts=2, delay=0.5)
+    def verify_commitment_onchain(self, commitment_hash: bytes) -> bool:
+        """
+        Verify commitment exists on blockchain.
+        
+        Args:
+            commitment_hash: Commitment hash to verify
+            
+        Returns:
+            True if commitment exists and is valid
+        """
+        self._ensure_connected()
+        
+        try:
+            if self.contract:
+                # Use smart contract verification
+                result = self.contract.functions.verifyCommitment(commitment_hash).call()
+                return bool(result)
+            else:
+                # For data-based storage, we'd need to search transaction history
+                # This is not efficient for production use
+                logger.warning("On-chain verification without smart contract is not efficient")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Failed to verify commitment on-chain: {e}")
+            return False
 
-        stored = self.retrieve_hash(transaction_id)
-        return bool(stored and stored.get("hash") == hash_value)
+    @retry_on_failure(max_attempts=3, delay=2.0)
+    def batch_store_commitments(self, commitments: List[bytes]) -> str:
+        """
+        Store multiple commitments efficiently using Merkle root.
+        
+        Args:
+            commitments: List of commitment hashes to store
+            
+        Returns:
+            Transaction hash for the batch operation
+            
+        Raises:
+            TransactionError: If batch operation fails
+        """
+        self._ensure_connected()
+        
+        if not commitments:
+            raise ValueError("Cannot store empty commitment list")
+        
+        try:
+            # Build Merkle tree from commitments
+            merkle_root_hash = compute_merkle_root(commitments)
+            
+            # Prepare metadata
+            metadata = {
+                "batch_size": len(commitments),
+                "commitment_hashes": [c.hex() for c in commitments],
+                "merkle_root": merkle_root_hash.hex(),
+                "batch_timestamp": datetime.utcnow().isoformat() + 'Z'
+            }
+            
+            if self.contract:
+                # Use smart contract batch function
+                return self._batch_store_contract(merkle_root_hash, len(commitments), metadata)
+            else:
+                # Store batch info in transaction data
+                return self._batch_store_data(merkle_root_hash, metadata)
+                
+        except Exception as e:
+            logger.error(f"Failed to batch store commitments: {e}")
+            raise TransactionError(f"Batch commitment storage failed: {e}")
+
+    def _batch_store_contract(self, merkle_root: bytes, count: int, metadata: Dict) -> str:
+        """Store batch commitments using smart contract"""
+        try:
+            gas_params = self._get_gas_params()
+            nonce = self.web3.eth.get_transaction_count(self.web3.eth.default_account)
+            
+            # Build contract function call
+            function_call = self.contract.functions.storeBatchCommitments(
+                merkle_root,
+                count
+            )
+            
+            transaction = function_call.build_transaction({
+                'from': self.web3.eth.default_account,
+                'nonce': nonce,
+                **gas_params
+            })
+            
+            # Sign and send
+            if self.account:
+                signed_txn = self.web3.eth.account.sign_transaction(transaction, self.config.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            else:
+                tx_hash = self.web3.eth.send_transaction(transaction)
+            
+            # Wait for confirmation
+            receipt = self.web3.eth.wait_for_transaction_receipt(
+                tx_hash,
+                timeout=self.config.timeout_seconds
+            )
+            
+            logger.info(f"Batch commitments stored via contract: {tx_hash.hex()}")
+            return tx_hash.hex()
+            
+        except Exception as e:
+            raise TransactionError(f"Batch contract transaction failed: {e}")
+
+    def _batch_store_data(self, merkle_root: bytes, metadata: Dict) -> str:
+        """Store batch commitments in transaction data"""
+        try:
+            payload = {
+                "type": "batch_commitments",
+                "merkle_root": merkle_root.hex(),
+                "metadata": metadata,
+                "version": "1.0"
+            }
+            
+            payload_bytes = json.dumps(payload, sort_keys=True).encode('utf-8')
+            
+            gas_params = self._get_gas_params()
+            nonce = self.web3.eth.get_transaction_count(self.web3.eth.default_account)
+            
+            transaction = {
+                'from': self.web3.eth.default_account,
+                'to': self.web3.eth.default_account,
+                'value': 0,
+                'data': payload_bytes,
+                'nonce': nonce,
+                **gas_params
+            }
+            
+            # Sign and send
+            if self.account:
+                signed_txn = self.web3.eth.account.sign_transaction(transaction, self.config.private_key)
+                tx_hash = self.web3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            else:
+                tx_hash = self.web3.eth.send_transaction(transaction)
+            
+            # Wait for confirmation
+            receipt = self.web3.eth.wait_for_transaction_receipt(
+                tx_hash,
+                timeout=self.config.timeout_seconds
+            )
+            
+            logger.info(f"Batch commitments stored in transaction data: {tx_hash.hex()}")
+            return tx_hash.hex()
+            
+        except Exception as e:
+            raise TransactionError(f"Batch data transaction failed: {e}")
+
+    def get_balance(self) -> float:
+        """Get current account balance in ETH"""
+        self._ensure_connected()
+        
+        try:
+            balance_wei = self.web3.eth.get_balance(self.web3.eth.default_account)
+            return self.web3.from_wei(balance_wei, 'ether')
+        except Exception as e:
+            logger.error(f"Failed to get balance: {e}")
+            return 0.0
+
+    def estimate_gas_cost(self, operation: str = "store_commitment") -> Dict[str, float]:
+        """
+        Estimate gas cost for different operations.
+        
+        Args:
+            operation: Type of operation to estimate
+            
+        Returns:
+            Dictionary with gas estimates in ETH and USD (if available)
+        """
+        self._ensure_connected()
+        
+        try:
+            gas_params = self._get_gas_params()
+            
+            # Estimate gas usage based on operation
+            gas_estimates = {
+                "store_commitment": 100000,
+                "batch_store_commitments": 150000,
+                "verify_commitment": 50000
+            }
+            
+            gas_needed = gas_estimates.get(operation, 100000)
+            
+            # Get gas price
+            if 'gasPrice' in gas_params:
+                gas_price = gas_params['gasPrice']
+            else:
+                gas_price = gas_params.get('maxFeePerGas', self.web3.to_wei(20, 'gwei'))
+            
+            cost_wei = gas_needed * gas_price
+            cost_eth = self.web3.from_wei(cost_wei, 'ether')
+            
+            return {
+                "gas_needed": gas_needed,
+                "gas_price_gwei": self.web3.from_wei(gas_price, 'gwei'),
+                "cost_eth": float(cost_eth),
+                "cost_wei": cost_wei
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to estimate gas cost: {e}")
+            return {"error": str(e)}
+
+    def disconnect(self):
+        """Clean up blockchain connection"""
+        if self.web3 and hasattr(self.web3.provider, 'disconnect'):
+            try:
+                self.web3.provider.disconnect()
+            except Exception as e:
+                logger.warning(f"Error disconnecting: {e}")
+        
+        self._connection_established = False
+        logger.info("Blockchain client disconnected")
+
+    def __enter__(self):
+        """Context manager entry"""
+        if not self._connection_established:
+            self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.disconnect()
 
 
-class MockBlockchainClient(BlockchainClient):
-    """Mock blockchain client for testing"""
+class MockBlockchainClient:
+    """Mock blockchain client for testing and development"""
     
-    def __init__(self):
+    def __init__(self, config: Optional[BlockchainConfig] = None):
+        """Initialize mock client with optional config for compatibility"""
+        self.config = config or BlockchainConfig.local_ganache()
         self.storage = {}
+        self.batch_storage = {}
         self.transaction_counter = 0
+        self.block_number = 1000000  # Start at reasonable block number
+        self._connection_established = True
+        
+        logger.info("Initialized MockBlockchainClient for testing")
     
-    def store_hash(self, hash_value: str, metadata: Dict) -> str:
-        """Store hash in mock blockchain"""
-        tx_id = f"tx_{self.transaction_counter:08d}"
+    def connect(self) -> bool:
+        """Mock connection always succeeds"""
+        self._connection_established = True
+        logger.info("Mock blockchain client connected")
+        return True
+    
+    def store_commitment(self, commitment_hash: bytes, metadata: Dict[str, Any]) -> str:
+        """Store commitment in mock storage"""
+        tx_id = f"0x{self.transaction_counter:064x}"
         self.transaction_counter += 1
+        self.block_number += 1
         
-        self.storage[tx_id] = {
-            'hash': hash_value,
-            'metadata': metadata,
-            'timestamp': datetime.now(timezone.utc).isoformat(),
-            'block_number': self.transaction_counter
-        }
+        commitment_hex = commitment_hash.hex() if isinstance(commitment_hash, bytes) else commitment_hash
         
-        logger.info(f"Stored hash on mock blockchain: {tx_id}")
+        record = CommitmentRecord(
+            commitment_hash=commitment_hex,
+            metadata=metadata,
+            tx_hash=tx_id,
+            block_number=self.block_number,
+            timestamp=datetime.utcnow().isoformat() + 'Z',
+            gas_used=75000,  # Mock gas usage
+            confirmations=1
+        )
+        
+        self.storage[tx_id] = record
+        logger.info(f"Stored commitment in mock blockchain: {tx_id}")
         return tx_id
     
+    def retrieve_commitment(self, tx_hash: str) -> Optional[CommitmentRecord]:
+        """Retrieve commitment from mock storage"""
+        return self.storage.get(tx_hash)
+    
+    def verify_commitment_onchain(self, commitment_hash: bytes) -> bool:
+        """Verify commitment exists in mock storage"""
+        commitment_hex = commitment_hash.hex() if isinstance(commitment_hash, bytes) else commitment_hash
+        
+        for record in self.storage.values():
+            if record.commitment_hash == commitment_hex:
+                return True
+        return False
+    
+    def batch_store_commitments(self, commitments: List[bytes]) -> str:
+        """Store batch commitments using Merkle root in mock storage"""
+        if not commitments:
+            raise ValueError("Cannot store empty commitment list")
+        
+        tx_id = f"0x{self.transaction_counter:064x}"
+        self.transaction_counter += 1
+        self.block_number += 1
+        
+        # Build Merkle tree
+        merkle_root_hash = compute_merkle_root(commitments)
+        
+        # Create batch record
+        batch_record = BatchCommitmentRecord(
+            merkle_root=merkle_root_hash.hex(),
+            commitment_hashes=[c.hex() for c in commitments],
+            tx_hash=tx_id,
+            block_number=self.block_number,
+            timestamp=datetime.utcnow().isoformat() + 'Z',
+            gas_used=50000 + len(commitments) * 5000  # Mock gas scaling
+        )
+        
+        # Generate Merkle proofs for each commitment
+        tree = build_merkle_tree(commitments)
+        for i, commitment in enumerate(commitments):
+            proof = generate_merkle_proof(tree, i)
+            batch_record.proofs[commitment.hex()] = proof
+        
+        self.batch_storage[tx_id] = batch_record
+        logger.info(f"Stored batch commitments in mock blockchain: {tx_id} (count: {len(commitments)})")
+        return tx_id
+    
+    def get_batch_commitment(self, tx_hash: str) -> Optional[BatchCommitmentRecord]:
+        """Retrieve batch commitment record"""
+        return self.batch_storage.get(tx_hash)
+    
+    def get_balance(self) -> float:
+        """Return mock balance"""
+        return 10.0  # 10 ETH for testing
+    
+    def estimate_gas_cost(self, operation: str = "store_commitment") -> Dict[str, float]:
+        """Return mock gas estimates"""
+        estimates = {
+            "store_commitment": {"gas_needed": 75000, "cost_eth": 0.002},
+            "batch_store_commitments": {"gas_needed": 150000, "cost_eth": 0.004},
+            "verify_commitment": {"gas_needed": 25000, "cost_eth": 0.001}
+        }
+        
+        return estimates.get(operation, estimates["store_commitment"])
+    
+    def disconnect(self):
+        """Mock disconnection"""
+        self._connection_established = False
+        logger.info("Mock blockchain client disconnected")
+    
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        self.disconnect()
+    
+    # Legacy compatibility methods
+    def store_hash(self, hash_value: str, metadata: Dict) -> str:
+        """Legacy method for compatibility"""
+        if isinstance(hash_value, str):
+            hash_bytes = bytes.fromhex(hash_value)
+        else:
+            hash_bytes = hash_value
+        return self.store_commitment(hash_bytes, metadata)
+    
     def retrieve_hash(self, transaction_id: str) -> Optional[Dict]:
-        """Retrieve hash from mock blockchain"""
-        return self.storage.get(transaction_id)
+        """Legacy method for compatibility"""
+        record = self.retrieve_commitment(transaction_id)
+        if record:
+            return {
+                "hash": record.commitment_hash,
+                "metadata": record.metadata,
+                "tx_hash": record.tx_hash,
+                "block_number": record.block_number,
+                "timestamp": record.timestamp
+            }
+        return None
     
     def verify_hash(self, hash_value: str, transaction_id: str) -> bool:
-        """Verify hash in mock blockchain"""
-        stored = self.storage.get(transaction_id)
+        """Legacy method for compatibility"""
+        stored = self.retrieve_hash(transaction_id)
         return stored and stored['hash'] == hash_value
 
 
