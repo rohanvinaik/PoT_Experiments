@@ -1,0 +1,110 @@
+# Semantic Verification Configuration
+# This file defines configuration options for semantic verification integration
+
+semantic_verification:
+  # Whether to enable semantic verification
+  enabled: true
+  
+  # Weight for semantic score in combined verification (0.0 to 1.0)
+  # Final score = (1 - weight) * distance_score + weight * semantic_score
+  semantic_weight: 0.3
+  
+  # Concept library configuration
+  library:
+    # Method for concept representation
+    # Options: 'gaussian' (statistical modeling), 'hypervector' (binary/ternary)
+    method: 'gaussian'
+    
+    # Dimensionality of concept vectors
+    # Should match model embedding dimensions
+    dimension: 768  # For LM models (BERT-like)
+    
+    # Path to pre-trained concept library (optional)
+    # If provided, will load existing library instead of building new
+    library_path: null
+    
+    # Concepts to build from reference data
+    concepts:
+      - name: "semantic_class_0"
+        source: "reference_dataset"
+        min_samples: 100
+      - name: "semantic_class_1"
+        source: "reference_dataset"
+        min_samples: 100
+  
+  # Semantic matching configuration
+  matching:
+    # Similarity threshold for positive matches (0.0 to 1.0)
+    threshold: 0.7
+    
+    # Primary similarity method
+    # Options: 'cosine', 'euclidean', 'mahalanobis', 'hamming'
+    primary_method: 'cosine'
+    
+    # Fallback method if primary fails
+    fallback_method: 'euclidean'
+    
+    # Whether to use cached similarity scores
+    use_cache: true
+    
+    # Maximum cache size (number of entries)
+    cache_size: 10000
+  
+  # Semantic drift detection
+  drift_detection:
+    # Enable drift detection
+    enabled: true
+    
+    # Maximum acceptable drift score (0.0 to 1.0)
+    max_drift: 0.3
+    
+    # Number of samples for drift estimation
+    drift_samples: 100
+  
+  # Integration with verifiers
+  verifier_integration:
+    # LM verifier specific settings
+    lm:
+      enabled: true
+      dimension: 768
+      semantic_weight: 0.3
+      
+      # Whether to extract hidden states for semantic scoring
+      use_hidden_states: true
+      
+      # Maximum samples for semantic scoring (for efficiency)
+      max_semantic_samples: 10
+    
+    # Vision verifier specific settings
+    vision:
+      enabled: true
+      dimension: 512  # ResNet feature dimension
+      semantic_weight: 0.3
+      
+      # Feature extraction layer
+      feature_layer: 'penultimate'
+      
+      # Maximum samples for semantic scoring
+      max_semantic_samples: 10
+  
+  # Visualization and reporting
+  reporting:
+    # Generate semantic analysis reports
+    generate_reports: true
+    
+    # Report format: 'json', 'html', 'pdf'
+    format: 'json'
+    
+    # Include visualization plots
+    include_plots: true
+    
+    # Output directory for reports
+    output_dir: 'outputs/semantic_reports/'
+
+# Backward compatibility settings
+backward_compatibility:
+  # If semantic library is not available, fallback behavior
+  fallback_mode: 'distance_only'  # Options: 'distance_only', 'error', 'warning'
+  
+  # Log warnings when semantic verification is skipped
+  log_warnings: true

@@ -23,6 +23,15 @@ from ..core.wrapper_detection import WrapperAttackDetector
 from ..core.fingerprint import fingerprint_run, FingerprintConfig, FingerprintResult, compare_jacobian_sketches
 from .models import VisionModel
 
+# Semantic verification imports (optional)
+try:
+    from ..semantic.library import ConceptLibrary
+    from ..semantic.match import SemanticMatcher
+    from ..semantic.utils import extract_embeddings_from_logits, normalize_embeddings
+    SEMANTIC_AVAILABLE = True
+except ImportError:
+    SEMANTIC_AVAILABLE = False
+
 
 @dataclass
 class VisionVerificationResult:
@@ -37,7 +46,9 @@ class VisionVerificationResult:
     fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
     fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
     sequential_result: Optional[SPRTResult]  # Sequential verification result with trajectory
-    metadata: Dict[str, Any]
+    semantic_score: Optional[float] = None  # Semantic verification score
+    combined_score: Optional[float] = None  # Combined distance and semantic score
+    metadata: Dict[str, Any] = None
 
 
 class VisionVerifier:
@@ -49,7 +60,9 @@ class VisionVerifier:
     def __init__(self, reference_model: VisionModel, delta: float = 0.01,
                  use_sequential: bool = True, sequential_mode: str = 'legacy',
                  detect_wrappers: bool = True,
-                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
+                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None,
+                 semantic_library: Optional['ConceptLibrary'] = None,
+                 semantic_weight: float = 0.3):
         """
         Initialize vision verifier
         
@@ -61,6 +74,8 @@ class VisionVerifier:
             detect_wrappers: Whether to detect wrapper attacks
             use_fingerprinting: Whether to compute behavioral fingerprints
             fingerprint_config: Configuration for fingerprinting (uses default vision config if None)
+            semantic_library: Optional ConceptLibrary for semantic verification
+            semantic_weight: Weight for semantic score in combined verification (1-weight for distance)
         """
         self.reference_model = reference_model
         self.delta = delta
@@ -94,6 +109,21 @@ class VisionVerifier:
         
         if detect_wrappers:
             self.wrapper_detector = WrapperAttackDetector()
+        
+        # Initialize semantic verification if library provided
+        self.semantic_library = semantic_library
+        self.semantic_matcher = None
+        self.semantic_weight = semantic_weight
+        
+        if semantic_library is not None and SEMANTIC_AVAILABLE:
+            try:
+                self.semantic_matcher = SemanticMatcher(
+                    library=semantic_library,
+                    threshold=0.7  # Default threshold for semantic matching
+                )
+            except Exception as e:
+                print(f"Warning: Could not initialize semantic matcher: {e}")
+                self.semantic_matcher = None
         
         # Image preprocessing
         self.transform = transforms.Compose([
@@ -381,6 +411,37 @@ class VisionVerifier:
         
         return distance
     
+    def _compute_semantic_score(self, features: torch.Tensor) -> float:
+        """
+        Compute semantic verification score for vision features.
+        
+        Args:
+            features: Model feature tensor
+            
+        Returns:
+            Semantic similarity score in [0, 1]
+        """
+        if self.semantic_matcher is None:
+            return 0.5  # Neutral score if no semantic verification
+        
+        try:
+            # Normalize features
+            normalized = normalize_embeddings(features, method='l2')
+            
+            # Match to library concepts
+            matches = self.semantic_matcher.match_to_library(normalized)
+            
+            if not matches:
+                return 0.0
+            
+            # Return best match score
+            best_score = max(matches.values())
+            return float(best_score)
+            
+        except Exception as e:
+            print(f"Warning: Semantic scoring failed: {e}")
+            return 0.5  # Neutral score on error
+    
     def compute_reference_fingerprint(self, challenges: List[torch.Tensor]) -> FingerprintResult:
         """
         Compute and store reference model fingerprint
@@ -624,6 +685,31 @@ class VisionVerifier:
         test_statistic = t_statistic(distances_array)
         conf_radius = empirical_bernstein_bound(distances_array, self.delta)
         
+        # Compute semantic score if enabled
+        semantic_score = None
+        combined_score = test_statistic
+        
+        if self.semantic_matcher is not None and SEMANTIC_AVAILABLE:
+            try:
+                # Extract semantic scores from model features
+                semantic_scores = []
+                for features in challenge_responses[:min(10, len(challenge_responses))]:  # Sample for efficiency
+                    if features is not None:
+                        sem_score = self._compute_semantic_score(features)
+                        semantic_scores.append(sem_score)
+                
+                if semantic_scores:
+                    semantic_score = float(np.mean(semantic_scores))
+                    # Combine distance and semantic scores
+                    # Lower distance is better, higher semantic score is better
+                    # So we invert semantic score for combination
+                    semantic_distance = 1.0 - semantic_score
+                    combined_score = (1 - self.semantic_weight) * test_statistic + self.semantic_weight * semantic_distance
+            except Exception as e:
+                print(f"Warning: Semantic scoring failed: {e}")
+                semantic_score = None
+                combined_score = test_statistic
+        
         # Decision logic based on sequential mode
         if sequential_result is not None:
             # Use enhanced sequential result
@@ -635,8 +721,10 @@ class VisionVerifier:
             if self.sequential_tester.decided():
                 accepted = self.sequential_tester.accept()
         else:
-            # Fixed-sample decision: accept if test statistic + radius <= tolerance
-            accepted = (test_statistic + conf_radius) <= tolerance
+            # Fixed-sample decision: accept if combined score + radius <= tolerance
+            # Use combined score if semantic verification is enabled
+            decision_score = combined_score if semantic_score is not None else test_statistic
+            accepted = (decision_score + conf_radius) <= tolerance
         
         # Wrapper detection if enabled
         wrapper_result = None
@@ -723,6 +811,8 @@ class VisionVerifier:
             fingerprint=model_fingerprint,
             fingerprint_match=fingerprint_similarity,
             sequential_result=sequential_result,
+            semantic_score=semantic_score,
+            combined_score=float(combined_score) if semantic_score is not None else None,
             metadata=metadata
         )
     
@@ -813,10 +903,14 @@ class BatchVisionVerifier:
     """
     
     def __init__(self, reference_model: VisionModel, delta: float = 0.01,
-                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None):
+                 use_fingerprinting: bool = True, fingerprint_config: Optional[FingerprintConfig] = None,
+                 semantic_library: Optional['ConceptLibrary'] = None,
+                 semantic_weight: float = 0.3):
         self.verifier = VisionVerifier(reference_model, delta, 
                                       use_fingerprinting=use_fingerprinting,
-                                      fingerprint_config=fingerprint_config)
+                                      fingerprint_config=fingerprint_config,
+                                      semantic_library=semantic_library,
+                                      semantic_weight=semantic_weight)
     
     def verify_batch(self, models: List[VisionModel],
                     challenges: List[torch.Tensor],

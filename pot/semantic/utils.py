@@ -4,14 +4,20 @@ Provides helper functions for vector normalization, clustering, validation, and 
 """
 
 import numpy as np
+import torch
 from typing import Dict, List, Optional, Union, Any, Tuple
 from sklearn.cluster import KMeans, DBSCAN
-from sklearn.decomposition import PCA
+from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.preprocessing import StandardScaler
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import matplotlib.figure
+from matplotlib.patches import Ellipse
 import logging
 import warnings
 
 from .types import ConceptVector, SemanticLibrary, MatchingConfig, SemanticDistance
+from .library import ConceptLibrary
 
 logger = logging.getLogger(__name__)
 
@@ -481,3 +487,609 @@ def concept_vector_integrity_check(concept: ConceptVector) -> Tuple[bool, List[s
         errors.append(f"Exception during integrity check: {e}")
     
     return len(errors) == 0, errors
+
+
+# ============================================================================
+# Embedding Extraction Helpers
+# ============================================================================
+
+def extract_embeddings_from_logits(logits: torch.Tensor, layer_idx: int = -1) -> torch.Tensor:
+    """
+    Extract embeddings from model logits or intermediate layers.
+    
+    Args:
+        logits: Input tensor of logits or activations (batch_size, seq_len, hidden_dim) or (batch_size, hidden_dim)
+        layer_idx: Layer index to extract from (-1 for last layer, -2 for second to last, etc.)
+        
+    Returns:
+        Extracted embeddings tensor
+        
+    Raises:
+        ValueError: If layer_idx is invalid or tensor shape is unexpected
+    """
+    if not isinstance(logits, torch.Tensor):
+        raise TypeError("logits must be a torch.Tensor")
+    
+    if logits.dim() < 2:
+        raise ValueError("logits must have at least 2 dimensions")
+    
+    # Handle different tensor shapes
+    if logits.dim() == 2:
+        # (batch_size, hidden_dim)
+        embeddings = logits
+    elif logits.dim() == 3:
+        # (batch_size, seq_len, hidden_dim)
+        # Extract from specified position
+        if layer_idx < 0:
+            # Negative indexing from the end
+            if abs(layer_idx) > logits.shape[1]:
+                raise ValueError(f"layer_idx {layer_idx} out of range for sequence length {logits.shape[1]}")
+            embeddings = logits[:, layer_idx, :]
+        else:
+            # Positive indexing from the start
+            if layer_idx >= logits.shape[1]:
+                raise ValueError(f"layer_idx {layer_idx} out of range for sequence length {logits.shape[1]}")
+            embeddings = logits[:, layer_idx, :]
+    elif logits.dim() == 4:
+        # (batch_size, num_layers, seq_len, hidden_dim) - for transformer outputs
+        if abs(layer_idx) > logits.shape[1]:
+            raise ValueError(f"layer_idx {layer_idx} out of range for {logits.shape[1]} layers")
+        
+        # Extract specified layer, then take mean over sequence
+        layer_output = logits[:, layer_idx, :, :] if layer_idx >= 0 else logits[:, layer_idx, :, :]
+        embeddings = torch.mean(layer_output, dim=1)  # Average over sequence length
+    else:
+        raise ValueError(f"Unexpected logits shape: {logits.shape}")
+    
+    # Ensure embeddings are 2D (batch_size, hidden_dim)
+    if embeddings.dim() == 1:
+        embeddings = embeddings.unsqueeze(0)
+    
+    logger.debug(f"Extracted embeddings shape: {embeddings.shape} from logits shape: {logits.shape}")
+    return embeddings
+
+
+def normalize_embeddings(embeddings: torch.Tensor, method: str = 'l2', 
+                        dim: int = -1, eps: float = 1e-8) -> torch.Tensor:
+    """
+    Normalize embeddings using various methods.
+    
+    Args:
+        embeddings: Input embeddings tensor
+        method: Normalization method ('l2', 'l1', 'max', 'zscore', 'unit')
+        dim: Dimension along which to normalize (default: -1)
+        eps: Small epsilon for numerical stability
+        
+    Returns:
+        Normalized embeddings tensor
+    """
+    if not isinstance(embeddings, torch.Tensor):
+        raise TypeError("embeddings must be a torch.Tensor")
+    
+    if embeddings.numel() == 0:
+        raise ValueError("embeddings cannot be empty")
+    
+    # Handle NaN/Inf values
+    if not torch.isfinite(embeddings).all():
+        logger.warning("embeddings contain non-finite values, replacing with zeros")
+        embeddings = torch.where(torch.isfinite(embeddings), embeddings, torch.zeros_like(embeddings))
+    
+    if method == 'l2':
+        # L2 normalization
+        norm = torch.norm(embeddings, p=2, dim=dim, keepdim=True)
+        normalized = embeddings / (norm + eps)
+    
+    elif method == 'l1':
+        # L1 normalization
+        norm = torch.norm(embeddings, p=1, dim=dim, keepdim=True)
+        normalized = embeddings / (norm + eps)
+    
+    elif method == 'max':
+        # Max normalization
+        max_val = torch.max(torch.abs(embeddings), dim=dim, keepdim=True)[0]
+        normalized = embeddings / (max_val + eps)
+    
+    elif method == 'zscore':
+        # Z-score normalization
+        mean = torch.mean(embeddings, dim=dim, keepdim=True)
+        std = torch.std(embeddings, dim=dim, keepdim=True)
+        normalized = (embeddings - mean) / (std + eps)
+    
+    elif method == 'unit':
+        # Unit sphere normalization (project to unit hypersphere)
+        norm = torch.norm(embeddings, p=2, dim=dim, keepdim=True)
+        normalized = embeddings / (norm + eps)
+        # Ensure unit norm
+        normalized = normalized / torch.norm(normalized, p=2, dim=dim, keepdim=True)
+    
+    else:
+        raise ValueError(f"Unsupported normalization method: {method}")
+    
+    return normalized
+
+
+def reduce_dimensionality(embeddings: torch.Tensor, target_dim: int, 
+                         method: str = 'pca', random_state: int = 42) -> torch.Tensor:
+    """
+    Reduce dimensionality of embeddings using various methods.
+    
+    Args:
+        embeddings: Input embeddings tensor (n_samples, n_features)
+        target_dim: Target dimensionality
+        method: Reduction method ('pca', 'svd', 'tsne', 'random')
+        random_state: Random seed for reproducibility
+        
+    Returns:
+        Reduced embeddings tensor (n_samples, target_dim)
+        
+    Raises:
+        ValueError: If target_dim is invalid or method is unsupported
+    """
+    if not isinstance(embeddings, torch.Tensor):
+        raise TypeError("embeddings must be a torch.Tensor")
+    
+    # Convert to numpy for sklearn
+    embeddings_np = embeddings.detach().cpu().numpy()
+    
+    if embeddings_np.ndim == 1:
+        embeddings_np = embeddings_np.reshape(1, -1)
+    
+    n_samples, n_features = embeddings_np.shape
+    
+    if target_dim <= 0:
+        raise ValueError("target_dim must be positive")
+    
+    if target_dim > n_features:
+        logger.warning(f"target_dim {target_dim} > n_features {n_features}, returning original")
+        return embeddings
+    
+    if target_dim == n_features:
+        return embeddings
+    
+    try:
+        if method == 'pca':
+            # Principal Component Analysis
+            # PCA components cannot exceed min(n_samples, n_features)
+            actual_components = min(target_dim, n_samples - 1, n_features)
+            if actual_components < target_dim:
+                logger.warning(f"PCA: reducing target_dim from {target_dim} to {actual_components} (limited by data)")
+            reducer = PCA(n_components=actual_components, random_state=random_state)
+            reduced = reducer.fit_transform(embeddings_np)
+            
+            # Pad with zeros if needed
+            if actual_components < target_dim:
+                padding = np.zeros((n_samples, target_dim - actual_components))
+                reduced = np.hstack([reduced, padding])
+            
+            logger.debug(f"PCA explained variance ratio: {reducer.explained_variance_ratio_[:min(5, len(reducer.explained_variance_ratio_))]}")
+        
+        elif method == 'svd':
+            # Truncated SVD (works with sparse matrices)
+            # SVD components cannot exceed min(n_samples, n_features) - 1
+            actual_components = min(target_dim, n_samples - 1, n_features - 1)
+            if actual_components < target_dim:
+                logger.warning(f"SVD: reducing target_dim from {target_dim} to {actual_components} (limited by data)")
+            reducer = TruncatedSVD(n_components=actual_components, random_state=random_state)
+            reduced = reducer.fit_transform(embeddings_np)
+            
+            # Pad with zeros if needed
+            if actual_components < target_dim:
+                padding = np.zeros((n_samples, target_dim - actual_components))
+                reduced = np.hstack([reduced, padding])
+            
+            logger.debug(f"SVD explained variance ratio: {reducer.explained_variance_ratio_[:min(5, len(reducer.explained_variance_ratio_))]}")
+        
+        elif method == 'tsne':
+            # t-SNE (typically for 2D/3D visualization)
+            if target_dim > 3:
+                logger.warning("t-SNE is typically used for 2D/3D visualization, consider using PCA for higher dims")
+            
+            # t-SNE requires n_components < n_samples
+            if target_dim >= n_samples:
+                raise ValueError(f"t-SNE requires target_dim ({target_dim}) < n_samples ({n_samples})")
+            
+            perplexity = min(30, n_samples - 1)  # Adjust perplexity for small datasets
+            tsne = TSNE(n_components=target_dim, random_state=random_state, perplexity=perplexity)
+            reduced = tsne.fit_transform(embeddings_np)
+        
+        elif method == 'random':
+            # Random projection
+            rng = np.random.RandomState(random_state)
+            projection_matrix = rng.randn(n_features, target_dim)
+            # Normalize columns
+            projection_matrix = projection_matrix / np.linalg.norm(projection_matrix, axis=0)
+            reduced = embeddings_np @ projection_matrix
+        
+        else:
+            raise ValueError(f"Unsupported reduction method: {method}")
+        
+        # Convert back to torch tensor
+        reduced_tensor = torch.tensor(reduced, dtype=embeddings.dtype, device=embeddings.device)
+        
+        logger.info(f"Reduced embeddings from {n_features} to {target_dim} dimensions using {method}")
+        return reduced_tensor
+        
+    except Exception as e:
+        logger.error(f"Dimensionality reduction failed: {e}")
+        raise
+
+
+# ============================================================================
+# Hypervector Operations
+# ============================================================================
+
+def create_random_hypervector(dim: int, sparsity: float = 0.5, 
+                             ternary: bool = True, seed: Optional[int] = None) -> torch.Tensor:
+    """
+    Create a random hypervector with specified properties.
+    
+    Args:
+        dim: Dimensionality of the hypervector
+        sparsity: Fraction of zero elements (0 to 1)
+        ternary: If True, create ternary vector {-1, 0, 1}, else binary {-1, 1}
+        seed: Random seed for reproducibility
+        
+    Returns:
+        Random hypervector tensor
+        
+    Raises:
+        ValueError: If parameters are invalid
+    """
+    if dim <= 0:
+        raise ValueError("dim must be positive")
+    
+    if not 0 <= sparsity <= 1:
+        raise ValueError("sparsity must be between 0 and 1")
+    
+    if seed is not None:
+        torch.manual_seed(seed)
+    
+    if ternary:
+        # Create ternary hypervector {-1, 0, 1}
+        # First determine positions of non-zero elements
+        n_nonzero = int(dim * (1 - sparsity))
+        
+        # Initialize with zeros
+        hypervector = torch.zeros(dim)
+        
+        # Randomly select positions for non-zero elements
+        nonzero_positions = torch.randperm(dim)[:n_nonzero]
+        
+        # Randomly assign +1 or -1 to non-zero positions
+        values = torch.randint(0, 2, (n_nonzero,)) * 2 - 1  # Maps {0,1} to {-1,1}
+        hypervector[nonzero_positions] = values.float()
+    
+    else:
+        # Create binary hypervector {-1, 1}
+        if sparsity > 0:
+            logger.warning("Binary hypervectors ignore sparsity parameter")
+        
+        # Random binary values
+        hypervector = torch.randint(0, 2, (dim,)) * 2 - 1
+        hypervector = hypervector.float()
+    
+    logger.debug(f"Created hypervector: dim={dim}, sparsity={sparsity:.2f}, "
+                f"ternary={ternary}, nonzero={torch.count_nonzero(hypervector)}")
+    
+    return hypervector
+
+
+def bind_hypervectors(hv1: torch.Tensor, hv2: torch.Tensor, 
+                     method: str = 'xor') -> torch.Tensor:
+    """
+    Bind two hypervectors using various binding operations.
+    
+    Binding creates a new hypervector that is dissimilar to both inputs
+    but can be used to retrieve one given the other.
+    
+    Args:
+        hv1: First hypervector
+        hv2: Second hypervector
+        method: Binding method ('xor', 'multiply', 'circular')
+        
+    Returns:
+        Bound hypervector
+        
+    Raises:
+        ValueError: If dimensions don't match or method is unsupported
+    """
+    if hv1.shape != hv2.shape:
+        raise ValueError(f"Hypervector dimensions must match: {hv1.shape} vs {hv2.shape}")
+    
+    if method == 'xor':
+        # XOR binding (for binary/ternary vectors)
+        # Map to binary first: positive -> 1, non-positive -> -1
+        hv1_binary = torch.sign(hv1)
+        hv2_binary = torch.sign(hv2)
+        
+        # XOR operation: same signs -> 1, different signs -> -1
+        bound = hv1_binary * hv2_binary
+    
+    elif method == 'multiply':
+        # Element-wise multiplication
+        bound = hv1 * hv2
+    
+    elif method == 'circular':
+        # Circular convolution (permutation-based binding)
+        # Shift hv2 by positions determined by hv1
+        dim = len(hv1)
+        
+        # Use magnitude of hv1 to determine shift amounts
+        shifts = torch.abs(hv1) * dim
+        shifts = shifts.long() % dim
+        
+        # Apply circular shifts
+        bound = torch.zeros_like(hv1)
+        for i in range(dim):
+            shifted_idx = (i + shifts[i]) % dim
+            bound[shifted_idx] = hv2[i]
+    
+    else:
+        raise ValueError(f"Unsupported binding method: {method}")
+    
+    # Ensure hypervector properties (ternary/binary)
+    if torch.allclose(torch.abs(hv1), torch.ones_like(hv1)):
+        # Input was binary, keep output binary
+        bound = torch.sign(bound)
+    
+    return bound
+
+
+def bundle_hypervectors(hvs: List[torch.Tensor], 
+                       weights: Optional[List[float]] = None,
+                       threshold: float = 0.0) -> torch.Tensor:
+    """
+    Bundle multiple hypervectors into a single hypervector.
+    
+    Bundling creates a hypervector similar to all inputs (superposition).
+    
+    Args:
+        hvs: List of hypervectors to bundle
+        weights: Optional weights for weighted bundling
+        threshold: Threshold for converting to ternary/binary
+        
+    Returns:
+        Bundled hypervector
+        
+    Raises:
+        ValueError: If list is empty or dimensions don't match
+    """
+    if not hvs:
+        raise ValueError("Cannot bundle empty list of hypervectors")
+    
+    # Check dimension consistency
+    dim = len(hvs[0])
+    for i, hv in enumerate(hvs):
+        if len(hv) != dim:
+            raise ValueError(f"Hypervector {i} has dimension {len(hv)}, expected {dim}")
+    
+    # Stack hypervectors
+    stacked = torch.stack(hvs)
+    
+    # Apply weights if provided
+    if weights is not None:
+        if len(weights) != len(hvs):
+            raise ValueError(f"Number of weights ({len(weights)}) must match number of hypervectors ({len(hvs)})")
+        
+        weights_tensor = torch.tensor(weights).reshape(-1, 1)
+        weights_tensor = weights_tensor / weights_tensor.sum()  # Normalize
+        stacked = stacked * weights_tensor
+    
+    # Bundle by averaging
+    bundled = torch.mean(stacked, dim=0)
+    
+    # Threshold to create discrete hypervector
+    if threshold == 0.0:
+        # Ternary thresholding
+        bundled = torch.sign(bundled)
+    else:
+        # Custom threshold
+        bundled = torch.where(bundled > threshold, 1.0,
+                             torch.where(bundled < -threshold, -1.0, 0.0))
+    
+    logger.debug(f"Bundled {len(hvs)} hypervectors, result sparsity: "
+                f"{(bundled == 0).sum().item() / len(bundled):.2f}")
+    
+    return bundled
+
+
+# ============================================================================
+# Visualization Helpers
+# ============================================================================
+
+def plot_concept_space(library: ConceptLibrary, embeddings: Optional[torch.Tensor] = None,
+                      method: str = 'pca', show_labels: bool = True,
+                      figsize: Tuple[int, int] = (10, 8)) -> matplotlib.figure.Figure:
+    """
+    Visualize concept space in 2D using dimensionality reduction.
+    
+    Args:
+        library: ConceptLibrary containing concepts to visualize
+        embeddings: Optional additional embeddings to plot
+        method: Dimensionality reduction method ('pca', 'tsne')
+        show_labels: Whether to show concept labels
+        figsize: Figure size tuple
+        
+    Returns:
+        Matplotlib figure object
+    """
+    if len(library.list_concepts()) == 0:
+        raise ValueError("Library contains no concepts to visualize")
+    
+    # Extract concept vectors
+    concept_names = library.list_concepts()
+    concept_vectors = []
+    for name in concept_names:
+        vector = library.get_concept_vector(name)
+        concept_vectors.append(vector)
+    
+    # Stack concept vectors
+    concepts_tensor = torch.stack(concept_vectors)
+    
+    # Combine with additional embeddings if provided
+    if embeddings is not None:
+        if embeddings.dim() == 1:
+            embeddings = embeddings.unsqueeze(0)
+        
+        # Ensure same dimensionality
+        if embeddings.shape[-1] != concepts_tensor.shape[-1]:
+            raise ValueError(f"Embedding dimension {embeddings.shape[-1]} doesn't match "
+                           f"concept dimension {concepts_tensor.shape[-1]}")
+        
+        all_vectors = torch.cat([concepts_tensor, embeddings], dim=0)
+    else:
+        all_vectors = concepts_tensor
+    
+    # Reduce to 2D
+    reduced = reduce_dimensionality(all_vectors, target_dim=2, method=method)
+    reduced_np = reduced.detach().cpu().numpy()
+    
+    # Split back into concepts and embeddings
+    concept_points = reduced_np[:len(concept_names)]
+    embedding_points = reduced_np[len(concept_names):] if embeddings is not None else None
+    
+    # Create figure
+    fig, ax = plt.subplots(figsize=figsize)
+    
+    # Plot concepts
+    scatter = ax.scatter(concept_points[:, 0], concept_points[:, 1], 
+                        c='blue', s=100, alpha=0.7, edgecolors='black',
+                        label='Concepts')
+    
+    # Add labels
+    if show_labels:
+        for i, name in enumerate(concept_names):
+            ax.annotate(name, (concept_points[i, 0], concept_points[i, 1]),
+                       xytext=(5, 5), textcoords='offset points',
+                       fontsize=9, alpha=0.8)
+    
+    # Plot additional embeddings
+    if embedding_points is not None and len(embedding_points) > 0:
+        ax.scatter(embedding_points[:, 0], embedding_points[:, 1],
+                  c='red', s=50, alpha=0.5, marker='^',
+                  label='Test Embeddings')
+    
+    # Add Gaussian ellipses if using Gaussian method
+    if library.method == 'gaussian' and method == 'pca':
+        for i, name in enumerate(concept_names):
+            mean, cov = library.get_concept_statistics(name)
+            if mean is not None and cov is not None:
+                # Project covariance to 2D space (simplified)
+                try:
+                    # Use PCA components to project covariance
+                    cov_2d = np.array([[cov[0, 0].item(), cov[0, 1].item()],
+                                      [cov[1, 0].item(), cov[1, 1].item()]])
+                    
+                    # Draw confidence ellipse
+                    eigenvalues, eigenvectors = np.linalg.eig(cov_2d)
+                    angle = np.degrees(np.arctan2(eigenvectors[1, 0], eigenvectors[0, 0]))
+                    
+                    ellipse = Ellipse(concept_points[i], 
+                                     2 * np.sqrt(eigenvalues[0]),
+                                     2 * np.sqrt(eigenvalues[1]),
+                                     angle=angle,
+                                     facecolor='none',
+                                     edgecolor='blue',
+                                     alpha=0.3,
+                                     linestyle='--')
+                    ax.add_patch(ellipse)
+                except Exception as e:
+                    logger.debug(f"Could not draw ellipse for {name}: {e}")
+    
+    ax.set_xlabel(f'{method.upper()} Component 1')
+    ax.set_ylabel(f'{method.upper()} Component 2')
+    ax.set_title(f'Concept Space Visualization ({library.method} method)')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    return fig
+
+
+def visualize_drift(drift_scores: List[float], timestamps: Optional[List[float]] = None,
+                   threshold: float = 0.5, window_size: int = 10,
+                   figsize: Tuple[int, int] = (12, 6)) -> matplotlib.figure.Figure:
+    """
+    Visualize semantic drift over time.
+    
+    Args:
+        drift_scores: List of drift scores
+        timestamps: Optional list of timestamps (uses indices if None)
+        threshold: Drift threshold to highlight
+        window_size: Window size for moving average
+        figsize: Figure size tuple
+        
+    Returns:
+        Matplotlib figure object
+    """
+    if not drift_scores:
+        raise ValueError("drift_scores cannot be empty")
+    
+    # Use timestamps or indices
+    if timestamps is None:
+        timestamps = list(range(len(drift_scores)))
+    elif len(timestamps) != len(drift_scores):
+        raise ValueError(f"timestamps length ({len(timestamps)}) must match "
+                        f"drift_scores length ({len(drift_scores)})")
+    
+    # Convert to numpy
+    drift_array = np.array(drift_scores)
+    time_array = np.array(timestamps)
+    
+    # Compute moving average
+    if len(drift_scores) >= window_size:
+        moving_avg = np.convolve(drift_array, np.ones(window_size)/window_size, mode='valid')
+        ma_timestamps = time_array[window_size-1:]
+    else:
+        moving_avg = drift_array
+        ma_timestamps = time_array
+    
+    # Create figure with subplots
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=figsize, height_ratios=[2, 1])
+    
+    # Top plot: Drift scores over time
+    ax1.plot(time_array, drift_array, 'b-', alpha=0.5, label='Drift Score')
+    if len(drift_scores) >= window_size:
+        ax1.plot(ma_timestamps, moving_avg, 'r-', linewidth=2, 
+                label=f'Moving Avg (w={window_size})')
+    
+    # Add threshold line
+    ax1.axhline(y=threshold, color='orange', linestyle='--', linewidth=2,
+               label=f'Threshold ({threshold})')
+    
+    # Highlight high drift regions
+    high_drift = drift_array > threshold
+    if np.any(high_drift):
+        ax1.fill_between(time_array, 0, 1, where=high_drift,
+                        color='red', alpha=0.2, transform=ax1.get_xaxis_transform(),
+                        label='High Drift')
+    
+    ax1.set_ylabel('Drift Score')
+    ax1.set_title('Semantic Drift Analysis')
+    ax1.legend(loc='upper right')
+    ax1.grid(True, alpha=0.3)
+    ax1.set_ylim([0, max(1.0, np.max(drift_array) * 1.1)])
+    
+    # Bottom plot: Drift histogram
+    ax2.hist(drift_array, bins=30, color='blue', alpha=0.7, edgecolor='black')
+    ax2.axvline(x=threshold, color='orange', linestyle='--', linewidth=2)
+    ax2.axvline(x=np.mean(drift_array), color='green', linestyle='-', linewidth=2,
+               label=f'Mean: {np.mean(drift_array):.3f}')
+    ax2.set_xlabel('Drift Score')
+    ax2.set_ylabel('Frequency')
+    ax2.set_title('Drift Distribution')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    
+    # Statistics text
+    stats_text = (f"Mean: {np.mean(drift_array):.3f}\n"
+                 f"Std: {np.std(drift_array):.3f}\n"
+                 f"Max: {np.max(drift_array):.3f}\n"
+                 f"Above threshold: {np.sum(high_drift)}/{len(drift_scores)}")
+    
+    ax1.text(0.02, 0.98, stats_text, transform=ax1.transAxes,
+            fontsize=10, verticalalignment='top',
+            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+    
+    plt.tight_layout()
+    return fig

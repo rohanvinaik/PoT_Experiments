@@ -25,6 +25,15 @@ from ..core.canonicalize import canonicalize_text, canonicalize_logits
 from .fuzzy_hash import TokenSpaceNormalizer, NGramFuzzyHasher, AdvancedFuzzyHasher
 from .models import LM
 
+# Semantic verification imports (optional)
+try:
+    from ..semantic.library import ConceptLibrary
+    from ..semantic.match import SemanticMatcher
+    from ..semantic.utils import extract_embeddings_from_logits, normalize_embeddings
+    SEMANTIC_AVAILABLE = True
+except ImportError:
+    SEMANTIC_AVAILABLE = False
+
 
 @dataclass
 class LMVerificationResult:
@@ -38,7 +47,9 @@ class LMVerificationResult:
     fingerprint: Optional[FingerprintResult]  # Behavioral fingerprint
     fingerprint_match: Optional[float]  # Similarity score if reference fingerprint exists
     sequential_result: Optional[SPRTResult]  # Sequential verification result with trajectory
-    metadata: Dict[str, Any]
+    semantic_score: Optional[float] = None  # Semantic verification score
+    combined_score: Optional[float] = None  # Combined distance and semantic score
+    metadata: Dict[str, Any] = None
 
 
 class LMVerifier:
@@ -50,7 +61,9 @@ class LMVerifier:
     def __init__(self, reference_model: LM, delta: float = 0.01, 
                  use_sequential: bool = True, sequential_mode: str = 'legacy',
                  use_fingerprinting: bool = True,
-                 fingerprint_config: Optional[FingerprintConfig] = None):
+                 fingerprint_config: Optional[FingerprintConfig] = None,
+                 semantic_library: Optional['ConceptLibrary'] = None,
+                 semantic_weight: float = 0.3):
         """
         Initialize LM verifier
         
@@ -61,6 +74,8 @@ class LMVerifier:
             sequential_mode: 'legacy' for old SPRT, 'enhanced' for new EB-based sequential verification
             use_fingerprinting: Whether to compute behavioral fingerprints
             fingerprint_config: Configuration for fingerprinting (uses default LM config if None)
+            semantic_library: Optional ConceptLibrary for semantic verification
+            semantic_weight: Weight for semantic score in combined verification (1-weight for distance)
         """
         self.reference_model = reference_model
         self.delta = delta
@@ -74,8 +89,7 @@ class LMVerifier:
                 # Use default language model configuration
                 self.fingerprint_config = FingerprintConfig.for_language_model(
                     compute_jacobian=False,  # Jacobians less useful for text
-                    include_timing=True,
-                    canonicalize_outputs=True
+                    include_timing=True
                 )
             else:
                 self.fingerprint_config = fingerprint_config
@@ -102,6 +116,21 @@ class LMVerifier:
                 tau0=0.05,  # Expected distance for same model
                 tau1=0.2    # Expected distance for different model
             )
+        
+        # Initialize semantic verification if library provided
+        self.semantic_library = semantic_library
+        self.semantic_matcher = None
+        self.semantic_weight = semantic_weight
+        
+        if semantic_library is not None and SEMANTIC_AVAILABLE:
+            try:
+                self.semantic_matcher = SemanticMatcher(
+                    library=semantic_library,
+                    threshold=0.7  # Default threshold for semantic matching
+                )
+            except Exception as e:
+                print(f"Warning: Could not initialize semantic matcher: {e}")
+                self.semantic_matcher = None
     
     def generate_template_challenges(self, n: int, 
                                     master_key: str,
@@ -287,6 +316,37 @@ class LMVerifier:
         
         return model_output, distance
     
+    def _compute_semantic_score(self, output_embedding: torch.Tensor) -> float:
+        """
+        Compute semantic verification score for an output embedding.
+        
+        Args:
+            output_embedding: Model output embedding
+            
+        Returns:
+            Semantic similarity score in [0, 1]
+        """
+        if self.semantic_matcher is None:
+            return 0.5  # Neutral score if no semantic verification
+        
+        try:
+            # Normalize embedding
+            normalized = normalize_embeddings(output_embedding, method='l2')
+            
+            # Match to library concepts
+            matches = self.semantic_matcher.match_to_library(normalized)
+            
+            if not matches:
+                return 0.0
+            
+            # Return best match score
+            best_score = max(matches.values())
+            return float(best_score)
+            
+        except Exception as e:
+            print(f"Warning: Semantic scoring failed: {e}")
+            return 0.5  # Neutral score on error
+    
     def verify(self, model: LM, challenges: List[Dict[str, Any]],
               tolerance: float = 0.1, method: str = 'fuzzy',
               compute_reference_fingerprint: bool = False,
@@ -466,6 +526,38 @@ class LMVerifier:
         test_statistic = t_statistic(distances_array)
         conf_radius = empirical_bernstein_bound(distances_array, self.delta)
         
+        # Compute semantic score if enabled
+        semantic_score = None
+        combined_score = test_statistic
+        
+        if self.semantic_matcher is not None and SEMANTIC_AVAILABLE:
+            try:
+                # Extract embeddings from model outputs (using last hidden states if available)
+                # For LMs, we'll use the average of token embeddings as the output embedding
+                semantic_scores = []
+                for challenge in challenges[:min(10, len(challenges))]:  # Sample for efficiency
+                    prompt = self._challenge_to_prompt(challenge)
+                    # Get model hidden states if available
+                    if hasattr(model, 'get_hidden_states'):
+                        hidden_states = model.get_hidden_states(prompt)
+                        if hidden_states is not None:
+                            # Average pooling over sequence length
+                            output_embedding = torch.mean(hidden_states, dim=1) if hidden_states.dim() > 1 else hidden_states
+                            sem_score = self._compute_semantic_score(output_embedding)
+                            semantic_scores.append(sem_score)
+                
+                if semantic_scores:
+                    semantic_score = float(np.mean(semantic_scores))
+                    # Combine distance and semantic scores
+                    # Lower distance is better, higher semantic score is better
+                    # So we invert semantic score for combination
+                    semantic_distance = 1.0 - semantic_score
+                    combined_score = (1 - self.semantic_weight) * test_statistic + self.semantic_weight * semantic_distance
+            except Exception as e:
+                print(f"Warning: Semantic scoring failed: {e}")
+                semantic_score = None
+                combined_score = test_statistic
+        
         # Decision logic based on sequential mode
         if sequential_result is not None:
             # Use enhanced sequential result
@@ -477,8 +569,10 @@ class LMVerifier:
             if self.sequential_tester.decided():
                 accepted = self.sequential_tester.accept()
         else:
-            # Fixed-sample decision: accept if test statistic + radius <= tolerance
-            accepted = (test_statistic + conf_radius) <= tolerance
+            # Fixed-sample decision: accept if combined score + radius <= tolerance
+            # Use combined score if semantic verification is enabled
+            decision_score = combined_score if semantic_score is not None else test_statistic
+            accepted = (decision_score + conf_radius) <= tolerance
         
         elapsed = time.time() - start_time
         
@@ -558,6 +652,8 @@ class LMVerifier:
             fingerprint=model_fingerprint,
             fingerprint_match=fingerprint_similarity,
             sequential_result=sequential_result,
+            semantic_score=semantic_score,
+            combined_score=float(combined_score) if semantic_score is not None else None,
             metadata=metadata
         )
     
