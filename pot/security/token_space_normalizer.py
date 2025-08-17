@@ -432,7 +432,7 @@ class TokenSpaceNormalizer:
             if isinstance(norm1, torch.Tensor) and isinstance(norm2, torch.Tensor):
                 cos_sim = F.cosine_similarity(norm1.mean(0).unsqueeze(0), 
                                              norm2.mean(0).unsqueeze(0))
-                return 1.0 - cos_sim.item()
+                return 1.0 - min(1.0, max(0.0, cos_sim.item()))
             else:
                 return 1.0
         
@@ -697,17 +697,17 @@ class TokenAligner:
         Returns:
             Alignment score (0.0 = no alignment, 1.0 = perfect alignment)
         """
+        # Total possible matches
+        total = max(len(seq1), len(seq2))
+        
+        if total == 0:
+            return 1.0  # Both sequences empty, perfect alignment
+        
         if not alignment:
             return 0.0
         
         # Number of matches
         matches = len(alignment)
-        
-        # Total possible matches
-        total = max(len(seq1), len(seq2))
-        
-        if total == 0:
-            return 1.0
         
         # Basic score
         basic_score = matches / total
@@ -924,7 +924,7 @@ class SemanticNormalizer:
         if method == 'cosine':
             similarity = F.cosine_similarity(emb1_pooled.unsqueeze(0),
                                             emb2_pooled.unsqueeze(0))
-            return similarity.item()
+            return min(1.0, max(0.0, similarity.item()))
         
         elif method == 'euclidean':
             distance = torch.dist(emb1_pooled, emb2_pooled, p=2)

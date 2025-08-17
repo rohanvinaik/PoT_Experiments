@@ -301,7 +301,13 @@ class MerkleNode:
         """
         if self.data is not None:
             # Leaf node: hash the data
-            return hashlib.sha256(self.data).digest()
+            if isinstance(self.data, str):
+                data_bytes = self.data.encode('utf-8')
+            elif isinstance(self.data, bytes):
+                data_bytes = self.data
+            else:
+                data_bytes = str(self.data).encode('utf-8')
+            return hashlib.sha256(data_bytes).digest()
         elif self.left and self.right:
             # Internal node: hash concatenated child hashes
             return hashlib.sha256(self.left.hash + self.right.hash).digest()
@@ -545,7 +551,7 @@ class MerkleTree:
         
         # Create leaf nodes
         self.leaves = [
-            MerkleNode(hash_value=event.event_hash, data=event)
+            MerkleNode(data=event.event_hash)
             for event in self.events
         ]
         
@@ -564,15 +570,8 @@ class MerkleTree:
                     # Duplicate last node if odd number
                     right = left
                 
-                # Combine hashes
-                combined = left.hash_value + right.hash_value
-                parent_hash = hashlib.sha256(combined.encode()).hexdigest()
-                
-                parent = MerkleNode(
-                    hash_value=parent_hash,
-                    left=left,
-                    right=right
-                )
+                # Create parent node with left and right children
+                parent = MerkleNode(left=left, right=right)
                 next_level.append(parent)
             
             current_level = next_level
@@ -581,7 +580,7 @@ class MerkleTree:
     
     def get_root_hash(self) -> Optional[str]:
         """Get root hash of the tree"""
-        return self.root.hash_value if self.root else None
+        return self.root.hash.hex() if self.root else None
     
     def get_proof(self, event_index: int) -> List[Tuple[str, str]]:
         """Get Merkle proof for an event"""
@@ -606,19 +605,21 @@ class MerkleTree:
                         # Duplicate the node if no sibling (odd count)
                         sibling = current_level[i]
                     position = 'right' if i == current_index else 'left'
-                    proof.append((sibling.hash_value, position))
+                    proof.append((sibling.hash.hex(), position))
 
                     # Update index for next level
                     current_index = i // 2
                 
                 # Build next level
                 if i + 1 < len(current_level):
-                    combined = current_level[i].hash_value + current_level[i + 1].hash_value
+                    left_child = current_level[i]
+                    right_child = current_level[i + 1]
                 else:
-                    combined = current_level[i].hash_value + current_level[i].hash_value
+                    left_child = current_level[i]
+                    right_child = current_level[i]  # Duplicate for odd number of nodes
                 
-                parent_hash = hashlib.sha256(combined.encode()).hexdigest()
-                next_level.append(MerkleNode(hash_value=parent_hash))
+                parent_node = MerkleNode(left=left_child, right=right_child)
+                next_level.append(parent_node)
             
             current_level = next_level
         
@@ -1544,7 +1545,20 @@ class TrainingProvenanceAuditor:
         
         # Update metadata
         self.metadata['total_events'] = len(self.events)
-        self.metadata['last_epoch'] = max(self.metadata['last_epoch'], epoch)
+        # Ensure epoch comparison works with different types
+        current_last = self.metadata['last_epoch']
+        if not isinstance(current_last, int):
+            if isinstance(current_last, str):
+                try:
+                    current_last = int(current_last)
+                except ValueError:
+                    current_last = -1
+            else:
+                current_last = -1
+        # Ensure epoch is also int
+        if not isinstance(epoch, int):
+            epoch = int(epoch) if str(epoch).isdigit() else 0
+        self.metadata['last_epoch'] = max(current_last, epoch)
         
         # Store on blockchain if configured
         if self.blockchain_client and event_type in [EventType.CHECKPOINT_SAVE, EventType.TRAINING_END]:

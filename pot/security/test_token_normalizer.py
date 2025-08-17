@@ -474,6 +474,12 @@ class TestUtilityFunctions(unittest.TestCase):
         }
         self.mock_tokenizer.encode.return_value = [1, 2, 3]
         self.mock_tokenizer.decode.return_value = "hello world test"
+        self.mock_tokenizer.special_tokens_map = {
+            'pad_token': '[PAD]',
+            'cls_token': '[CLS]',
+            'sep_token': '[SEP]',
+            'mask_token': '[MASK]'
+        }
     
     def test_create_normalizer(self):
         """Test normalizer factory function"""
@@ -515,6 +521,12 @@ class TestEdgeCases(unittest.TestCase):
         """Set up test fixtures"""
         self.mock_tokenizer = Mock()
         self.mock_tokenizer.get_vocab.return_value = {}
+        self.mock_tokenizer.special_tokens_map = {
+            'pad_token': '[PAD]',
+            'cls_token': '[CLS]',
+            'sep_token': '[SEP]',
+            'mask_token': '[MASK]'
+        }
         self.normalizer = TokenSpaceNormalizer(self.mock_tokenizer)
         self.aligner = TokenAligner()
     
