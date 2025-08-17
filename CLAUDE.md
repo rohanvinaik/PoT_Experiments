@@ -1224,6 +1224,354 @@ audit_results = [
 print(f"External audit: {sum(audit_results)}/{len(audit_results)} passed")
 ```
 
+### Complete Integrated Verification Protocol (NEW 2025-08-17)
+```python
+from pot.security.proof_of_training import (
+    ProofOfTraining, SessionConfig, VerificationReport,
+    ExpectedRanges, ModelType, SecurityLevel
+)
+import numpy as np
+import hashlib
+
+# 1. Complete End-to-End Verification Session
+class ProductionModel:
+    """Example production model for verification"""
+    def __init__(self):
+        self.weights = np.random.randn(1000, 100)
+        self.bias = np.random.randn(100)
+    
+    def forward(self, x):
+        """Model forward pass"""
+        return np.dot(x, self.weights) + self.bias
+    
+    def state_dict(self):
+        return {'weights': self.weights, 'bias': self.bias}
+
+# Initialize PoT system
+config = {
+    'verification_type': 'fuzzy',
+    'model_type': 'vision',
+    'security_level': 'high'
+}
+
+pot_system = ProofOfTraining(config)
+model = ProductionModel()
+
+# 2. Complete Session Configuration with All Components
+session_config = SessionConfig(
+    model=model,
+    model_id="production_resnet50_v2.1",
+    master_seed="a" * 64,  # 64-character hex seed
+    
+    # Challenge generation
+    num_challenges=20,
+    challenge_family="vision:freq",
+    challenge_params={'frequency_range': [0.1, 10.0]},
+    
+    # Statistical testing parameters
+    accuracy_threshold=0.05,
+    type1_error=0.01,    # 1% false positive rate
+    type2_error=0.01,    # 1% false negative rate
+    max_samples=1000,
+    
+    # Component activation
+    use_fingerprinting=True,
+    use_sequential=True,
+    use_range_validation=True,
+    use_blockchain=True,
+    
+    # Expected behavioral ranges
+    expected_ranges=ExpectedRanges(
+        accuracy_range=(0.85, 0.95),
+        latency_range=(10.0, 50.0),
+        fingerprint_similarity=(0.95, 0.99),
+        jacobian_norm_range=(0.5, 2.0),
+        confidence_level=0.99,
+        tolerance_factor=1.05  # 5% tolerance for production robustness
+    ),
+    
+    # Audit trail configuration
+    audit_log_path="production_audit.json",
+    blockchain_config=None  # Would contain actual blockchain configuration
+)
+
+print("Session Configuration:")
+print(f"  Model ID: {session_config.model_id}")
+print(f"  Challenges: {session_config.num_challenges}")
+print(f"  Statistical thresholds: α={session_config.type1_error}, β={session_config.type2_error}")
+print(f"  Components enabled: fingerprinting={session_config.use_fingerprinting}, "
+      f"sequential={session_config.use_sequential}, ranges={session_config.use_range_validation}")
+
+# 3. Execute Complete Integrated Verification Protocol
+print("\n" + "=" * 60)
+print("EXECUTING INTEGRATED VERIFICATION PROTOCOL")
+print("=" * 60)
+
+# Run the complete 6-step verification protocol
+verification_report = pot_system.run_verification(session_config)
+
+print(f"\nVerification Results:")
+print(f"  Overall Result: {'PASSED' if verification_report.passed else 'FAILED'}")
+print(f"  Confidence Score: {verification_report.confidence:.4f}")
+print(f"  Session ID: {verification_report.session_id}")
+print(f"  Duration: {verification_report.duration_seconds:.2f} seconds")
+print(f"  Challenges: {verification_report.challenges_processed}/{verification_report.challenges_generated}")
+
+# 4. Detailed Component Results Analysis
+print(f"\nComponent Results:")
+
+# Statistical verification results
+if verification_report.statistical_result:
+    stat_result = verification_report.statistical_result
+    print(f"  Statistical Test:")
+    print(f"    Decision: {stat_result.decision}")
+    print(f"    Final Mean: {stat_result.final_mean:.4f}")
+    print(f"    Stopped at: {stat_result.stopped_at} samples")
+    if hasattr(stat_result, 'p_value') and stat_result.p_value:
+        print(f"    P-value: {stat_result.p_value:.6f}")
+
+# Behavioral fingerprint results
+if verification_report.fingerprint_result:
+    fp_result = verification_report.fingerprint_result
+    print(f"  Behavioral Fingerprint:")
+    print(f"    IO Hash: {fp_result.io_hash[:32]}...")
+    print(f"    Average Latency: {fp_result.avg_latency_ms:.2f}ms")
+
+# Expected ranges validation results
+if verification_report.range_validation:
+    range_result = verification_report.range_validation
+    print(f"  Range Validation:")
+    print(f"    Passed: {range_result.passed}")
+    print(f"    Confidence: {range_result.confidence:.4f}")
+    if range_result.violations:
+        print(f"    Violations:")
+        for violation in range_result.violations:
+            print(f"      - {violation}")
+    print(f"    Range Scores:")
+    for metric, score in range_result.range_scores.items():
+        print(f"      {metric}: {score:.3f}")
+
+# Cryptographic audit trail
+if verification_report.commitment_record:
+    commitment = verification_report.commitment_record
+    print(f"  Cryptographic Audit:")
+    print(f"    Commitment Hash: {commitment.commitment_hash[:32]}...")
+    print(f"    Timestamp: {commitment.timestamp}")
+
+# Blockchain storage (if enabled)
+if verification_report.blockchain_tx:
+    print(f"    Blockchain TX: {verification_report.blockchain_tx}")
+
+# 5. Production Deployment Example
+def deploy_model_with_complete_verification(model, model_metadata):
+    """Production deployment with complete verification pipeline"""
+    
+    # Generate deployment-specific configuration
+    deployment_config = SessionConfig(
+        model=model,
+        model_id=f"prod_{model_metadata['name']}_{model_metadata['version']}",
+        master_seed=hashlib.sha256(f"{model_metadata['deployment_key']}".encode()).hexdigest(),
+        
+        # Production-grade settings
+        num_challenges=50,
+        accuracy_threshold=0.02,  # Stricter threshold
+        type1_error=0.001,        # Very low false positive rate
+        type2_error=0.001,        # Very low false negative rate
+        
+        use_fingerprinting=True,
+        use_sequential=True,
+        use_range_validation=True,
+        use_blockchain=True,  # Enable for production audit trail
+        
+        # Strict production ranges
+        expected_ranges=ExpectedRanges(
+            accuracy_range=(0.90, 0.98),
+            latency_range=(5.0, 30.0),
+            fingerprint_similarity=(0.98, 0.999),
+            jacobian_norm_range=(0.8, 1.5),
+            confidence_level=0.999,
+            tolerance_factor=1.02  # Very tight tolerance
+        ),
+        
+        audit_log_path=f"audit/prod_{model_metadata['name']}.json"
+    )
+    
+    # Execute verification
+    result = pot_system.run_verification(deployment_config)
+    
+    if result.passed and result.confidence > 0.95:
+        print(f"✅ Model {model_metadata['name']} APPROVED for production")
+        print(f"   Verification confidence: {result.confidence:.4f}")
+        print(f"   Session ID: {result.session_id}")
+        return True
+    else:
+        print(f"❌ Model {model_metadata['name']} REJECTED for production")
+        print(f"   Verification confidence: {result.confidence:.4f}")
+        if result.range_validation and result.range_validation.violations:
+            print(f"   Violations: {len(result.range_validation.violations)}")
+        return False
+
+# Deploy example model
+model_metadata = {
+    'name': 'ResNet50_ImageNet',
+    'version': 'v2.1.3',
+    'deployment_key': 'production_2025_08_17'
+}
+
+deployment_approved = deploy_model_with_complete_verification(model, model_metadata)
+
+# 6. Continuous Monitoring with Integrated Verification
+def continuous_monitoring_pipeline(model, model_id, monitoring_interval_hours=24):
+    """Continuous monitoring using integrated verification"""
+    
+    monitoring_config = SessionConfig(
+        model=model,
+        model_id=model_id,
+        master_seed=hashlib.sha256(f"monitor_{model_id}_{int(time.time())}".encode()).hexdigest(),
+        
+        # Lighter monitoring settings
+        num_challenges=10,
+        accuracy_threshold=0.05,
+        type1_error=0.05,
+        type2_error=0.05,
+        
+        use_fingerprinting=True,
+        use_sequential=True,
+        use_range_validation=True,
+        use_blockchain=False,  # May disable for frequent monitoring
+        
+        # Monitoring ranges (slightly more lenient than deployment)
+        expected_ranges=ExpectedRanges(
+            accuracy_range=(0.88, 0.99),
+            latency_range=(4.0, 35.0),
+            fingerprint_similarity=(0.95, 1.0),
+            jacobian_norm_range=(0.7, 1.8),
+            tolerance_factor=1.1  # 10% monitoring tolerance
+        ),
+        
+        audit_log_path=f"monitoring/monitor_{model_id}.json"
+    )
+    
+    print(f"\n🔍 Continuous Monitoring for {model_id}")
+    print(f"   Monitoring interval: {monitoring_interval_hours} hours")
+    
+    # Simulate monitoring check
+    monitoring_result = pot_system.run_verification(monitoring_config)
+    
+    if monitoring_result.passed:
+        print(f"   ✅ Model health check PASSED")
+        print(f"   Confidence: {monitoring_result.confidence:.4f}")
+    else:
+        print(f"   ⚠️  Model health check FAILED")
+        print(f"   Confidence: {monitoring_result.confidence:.4f}")
+        
+        # Alert on failures
+        if monitoring_result.range_validation:
+            print(f"   Range violations: {len(monitoring_result.range_validation.violations)}")
+        
+        # Could trigger automated responses here
+        print(f"   🚨 ALERT: Model degradation detected for {model_id}")
+    
+    return monitoring_result
+
+# Run monitoring example
+monitoring_result = continuous_monitoring_pipeline(model, "production_resnet50_v2.1")
+
+# 7. Attack Detection and Response
+def security_verification_scan(model, model_id, threat_level="high"):
+    """Security-focused verification for attack detection"""
+    
+    security_config = SessionConfig(
+        model=model,
+        model_id=model_id,
+        master_seed=hashlib.sha256(f"security_{model_id}_{threat_level}".encode()).hexdigest(),
+        
+        # Security-focused parameters
+        num_challenges=30,
+        challenge_family="vision:texture",  # Use texture challenges for attack detection
+        accuracy_threshold=0.01,  # Very sensitive threshold
+        type1_error=0.001,
+        type2_error=0.01,  # Allow slightly higher false negatives
+        
+        use_fingerprinting=True,
+        use_sequential=True,
+        use_range_validation=True,
+        use_blockchain=True,  # Important for security audit trail
+        
+        # Very strict security ranges
+        expected_ranges=ExpectedRanges(
+            accuracy_range=(0.92, 0.97),
+            latency_range=(8.0, 25.0),
+            fingerprint_similarity=(0.98, 0.999),
+            jacobian_norm_range=(0.9, 1.3),
+            confidence_level=0.999,
+            tolerance_factor=1.01  # Minimal tolerance for security
+        ),
+        
+        audit_log_path=f"security/security_scan_{model_id}.json"
+    )
+    
+    print(f"\n🛡️  Security Verification Scan for {model_id}")
+    print(f"   Threat Level: {threat_level.upper()}")
+    
+    security_result = pot_system.run_verification(security_config)
+    
+    if security_result.passed and security_result.confidence > 0.98:
+        print(f"   ✅ SECURITY VERIFICATION PASSED")
+        print(f"   Model integrity confirmed: {security_result.confidence:.5f}")
+    else:
+        print(f"   🚨 SECURITY ALERT: Potential model compromise detected!")
+        print(f"   Security confidence: {security_result.confidence:.5f}")
+        
+        if security_result.range_validation:
+            print(f"   Behavioral anomalies detected:")
+            for violation in security_result.range_validation.violations:
+                print(f"     - {violation}")
+        
+        if security_result.statistical_result:
+            print(f"   Statistical anomaly: {security_result.statistical_result.decision}")
+        
+        # Automated security response
+        print(f"   🔒 RECOMMENDED ACTION: Quarantine model {model_id}")
+        print(f"   📊 FORENSICS: Session {security_result.session_id}")
+    
+    return security_result
+
+# Run security scan
+security_result = security_verification_scan(model, "production_resnet50_v2.1", "high")
+
+# 8. Complete Verification Report Summary
+print("\n" + "=" * 60)
+print("INTEGRATED VERIFICATION PROTOCOL SUMMARY")
+print("=" * 60)
+
+verification_summary = {
+    'deployment_verification': verification_report,
+    'monitoring_check': monitoring_result,
+    'security_scan': security_result
+}
+
+overall_model_health = all([
+    verification_summary['deployment_verification'].passed,
+    verification_summary['monitoring_check'].passed,
+    verification_summary['security_scan'].passed
+])
+
+print(f"Overall Model Health: {'HEALTHY' if overall_model_health else 'COMPROMISED'}")
+print(f"\nVerification Summary:")
+for check_name, result in verification_summary.items():
+    status = "PASS" if result.passed else "FAIL"
+    print(f"  {check_name.replace('_', ' ').title()}: {status} ({result.confidence:.4f})")
+
+if overall_model_health:
+    print(f"\n🎉 Model {session_config.model_id} is VERIFIED and ready for production!")
+else:
+    print(f"\n⚠️  Model {session_config.model_id} requires attention before production deployment")
+
+print(f"\nTotal verification time: {sum(r.duration_seconds for r in verification_summary.values()):.2f} seconds")
+print(f"Audit trails created: {len([r for r in verification_summary.values() if r.commitment_record])}")
+```
+
 ## Running Experiments
 
 ### Quick Start
