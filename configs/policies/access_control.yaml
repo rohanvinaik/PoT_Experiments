@@ -1,0 +1,393 @@
+# Access Control Policy
+# Defines access control and authorization requirements
+
+policy:
+  name: "access_control"
+  description: "Role-based access control and authorization policy"
+  version: "1.0.0"
+  effective_date: "2024-01-01"
+  review_date: "2024-12-31"
+  owner: "Security Team"
+  enforcement: "strict"
+  priority: 1
+
+# Role definitions
+roles:
+  admin:
+    description: "System administrators"
+    permissions:
+      - "all"
+    restrictions: []
+    mfa_required: true
+    session_timeout_minutes: 30
+    
+  ml_engineer:
+    description: "Machine learning engineers"
+    permissions:
+      - "model.create"
+      - "model.update"
+      - "model.verify"
+      - "model.deploy_staging"
+      - "data.read"
+      - "logs.read"
+      - "metrics.read"
+    restrictions:
+      - "no_production_deployment"
+      - "no_user_data_export"
+    mfa_required: true
+    session_timeout_minutes: 60
+    
+  data_scientist:
+    description: "Data scientists and researchers"
+    permissions:
+      - "model.read"
+      - "model.experiment"
+      - "data.read"
+      - "data.analyze"
+      - "metrics.read"
+    restrictions:
+      - "no_production_access"
+      - "no_pii_access"
+    mfa_required: false
+    session_timeout_minutes: 120
+    
+  auditor:
+    description: "Compliance and audit personnel"
+    permissions:
+      - "logs.read"
+      - "audit.read"
+      - "compliance.read"
+      - "reports.generate"
+    restrictions:
+      - "read_only"
+      - "no_data_modification"
+    mfa_required: true
+    session_timeout_minutes: 60
+    
+  viewer:
+    description: "Read-only access"
+    permissions:
+      - "dashboard.view"
+      - "metrics.read"
+      - "documentation.read"
+    restrictions:
+      - "read_only"
+      - "no_sensitive_data"
+    mfa_required: false
+    session_timeout_minutes: 180
+
+# Access control rules
+rules:
+  # Rule 1: Authentication requirement
+  - name: "authentication_required"
+    description: "All access requires authentication"
+    type: "prerequisite"
+    field: "authenticated"
+    operator: "eq"
+    value: true
+    enforcement: "block_access"
+    
+  # Rule 2: Role-based authorization
+  - name: "role_authorization"
+    description: "Actions require appropriate role"
+    type: "rbac"
+    check: "has_permission"
+    enforcement: "strict"
+    
+  # Rule 3: MFA for sensitive operations
+  - name: "mfa_enforcement"
+    description: "Multi-factor authentication for sensitive operations"
+    type: "prerequisite"
+    field: "mfa_verified"
+    operator: "eq"
+    value: true
+    applies_to:
+      - "model.deploy_production"
+      - "data.export"
+      - "user.delete"
+      - "policy.modify"
+    enforcement: "block_action"
+    
+  # Rule 4: Session management
+  - name: "session_timeout"
+    description: "Enforce session timeouts"
+    type: "threshold"
+    field: "session_age_minutes"
+    operator: "lte"
+    value: "${role.session_timeout_minutes}"
+    enforcement: "terminate_session"
+    
+  # Rule 5: IP allowlisting
+  - name: "ip_restriction"
+    description: "Restrict access to allowed IPs"
+    type: "allowlist"
+    field: "source_ip"
+    allowlist: "${security.allowed_ips}"
+    applies_to: ["admin", "ml_engineer"]
+    enforcement: "advisory"
+    
+  # Rule 6: Time-based access
+  - name: "business_hours"
+    description: "Restrict certain operations to business hours"
+    type: "time_window"
+    window:
+      days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      start_time: "08:00"
+      end_time: "20:00"
+      timezone: "UTC"
+    applies_to:
+      - "model.deploy_production"
+      - "data.bulk_export"
+    enforcement: "advisory"
+
+# Permission matrix
+permissions:
+  model:
+    create:
+      allowed_roles: ["admin", "ml_engineer"]
+      requires_approval: false
+      audit_log: true
+      
+    read:
+      allowed_roles: ["admin", "ml_engineer", "data_scientist"]
+      requires_approval: false
+      audit_log: false
+      
+    update:
+      allowed_roles: ["admin", "ml_engineer"]
+      requires_approval: false
+      audit_log: true
+      
+    delete:
+      allowed_roles: ["admin"]
+      requires_approval: true
+      approvers: ["ml_lead", "security_team"]
+      audit_log: true
+      
+    deploy_staging:
+      allowed_roles: ["admin", "ml_engineer"]
+      requires_approval: false
+      audit_log: true
+      
+    deploy_production:
+      allowed_roles: ["admin"]
+      requires_approval: true
+      approvers: ["ml_lead", "ops_team"]
+      audit_log: true
+      
+  data:
+    read:
+      allowed_roles: ["admin", "ml_engineer", "data_scientist"]
+      requires_approval: false
+      audit_log: false
+      
+    write:
+      allowed_roles: ["admin", "ml_engineer"]
+      requires_approval: false
+      audit_log: true
+      
+    export:
+      allowed_roles: ["admin"]
+      requires_approval: true
+      approvers: ["data_governance"]
+      audit_log: true
+      
+    delete:
+      allowed_roles: ["admin"]
+      requires_approval: true
+      approvers: ["data_governance", "legal"]
+      audit_log: true
+      
+  audit:
+    read:
+      allowed_roles: ["admin", "auditor"]
+      requires_approval: false
+      audit_log: true
+      
+    export:
+      allowed_roles: ["admin", "auditor"]
+      requires_approval: true
+      approvers: ["security_team"]
+      audit_log: true
+
+# Data classification and access
+data_classification:
+  public:
+    description: "Public or non-sensitive data"
+    access_requirements:
+      authentication: true
+      encryption_in_transit: true
+      encryption_at_rest: false
+      
+  internal:
+    description: "Internal use only"
+    access_requirements:
+      authentication: true
+      role_check: true
+      encryption_in_transit: true
+      encryption_at_rest: true
+      
+  confidential:
+    description: "Confidential business data"
+    access_requirements:
+      authentication: true
+      role_check: true
+      mfa: true
+      encryption_in_transit: true
+      encryption_at_rest: true
+      audit_log: true
+      
+  restricted:
+    description: "Highly sensitive or PII data"
+    access_requirements:
+      authentication: true
+      role_check: true
+      mfa: true
+      approval_required: true
+      encryption_in_transit: true
+      encryption_at_rest: true
+      audit_log: true
+      data_loss_prevention: true
+
+# Security controls
+security:
+  authentication:
+    methods:
+      - "oauth2"
+      - "saml"
+      - "api_key"
+    password_policy:
+      min_length: 12
+      require_uppercase: true
+      require_lowercase: true
+      require_numbers: true
+      require_special: true
+      expiry_days: 90
+      history_count: 5
+      
+  mfa:
+    methods:
+      - "totp"
+      - "sms"
+      - "hardware_token"
+    enforcement_level: "required_for_sensitive"
+    
+  encryption:
+    algorithms:
+      transit: "TLS_1.3"
+      rest: "AES_256_GCM"
+    key_rotation_days: 90
+    
+  monitoring:
+    failed_login_threshold: 5
+    lockout_duration_minutes: 30
+    suspicious_activity_detection: true
+    real_time_alerts: true
+
+# Audit and compliance
+audit:
+  log_events:
+    - "authentication_success"
+    - "authentication_failure"
+    - "authorization_failure"
+    - "permission_change"
+    - "role_assignment"
+    - "data_access"
+    - "model_deployment"
+    - "policy_violation"
+    
+  retention:
+    days: 365
+    immutable: true
+    
+  reporting:
+    frequency: "monthly"
+    recipients:
+      - "security_team"
+      - "compliance_team"
+
+# Violations and responses
+violations:
+  unauthorized_access:
+    severity: "critical"
+    action: "block_and_alert"
+    notification: true
+    escalation: "security_team"
+    
+  excessive_failed_logins:
+    severity: "high"
+    action: "lock_account"
+    notification: true
+    escalation: "security_team"
+    
+  session_hijacking:
+    severity: "critical"
+    action: "terminate_all_sessions"
+    notification: true
+    escalation: "security_team"
+    
+  privilege_escalation:
+    severity: "critical"
+    action: "revoke_access"
+    notification: true
+    escalation: "ciso"
+
+# Compliance mappings
+compliance:
+  regulations:
+    - name: "SOC2"
+      controls:
+        - "CC6.1"
+        - "CC6.2"
+        - "CC6.3"
+        
+    - name: "ISO_27001"
+      controls:
+        - "A.9.1"
+        - "A.9.2"
+        - "A.9.4"
+        
+    - name: "GDPR"
+      articles:
+        - "32"
+        - "25"
+        
+    - name: "EU_AI_Act"
+      requirements:
+        - "access_control"
+        - "audit_trail"
+
+# Emergency procedures
+emergency:
+  break_glass:
+    description: "Emergency access procedure"
+    approval_required: true
+    approvers: ["ciso", "cto"]
+    max_duration_hours: 4
+    full_audit: true
+    post_review_required: true
+    
+  incident_response:
+    description: "Security incident response"
+    immediate_actions:
+      - "isolate_affected_systems"
+      - "preserve_evidence"
+      - "notify_security_team"
+    escalation_path:
+      - "security_team"
+      - "ciso"
+      - "executive_team"
+
+# Integration settings
+integrations:
+  identity_provider:
+    type: "okta"  # or "azure_ad", "google", etc.
+    sync_frequency: "hourly"
+    
+  siem:
+    enabled: true
+    endpoint: "https://siem.example.com"
+    
+  privileged_access_management:
+    enabled: true
+    system: "cyberark"  # or "hashicorp_vault", etc.

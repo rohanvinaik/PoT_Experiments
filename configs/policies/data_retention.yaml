@@ -1,0 +1,211 @@
+# Data Retention Policy
+# Defines data lifecycle and retention requirements
+
+policy:
+  name: "data_retention"
+  description: "Comprehensive data retention and lifecycle management policy"
+  version: "1.0.0"
+  effective_date: "2024-01-01"
+  review_date: "2024-12-31"
+  owner: "Data Governance Team"
+  enforcement: "strict"
+  priority: 1
+
+# Categories of data with different retention periods
+data_categories:
+  training_data:
+    description: "Model training datasets"
+    retention_days: 365
+    archive_after_days: 90
+    deletion_method: "secure_wipe"
+    
+  validation_data:
+    description: "Model validation and test datasets"
+    retention_days: 365
+    archive_after_days: 90
+    deletion_method: "secure_wipe"
+    
+  inference_data:
+    description: "Production inference inputs and outputs"
+    retention_days: 90
+    archive_after_days: 30
+    deletion_method: "standard"
+    
+  audit_logs:
+    description: "System audit and compliance logs"
+    retention_days: 2555  # 7 years for regulatory compliance
+    archive_after_days: 365
+    deletion_method: "secure_wipe"
+    
+  user_data:
+    description: "User-provided data and interactions"
+    retention_days: 30
+    archive_after_days: 0  # No archival, direct deletion
+    deletion_method: "secure_wipe"
+    gdpr_compliant: true
+    
+  model_artifacts:
+    description: "Trained models and checkpoints"
+    retention_days: 180
+    archive_after_days: 30
+    deletion_method: "standard"
+    
+  temporary_data:
+    description: "Temporary and cache files"
+    retention_days: 7
+    archive_after_days: 0
+    deletion_method: "standard"
+
+# Policy rules
+rules:
+  # Rule 1: Check data age
+  - name: "data_age_check"
+    description: "Verify data does not exceed retention period"
+    type: "threshold"
+    field: "data_age_days"
+    operator: "lte"
+    value: "${category.retention_days}"
+    action: "alert_and_delete"
+    
+  # Rule 2: Archive old data
+  - name: "data_archival"
+    description: "Archive data after specified period"
+    type: "threshold"
+    field: "data_age_days"
+    operator: "gte"
+    value: "${category.archive_after_days}"
+    action: "archive"
+    
+  # Rule 3: GDPR compliance
+  - name: "gdpr_deletion"
+    description: "Handle GDPR deletion requests"
+    type: "event"
+    trigger: "deletion_request"
+    condition:
+      field: "gdpr_compliant"
+      operator: "eq"
+      value: true
+    action: "immediate_delete"
+    max_processing_days: 30
+    
+  # Rule 4: Legal hold
+  - name: "legal_hold"
+    description: "Preserve data under legal hold"
+    type: "override"
+    trigger: "legal_hold_flag"
+    action: "preserve"
+    override_retention: true
+    
+  # Rule 5: Backup verification
+  - name: "backup_verification"
+    description: "Ensure backups exist before deletion"
+    type: "prerequisite"
+    condition:
+      field: "backup_verified"
+      operator: "eq"
+      value: true
+    required_for: ["delete", "archive"]
+
+# Actions to take on policy violations
+violations:
+  retention_exceeded:
+    severity: "high"
+    action: "automatic_deletion"
+    notification: true
+    escalation: "data_governance_team"
+    
+  missing_backup:
+    severity: "medium"
+    action: "block_deletion"
+    notification: true
+    escalation: "infrastructure_team"
+    
+  gdpr_non_compliance:
+    severity: "critical"
+    action: "immediate_remediation"
+    notification: true
+    escalation: "legal_team"
+
+# Compliance mappings
+compliance:
+  regulations:
+    - name: "GDPR"
+      articles: ["17", "5"]
+      requirements:
+        - "right_to_erasure"
+        - "storage_limitation"
+        
+    - name: "CCPA"
+      sections: ["1798.105"]
+      requirements:
+        - "consumer_deletion_rights"
+        
+    - name: "EU_AI_Act"
+      requirements:
+        - "data_governance"
+        - "documentation_retention"
+
+# Monitoring and metrics
+monitoring:
+  metrics:
+    - name: "data_volume_by_category"
+      type: "gauge"
+      unit: "GB"
+      
+    - name: "retention_compliance_rate"
+      type: "percentage"
+      target: 0.99
+      
+    - name: "deletion_requests_processed"
+      type: "counter"
+      sla_days: 30
+      
+    - name: "archive_success_rate"
+      type: "percentage"
+      target: 0.995
+      
+  alerts:
+    - name: "retention_violation"
+      condition: "retention_compliance_rate < 0.95"
+      severity: "high"
+      
+    - name: "storage_capacity"
+      condition: "total_storage > 0.8 * max_capacity"
+      severity: "medium"
+
+# Exceptions and exemptions
+exceptions:
+  - name: "regulatory_investigation"
+    description: "Data required for ongoing regulatory investigation"
+    approval_required: true
+    approver: "legal_team"
+    max_extension_days: 365
+    
+  - name: "active_model_training"
+    description: "Data actively used in model training"
+    approval_required: false
+    condition: "in_use_flag = true"
+    max_extension_days: 30
+    
+  - name: "critical_system_data"
+    description: "Data critical for system operation"
+    approval_required: true
+    approver: "cto"
+    review_frequency: "quarterly"
+
+# Implementation notes
+implementation:
+  automation:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    dry_run: false
+    
+  verification:
+    enabled: true
+    sample_rate: 0.1  # Verify 10% of deletions
+    audit_trail: true
+    
+  rollback:
+    enabled: true
+    grace_period_hours: 24
+    requires_approval: true

@@ -1,0 +1,321 @@
+# PoT Governance Configuration
+# Comprehensive governance and compliance settings
+
+governance:
+  mode: "strict"  # Options: strict, advisory, monitoring
+  organization: "PoT Framework Organization"
+  contact: "compliance@pot-framework.org"
+  version: "1.0.0"
+  
+  # Regulatory frameworks to enforce
+  regulations:
+    - "eu_ai_act"
+    - "nist_ai_rmf"
+    # Add custom regulations here
+    # - "custom_framework"
+  
+  # Risk management settings
+  risk_appetite: "low"  # Options: low, medium, high
+  risk_review_frequency: "monthly"
+  
+  # Decision logging
+  decision_tracking:
+    enabled: true
+    require_justification: true
+    approval_levels:
+      low_risk: 1
+      medium_risk: 2
+      high_risk: 3
+
+# Policy configuration
+policies:
+  directory: "configs/policies/"
+  enforcement: true
+  enforcement_mode: "strict"  # Options: strict, advisory, monitoring
+  
+  # Conflict resolution
+  conflict_resolution:
+    strategy: "priority_based"  # Options: priority_based, most_restrictive, least_restrictive
+    default_priority: 5
+  
+  # Policy versioning
+  versioning:
+    enabled: true
+    track_changes: true
+    require_approval: true
+  
+  # Default policies (can be overridden by policy files)
+  defaults:
+    data_retention_days: 365
+    model_retraining_frequency: 30
+    access_control_level: "strict"
+    encryption_required: true
+
+# Audit configuration
+audit:
+  enabled: true
+  log_file: "logs/governance_audit.log"
+  
+  # Retention settings
+  retention:
+    days: 365
+    compress_after_days: 30
+    archive_location: "archives/audit/"
+  
+  # Security settings
+  security:
+    encryption: true
+    signing: true
+    hash_algorithm: "sha256"
+    encryption_key_file: "keys/audit_key.pem"
+  
+  # Log levels to capture
+  log_levels:
+    - "INFO"
+    - "WARNING"
+    - "ERROR"
+    - "CRITICAL"
+  
+  # SIEM integration
+  siem:
+    enabled: false
+    format: "CEF"  # Options: CEF, LEEF, JSON
+    endpoint: "https://siem.example.com/api/logs"
+    api_key_env: "SIEM_API_KEY"
+
+# Risk assessment configuration
+risk:
+  assessment_frequency: "weekly"
+  
+  # Risk thresholds
+  thresholds:
+    high: 0.7
+    medium: 0.4
+    low: 0.2
+  
+  # Risk categories to assess
+  categories:
+    - "bias_fairness"
+    - "privacy_security"
+    - "robustness_reliability"
+    - "transparency_explainability"
+    - "accountability_governance"
+    - "safety_harm"
+  
+  # Risk matrix configuration
+  matrix:
+    likelihood_levels: 5
+    impact_levels: 5
+    
+  # Automated mitigation
+  auto_mitigation:
+    enabled: true
+    strategies:
+      high_risk: "block_and_alert"
+      medium_risk: "require_review"
+      low_risk: "log_and_continue"
+
+# Compliance monitoring
+monitoring:
+  enabled: true
+  
+  # Real-time monitoring
+  realtime:
+    enabled: true
+    check_interval_seconds: 60
+    alert_on_violation: true
+  
+  # Metrics to track
+  metrics:
+    - name: "compliance_score"
+      type: "percentage"
+      threshold: 0.85
+      alert_below: true
+    
+    - name: "policy_violations"
+      type: "count"
+      threshold: 10
+      window: "24h"
+      alert_above: true
+    
+    - name: "risk_score"
+      type: "score"
+      threshold: 0.7
+      alert_above: true
+    
+    - name: "audit_completeness"
+      type: "percentage"
+      threshold: 0.95
+      alert_below: true
+
+# Dashboard configuration
+dashboard:
+  enabled: true
+  output_dir: "reports/dashboard/"
+  
+  # Update frequency
+  update_frequency: "hourly"
+  
+  # Visualizations to include
+  visualizations:
+    - "compliance_timeline"
+    - "risk_heatmap"
+    - "policy_violations_chart"
+    - "audit_summary"
+    - "regulatory_scorecard"
+  
+  # Export formats
+  export_formats:
+    - "html"
+    - "pdf"
+    - "json"
+    - "csv"
+
+# EU AI Act specific settings
+eu_ai_act:
+  # System classification
+  risk_category: "limited"  # Options: minimal, limited, high, unacceptable
+  
+  # Required documentation
+  documentation:
+    technical_documentation: true
+    conformity_declaration: true
+    risk_assessment_report: true
+    
+  # Compliance requirements
+  requirements:
+    transparency: true
+    human_oversight: true
+    robustness: true
+    accuracy: true
+    cybersecurity: true
+    
+  # High-risk system checks (if applicable)
+  high_risk_checks:
+    - "biometric_identification"
+    - "critical_infrastructure"
+    - "education_vocational"
+    - "employment"
+    - "essential_services"
+    - "law_enforcement"
+    - "migration_asylum"
+    - "justice_democratic"
+
+# NIST AI RMF specific settings
+nist_ai_rmf:
+  # Core functions implementation
+  functions:
+    govern:
+      enabled: true
+      maturity_level: 3  # 1-5 scale
+      
+    map:
+      enabled: true
+      maturity_level: 3
+      
+    measure:
+      enabled: true
+      maturity_level: 4
+      
+    manage:
+      enabled: true
+      maturity_level: 3
+  
+  # Trustworthiness characteristics
+  characteristics:
+    - "valid_reliable"
+    - "safe"
+    - "secure_resilient"
+    - "accountable_transparent"
+    - "explainable_interpretable"
+    - "privacy_enhanced"
+    - "fair_bias_managed"
+  
+  # Lifecycle phases to assess
+  lifecycle_phases:
+    - "plan_design"
+    - "data_model"
+    - "verify_validate"
+    - "deploy"
+    - "operate_monitor"
+    - "retire"
+
+# Notification settings
+notifications:
+  enabled: true
+  
+  # Email notifications
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    from_address: "governance@pot-framework.org"
+    recipients:
+      - "compliance-team@example.com"
+      - "risk-management@example.com"
+  
+  # Webhook notifications
+  webhooks:
+    enabled: false
+    endpoints:
+      - url: "https://hooks.example.com/governance"
+        events:
+          - "policy_violation"
+          - "high_risk_detected"
+          - "compliance_failure"
+  
+  # Notification triggers
+  triggers:
+    policy_violation: true
+    compliance_failure: true
+    risk_threshold_exceeded: true
+    audit_anomaly_detected: true
+
+# Integration settings
+integrations:
+  # PoT framework integration
+  pot_framework:
+    enabled: true
+    verification_required: true
+    min_confidence: 0.85
+    
+  # External systems
+  external:
+    # Model registry
+    model_registry:
+      enabled: false
+      endpoint: "https://registry.example.com/api"
+      api_key_env: "MODEL_REGISTRY_KEY"
+    
+    # Data catalog
+    data_catalog:
+      enabled: false
+      endpoint: "https://catalog.example.com/api"
+      api_key_env: "DATA_CATALOG_KEY"
+
+# Performance settings
+performance:
+  # Caching
+  cache:
+    enabled: true
+    ttl_seconds: 300
+    max_size_mb: 100
+  
+  # Batch processing
+  batch:
+    enabled: true
+    size: 100
+    timeout_seconds: 30
+  
+  # Parallel processing
+  parallel:
+    enabled: true
+    max_workers: 4
+
+# Debug settings
+debug:
+  enabled: false
+  verbose: false
+  log_level: "INFO"
+  save_intermediate_results: false
+  profile_performance: false
