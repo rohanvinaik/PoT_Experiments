@@ -483,3 +483,223 @@ def compute_challenge_hash(challenge_data: Any) -> str:
         data_str = str(challenge_data)
     
     return hashlib.sha256(data_str.encode()).hexdigest()[:16]
+
+
+# ============================================================================
+# Compatibility Functions for Validation Scripts
+# ============================================================================
+
+def compute_leakage_ratio(leaked_pairs: int, total_challenges: int) -> float:
+    """
+    Compute leakage ratio (rho) for validation scripts.
+    
+    Args:
+        leaked_pairs: Number of challenge-response pairs that have been leaked/reused
+        total_challenges: Total number of challenges in the session
+    
+    Returns:
+        Leakage ratio rho = leaked_pairs / total_challenges
+    """
+    if total_challenges <= 0:
+        return 0.0
+    return leaked_pairs / total_challenges
+
+
+def enforce_reuse_policy(
+    challenge_ids: List[str], 
+    max_uses: int = 3, 
+    max_leakage: float = 0.25,
+    session_id: Optional[str] = None,
+    policy: Optional[ReusePolicy] = None
+) -> Tuple[bool, float, Dict[str, Any]]:
+    """
+    Enforce challenge reuse policy for validation scripts.
+    
+    Args:
+        challenge_ids: List of challenge IDs to check/record
+        max_uses: Maximum uses per challenge (default: 3)
+        max_leakage: Maximum allowed leakage ratio (default: 0.25)
+        session_id: Optional session identifier
+        policy: Optional existing ReusePolicy instance
+    
+    Returns:
+        Tuple of (is_allowed, leakage_ratio, usage_stats)
+    """
+    # Create policy if not provided
+    if policy is None:
+        policy = ReusePolicy(u=max_uses, rho_max=max_leakage)
+    
+    # Check leakage threshold before recording uses
+    is_safe, rho = policy.check_leakage_threshold(challenge_ids)
+    
+    # Record uses if safe
+    allowed_count = 0
+    if is_safe:
+        for cid in challenge_ids:
+            if policy.record_use(cid, session_id):
+                allowed_count += 1
+    
+    # Get current usage statistics
+    stats = policy.get_usage_stats()
+    stats['allowed_challenges'] = allowed_count
+    stats['total_requested'] = len(challenge_ids)
+    stats['current_rho'] = rho
+    
+    return is_safe, rho, stats
+
+
+class LeakageTracker:
+    """
+    Compatibility class for validation scripts that expect LeakageTracker.
+    
+    This wraps ReusePolicy and LeakageAuditor to provide a unified interface
+    for tracking challenge leakage and enforcing reuse policies.
+    """
+    
+    def __init__(
+        self, 
+        max_uses: int = 3, 
+        max_leakage: float = 0.25,
+        persistence_path: Optional[str] = None,
+        audit_path: Optional[str] = None
+    ):
+        """
+        Initialize leakage tracker.
+        
+        Args:
+            max_uses: Maximum uses per challenge
+            max_leakage: Maximum allowed leakage ratio
+            persistence_path: Optional path to persist usage data
+            audit_path: Optional path for audit logs
+        """
+        self.policy = ReusePolicy(
+            u=max_uses, 
+            rho_max=max_leakage, 
+            persistence_path=persistence_path
+        )
+        self.auditor = LeakageAuditor(log_path=audit_path)
+        self.current_session = None
+    
+    def start_session(self, session_id: str) -> None:
+        """Start tracking a new verification session."""
+        self.current_session = session_id
+        self.policy.start_session(session_id)
+    
+    def record_challenge_use(self, challenge_id: str) -> bool:
+        """
+        Record use of a challenge and check if allowed.
+        
+        Args:
+            challenge_id: Challenge identifier
+            
+        Returns:
+            True if challenge use is allowed, False otherwise
+        """
+        allowed = self.policy.record_use(challenge_id, self.current_session)
+        
+        # Get current stats for auditing
+        usage = self.policy.usage.get(str(challenge_id))
+        use_count = usage.use_count if usage else 0
+        
+        # Compute current leakage ratio
+        if self.current_session:
+            session_stats = self.policy.sessions.get(self.current_session)
+            rho = session_stats.observed_rho if session_stats else 0.0
+        else:
+            rho = 0.0
+        
+        # Log the event
+        self.auditor.log_challenge_use(
+            challenge_id=str(challenge_id),
+            session_id=self.current_session or "default",
+            use_count=use_count,
+            allowed=allowed,
+            rho=rho
+        )
+        
+        return allowed
+    
+    def check_challenges(self, challenge_ids: List[str]) -> Tuple[bool, float]:
+        """
+        Check if using these challenges would exceed leakage threshold.
+        
+        Args:
+            challenge_ids: List of challenge IDs to check
+            
+        Returns:
+            Tuple of (is_safe, leakage_ratio)
+        """
+        return self.policy.check_leakage_threshold(challenge_ids)
+    
+    def compute_leakage_ratio(self, challenge_ids: List[str]) -> float:
+        """
+        Compute leakage ratio for given challenges.
+        
+        Args:
+            challenge_ids: List of challenge IDs
+            
+        Returns:
+            Leakage ratio (0.0 to 1.0)
+        """
+        leaked_count = self.policy.get_leaked_count(challenge_ids)
+        return compute_leakage_ratio(leaked_count, len(challenge_ids))
+    
+    def end_session(self) -> Optional[Dict[str, Any]]:
+        """
+        End current session and return statistics.
+        
+        Returns:
+            Session statistics dict or None
+        """
+        if not self.current_session:
+            return None
+            
+        stats = self.policy.end_session(self.current_session)
+        
+        if stats:
+            # Log session completion
+            self.auditor.log_session_complete(self.current_session, stats)
+            
+            # Return stats as dict
+            return {
+                'session_id': stats.session_id,
+                'total_challenges': stats.total_challenges,
+                'leaked_challenges': stats.leaked_challenges,
+                'observed_rho': stats.observed_rho,
+                'timestamp': stats.timestamp
+            }
+        
+        return None
+    
+    def get_usage_stats(self) -> Dict[str, Any]:
+        """Get overall usage statistics."""
+        return self.policy.get_usage_stats()
+    
+    def generate_audit_report(self) -> Dict[str, Any]:
+        """Generate audit report."""
+        return self.auditor.generate_report()
+    
+    def reset(self) -> None:
+        """Reset all tracking data."""
+        self.policy.reset_all()
+        self.auditor.events.clear()
+        self.current_session = None
+
+
+# ============================================================================
+# Module Exports
+# ============================================================================
+
+__all__ = [
+    # Main classes
+    "ReusePolicy",
+    "LeakageAuditor", 
+    "LeakageTracker",
+    # Data classes
+    "ChallengeUsage",
+    "LeakageStats",
+    # Utility functions
+    "compute_challenge_hash",
+    "compute_leakage_ratio",
+    "enforce_reuse_policy"
+]
