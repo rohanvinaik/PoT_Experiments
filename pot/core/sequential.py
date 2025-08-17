@@ -1721,3 +1721,40 @@ def confidence_sequences(
         coverage_probability=1 - alpha,
         is_valid=is_valid
     )
+
+
+# ============================================================================
+# Compatibility Aliases for Validation Reports
+# ============================================================================
+
+# Alias for tests/reports that expect Sequential or SequentialPoT style names
+Sequential = UnifiedSequentialTester
+
+# Export list for the module
+__all__ = [
+    "Sequential",
+    "UnifiedSequentialTester", 
+    "SequentialTester",
+    "SequentialState",
+    "SPRTResult",
+    "EBConfig",
+    "SPRTConfig",
+    "MixtureTestResult", 
+    "AdaptiveTauResult",
+    "MultiArmedResult",
+    "PowerAnalysisResult",
+    "ConfidenceSequence",
+    "sequential_verify",
+    "sequential_eb",
+    "sprt",
+    "sprt_test",
+    "mixture_sequential_test",
+    "adaptive_tau_selection",
+    "multi_armed_sequential_verify",
+    "power_analysis",
+    "confidence_sequences",
+    "welford_update",
+    "compute_empirical_variance",
+    "compute_anytime_p_value",
+    "check_stopping_condition"
+]
