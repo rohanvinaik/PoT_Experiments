@@ -1,0 +1,38 @@
+PROOF-OF-TRAINING EXPERIMENTAL VALIDATION SUMMARY
+==================================================
+
+Date: Sun Aug 17 15:55:29 EDT 2025
+Python Version: Python 3.11.8
+
+TEST RESULTS
+------------
+Total Tests: 6
+Passed: 4
+Failed: 2
+Success Rate: 66.7%
+
+COMPONENT TESTS
+---------------
+✗ Some tests failed
+
+EXPERIMENTS RUN
+---------------
+1. Verification Types Comparison
+2. Security Levels Analysis  
+3. Model Type Coverage
+4. Challenge Effectiveness
+5. Performance Benchmarks
+6. Stress Testing
+
+ARTIFACTS GENERATED
+-------------------
+- Log files: experimental_results/*_20250817_155521.log
+- Validation results: experimental_results/validation_results_20250817_155521.json
+- This summary: experimental_results/summary_20250817_155521.txt
+
+RECOMMENDATIONS
+---------------
+• Review failed test logs for details
+• Check missing dependencies
+• Ensure all required packages are installed
+

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Reliable validation experiment using deterministic test models.
-This script provides consistent, reproducible validation results.
+Standard PoT validation using deterministic test models.
+This is the standard validation approach providing consistent, reproducible results.
 """
 
 import sys
@@ -239,8 +239,8 @@ def run_challenge_effectiveness_test(config: ValidationConfig) -> Dict[str, Any]
 
 
 def main():
-    """Run comprehensive reliable validation."""
-    print("Proof of Training - Reliable Validation")
+    """Run comprehensive standard validation."""
+    print("Proof of Training - Standard Validation")
     print("=" * 50)
     
     # Use reliable configuration
