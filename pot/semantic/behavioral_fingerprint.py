@@ -112,7 +112,9 @@ class BehavioralFingerprint:
         # PCA for dimensionality reduction
         self.pca = None
         if use_pca:
-            self.pca = PCA(n_components=min(fingerprint_dim, window_size))
+            # Set n_components to be valid for PCA
+            n_components = min(fingerprint_dim, window_size, 128)  # 128 is typical feature size
+            self.pca = PCA(n_components=n_components)
         
         # Statistics for normalization
         self.running_mean = None
@@ -600,14 +602,28 @@ class BehavioralFingerprint:
             
             # Fit PCA if needed
             if not hasattr(self.pca, 'components_'):
-                # Need more samples to fit PCA
-                if len(self.history.fingerprints) >= 10:
-                    history_matrix = torch.stack(self.history.fingerprints[:10])
+                # Need more samples to fit PCA than components
+                min_samples = self.pca.n_components + 1
+                if len(self.history.fingerprints) >= min_samples:
+                    history_matrix = torch.stack(self.history.fingerprints[:max(min_samples, 10)])
                     history_np = history_matrix.detach().cpu().numpy()
                     
-                    with warnings.catch_warnings():
-                        warnings.simplefilter("ignore")
-                        self.pca.fit(history_np)
+                    # Ensure we have enough samples for the number of components
+                    n_samples, n_features = history_np.shape
+                    if n_samples > self.pca.n_components:
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            self.pca.fit(history_np)
+                    else:
+                        # Not enough samples, reduce n_components
+                        self.pca.n_components = min(n_samples - 1, self.pca.n_components)
+                        if self.pca.n_components > 0:
+                            self.pca.fit(history_np)
+                        else:
+                            # Use random projection as fallback
+                            projection = torch.randn(features.shape[0], self.fingerprint_dim)
+                            projection = projection / torch.norm(projection, dim=0)
+                            return torch.matmul(features, projection)
                 else:
                     # Use random projection as fallback
                     projection = torch.randn(features.shape[0], self.fingerprint_dim)

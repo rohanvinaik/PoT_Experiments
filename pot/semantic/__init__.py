@@ -1,4 +1,7 @@
-"""Semantic verification utilities for PoT."""
+"""
+Semantic verification utilities for PoT.
+Performance optimized with caching, GPU acceleration, and sparse representations.
+"""
 
 from .types import (
     ConceptVector,
@@ -17,10 +20,25 @@ from .library import (
 
 from .match import (
     SemanticMatcher,
+    LRUCache,
+    set_device,
+    get_device,
     compute_semantic_distance,
     semantic_similarity_score,
     batch_semantic_matching
 )
+
+# Optimized implementations
+try:
+    from .library_optimized import (
+        MemoryMappedConceptLibrary,
+        SparseHypervector,
+        IncrementalStats,
+        create_optimized_library
+    )
+    OPTIMIZED_AVAILABLE = True
+except ImportError:
+    OPTIMIZED_AVAILABLE = False
 
 from .utils import (
     normalize_concept_vector,
@@ -70,6 +88,9 @@ __all__ = [
     
     # Matching and scoring
     'SemanticMatcher',
+    'LRUCache',
+    'set_device',
+    'get_device',
     'compute_semantic_distance',
     'semantic_similarity_score',
     'batch_semantic_matching',
@@ -101,5 +122,17 @@ __all__ = [
     'BehaviorSnapshot',
     'FingerprintHistory',
     'ContinuousMonitor',
-    'create_behavioral_monitor'
+    'create_behavioral_monitor',
+    
+    # Optimization flag
+    'OPTIMIZED_AVAILABLE'
 ]
+
+# Add optimized components if available
+if OPTIMIZED_AVAILABLE:
+    __all__.extend([
+        'MemoryMappedConceptLibrary',
+        'SparseHypervector',
+        'IncrementalStats',
+        'create_optimized_library'
+    ])

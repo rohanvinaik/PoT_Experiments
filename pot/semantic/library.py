@@ -316,12 +316,18 @@ def load_concept_library(path: Union[str, Path],
     
     # Auto-detect format if not specified
     if format is None:
-        if path.suffix == '.pkl':
+        if path.suffix in ['.pkl', '.pickle', '.pt']:
             format = 'pickle'
         elif path.suffix == '.json':
             format = 'json'
         else:
-            raise ValueError(f"Cannot auto-detect format for file: {path}")
+            # Try to detect by file content
+            try:
+                with open(path, 'r') as f:
+                    json.load(f)
+                format = 'json'
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                format = 'pickle'
     
     try:
         if format == 'pickle':
@@ -346,19 +352,29 @@ def load_concept_library(path: Union[str, Path],
 
 
 def save_concept_library(library: SemanticLibrary, path: Union[str, Path],
-                        format: str = 'pickle') -> None:
+                        format: Optional[str] = None) -> None:
     """
     Save a concept library to disk.
     
     Args:
         library: SemanticLibrary to save
         path: Path to save the library
-        format: Save format ('pickle' or 'json')
+        format: Save format ('pickle' or 'json', or None for auto-detect)
         
     Raises:
         ValueError: If format is unsupported or library is invalid
     """
     path = Path(path)
+    
+    # Auto-detect format if not specified
+    if format is None:
+        if path.suffix in ['.pkl', '.pickle', '.pt']:
+            format = 'pickle'
+        elif path.suffix == '.json':
+            format = 'json'
+        else:
+            # Default to pickle if extension is unknown
+            format = 'pickle'
     
     # Validate library before saving
     is_valid, errors = library.validate_consistency()

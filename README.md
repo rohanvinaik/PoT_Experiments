@@ -884,6 +884,106 @@ Leakage fractions ρ ∈ {0, 0.1, 0.25, 0.5, 0.75} are evaluated with an adaptiv
 7. **Time-aware tolerance** for handling model drift and version changes.
 8. **Complete audit trails** with deterministic reproducibility and verification proofs.
 
+## Semantic Verification
+
+The PoT framework includes advanced semantic verification capabilities that analyze model behavior at a conceptual level, complementing distance-based metrics with semantic understanding. This enables detection of subtle behavioral shifts that preserve numerical similarity but alter semantic meaning.
+
+### Overview
+
+Semantic verification creates conceptual representations of model behavior through:
+
+1. **Concept Libraries**: Statistical models (Gaussian/hypervector) of behavioral patterns learned from training
+2. **Semantic Matching**: Multi-metric similarity analysis between model outputs and known concepts
+3. **Drift Detection**: Statistical tests for semantic distribution shifts over time
+4. **Behavioral Fingerprinting**: Temporal pattern capture with sliding windows and decay factors
+5. **Continuous Monitoring**: Real-time anomaly detection with adaptive thresholds
+
+### Key Features
+
+- **Dual Representation Methods**: Gaussian distributions for continuous spaces, hypervectors for discrete/binary
+- **Multiple Similarity Metrics**: Cosine, Euclidean, Mahalanobis, Hamming distances
+- **Statistical Drift Detection**: Kolmogorov-Smirnov and Wasserstein distance tests
+- **Backward Compatible**: Seamlessly integrates with existing LM/Vision verifiers
+- **Configuration-Based**: YAML/JSON configuration for deployment flexibility
+
+### Quick Start
+
+```python
+from pot.semantic import ConceptLibrary, SemanticMatcher
+from pot.lm.verifier import LMVerifier
+
+# Create concept library from training data
+library = ConceptLibrary(dim=768, method='gaussian')
+training_embeddings = extract_embeddings(training_data)  # Your extraction logic
+library.add_concept('normal_behavior', training_embeddings)
+
+# Enhanced verification with semantic analysis
+verifier = LMVerifier(
+    reference_model=ref_model,
+    semantic_library=library,
+    semantic_weight=0.3  # 30% weight for semantic similarity
+)
+
+# Verify with combined distance and semantic scoring
+result = verifier.verify(test_model, challenges)
+print(f"Distance score: {result.distance:.3f}")
+print(f"Semantic score: {result.semantic_score:.3f}")
+print(f"Combined score: {result.combined_score:.3f}")
+```
+
+### Behavioral Monitoring
+
+```python
+from pot.semantic import create_behavioral_monitor
+
+# Continuous monitoring with drift detection
+monitor = create_behavioral_monitor(
+    window_size=50,
+    fingerprint_dim=128,
+    semantic_library=library
+)
+
+# Process model outputs in real-time
+for output in model_output_stream():
+    result = monitor.process_output(output)
+    
+    if result.get('anomaly_detected'):
+        alert(f"Anomaly detected: {result['anomaly_score']:.3f}")
+    
+    if result.get('drift_detected'):
+        recalibrate(f"Drift detected: {result['drift_score']:.3f}")
+```
+
+### Performance Characteristics
+
+| Component | Time Complexity | Memory Usage | Typical Latency |
+|-----------|----------------|--------------|-----------------|
+| Concept Addition | O(n·d) | O(k·d²) | 10-50ms |
+| Semantic Matching | O(k·d) | O(d) | 1-5ms |
+| Drift Detection | O(n·log n) | O(n) | 10-100ms |
+| Behavioral Fingerprint | O(w·d) | O(w·d + h) | 5-20ms |
+| Continuous Monitor | O(1) amortized | O(w + h) | 1-10ms |
+
+Where: n=samples, d=dimension, k=concepts, w=window_size, h=history_size
+
+### When to Use Semantic Verification
+
+| Scenario | Recommendation | Rationale |
+|----------|---------------|-----------|
+| **Fine-tuning detection** | Essential | Captures subtle semantic shifts |
+| **Domain adaptation** | Highly recommended | Tracks concept drift |
+| **Adversarial robustness** | Recommended | Detects semantic attacks |
+| **Production monitoring** | Recommended | Early warning system |
+| **Quick identity checks** | Optional | Adds overhead to fast checks |
+| **Resource-constrained** | Not recommended | Requires additional memory |
+
+### Integration Examples
+
+See complete examples in `examples/semantic_verification/`:
+- `basic_usage.py` - Concept library creation and matching
+- `integration_example.py` - Integration with LM/Vision verifiers  
+- `drift_detection.py` - Continuous monitoring and drift detection
+
 ## Use cases
 
 **Primary Applications**:
@@ -892,11 +992,12 @@ Leakage fractions ρ ∈ {0, 0.1, 0.25, 0.5, 0.75} are evaluated with an adaptiv
 - **IP protection** via behavioral fingerprinting and statistical verification
 - **Quality assurance** for model releases with adaptive sample allocation
 - **Federated learning** participation checks with distributed sequential testing
+- **Semantic integrity** verification through concept-based analysis
 
 **Sequential Testing Scenarios**:
 - **API model verification** where query costs are high
 - **Real-time deployment** requiring immediate accept/reject decisions  
-- **Continuous monitoring** with adaptive thresholds
+- **Continuous monitoring** with adaptive thresholds and semantic drift detection
 - **A/B testing** with multiple model comparisons
 - **Research workflows** enabling rapid iteration and exploration
 
