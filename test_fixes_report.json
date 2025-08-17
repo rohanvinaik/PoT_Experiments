@@ -1,0 +1,119 @@
+{
+  "fixed_files": {
+    "examples/example_sequential_testing.py": [
+      "Added path setup"
+    ],
+    "pot/core/test_audit_logger.py": [
+      "Added path setup"
+    ],
+    "pot/core/test_coverage_optimizer.py": [
+      "Added path setup"
+    ],
+    "pot/core/test_fingerprint.py": [
+      "Added path setup"
+    ],
+    "pot/core/test_sequential_verify.py": [
+      "Added path setup"
+    ],
+    "pot/core/test_wrapper_detection.py": [
+      "Added path setup"
+    ],
+    "pot/core/wrapper_detection.py": [
+      "Fixed wrapper detection exports"
+    ],
+    "pot/eval/test_plots.py": [
+      "Added path setup"
+    ],
+    "pot/experiments/test_report_generator.py": [
+      "Added path setup"
+    ],
+    "pot/experiments/test_result_validator.py": [
+      "Added path setup"
+    ],
+    "pot/lm/sequential_tester.py": [
+      "Added path setup"
+    ],
+    "pot/lm/test_output_distance.py": [
+      "Added path setup"
+    ],
+    "pot/lm/test_sequential_tester.py": [
+      "Added path setup"
+    ],
+    "pot/lm/test_template_challenges.py": [
+      "Added path setup"
+    ],
+    "pot/lm/test_time_tolerance.py": [
+      "Added path setup"
+    ],
+    "pot/security/test_fuzzy_verifier.py": [
+      "Added path setup"
+    ],
+    "pot/security/test_token_normalizer.py": [
+      "Added path setup"
+    ],
+    "pot/test_advanced_sequential.py": [
+      "Added path setup"
+    ],
+    "pot/test_integrated_verifiers.py": [
+      "Added path setup"
+    ],
+    "pot/vision/test_models.py": [
+      "Added path setup"
+    ],
+    "pot/vision/test_perlin_noise.py": [
+      "Added path setup"
+    ],
+    "scripts/debug_experimental.py": [
+      "Replaced 'SequentialVerifier' with 'SequentialTester'",
+      "Replaced 'from pot.core.fingerprint import compute_fingerprint' with 'from pot.core.fingerprint import FingerprintConfig'",
+      "Found parameter issue: SequentialTester(tau0=0.4, tau1=0.6, "
+    ],
+    "scripts/fix_experimental_imports.py": [
+      "Found parameter issue: ChallengeConfig(n="
+    ],
+    "scripts/generate_validation_report.py": [
+      "Replaced 'from pot.core.fingerprint import BehavioralFingerprint' with 'from pot.core.fingerprint import FingerprintConfig'"
+    ],
+    "tests/test_attacks_integration.py": [
+      "Added path setup"
+    ],
+    "tests/test_governance.py": [
+      "Added path setup"
+    ],
+    "tests/test_lm_templates_challenges.py": [
+      "Added path setup"
+    ],
+    "tests/test_semantic/test_behavioral_fingerprint.py": [
+      "Added path setup"
+    ],
+    "tests/test_semantic/test_integration.py": [
+      "Added path setup"
+    ],
+    "tests/test_semantic/test_library.py": [
+      "Added path setup"
+    ],
+    "tests/test_semantic/test_match.py": [
+      "Added path setup"
+    ],
+    "tests/test_semantic/test_topography.py": [
+      "Added path setup"
+    ],
+    "tests/test_verifier_integration.py": [
+      "Added path setup"
+    ],
+    "tests/test_vision_freq_challenges.py": [
+      "Added path setup"
+    ],
+    "tests/test_vision_texture_challenges.py": [
+      "Added path setup"
+    ]
+  },
+  "skipped_files": [
+    "scripts/check_all_tests.py"
+  ],
+  "summary": {
+    "total_issues": 46,
+    "files_fixed": 35,
+    "files_skipped": 1
+  }
+}

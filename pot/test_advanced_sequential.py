@@ -8,6 +8,11 @@ import numpy as np
 import time
 from typing import List, Generator, Dict, Any
 
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.core.sequential import (
     mixture_sequential_test, adaptive_tau_selection, multi_armed_sequential_verify,
     power_analysis, confidence_sequences, MixtureTestResult, AdaptiveTauResult,

@@ -13,6 +13,9 @@ import hashlib
 import warnings
 from collections import defaultdict
 
+
+__all__ = ["detect_wrapper"]
+
 try:
     import torch
     HAS_TORCH = True

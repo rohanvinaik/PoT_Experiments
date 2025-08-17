@@ -1,0 +1,158 @@
+{
+  "examples/example_sequential_testing.py": [
+    "Missing path setup for pot imports"
+  ],
+  "examples/example_wrapper_detection.py": [
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "examples/semantic_verification/drift_detection.py": [
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions",
+    "Found 'BehavioralFingerprint' - Class name might be different"
+  ],
+  "pot/cli/attack_cli.py": [
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "pot/core/test_audit_logger.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/core/test_coverage_optimizer.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/core/test_fingerprint.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/core/test_sequential_verify.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/core/test_wrapper_detection.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/core/wrapper_detection.py": [
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "pot/eval/test_plots.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/experiments/test_report_generator.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/experiments/test_result_validator.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/sequential_tester.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/test_output_distance.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/test_sequential_tester.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/test_template_challenges.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/test_time_tolerance.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/lm/verifier.py": [
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions"
+  ],
+  "pot/security/proof_of_training.py": [
+    "Found 'StochasticDecodingController' - Class might not exist"
+  ],
+  "pot/security/test_fuzzy_verifier.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/security/test_token_normalizer.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/semantic/__init__.py": [
+    "Found 'BehavioralFingerprint' - Class name might be different"
+  ],
+  "pot/semantic/behavioral_fingerprint.py": [
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions",
+    "Found 'BehavioralFingerprint' - Class name might be different"
+  ],
+  "pot/test_advanced_sequential.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/test_integrated_verifiers.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/vision/test_models.py": [
+    "Missing path setup for pot imports"
+  ],
+  "pot/vision/test_perlin_noise.py": [
+    "Found 'detect_wrapper' - Function might not be exported",
+    "Missing path setup for pot imports"
+  ],
+  "pot/vision/verifier.py": [
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions",
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "scripts/check_all_tests.py": [
+    "Found 'SequentialVerifier' - Should be SequentialTester",
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions",
+    "Found 'fingerprint_model' - Function does not exist",
+    "Found 'BehavioralFingerprint' - Class name might be different",
+    "Found 'detect_wrapper' - Function might not be exported",
+    "Found 'StochasticDecodingController' - Class might not exist",
+    "Found 'family='numeric'' - Should be 'vision:freq', 'vision:texture', or 'lm:templates'",
+    "Found 'family: 'numeric'' - Should be 'vision:freq', 'vision:texture', or 'lm:templates'",
+    "Parameter issue: Should use tau0= and tau1=",
+    "Parameter issue: Should use n= instead",
+    "Parameter issue: Config should have master_key_hex"
+  ],
+  "scripts/debug_experimental.py": [
+    "Found 'SequentialVerifier' - Should be SequentialTester",
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions"
+  ],
+  "scripts/fix_experimental_imports.py": [
+    "Found 'fingerprint_model' - Function does not exist"
+  ],
+  "scripts/generate_validation_report.py": [
+    "Found 'BehavioralFingerprint' - Class name might be different"
+  ],
+  "tests/test_attacks/test_attack_suite.py": [
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "tests/test_attacks/test_core_functionality.py": [
+    "Found 'detect_wrapper' - Function might not be exported"
+  ],
+  "tests/test_attacks_integration.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_governance.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_lm_templates_challenges.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_semantic/test_behavioral_fingerprint.py": [
+    "Found 'compute_fingerprint' - Should use FingerprintConfig or other functions",
+    "Found 'BehavioralFingerprint' - Class name might be different",
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_semantic/test_integration.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_semantic/test_library.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_semantic/test_match.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_semantic/test_topography.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_verifier_integration.py": [
+    "Found 'detect_wrapper' - Function might not be exported",
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_vision_freq_challenges.py": [
+    "Missing path setup for pot imports"
+  ],
+  "tests/test_vision_texture_challenges.py": [
+    "Missing path setup for pot imports"
+  ]
+}

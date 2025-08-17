@@ -8,6 +8,11 @@ import torch
 import numpy as np
 from typing import Optional
 
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.semantic.library import ConceptLibrary
 from pot.semantic.match import SemanticMatcher
 from pot.semantic.config import (

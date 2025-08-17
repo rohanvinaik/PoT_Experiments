@@ -19,8 +19,8 @@ print()
 # Test imports
 tests = [
     ("Core challenge", "from pot.core.challenge import generate_challenges"),
-    ("Sequential verifier", "from pot.core.sequential import SequentialVerifier"),
-    ("Fingerprint", "from pot.core.fingerprint import compute_fingerprint"),
+    ("Sequential verifier", "from pot.core.sequential import SequentialTester"),
+    ("Fingerprint", "from pot.core.fingerprint import FingerprintConfig"),
     ("Proof of Training", "from pot.security.proof_of_training import ProofOfTraining"),
     ("Fuzzy Hash Verifier", "from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier"),
     ("Token Space Normalizer", "from pot.security.token_space_normalizer import TokenSpaceNormalizer"),
@@ -63,9 +63,9 @@ try:
     print(f"✅ Generated {len(challenges)} challenges")
     
     # Test sequential verification
-    from pot.core.sequential import SequentialVerifier
-    verifier = SequentialVerifier(alpha=0.05, beta=0.05, tau=0.5)
-    print(f"✅ Created SequentialVerifier")
+    from pot.core.sequential import SequentialTester
+    verifier = SequentialTester(alpha=0.05, beta=0.05, tau=0.5)
+    print(f"✅ Created SequentialTester")
     
 except Exception as e:
     print(f"❌ Error in experiment setup:")

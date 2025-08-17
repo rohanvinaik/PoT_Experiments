@@ -18,6 +18,11 @@ import random
 import time
 from dataclasses import dataclass
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from pot.core.sequential import (
     sequential_verify,
     SPRTResult,

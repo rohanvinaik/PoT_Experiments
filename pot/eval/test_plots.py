@@ -3,6 +3,12 @@ import numpy as np
 
 from pot.eval.plots import plot_det_curve
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 def test_plot_det_curve_labels_and_save(tmp_path):
     far = np.linspace(0.01, 0.99, 10)

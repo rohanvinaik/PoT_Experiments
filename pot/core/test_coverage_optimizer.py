@@ -1,6 +1,12 @@
 import numpy as np
 from pot.core.coverage_separation import CoverageSeparationOptimizer
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 def dummy_model_linear(challenges):
     return np.sum(challenges, axis=1) * 0.1
 

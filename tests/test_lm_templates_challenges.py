@@ -3,6 +3,12 @@
 import pytest
 from pot.core.challenge import ChallengeConfig, generate_challenges, Challenge
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 class TestLMTemplatesChallenges:
     """Test suite for lm:templates text challenge generation."""

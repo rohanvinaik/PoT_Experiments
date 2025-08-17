@@ -10,6 +10,12 @@ import numpy as np
 import time
 from typing import Dict, List, Any
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 # Import vision components
 try:
     from pot.vision.verifier import VisionVerifier, EnhancedVisionVerifier

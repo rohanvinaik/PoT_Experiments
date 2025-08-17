@@ -7,6 +7,12 @@ from pot.vision.verifier import VisionVerifier
 from pot.lm.verifier import LMVerifier
 from pot.core.challenge import ChallengeConfig, generate_challenges
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 class TestVisionVerifierIntegration:
     """Test vision verifier with centralized challenge generation."""

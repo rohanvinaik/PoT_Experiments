@@ -6,6 +6,11 @@ Demonstrates SPRT (Sequential Probability Ratio Testing) with early stopping
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.lm.sequential_tester import (
     SequentialTester,
     AdaptiveSequentialTester,

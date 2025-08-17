@@ -4,6 +4,12 @@ import numpy as np
 from pot.vision.verifier import VisionVerifier
 from pot.vision.models import MockVisionModel
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 def _get_verifier():
     return VisionVerifier(MockVisionModel(), use_sequential=False, detect_wrappers=False)

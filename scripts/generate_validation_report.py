@@ -67,7 +67,7 @@ PAPER_CLAIMS = {
             "E3_large_scale_models",
             "benchmark_7b_model"
         ],
-        "validation_command": "python -c 'from pot.core.fingerprint import BehavioralFingerprint; import time; fp = BehavioralFingerprint(); start = time.time(); fp.compute({\"test\": [1,2,3]}); print(f\"Time: {(time.time()-start)*1000:.2f}ms\")'",
+        "validation_command": "python -c 'from pot.core.fingerprint import FingerprintConfig; import time; fp = BehavioralFingerprint(); start = time.time(); fp.compute({\"test\": [1,2,3]}); print(f\"Time: {(time.time()-start)*1000:.2f}ms\")'",
         "metric_key": "verification_time_ms"
     },
     "claim_5": {

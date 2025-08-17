@@ -20,6 +20,12 @@ from pot.governance.nist_ai_rmf_compliance import NISTAIRMFCompliance
 from pot.governance.policy_engine import PolicyEngine, PolicyRule
 from pot.governance.risk_assessment import AIRiskAssessment
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 class SimpleModel(nn.Module):
     """Simple model for testing."""

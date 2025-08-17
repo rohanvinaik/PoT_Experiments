@@ -1,5 +1,11 @@
 import pytest
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 torch = pytest.importorskip("torch")
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset

@@ -11,6 +11,11 @@ import json
 from pathlib import Path
 from datetime import datetime, timedelta
 
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.core.audit_logger import (
     AuditLogger,
     AuditEventType,

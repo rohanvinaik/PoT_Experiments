@@ -9,6 +9,11 @@ from unittest.mock import Mock, MagicMock, patch
 from typing import List, Dict, Any
 
 # Import the classes to test
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.lm.template_challenges import (
     TemplateChallenger,
     ChallengeEvaluator,

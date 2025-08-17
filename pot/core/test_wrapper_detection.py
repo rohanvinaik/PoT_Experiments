@@ -2,6 +2,12 @@ import pytest
 
 from pot.core.wrapper_detection import WrapperAttackDetector
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 def test_perfect_response_and_quality():
     detector = WrapperAttackDetector()

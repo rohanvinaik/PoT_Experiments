@@ -21,6 +21,11 @@ import time
 from typing import List, Any, Optional
 from unittest.mock import Mock, patch
 
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.core.fingerprint import (
     FingerprintConfig,
     FingerprintResult,

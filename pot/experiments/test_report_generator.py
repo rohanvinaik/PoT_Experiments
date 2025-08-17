@@ -9,6 +9,12 @@ import tempfile
 from pathlib import Path
 from pot.experiments.report_generator import ReportGenerator, create_sample_results
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 class TestReportGenerator(unittest.TestCase):
     """Test cases for ReportGenerator functionality."""

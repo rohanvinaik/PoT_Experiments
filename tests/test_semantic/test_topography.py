@@ -10,6 +10,11 @@ import tempfile
 import os
 from pathlib import Path
 import warnings
+
+# Add parent directory to path for pot imports
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 warnings.filterwarnings('ignore')
 
 from pot.semantic import (

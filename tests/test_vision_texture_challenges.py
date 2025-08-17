@@ -4,6 +4,12 @@ import pytest
 import numpy as np
 from pot.core.challenge import ChallengeConfig, generate_challenges, Challenge
 
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
 
 class TestVisionTextureChallenges:
     """Test suite for vision:texture challenge generation."""

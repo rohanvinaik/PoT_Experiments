@@ -10,6 +10,11 @@ from typing import List, Dict, Any
 from dataclasses import dataclass
 
 # Import the classes to test
+
+# Add parent directory to path for pot imports
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from pot.security.token_space_normalizer import (
     TokenSpaceNormalizer,
     TokenAligner,
