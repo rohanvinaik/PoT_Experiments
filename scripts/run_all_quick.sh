@@ -14,9 +14,25 @@ echo -e "${BLUE}=== PROOF-OF-TRAINING QUICK VALIDATION ===${NC}\n"
 # Detect optional dependencies
 if ! python3 -c "import torch" >/dev/null 2>&1; then
     echo -e "${YELLOW}Warning: PyTorch not installed. Some checks will be skipped.${NC}"
-fi
-if ! python3 -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() else 1)" >/dev/null 2>&1; then
-    echo -e "${YELLOW}Warning: CUDA not available. GPU checks disabled.${NC}"
+else
+    # Better GPU detection
+    GPU_STATUS=$(python3 -c "
+import torch
+if torch.cuda.is_available():
+    print('CUDA available')
+elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+    print('MPS (Metal) available')
+else:
+    print('CPU only')
+" 2>/dev/null)
+    
+    if [[ "$GPU_STATUS" == "CPU only" ]]; then
+        echo -e "${YELLOW}Info: Running in CPU-only mode (no GPU acceleration detected).${NC}"
+    elif [[ "$GPU_STATUS" == "MPS (Metal) available" ]]; then
+        echo -e "${GREEN}Info: Apple Metal GPU acceleration available.${NC}"
+    elif [[ "$GPU_STATUS" == "CUDA available" ]]; then
+        echo -e "${GREEN}Info: CUDA GPU acceleration available.${NC}"
+    fi
 fi
 
 TESTS_PASSED=0
