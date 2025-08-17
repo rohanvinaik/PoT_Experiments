@@ -1,8 +1,8 @@
 {
   "metadata": {
     "created": "2025-08-17T16:41:39.916888",
-    "total_runs": 29,
-    "last_updated": "2025-08-17T16:52:04.231184"
+    "total_runs": 30,
+    "last_updated": "2025-08-17T16:53:49.628089"
   },
   "runs": [
     {
@@ -291,6 +291,21 @@
       }
     },
     {
+      "timestamp": "2025-08-17T16:49:49.129587",
+      "source_file": "reliable_validation_results_20250817_164949_remote.json",
+      "validation_type": "deterministic",
+      "seed": 1696,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00023033883836534288,
+        "min_verification_time": 9.568532307942708e-05,
+        "max_verification_time": 0.0004222393035888672,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
       "timestamp": "2025-08-17T16:52:04.149548",
       "source_file": "reliable_validation_results_20250817_165204.json",
       "validation_type": "deterministic",
@@ -443,14 +458,14 @@
   ],
   "statistics": {
     "deterministic": {
-      "total_runs": 20,
+      "total_runs": 21,
       "avg_success_rate": 1.0,
       "success_rate_std": 0.0,
-      "avg_verification_time": 0.00015012025833129882,
-      "verification_time_std": 1.817916915448844e-05,
+      "avg_verification_time": 0.00015394019071387235,
+      "verification_time_std": 2.490758184060106e-05,
       "avg_confidence": 1.0,
       "min_verification_time": 0.00012167294820149739,
-      "max_verification_time": 0.00017420450846354166,
+      "max_verification_time": 0.00023033883836534288,
       "recent_10_success_rate": 1.0
     },
     "legacy": {
@@ -460,9 +475,9 @@
       "recent_10_success_rate": 0.6666666666666666
     },
     "overall": {
-      "total_runs": 29,
-      "avg_success_rate": 0.896551724137931,
-      "avg_verification_time": 0.00015012025833129882,
+      "total_runs": 30,
+      "avg_success_rate": 0.9,
+      "avg_verification_time": 0.00015394019071387235,
       "date_range": {
         "earliest": "2025-08-17T15:54:06.118903",
         "latest": "20250817_164155"
