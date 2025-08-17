@@ -146,10 +146,15 @@ PoT_Experiments/
   - `read_commitment_records(filepath)`: Specialized reader for commitment records only
   - **Legacy compatibility**: Maintains existing HMAC-based API (`make_commitment`, `verify_commitment`)
   - **Security features**: Constant-time comparisons, atomic file operations, tamper detection
-- **Audit Schema** (`schema.py`): Structured audit records
-  - JSON schema definitions for audit logs with validation
-  - Compliance documentation format with integrity metadata
-  - Verification result serialization with checksum verification
+- **Audit Schema** (`schema.py`): Comprehensive audit record validation (UPDATED 2025-08-17)
+  - **Enhanced audit schema**: Complete commit-reveal protocol support with structured verification results
+  - **Legacy compatibility**: Maintains backward compatibility with existing audit format
+  - **Commitment record schema**: Dedicated schema for cryptographic commitment records
+  - **validate_audit_record(record)**: Auto-detects record type and validates against appropriate schema
+  - **sanitize_for_audit(data)**: Removes sensitive information and ensures JSON serialization
+  - **Custom validations**: Timestamp consistency, hex string validation, verification result logic
+  - **Helper functions**: Enhanced audit record creation, schema version management
+  - **Security features**: Sensitive field redaction, large value truncation, integrity metadata
 
 ### 4. Vision Components (`pot/vision/`) (UPDATED 2025-08-16)
 - **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting and sequential testing
@@ -847,6 +852,140 @@ def audited_verification(model, challenges, config):
         return result
     else:
         raise ValueError("Audit trail verification failed - possible tampering")
+```
+
+### Enhanced Audit Schema Validation (NEW 2025-08-17)
+```python
+from pot.audit.schema import (
+    validate_audit_record, sanitize_for_audit, create_enhanced_audit_record,
+    validate_commitment_record, get_schema_version, get_supported_algorithms
+)
+
+# 1. Create and validate enhanced audit record
+enhanced_record = create_enhanced_audit_record(
+    commitment_hash='a1b2c3d4e5f6' * 8,  # 64-char hex hash
+    commitment_algorithm='SHA256',
+    salt_length=32,
+    verification_decision='PASS',
+    verification_confidence=0.95,
+    samples_used=25,
+    model_id='resnet50_v2',
+    verifier_version='2.1.0',
+    metadata={
+        'challenge_family': 'vision:freq',
+        'early_stopping': True,
+        'p_value': 0.003
+    }
+)
+
+# Validate the created record
+is_valid, errors = validate_audit_record(enhanced_record)
+print(f"Enhanced record valid: {is_valid}")
+
+# 2. Sanitize sensitive data for audit inclusion
+raw_data = {
+    'model_weights': [0.1, 0.2, 0.3],
+    'api_key': 'secret_key_12345',
+    'verification_config': {
+        'tau': 0.05,
+        'alpha': 0.01,
+        'master_key': 'super_secret_key'
+    },
+    'results': {
+        'decision': 'PASS',
+        'confidence': 0.95
+    }
+}
+
+sanitized_data = sanitize_for_audit(raw_data)
+print(f"Sensitive fields redacted: {[k for k, v in sanitized_data.items() if v == '[REDACTED]']}")
+
+# 3. Validate different record types automatically
+commitment_record = {
+    'commitment_hash': 'b1c2d3e4f5a6' * 8,
+    'timestamp': '2025-08-17T10:30:45.123Z',
+    'salt': 'c2d3e4f5a6b1' * 8,
+    'version': '1.0'
+}
+
+# Auto-detects commitment record type
+is_valid, errors = validate_audit_record(commitment_record)
+print(f"Commitment record valid: {is_valid}")
+
+# 4. Legacy audit record validation (backward compatibility)
+legacy_record = {
+    'session_id': 'session_1234567890abcdef',
+    'model_id': 'legacy_model',
+    'family': 'bert',
+    'alpha': 0.05,
+    'beta': 0.05,
+    'boundary': 0.1,
+    'nonce': 'deadbeef' * 8,
+    'commitment': 'd1e2f3a4b5c6' * 8,
+    'prf_info': {'algorithm': 'HMAC-SHA256'},
+    'reuse_policy': 'session',
+    'env': {'python_version': '3.9'},
+    'timestamp': '2025-08-17T10:30:45Z'
+}
+
+# Auto-detects legacy format
+is_valid, errors = validate_audit_record(legacy_record)
+print(f"Legacy record valid: {is_valid}")
+
+# 5. Error handling and validation feedback
+invalid_record = {
+    'commitment': {
+        'hash': 'invalid',  # Too short
+        'algorithm': 'UNKNOWN',  # Not supported  
+        'salt_length': 5  # Too small
+    },
+    'timestamp': 'not_a_timestamp',
+    'verification_result': {
+        'decision': 'MAYBE',  # Invalid decision
+        'confidence': 1.5,    # Out of range
+        'samples_used': 0     # Too small
+    },
+    'metadata': {}
+}
+
+is_valid, errors = validate_audit_record(invalid_record)
+print(f"Invalid record rejected: {not is_valid}")
+print(f"Error details: {errors[:2]}")  # Show first 2 errors
+
+# 6. Schema information and utilities
+print(f"Current schema version: {get_schema_version()}")
+print(f"Supported hash algorithms: {get_supported_algorithms()}")
+
+# 7. Complete audit workflow with validation
+def create_validated_audit_trail(verification_result, model_info, commitment_data):
+    """Create complete audit trail with validation at each step."""
+    
+    # Sanitize input data
+    clean_model_info = sanitize_for_audit(model_info)
+    clean_result = sanitize_for_audit(verification_result)
+    
+    # Create enhanced audit record
+    audit_record = create_enhanced_audit_record(
+        commitment_hash=commitment_data['hash'],
+        commitment_algorithm=commitment_data['algorithm'],
+        salt_length=commitment_data['salt_length'],
+        verification_decision=verification_result['decision'],
+        verification_confidence=verification_result['confidence'],
+        samples_used=verification_result['samples_used'],
+        model_id=model_info['model_id'],
+        verifier_version='2.1.0',
+        metadata={
+            'clean_model_info': clean_model_info,
+            'clean_result': clean_result
+        }
+    )
+    
+    # Validate before saving
+    is_valid, errors = validate_audit_record(audit_record)
+    if not is_valid:
+        raise ValueError(f"Audit record validation failed: {errors}")
+    
+    return audit_record
 ```
 
 ## Debugging Tips

@@ -77,7 +77,13 @@ The PoT system provides comprehensive model verification through multiple compon
   - `read_commitment_records(filepath)`: Comprehensive trail verification with type detection
   - **Security features**: Tamper detection, atomic writes, constant-time comparisons
   - **Legacy compatibility**: Maintains HMAC-based API for existing integrations
-- **Schema** (`schema.py`): Structured audit records with JSON schemas and validation
+- **Schema** (`schema.py`): Comprehensive audit record validation system (UPDATED 2025-08-17)
+  - **Enhanced audit schema**: Complete commit-reveal protocol support with structured verification results
+  - **Auto-detection**: Automatically detects record type (enhanced, legacy, or commitment) and validates accordingly
+  - **Data sanitization**: `sanitize_for_audit()` removes sensitive information and ensures JSON serialization
+  - **Custom validations**: Timestamp consistency, hex string validation, verification result logic checks
+  - **Helper functions**: Enhanced audit record creation, schema version management, utility functions
+  - **Security features**: Sensitive field redaction, large value truncation, integrity metadata inclusion
 
 ### 4. Vision Components (`pot/vision/`)
 - **VisionVerifier** (`verifier.py`): Vision model verification with fingerprinting
