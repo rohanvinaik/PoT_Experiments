@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # Main attack evaluation service
+  attack-evaluator:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacks
+    image: pot-attacks:latest
+    container_name: pot-attack-evaluator
+    volumes:
+      # Mount code for development
+      - ./pot:/app/pot:ro
+      - ./configs:/app/configs:ro
+      - ./scripts:/app/scripts:ro
+      # Mount data and results directories
+      - ./data:/app/data
+      - ./results:/app/results
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+    environment:
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - TORCH_HOME=/app/cache
+    networks:
+      - attack-net
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["--help"]
+
+  # Dashboard service for visualization
+  attack-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacks
+    image: pot-attacks:latest
+    container_name: pot-attack-dashboard
+    volumes:
+      - ./results:/app/results:ro
+      - ./benchmark_results:/app/benchmark_results:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8050:8050"
+    networks:
+      - attack-net
+    command: ["dashboard", "-r", "/app/benchmark_results", "-p", "8050", "-h", "0.0.0.0"]
+
+  # Benchmark runner service
+  attack-benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacks
+    image: pot-attacks:latest
+    container_name: pot-attack-benchmark
+    volumes:
+      - ./pot:/app/pot:ro
+      - ./configs:/app/configs:ro
+      - ./models:/app/models:ro
+      - ./benchmark_results:/app/benchmark_results
+    environment:
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - PYTHONUNBUFFERED=1
+      - BENCHMARK_CONFIG=/app/configs/benchmark.yaml
+    networks:
+      - attack-net
+    deploy:
+      resources:
+        limits:
+          cpus: '8'
+          memory: 16G
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["benchmark", "-c", "${BENCHMARK_CONFIG:-/app/configs/benchmark.yaml}"]
+
+  # Wrapper detection service
+  wrapper-detector:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacks
+    image: pot-attacks:latest
+    container_name: pot-wrapper-detector
+    volumes:
+      - ./models:/app/models:ro
+      - ./detection_results:/app/detection_results
+    environment:
+      - PYTHONUNBUFFERED=1
+    networks:
+      - attack-net
+    command: ["detect-wrapper", "-m", "/app/models/model.pth", "-b", "/app/models/baseline.pth"]
+
+  # Jupyter notebook for interactive analysis
+  attack-notebook:
+    build:
+      context: .
+      dockerfile: Dockerfile.attacks
+    image: pot-attacks:latest
+    container_name: pot-attack-notebook
+    volumes:
+      - ./notebooks:/app/notebooks
+      - ./pot:/app/pot:ro
+      - ./results:/app/results
+    environment:
+      - PYTHONUNBUFFERED=1
+      - JUPYTER_ENABLE_LAB=yes
+    ports:
+      - "8888:8888"
+    networks:
+      - attack-net
+    command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+
+networks:
+  attack-net:
+    driver: bridge
+
+# Volume definitions for persistent storage
+volumes:
+  attack-cache:
+    driver: local
+  attack-logs:
+    driver: local
+  attack-results:
+    driver: local
