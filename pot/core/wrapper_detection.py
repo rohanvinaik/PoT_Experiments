@@ -14,7 +14,7 @@ import warnings
 from collections import defaultdict
 
 
-__all__ = ["detect_wrapper"]
+__all__ = ["detect_wrapper", "WrapperAttackDetector", "WrapperDetector"]
 
 try:
     import torch
@@ -1128,3 +1128,11 @@ class AdversarySimulator:
             "is_challenge": is_challenge_flags,
             "adversary_type": self.adversary_type,
         }
+
+
+def detect_wrapper(response_times, responses, metadata=None, **kwargs):
+    """Module-level API expected by tests & examples."""
+    # Use empty baseline stats if not provided
+    baseline_stats = kwargs.pop('baseline_stats', {'response_times': [], 'responses': []})
+    det = WrapperDetector(baseline_stats, **kwargs)
+    return det.detect_wrapper(response_times, responses, metadata)
