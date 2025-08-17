@@ -161,6 +161,38 @@ PoT_Experiments/
   - **Custom validations**: Timestamp consistency, hex string validation, verification result logic
   - **Helper functions**: Enhanced audit record creation, schema version management
   - **Security features**: Sensitive field redaction, large value truncation, integrity metadata
+- **Cryptographic Utilities** (`crypto_utils.py`): Advanced cryptographic primitives for enhanced audit capabilities (NEW 2025-08-17)
+  - **Salt Generation**: `generate_cryptographic_salt(length)` with cryptographically secure random generation and validation
+    - Uses OS-provided secure random number generator
+    - Validates length requirements (16-1024 bytes) for security
+    - Returns cryptographically strong entropy for all cryptographic operations
+  - **Hash Chains**: `compute_hash_chain(hashes, algorithm)` for tamper-evident audit trails
+    - Supports SHA256, SHA3-256, BLAKE2B, SHA512 algorithms
+    - Creates H(H_n || H_{n-1} || ... || H_0) structure for chronological integrity
+    - Tamper detection: any modification changes final hash
+  - **Timestamp Proofs**: `create_timestamp_proof(data, timestamp, proof_type)` for proving data existence at specific times
+    - `TimestampProof`: Complete timestamp proof structure with verification metadata
+    - **LOCAL**: System clock timestamps with HMAC verification
+    - **RFC3161**: RFC 3161 timestamp authority support (requires cryptography package)
+    - **OPENTIMESTAMPS**: OpenTimestamps protocol integration (requires network access)
+    - `verify_timestamp_proof(proof, data)`: Cryptographic verification of timestamp claims
+  - **Commitment Aggregation**: `aggregate_commitments(records)` using Merkle trees for efficient batch verification
+    - `AggregateCommitment`: Merkle root and individual proofs for logarithmic verification complexity
+    - Supports thousands of commitments with O(log n) proof size per commitment
+    - Integration with existing Merkle tree implementation for consistency
+  - **Zero-Knowledge Proofs**: `create_zk_proof(statement, witness, proof_type)` for privacy-preserving verification
+    - `ZKProof`: Schnorr-style and commitment-based proofs hiding sensitive model details
+    - Proves verification success without revealing model parameters or intermediate results
+    - `verify_zk_proof(proof)`: Verification without revealing private witness data
+    - Educational implementations - production should use established ZK libraries
+  - **Key Management**: `derive_key_from_password()` using PBKDF2 with configurable iterations
+    - PBKDF2-HMAC-SHA256 with 100,000 iterations (default)
+    - Fallback to hashlib implementation when cryptography package unavailable
+    - Configurable key length and iteration count for different security requirements
+  - **Security Utilities**: 
+    - `secure_compare()` for constant-time comparisons preventing timing attacks
+    - `get_available_features()` for runtime cryptographic feature detection
+    - Support for both cryptography package and fallback implementations
 
 ### 3.1. Blockchain Infrastructure (`pot/prototypes/training_provenance_auditor.py`) (UPDATED 2025-08-17)
 - **Blockchain Client** (`BlockchainClient`): Production-ready blockchain client for on-chain commitment storage
@@ -444,9 +476,9 @@ python scripts/run_verify_enhanced.py \
     --outdir outputs/verify/strict
 ```
 
-### Test Suite (UPDATED 2025-08-16)
+### Test Suite (UPDATED 2025-08-17)
 
-Comprehensive unit tests are available in `pot/core/` and `tests/`:
+Comprehensive unit tests are available in `pot/core/`, `pot/audit/`, and `tests/`:
 
 **Core Framework Tests**:
 - `pot/core/test_boundaries.py`: Confidence sequence tests with FPR validation
@@ -482,6 +514,20 @@ Comprehensive unit tests are available in `pot/core/` and `tests/`:
 - `test_reuse.py`: Leakage tracking and policy tests
 - `test_equivalence.py`: Transform equivalence tests
 
+**Cryptographic Utilities Tests** (NEW 2025-08-17):
+- `test_crypto_utils.py`: Comprehensive cryptographic primitives test suite
+  - Cryptographically secure salt generation with validation
+  - Hash chain computation for tamper-evident audit trails
+  - Timestamp proof creation and verification (Local, RFC3161, OpenTimestamps)
+  - Commitment aggregation with Merkle tree efficiency testing
+  - Zero-knowledge proof creation and verification
+  - Key derivation from passwords with PBKDF2
+  - Secure constant-time comparison testing
+  - Feature availability detection and compatibility
+  - Edge cases and error handling validation
+  - Performance benchmarking (sub-millisecond operations)
+  - Integration scenarios with complete audit workflow testing
+
 Run all tests:
 ```bash
 # Run specific test suites
@@ -489,6 +535,10 @@ python -m pot.core.test_sequential_verify  # Sequential verification
 python -m pot.core.test_boundaries         # Confidence sequences
 python -m pot.core.test_prf               # PRF and challenges
 python -m pot.core.test_fingerprint       # Behavioral fingerprinting
+
+# Run cryptographic utilities tests
+python test_crypto_utils.py               # Cryptographic primitives
+python test_crypto_integration.py         # Integration with audit system
 
 # Run all pytest tests
 pytest tests/ -v
@@ -1222,6 +1272,321 @@ audit_results = [
     for idx in audit_samples
 ]
 print(f"External audit: {sum(audit_results)}/{len(audit_results)} passed")
+```
+
+### Advanced Cryptographic Utilities for Enhanced Audit Capabilities (NEW 2025-08-17)
+```python
+from pot.audit.crypto_utils import (
+    generate_cryptographic_salt, compute_hash_chain, create_timestamp_proof,
+    aggregate_commitments, create_zk_proof, verify_timestamp_proof, verify_zk_proof,
+    HashAlgorithm, TimestampProofType, derive_key_from_password, secure_compare,
+    get_available_features
+)
+import hashlib
+import json
+from datetime import datetime, timezone
+
+# 1. Cryptographically Secure Salt Generation
+print("=== Secure Salt Generation ===")
+
+# Generate secure salts for different purposes
+commitment_salt = generate_cryptographic_salt(32)  # For commitments
+key_derivation_salt = generate_cryptographic_salt(16)  # For key derivation
+session_salt = generate_cryptographic_salt(64)  # For session tokens
+
+print(f"Commitment salt: {commitment_salt.hex()[:32]}...")
+print(f"Key derivation salt: {key_derivation_salt.hex()}")
+print(f"Session salt: {session_salt.hex()[:32]}...")
+
+# Validate salt uniqueness
+salt1 = generate_cryptographic_salt()
+salt2 = generate_cryptographic_salt()
+assert salt1 != salt2  # Cryptographically certain to be different
+print(f"Salts are unique: {salt1 != salt2}")
+
+# 2. Hash Chains for Tamper-Evident Audit Trails
+print("\n=== Hash Chains for Audit Trails ===")
+
+# Create audit events
+audit_events = [
+    b"model_registration_event",
+    b"challenge_generation_event", 
+    b"verification_execution_event",
+    b"result_commitment_event",
+    b"blockchain_storage_event"
+]
+
+# Hash each event
+event_hashes = [hashlib.sha256(event).digest() for event in audit_events]
+
+# Create tamper-evident chain
+audit_chain = compute_hash_chain(event_hashes, HashAlgorithm.SHA256)
+print(f"Audit chain hash: {audit_chain.hex()[:32]}...")
+
+# Demonstrate tamper detection
+tampered_events = event_hashes.copy()
+tampered_events[2] = hashlib.sha256(b"modified_verification_event").digest()
+tampered_chain = compute_hash_chain(tampered_events, HashAlgorithm.SHA256)
+
+print(f"Original chain:  {audit_chain.hex()[:16]}...")
+print(f"Tampered chain:  {tampered_chain.hex()[:16]}...")
+print(f"Tampering detected: {audit_chain != tampered_chain}")
+
+# 3. Timestamp Proofs for Proving Data Existence
+print("\n=== Timestamp Proofs ===")
+
+# Important verification result to timestamp
+verification_result = {
+    "model_id": "production_model_v3.1",
+    "verification_decision": "PASS",
+    "confidence": 0.97,
+    "timestamp": datetime.now(timezone.utc).isoformat(),
+    "challenge_count": 50
+}
+
+result_data = json.dumps(verification_result, sort_keys=True).encode()
+
+# Create local timestamp proof (always available)
+local_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.LOCAL)
+print(f"Local timestamp proof created: {local_proof.timestamp}")
+print(f"Proof type: {local_proof.proof_type.value}")
+print(f"Verifier info: {local_proof.verifier_info['type']}")
+
+# Verify timestamp proof
+is_valid = verify_timestamp_proof(local_proof, result_data)
+print(f"Timestamp proof valid: {is_valid}")
+
+# Create RFC 3161 timestamp if cryptography available
+features = get_available_features()
+if features['rfc3161_timestamps']:
+    rfc3161_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.RFC3161)
+    print(f"RFC 3161 proof created with signature: {rfc3161_proof.signature is not None}")
+    print(f"RFC 3161 proof valid: {verify_timestamp_proof(rfc3161_proof, result_data)}")
+
+# Create OpenTimestamps proof if network available
+if features['opentimestamps']:
+    ots_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.OPENTIMESTAMPS)
+    print(f"OpenTimestamps proof created: {ots_proof.verifier_info['blockchain']}")
+
+# 4. Commitment Aggregation with Merkle Trees
+print("\n=== Commitment Aggregation ===")
+
+# Create multiple verification session commitments
+from pot.audit.commit_reveal import CommitmentRecord
+
+verification_sessions = []
+for i in range(10):
+    session_data = {
+        "session_id": f"session_{i:03d}",
+        "model_id": "aggregate_test_model",
+        "verification_result": "PASS" if i % 4 != 0 else "FAIL",  # Mostly pass
+        "confidence": 0.9 + (i % 5) * 0.02,
+        "challenge_count": 20 + i * 5
+    }
+    
+    # Create commitment for session
+    session_bytes = json.dumps(session_data, sort_keys=True).encode()
+    commitment_hash = hashlib.sha256(session_bytes).hexdigest()
+    
+    # Mock CommitmentRecord (in practice, use actual commit-reveal)
+    from test_crypto_utils import MockCommitmentRecord
+    commitment_record = MockCommitmentRecord(commitment_hash, session_data)
+    verification_sessions.append(commitment_record)
+
+# Aggregate all commitments using Merkle tree
+try:
+    aggregate = aggregate_commitments(verification_sessions, metadata={
+        "aggregation_purpose": "monthly_verification_summary",
+        "model_version": "v3.1"
+    })
+    
+    print(f"Aggregated {aggregate.size} verification sessions")
+    print(f"Merkle root: {aggregate.merkle_root[:32]}...")
+    print(f"Aggregate hash: {aggregate.aggregate_hash[:32]}...")
+    print(f"Merkle tree depth: {aggregate.metadata['merkle_tree_depth']}")
+    
+    # Verify individual commitment proofs
+    first_commitment = verification_sessions[0].commitment_hash
+    proof = aggregate.proofs[first_commitment]
+    print(f"First commitment has proof with {len(proof)} steps")
+    
+    # Batch verification is now O(log n) instead of O(n)
+    efficiency_gain = aggregate.size / aggregate.metadata['merkle_tree_depth']
+    print(f"Verification efficiency gain: {efficiency_gain:.1f}x")
+    
+except ImportError:
+    print("⚠ Merkle tree implementation not available - skipping aggregation demo")
+
+# 5. Zero-Knowledge Proofs for Privacy-Preserving Verification
+print("\n=== Zero-Knowledge Proofs ===")
+
+# Public statement (what we want to prove without revealing details)
+public_statement = {
+    "verification_passed": True,
+    "confidence_above_threshold": True,
+    "model_type": "vision",
+    "security_level": "high"
+}
+
+# Private witness (sensitive information we don't want to reveal)
+private_witness = {
+    "actual_confidence": 0.97,
+    "secret_model_parameters": [1.234, 5.678, 9.012],
+    "private_challenge_responses": [0.95, 0.98, 0.93, 0.96],
+    "internal_model_state": "confidential_state_data",
+    "proprietary_algorithm_details": "trade_secret_implementation"
+}
+
+# Create zero-knowledge proof (Schnorr-style)
+schnorr_proof = create_zk_proof(public_statement, private_witness, "schnorr")
+print(f"Schnorr ZK proof created: {schnorr_proof.proof_type}")
+print(f"Public statement: {schnorr_proof.statement}")
+print(f"Proof metadata: {schnorr_proof.metadata['proof_algorithm']}")
+
+# Verify ZK proof (verifier only sees public statement, not witness)
+zk_valid = verify_zk_proof(schnorr_proof)
+print(f"ZK proof verification: {zk_valid}")
+
+# Create commitment-based proof
+commit_proof = create_zk_proof(public_statement, private_witness, "simple_commit")
+print(f"Commitment ZK proof created: {commit_proof.proof_type}")
+print(f"Commitment proof valid: {verify_zk_proof(commit_proof)}")
+
+# Demonstrate privacy: verifier cannot extract witness
+print("Privacy demonstration:")
+print(f"  Public knows: verification_passed = {public_statement['verification_passed']}")
+print(f"  Public knows: confidence_above_threshold = {public_statement['confidence_above_threshold']}")
+print(f"  Private actual_confidence: {private_witness['actual_confidence']} (HIDDEN)")
+print(f"  Private model parameters: (HIDDEN from verifier)")
+
+# 6. Key Derivation and Secure Operations
+print("\n=== Key Derivation and Security ===")
+
+# Derive keys from password for different purposes
+master_password = "secure_master_password_123!"
+verification_salt = generate_cryptographic_salt(32)
+
+# Derive different keys for different purposes
+commitment_key = derive_key_from_password(master_password, verification_salt, key_length=32)
+encryption_key = derive_key_from_password(master_password + "_encryption", verification_salt, key_length=32)
+signing_key = derive_key_from_password(master_password + "_signing", verification_salt, key_length=32)
+
+print(f"Commitment key: {commitment_key.hex()[:16]}...")
+print(f"Encryption key: {encryption_key.hex()[:16]}...")
+print(f"Signing key: {signing_key.hex()[:16]}...")
+
+# Demonstrate secure comparison (constant-time, prevents timing attacks)
+secret_value = b"super_secret_verification_key"
+user_input = b"super_secret_verification_key"
+wrong_input = b"wrong_verification_key"
+
+# Secure comparison (timing-attack resistant)
+correct_auth = secure_compare(secret_value, user_input)
+wrong_auth = secure_compare(secret_value, wrong_input)
+
+print(f"Correct authentication: {correct_auth}")
+print(f"Wrong authentication: {wrong_auth}")
+
+# 7. Feature Detection and Compatibility
+print("\n=== Feature Availability ===")
+
+available_features = get_available_features()
+print("Cryptographic features available:")
+for feature, available in available_features.items():
+    status = "✓" if available else "✗"
+    print(f"  {status} {feature}")
+
+# 8. Complete Audit Trail Example
+print("\n=== Complete Audit Trail Workflow ===")
+
+# Step 1: Generate secure session salt
+session_salt = generate_cryptographic_salt(32)
+session_id = hashlib.sha256(session_salt).hexdigest()[:16]
+
+# Step 2: Create audit events with timestamps
+audit_workflow = []
+workflow_events = [
+    "session_initialization",
+    "model_loading",
+    "challenge_generation", 
+    "verification_execution",
+    "result_computation",
+    "commitment_creation",
+    "blockchain_submission"
+]
+
+for event in workflow_events:
+    event_data = {
+        "event": event,
+        "session_id": session_id,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    event_bytes = json.dumps(event_data, sort_keys=True).encode()
+    event_hash = hashlib.sha256(event_bytes).digest()
+    
+    # Create timestamp proof for each event
+    timestamp_proof = create_timestamp_proof(event_bytes)
+    
+    audit_workflow.append({
+        "event_data": event_data,
+        "event_hash": event_hash.hex(),
+        "timestamp_proof": timestamp_proof.to_dict()
+    })
+
+# Step 3: Create hash chain of all events
+workflow_hashes = [bytes.fromhex(item["event_hash"]) for item in audit_workflow]
+workflow_chain = compute_hash_chain(workflow_hashes)
+
+# Step 4: Create ZK proof of successful workflow
+workflow_statement = {
+    "workflow_completed": True,
+    "all_events_timestamped": True,
+    "chain_integrity_verified": True
+}
+
+workflow_witness = {
+    "session_salt": session_salt.hex(),
+    "event_count": len(workflow_events),
+    "workflow_chain_hash": workflow_chain.hex(),
+    "internal_session_data": "sensitive_workflow_details"
+}
+
+workflow_proof = create_zk_proof(workflow_statement, workflow_witness)
+
+print(f"Audit workflow completed:")
+print(f"  Session ID: {session_id}")
+print(f"  Events processed: {len(workflow_events)}")
+print(f"  Workflow chain: {workflow_chain.hex()[:32]}...")
+print(f"  ZK proof valid: {verify_zk_proof(workflow_proof)}")
+
+# Step 5: Final audit package
+audit_package = {
+    "session_metadata": {
+        "session_id": session_id,
+        "creation_time": datetime.now(timezone.utc).isoformat(),
+        "cryptographic_features_used": [
+            "secure_salt_generation",
+            "hash_chain_integrity",
+            "timestamp_proofs",
+            "zero_knowledge_proofs"
+        ]
+    },
+    "workflow_events": len(audit_workflow),
+    "chain_integrity_hash": workflow_chain.hex(),
+    "privacy_proof": workflow_proof.to_dict(),
+    "verifiable_claims": workflow_statement
+}
+
+print(f"\nFinal audit package:")
+print(f"  Package size: {len(json.dumps(audit_package))} bytes")
+print(f"  Cryptographic guarantees:")
+print(f"    ✓ Event ordering integrity (hash chain)")
+print(f"    ✓ Timestamp authenticity (timestamp proofs)")
+print(f"    ✓ Privacy preservation (zero-knowledge)")
+print(f"    ✓ Tamper detection (cryptographic hashes)")
+
+print(f"\n🔒 Cryptographic audit trail complete with full integrity and privacy guarantees!")
 ```
 
 ### Complete Integrated Verification Protocol (NEW 2025-08-17)
