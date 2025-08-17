@@ -11,6 +11,16 @@ import torch
 import torch.nn.functional as F
 from dataclasses import dataclass
 from collections import defaultdict
+from enum import Enum
+
+
+class TokenizerType(Enum):
+    """Supported tokenizer types"""
+    BERT = "bert"
+    GPT2 = "gpt2"
+    T5 = "t5"
+    ROBERTA = "roberta"
+    CUSTOM = "custom"
 
 
 @dataclass
@@ -20,6 +30,100 @@ class AlignmentResult:
     score: float  # Alignment quality score
     method: str  # Alignment method used
     metadata: Dict[str, Any]  # Additional metadata
+
+
+class StochasticDecodingController:
+    """
+    Controls stochastic decoding for language models to ensure reproducibility
+    and enable fuzzy matching in token space.
+    """
+    
+    def __init__(self, 
+                 temperature: float = 1.0,
+                 top_k: int = 50,
+                 top_p: float = 0.95,
+                 seed: Optional[int] = None):
+        """
+        Initialize stochastic decoding controller.
+        
+        Args:
+            temperature: Sampling temperature
+            top_k: Top-k sampling parameter
+            top_p: Top-p (nucleus) sampling parameter
+            seed: Random seed for reproducibility
+        """
+        self.temperature = temperature
+        self.top_k = top_k
+        self.top_p = top_p
+        self.seed = seed
+        
+        if seed is not None:
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+    
+    def apply_temperature(self, logits: torch.Tensor) -> torch.Tensor:
+        """Apply temperature scaling to logits."""
+        return logits / self.temperature if self.temperature > 0 else logits
+    
+    def top_k_filtering(self, logits: torch.Tensor) -> torch.Tensor:
+        """Apply top-k filtering to logits."""
+        if self.top_k > 0:
+            values, _ = torch.topk(logits, min(self.top_k, logits.size(-1)))
+            min_value = values[:, -1].unsqueeze(-1)
+            logits = torch.where(logits < min_value, 
+                                torch.full_like(logits, float('-inf')), 
+                                logits)
+        return logits
+    
+    def top_p_filtering(self, logits: torch.Tensor) -> torch.Tensor:
+        """Apply top-p (nucleus) filtering to logits."""
+        sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
+        cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+        
+        # Remove tokens with cumulative probability above threshold
+        sorted_indices_to_remove = cumulative_probs > self.top_p
+        sorted_indices_to_remove[:, 1:] = sorted_indices_to_remove[:, :-1].clone()
+        sorted_indices_to_remove[:, 0] = 0
+        
+        indices_to_remove = sorted_indices_to_remove.scatter(
+            dim=-1, index=sorted_indices, src=sorted_indices_to_remove
+        )
+        logits = logits.masked_fill(indices_to_remove, float('-inf'))
+        return logits
+    
+    def sample(self, logits: torch.Tensor) -> torch.Tensor:
+        """
+        Sample from logits with configured strategy.
+        
+        Args:
+            logits: Model output logits
+            
+        Returns:
+            Sampled token indices
+        """
+        # Apply temperature
+        logits = self.apply_temperature(logits)
+        
+        # Apply filtering
+        logits = self.top_k_filtering(logits)
+        logits = self.top_p_filtering(logits)
+        
+        # Sample
+        probs = F.softmax(logits, dim=-1)
+        return torch.multinomial(probs, num_samples=1)
+    
+    def greedy_decode(self, logits: torch.Tensor) -> torch.Tensor:
+        """Greedy decoding (argmax)."""
+        return torch.argmax(logits, dim=-1)
+    
+    def get_config(self) -> Dict[str, Any]:
+        """Get controller configuration."""
+        return {
+            'temperature': self.temperature,
+            'top_k': self.top_k,
+            'top_p': self.top_p,
+            'seed': self.seed
+        }
 
 
 class TokenSpaceNormalizer:
@@ -61,11 +165,14 @@ class TokenSpaceNormalizer:
         self.special_tokens = set()
         
         if hasattr(self.tokenizer, 'special_tokens_map'):
-            for token_type, token in self.tokenizer.special_tokens_map.items():
-                if isinstance(token, str):
-                    token_id = self.vocab.get(token)
-                    if token_id is not None:
-                        self.special_tokens.add(token_id)
+            special_tokens_map = self.tokenizer.special_tokens_map
+            # Handle both dict and Mock objects
+            if hasattr(special_tokens_map, 'items'):
+                for token_type, token in special_tokens_map.items():
+                    if isinstance(token, str):
+                        token_id = self.vocab.get(token)
+                        if token_id is not None:
+                            self.special_tokens.add(token_id)
         
         # Common special tokens
         for token in ['[PAD]', '[CLS]', '[SEP]', '[MASK]', '<s>', '</s>', '<pad>', '<unk>']:

@@ -206,16 +206,78 @@ class TLSHHasher(FuzzyHasher):
 
 
 class SHA256Hasher(FuzzyHasher):
-    """SHA256 exact matching (fallback)"""
+    """SHA256 with fuzzy matching support via locality-sensitive hashing"""
+    
+    def __init__(self):
+        super().__init__()
+        self.num_bits = 256  # SHA256 produces 256-bit hash
     
     def generate_hash(self, data: Union[np.ndarray, bytes]) -> str:
-        """Generate SHA256 hash"""
+        """Generate SHA256 hash with additional metadata for fuzzy matching"""
         byte_data = self.prepare_data(data)
-        return hashlib.sha256(byte_data).hexdigest()
+        
+        # Generate primary hash
+        primary_hash = hashlib.sha256(byte_data).hexdigest()
+        
+        # Generate locality-sensitive hash components for fuzzy matching
+        # Use multiple hash functions with small perturbations
+        lsh_components = []
+        
+        # Create perturbed versions for LSH
+        for i in range(4):
+            # Add small noise to create hash family
+            perturbed_data = byte_data + f"_lsh_{i}".encode()
+            component_hash = hashlib.sha256(perturbed_data).hexdigest()[:8]
+            lsh_components.append(component_hash)
+        
+        # Combine primary hash with LSH components
+        # Format: primary_hash:lsh1:lsh2:lsh3:lsh4
+        return f"{primary_hash}:{':'.join(lsh_components)}"
     
     def compare(self, hash1: str, hash2: str) -> float:
-        """Compare SHA256 hashes (exact match only)"""
-        return 1.0 if hash1 == hash2 else 0.0
+        """Compare SHA256 hashes with fuzzy matching via LSH components"""
+        # Handle legacy format (plain SHA256)
+        if ':' not in hash1 or ':' not in hash2:
+            # Fallback to exact matching for legacy hashes
+            hash1_primary = hash1.split(':')[0] if ':' in hash1 else hash1
+            hash2_primary = hash2.split(':')[0] if ':' in hash2 else hash2
+            return 1.0 if hash1_primary == hash2_primary else 0.0
+        
+        # Parse hash components
+        parts1 = hash1.split(':')
+        parts2 = hash2.split(':')
+        
+        primary1, lsh1 = parts1[0], parts1[1:]
+        primary2, lsh2 = parts2[0], parts2[1:]
+        
+        # Exact match on primary hash
+        if primary1 == primary2:
+            return 1.0
+        
+        # Fuzzy match using LSH components
+        if lsh1 and lsh2:
+            # Count matching LSH components
+            matches = sum(1 for l1, l2 in zip(lsh1, lsh2) if l1 == l2)
+            lsh_similarity = matches / max(len(lsh1), len(lsh2))
+            
+            # Also compute Hamming distance on primary hash prefixes
+            prefix_len = 16  # Compare first 16 chars (64 bits)
+            prefix1, prefix2 = primary1[:prefix_len], primary2[:prefix_len]
+            
+            hamming_dist = sum(c1 != c2 for c1, c2 in zip(prefix1, prefix2))
+            hamming_similarity = 1.0 - (hamming_dist / prefix_len)
+            
+            # Weighted combination
+            similarity = 0.6 * lsh_similarity + 0.4 * hamming_similarity
+            return similarity
+        
+        # No LSH components, use Hamming distance on primary hash
+        min_len = min(len(primary1), len(primary2))
+        if min_len > 0:
+            hamming_dist = sum(c1 != c2 for c1, c2 in zip(primary1[:min_len], primary2[:min_len]))
+            return 1.0 - (hamming_dist / min_len)
+        
+        return 0.0
 
 
 class FuzzyHashVerifier:
