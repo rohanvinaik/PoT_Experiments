@@ -30,12 +30,12 @@ from .utils import (
     extract_embeddings_from_logits,
     normalize_embeddings,
     create_random_hypervector,
-    hypervector_binding,
-    hypervector_bundling,
+    bind_hypervectors,
+    bundle_hypervectors,
+    reduce_dimensionality,
     compute_embedding_statistics,
-    reduce_embedding_dimension,
     plot_concept_space,
-    visualize_concept_drift
+    visualize_drift
 )
 
 from .config import (
@@ -44,6 +44,14 @@ from .config import (
     create_semantic_components,
     integrate_with_verifier,
     get_default_config
+)
+
+from .behavioral_fingerprint import (
+    BehavioralFingerprint,
+    BehaviorSnapshot,
+    FingerprintHistory,
+    ContinuousMonitor,
+    create_behavioral_monitor
 )
 
 __all__ = [
@@ -74,17 +82,24 @@ __all__ = [
     'extract_embeddings_from_logits',
     'normalize_embeddings',
     'create_random_hypervector',
-    'hypervector_binding',
-    'hypervector_bundling',
+    'bind_hypervectors',
+    'bundle_hypervectors',
+    'reduce_dimensionality',
     'compute_embedding_statistics',
-    'reduce_embedding_dimension',
     'plot_concept_space',
-    'visualize_concept_drift',
+    'visualize_drift',
     
     # Configuration
     'SemanticVerificationConfig',
     'load_semantic_config',
     'create_semantic_components',
     'integrate_with_verifier',
-    'get_default_config'
+    'get_default_config',
+    
+    # Behavioral Fingerprinting
+    'BehavioralFingerprint',
+    'BehaviorSnapshot',
+    'FingerprintHistory',
+    'ContinuousMonitor',
+    'create_behavioral_monitor'
 ]

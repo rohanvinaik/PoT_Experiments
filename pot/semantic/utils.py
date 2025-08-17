@@ -1006,6 +1006,32 @@ def plot_concept_space(library: ConceptLibrary, embeddings: Optional[torch.Tenso
     return fig
 
 
+def compute_embedding_statistics(embeddings: torch.Tensor) -> Dict[str, Any]:
+    """
+    Compute statistics for a batch of embeddings.
+    
+    Args:
+        embeddings: Batch of embeddings (n_samples, dim)
+        
+    Returns:
+        Dictionary with statistics
+    """
+    if embeddings.ndim == 1:
+        embeddings = embeddings.unsqueeze(0)
+    
+    stats = {
+        'mean': torch.mean(embeddings, dim=0),
+        'std': torch.std(embeddings, dim=0),
+        'min': torch.min(embeddings, dim=0)[0],
+        'max': torch.max(embeddings, dim=0)[0],
+        'norm_mean': torch.mean(torch.norm(embeddings, dim=1)),
+        'n_samples': embeddings.shape[0],
+        'dim': embeddings.shape[1]
+    }
+    
+    return stats
+
+
 def visualize_drift(drift_scores: List[float], timestamps: Optional[List[float]] = None,
                    threshold: float = 0.5, window_size: int = 10,
                    figsize: Tuple[int, int] = (12, 6)) -> matplotlib.figure.Figure:
