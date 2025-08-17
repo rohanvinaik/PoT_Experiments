@@ -309,6 +309,20 @@ def main():
                 json.dump(all_results, f, indent=2)
             
             print(f"\nResults saved to: {results_file}")
+            
+            # Auto-update results history
+            try:
+                import subprocess
+                print("\n🔄 Auto-updating validation results history...")
+                subprocess.run(["python3", "scripts/update_results_history.py"], 
+                              cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                              capture_output=True)
+                subprocess.run(["python3", "scripts/update_readme_metrics.py"],
+                              cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                              capture_output=True)
+                print("✅ Results history and README metrics updated")
+            except Exception as e:
+                print(f"Note: Could not auto-update results history: {e}")
         
     except Exception as e:
         print(f"\nValidation failed with error: {e}")

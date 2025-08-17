@@ -1,0 +1,457 @@
+{
+  "metadata": {
+    "created": "2025-08-17T16:41:39.916888",
+    "total_runs": 28,
+    "last_updated": "2025-08-17T16:43:06.612016"
+  },
+  "runs": [
+    {
+      "timestamp": "2025-08-17T15:54:06.118903",
+      "source_file": "reliable_validation_results_20250817_155406.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00013460053337944878,
+        "min_verification_time": 9.504954020182292e-05,
+        "max_verification_time": 0.00017380714416503906,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T15:58:20.622222",
+      "source_file": "reliable_validation_results_20250817_155820.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001689857906765408,
+        "min_verification_time": 9.401639302571614e-05,
+        "max_verification_time": 0.0002770423889160156,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:00:40.945358",
+      "source_file": "reliable_validation_results_20250817_160040.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001303884718153212,
+        "min_verification_time": 9.600321451822917e-05,
+        "max_verification_time": 0.00016999244689941406,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:04:24.442432",
+      "source_file": "reliable_validation_results_20250817_160424.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00014172659979926216,
+        "min_verification_time": 8.638699849446614e-05,
+        "max_verification_time": 0.00022482872009277344,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:05:17.340338",
+      "source_file": "reliable_validation_results_20250817_160517.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00017261505126953125,
+        "min_verification_time": 0.00011563301086425781,
+        "max_verification_time": 0.00026106834411621094,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:09:25.656963",
+      "source_file": "reliable_validation_results_20250817_160925.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001723766326904297,
+        "min_verification_time": 0.00012135505676269531,
+        "max_verification_time": 0.00026702880859375,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:11:25.483650",
+      "source_file": "reliable_validation_results_20250817_161125.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00015054808722601997,
+        "min_verification_time": 9.139378865559895e-05,
+        "max_verification_time": 0.00023603439331054688,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:12:26.370204",
+      "source_file": "reliable_validation_results_20250817_161226.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00015544891357421875,
+        "min_verification_time": 9.298324584960938e-05,
+        "max_verification_time": 0.00025010108947753906,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:14:41.852004",
+      "source_file": "reliable_validation_results_20250817_161441.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00017213821411132812,
+        "min_verification_time": 9.703636169433594e-05,
+        "max_verification_time": 0.0002830028533935547,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:14:49.777454",
+      "source_file": "reliable_validation_results_20250817_161449.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001621246337890625,
+        "min_verification_time": 9.036064147949219e-05,
+        "max_verification_time": 0.00026297569274902344,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:15:40.125258",
+      "source_file": "reliable_validation_results_20250817_161540.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00015727678934733072,
+        "min_verification_time": 9.298324584960938e-05,
+        "max_verification_time": 0.0002498626708984375,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:15:48.341977",
+      "source_file": "reliable_validation_results_20250817_161548.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001651975843641493,
+        "min_verification_time": 9.171168009440105e-05,
+        "max_verification_time": 0.0002319812774658203,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:17:12.080705",
+      "source_file": "reliable_validation_results_20250817_161712.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00017420450846354166,
+        "min_verification_time": 9.369850158691406e-05,
+        "max_verification_time": 0.0002999305725097656,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:17:29.735237",
+      "source_file": "reliable_validation_results_20250817_161729.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00012236171298556856,
+        "min_verification_time": 9.004275004069011e-05,
+        "max_verification_time": 0.0001590251922607422,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:18:10.244754",
+      "source_file": "reliable_validation_results_20250817_161810.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00014395183987087675,
+        "min_verification_time": 8.757909138997395e-05,
+        "max_verification_time": 0.0002281665802001953,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:18:28.419094",
+      "source_file": "reliable_validation_results_20250817_161828.json",
+      "validation_type": "deterministic",
+      "seed": 42,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00012167294820149739,
+        "min_verification_time": 8.797645568847656e-05,
+        "max_verification_time": 0.00015997886657714844,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:39:54.750844",
+      "source_file": "reliable_validation_results_20250817_163954.json",
+      "validation_type": "deterministic",
+      "seed": 9630,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00012236171298556856,
+        "min_verification_time": 8.598963419596355e-05,
+        "max_verification_time": 0.00015997886657714844,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:41:58.936738",
+      "source_file": "reliable_validation_results_20250817_164158.json",
+      "validation_type": "deterministic",
+      "seed": 2499,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001499387953016493,
+        "min_verification_time": 8.765856424967448e-05,
+        "max_verification_time": 0.00019693374633789062,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-17T16:43:06.536607",
+      "source_file": "reliable_validation_results_20250817_164306.json",
+      "validation_type": "deterministic",
+      "seed": 2484,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00015205807156032987,
+        "min_verification_time": 8.900960286458333e-05,
+        "max_verification_time": 0.00019598007202148438,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "20250817_151611",
+      "source_file": "experimental_results/validation_results_20250817_151611.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 0,
+      "metrics": {
+        "success_rate": 0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 0
+      }
+    },
+    {
+      "timestamp": "20250817_151657",
+      "source_file": "experimental_results/validation_results_20250817_151657.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 0,
+      "metrics": {
+        "success_rate": 0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 0
+      }
+    },
+    {
+      "timestamp": "20250817_152215",
+      "source_file": "experimental_results/validation_results_20250817_152215.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 0,
+      "metrics": {
+        "success_rate": 0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 0
+      }
+    },
+    {
+      "timestamp": "20250817_154719",
+      "source_file": "experimental_results/validation_results_20250817_154719.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    },
+    {
+      "timestamp": "20250817_155000",
+      "source_file": "experimental_results/validation_results_20250817_155000.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    },
+    {
+      "timestamp": "20250817_155521",
+      "source_file": "experimental_results/validation_results_20250817_155521.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    },
+    {
+      "timestamp": "20250817_160513",
+      "source_file": "experimental_results/validation_results_20250817_160513.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    },
+    {
+      "timestamp": "20250817_161122",
+      "source_file": "experimental_results/validation_results_20250817_161122.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    },
+    {
+      "timestamp": "20250817_164155",
+      "source_file": "experimental_results/validation_results_20250817_164155.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
+    }
+  ],
+  "statistics": {
+    "deterministic": {
+      "total_runs": 19,
+      "avg_success_rate": 1.0,
+      "success_rate_std": 0.0,
+      "avg_verification_time": 0.0001510514153374566,
+      "verification_time_std": 1.8180700009684e-05,
+      "avg_confidence": 1.0,
+      "min_verification_time": 0.00012167294820149739,
+      "max_verification_time": 0.00017420450846354166,
+      "recent_10_success_rate": 1.0
+    },
+    "legacy": {
+      "total_runs": 9,
+      "avg_success_rate": 0.6666666666666666,
+      "success_rate_std": 0.5,
+      "recent_10_success_rate": 0.6666666666666666
+    },
+    "overall": {
+      "total_runs": 28,
+      "avg_success_rate": 0.8928571428571429,
+      "avg_verification_time": 0.0001510514153374566,
+      "date_range": {
+        "earliest": "2025-08-17T15:54:06.118903",
+        "latest": "20250817_164155"
+      }
+    }
+  }
+}
