@@ -1,339 +1,844 @@
 """
-Fuzzy hashing for language models with n-gram approach
-Based on Definition 1 from paper Section 3.1
-
-Handles tokenization variability by computing hashes over token n-grams
+Fuzzy Hashing Components for Language Model Verification
+Implements similarity-preserving hash functions for efficient text comparison
 """
 
 import hashlib
-import xxhash
-from typing import List, Set, Dict, Tuple, Optional
-from collections import Counter
+import struct
+from typing import List, Dict, Any, Optional, Set, Tuple, Union
+from collections import defaultdict
 import numpy as np
 
-try:
-    import ssdeep
-    SSDEEP_AVAILABLE = True
-except ImportError:
-    SSDEEP_AVAILABLE = False
 
-try:
-    import tlsh
-    TLSH_AVAILABLE = True
-except ImportError:
-    TLSH_AVAILABLE = False
-
-
-class NGramFuzzyHasher:
+class FuzzyHasher:
     """
-    Token-Level Fuzzy Hash implementation from paper Definition 1
-    
-    For token sequence s = [t_1, ..., t_k]:
-    H_fuzzy(s) = {h(n-gram) : n-gram ∈ s, n ∈ {2,3,4}}
-    
-    This handles tokenization variability in language models
+    Fuzzy hasher for similarity-preserving hashing.
+    Supports multiple hash algorithms for different use cases.
     """
     
-    def __init__(self, n_values: List[int] = [2, 3, 4], 
-                 hash_func: str = 'xxhash'):
+    def __init__(self, hash_type: str = 'simhash'):
         """
-        Initialize n-gram fuzzy hasher
+        Initialize fuzzy hasher for similarity-preserving hashing.
         
         Args:
-            n_values: List of n-gram sizes to use (default: [2,3,4] from paper)
-            hash_func: Hash function to use ('xxhash', 'sha256', 'md5')
+            hash_type: Type of hash - 'ssdeep', 'tlsh', 'simhash', 'minhash'
         """
-        self.n_values = n_values
-        self.hash_func = hash_func
+        self.hash_type = hash_type
         
-    def _hash_ngram(self, ngram: Tuple[int, ...]) -> str:
-        """Hash a single n-gram"""
-        # Convert tuple of token IDs to bytes
-        ngram_bytes = b''.join(t.to_bytes(4, 'big') for t in ngram)
+        # Initialize parameters based on hash type
+        if hash_type == 'minhash':
+            self.num_hashes = 128
+            self._init_minhash_functions()
+        elif hash_type == 'simhash':
+            self.hash_bits = 64
+        elif hash_type == 'ssdeep':
+            self.block_size_min = 3
+            self.spamsum_length = 64
+        elif hash_type == 'tlsh':
+            self.bucket_count = 256
+            self.checksum_length = 1
+    
+    def compute_hash(self, text: str) -> Union[str, int, List[int]]:
+        """
+        Compute fuzzy hash of text.
         
-        if self.hash_func == 'xxhash':
-            return xxhash.xxh3_64_hexdigest(ngram_bytes)
-        elif self.hash_func == 'sha256':
-            return hashlib.sha256(ngram_bytes).hexdigest()[:16]
-        elif self.hash_func == 'md5':
-            return hashlib.md5(ngram_bytes).hexdigest()[:16]
+        Args:
+            text: Input text
+            
+        Returns:
+            Hash value (format depends on hash_type)
+        """
+        if not text:
+            return self._empty_hash()
+        
+        if self.hash_type == 'ssdeep':
+            return self._ssdeep_hash(text)
+        elif self.hash_type == 'tlsh':
+            return self._tlsh_hash(text)
+        elif self.hash_type == 'simhash':
+            return self._simhash(text)
+        elif self.hash_type == 'minhash':
+            return self._minhash(text)
         else:
-            raise ValueError(f"Unknown hash function: {self.hash_func}")
+            raise ValueError(f"Unknown hash type: {self.hash_type}")
     
-    def extract_ngrams(self, tokens: List[int], n: int) -> List[Tuple[int, ...]]:
-        """Extract all n-grams from token sequence"""
-        if len(tokens) < n:
-            return []
-        return [tuple(tokens[i:i+n]) for i in range(len(tokens) - n + 1)]
-    
-    def compute_fuzzy_hash(self, tokens: List[int]) -> Set[str]:
-        """
-        Compute fuzzy hash for token sequence
-        
-        Args:
-            tokens: List of token IDs
-            
-        Returns:
-            Set of n-gram hashes
-        """
-        hashes = set()
-        
-        for n in self.n_values:
-            ngrams = self.extract_ngrams(tokens, n)
-            for ngram in ngrams:
-                hashes.add(self._hash_ngram(ngram))
-        
-        return hashes
-    
-    def jaccard_similarity(self, hash1: Set[str], hash2: Set[str]) -> float:
-        """
-        Compute Jaccard similarity between two fuzzy hashes
-        
-        J(H1, H2) = |H1 ∩ H2| / |H1 ∪ H2|
-        """
-        if not hash1 and not hash2:
-            return 1.0
-        if not hash1 or not hash2:
-            return 0.0
-        
-        intersection = len(hash1 & hash2)
-        union = len(hash1 | hash2)
-        
-        return intersection / union if union > 0 else 0.0
-    
-    def containment_similarity(self, hash1: Set[str], hash2: Set[str]) -> float:
-        """
-        Compute containment similarity (asymmetric)
-        
-        C(H1, H2) = |H1 ∩ H2| / |H1|
-        
-        Useful for checking if one output contains another
-        """
-        if not hash1:
-            return 0.0 if hash2 else 1.0
-        
-        intersection = len(hash1 & hash2)
-        return intersection / len(hash1)
-    
-    def weighted_similarity(self, tokens1: List[int], tokens2: List[int]) -> float:
-        """
-        Compute weighted similarity considering n-gram frequencies
-        """
-        # Count n-gram frequencies
-        freq1 = Counter()
-        freq2 = Counter()
-        
-        for n in self.n_values:
-            for ngram in self.extract_ngrams(tokens1, n):
-                freq1[self._hash_ngram(ngram)] += 1
-            for ngram in self.extract_ngrams(tokens2, n):
-                freq2[self._hash_ngram(ngram)] += 1
-        
-        # Compute weighted Jaccard
-        all_hashes = set(freq1.keys()) | set(freq2.keys())
-        if not all_hashes:
-            return 1.0
-        
-        intersection_weight = sum(min(freq1[h], freq2[h]) for h in all_hashes)
-        union_weight = sum(max(freq1[h], freq2[h]) for h in all_hashes)
-        
-        return intersection_weight / union_weight if union_weight > 0 else 0.0
-
-
-class TokenSpaceNormalizer:
-    """
-    Handle tokenization variability in language models
-    Implements fuzzy matching from paper Section 3.1
-    """
-    
-    def __init__(self, tokenizer=None):
-        """
-        Initialize normalizer
-        
-        Args:
-            tokenizer: HuggingFace tokenizer instance
-        """
-        self.tokenizer = tokenizer
-        self.fuzzy_hasher = NGramFuzzyHasher()
-        
-    def normalize_tokens(self, tokens: List[int]) -> List[int]:
-        """
-        Normalize token sequence for comparison
-        
-        - Remove padding tokens
-        - Handle special tokens consistently
-        - Optionally merge split tokens
-        """
-        if not self.tokenizer:
-            # Basic normalization without tokenizer
-            return [t for t in tokens if t != 0]  # Remove padding (assumed 0)
-        
-        # Remove padding and special tokens
-        normalized = []
-        for token_id in tokens:
-            if token_id == self.tokenizer.pad_token_id:
-                continue
-            if token_id in [self.tokenizer.bos_token_id, 
-                           self.tokenizer.eos_token_id]:
-                continue  # Optionally keep these
-            normalized.append(token_id)
-        
-        return normalized
-    
-    def compute_distance(self, tokens1: List[int], tokens2: List[int], 
-                        method: str = 'fuzzy') -> float:
-        """
-        Compute distance between token sequences
-        
-        Args:
-            tokens1: First token sequence
-            tokens2: Second token sequence  
-            method: 'fuzzy', 'exact', 'weighted'
-            
-        Returns:
-            Distance in [0, 1] where 0 = identical
-        """
-        # Normalize both sequences
-        norm1 = self.normalize_tokens(tokens1)
-        norm2 = self.normalize_tokens(tokens2)
-        
-        if method == 'exact':
-            # Exact match
-            return 0.0 if norm1 == norm2 else 1.0
-            
-        elif method == 'fuzzy':
-            # Fuzzy hash based similarity
-            hash1 = self.fuzzy_hasher.compute_fuzzy_hash(norm1)
-            hash2 = self.fuzzy_hasher.compute_fuzzy_hash(norm2)
-            similarity = self.fuzzy_hasher.jaccard_similarity(hash1, hash2)
-            return 1.0 - similarity
-            
-        elif method == 'weighted':
-            # Weighted n-gram similarity
-            similarity = self.fuzzy_hasher.weighted_similarity(norm1, norm2)
-            return 1.0 - similarity
-            
+    def _empty_hash(self) -> Union[str, int, List[int]]:
+        """Return empty hash for the current hash type."""
+        if self.hash_type == 'minhash':
+            return [0] * self.num_hashes
+        elif self.hash_type == 'simhash':
+            return 0
         else:
-            raise ValueError(f"Unknown method: {method}")
+            return ''
     
-    def is_equivalent(self, tokens1: List[int], tokens2: List[int], 
-                      threshold: float = 0.1) -> bool:
+    def _ssdeep_hash(self, text: str) -> str:
         """
-        Check if two token sequences are equivalent under fuzzy matching
+        Context-triggered piecewise hashing (simplified SSDeep).
         
         Args:
-            tokens1: First token sequence
-            tokens2: Second token sequence
-            threshold: Maximum distance for equivalence
+            text: Input text
             
         Returns:
-            True if sequences are equivalent
+            SSDeep-style hash string
         """
-        distance = self.compute_distance(tokens1, tokens2, method='fuzzy')
-        return distance <= threshold
-
-
-class AdvancedFuzzyHasher:
-    """
-    Advanced fuzzy hashing using ssdeep and TLSH libraries
-    Provides stronger locality-sensitive hashing
-    """
-    
-    def __init__(self):
-        self.ssdeep_available = SSDEEP_AVAILABLE
-        self.tlsh_available = TLSH_AVAILABLE
+        # Compute block size based on text length
+        block_size = self._compute_block_size(len(text))
         
-        if not self.ssdeep_available and not self.tlsh_available:
-            raise ImportError("Neither ssdeep nor tlsh is available. "
-                            "Install with: pip install ssdeep py-tlsh")
-    
-    def tokens_to_bytes(self, tokens: List[int]) -> bytes:
-        """Convert token list to bytes for hashing"""
-        # Pack tokens as 4-byte integers
-        return b''.join(t.to_bytes(4, 'big') for t in tokens)
-    
-    def compute_ssdeep(self, tokens: List[int]) -> Optional[str]:
-        """Compute ssdeep fuzzy hash"""
-        if not self.ssdeep_available:
-            return None
+        # Get rolling hash chunks
+        chunks = self._rolling_hash_chunks(text, block_size)
         
-        data = self.tokens_to_bytes(tokens)
-        return ssdeep.hash(data)
+        # Encode chunks
+        hash_string = self._encode_chunks(chunks)
+        
+        # Format: block_size:hash1:hash2
+        # We'll use a simplified version with just one hash
+        return f"{block_size}:{hash_string}"
     
-    def compute_tlsh(self, tokens: List[int]) -> Optional[str]:
-        """Compute TLSH fuzzy hash"""
-        if not self.tlsh_available:
-            return None
+    def _compute_block_size(self, text_length: int) -> int:
+        """
+        Compute appropriate block size for SSDeep.
         
-        data = self.tokens_to_bytes(tokens)
+        Args:
+            text_length: Length of input text
+            
+        Returns:
+            Block size
+        """
+        block_size = self.block_size_min
         
-        # TLSH requires minimum data size
-        if len(data) < 50:
-            # Pad with zeros if too small
-            data = data + b'\x00' * (50 - len(data))
+        while block_size * self.spamsum_length < text_length:
+            block_size *= 2
         
-        h = tlsh.hash(data)
-        # TLSH returns the string 'TNULL' when the input lacks sufficient
-        # diversity. Treat this as a missing hash so downstream comparisons
-        # can gracefully skip TLSH rather than raising errors.
-        if not h or h == "TNULL":
-            return None
-        return h
+        return block_size
     
-    def compare_ssdeep(self, hash1: str, hash2: str) -> float:
-        """Compare two ssdeep hashes (0-100 similarity score)"""
-        if not self.ssdeep_available:
+    def _rolling_hash_chunks(self, text: str, block_size: int) -> List[int]:
+        """
+        Generate chunks using rolling hash with context triggers.
+        
+        Args:
+            text: Input text
+            block_size: Size of blocks
+            
+        Returns:
+            List of chunk hashes
+        """
+        chunks = []
+        rolling_hash = 0
+        trigger = block_size
+        
+        for i, char in enumerate(text):
+            # Update rolling hash
+            rolling_hash = (rolling_hash * 7 + ord(char)) % (2**32)
+            
+            # Check for context trigger
+            if rolling_hash % trigger == trigger - 1:
+                # Store chunk hash
+                chunk_data = text[max(0, i - block_size):i + 1]
+                chunk_hash = hash(chunk_data) % 64
+                chunks.append(chunk_hash)
+        
+        # Ensure we have at least some chunks
+        if not chunks:
+            for i in range(0, len(text), block_size):
+                chunk = text[i:i + block_size]
+                if chunk:
+                    chunks.append(hash(chunk) % 64)
+        
+        return chunks[:self.spamsum_length]
+    
+    def _encode_chunks(self, chunks: List[int]) -> str:
+        """
+        Encode chunk hashes as base64-like string.
+        
+        Args:
+            chunks: List of chunk hashes
+            
+        Returns:
+            Encoded string
+        """
+        # Base64-like alphabet for encoding
+        alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+        
+        encoded = ''.join(alphabet[c % 64] for c in chunks)
+        return encoded
+    
+    def _tlsh_hash(self, text: str) -> str:
+        """
+        Compute TLSH (Trend Micro Locality Sensitive Hash).
+        Simplified implementation.
+        
+        Args:
+            text: Input text
+            
+        Returns:
+            TLSH hash string
+        """
+        # Extract trigrams
+        trigrams = self._get_trigrams(text)
+        
+        # Build histogram
+        buckets = [0] * self.bucket_count
+        for trigram in trigrams:
+            bucket_idx = hash(trigram) % self.bucket_count
+            buckets[bucket_idx] = min(buckets[bucket_idx] + 1, 255)
+        
+        # Compute quartiles
+        sorted_buckets = sorted(buckets)
+        q1 = sorted_buckets[len(sorted_buckets) // 4]
+        q2 = sorted_buckets[len(sorted_buckets) // 2]
+        q3 = sorted_buckets[3 * len(sorted_buckets) // 4]
+        
+        # Generate hash body
+        hash_body = []
+        for i in range(0, self.bucket_count, 4):
+            nibble = 0
+            for j in range(4):
+                if i + j < self.bucket_count:
+                    bucket_val = buckets[i + j]
+                    if bucket_val <= q1:
+                        bit_val = 0
+                    elif bucket_val <= q2:
+                        bit_val = 1
+                    elif bucket_val <= q3:
+                        bit_val = 2
+                    else:
+                        bit_val = 3
+                    nibble |= (bit_val << (2 * j))
+            hash_body.append(nibble)
+        
+        # Convert to hex string
+        hex_string = ''.join(f'{b:02x}' for b in hash_body)
+        
+        # Add checksum and length
+        checksum = sum(buckets) % 256
+        length_byte = min(len(text) // 256, 255)
+        
+        return f"{checksum:02x}{length_byte:02x}{hex_string}"
+    
+    def _get_trigrams(self, text: str) -> List[str]:
+        """Extract trigrams from text."""
+        trigrams = []
+        for i in range(len(text) - 2):
+            trigrams.append(text[i:i + 3])
+        return trigrams
+    
+    def _simhash(self, text: str, hash_bits: int = 64) -> int:
+        """
+        Compute SimHash for near-duplicate detection.
+        
+        Args:
+            text: Input text
+            hash_bits: Number of bits in hash
+            
+        Returns:
+            SimHash value as integer
+        """
+        if hash_bits != 64:
+            self.hash_bits = hash_bits
+        
+        # Extract features (words or shingles)
+        features = self._extract_features(text)
+        
+        if not features:
+            return 0
+        
+        # Initialize hash vector
+        v = [0] * self.hash_bits
+        
+        for feature in features:
+            # Get feature hash
+            feature_hash = int(hashlib.md5(feature.encode()).hexdigest(), 16)
+            
+            # Update vector based on hash bits
+            for i in range(self.hash_bits):
+                bit = (feature_hash >> i) & 1
+                if bit:
+                    v[i] += 1
+                else:
+                    v[i] -= 1
+        
+        # Generate final hash
+        simhash = 0
+        for i in range(self.hash_bits):
+            if v[i] > 0:
+                simhash |= (1 << i)
+        
+        return simhash
+    
+    def _extract_features(self, text: str, k: int = 2) -> List[str]:
+        """
+        Extract features from text for hashing.
+        
+        Args:
+            text: Input text
+            k: Size of shingles
+            
+        Returns:
+            List of features
+        """
+        # Use words as features for simplicity
+        words = text.lower().split()
+        
+        if len(words) <= k:
+            return words
+        
+        # Create k-shingles from words
+        features = []
+        for i in range(len(words) - k + 1):
+            shingle = ' '.join(words[i:i + k])
+            features.append(shingle)
+        
+        return features
+    
+    def _init_minhash_functions(self):
+        """Initialize hash functions for MinHash."""
+        self.hash_functions = []
+        
+        # Generate hash function parameters
+        # Using universal hashing: h(x) = (a*x + b) mod p
+        self.prime = 2**31 - 1  # Large prime
+        
+        for i in range(self.num_hashes):
+            # Generate random parameters
+            np.random.seed(i)
+            a = np.random.randint(1, self.prime)
+            b = np.random.randint(0, self.prime)
+            self.hash_functions.append((a, b))
+    
+    def _generate_hash_functions(self, num_hashes: int) -> List[callable]:
+        """
+        Generate hash functions for MinHash.
+        
+        Args:
+            num_hashes: Number of hash functions
+            
+        Returns:
+            List of hash functions
+        """
+        functions = []
+        
+        for a, b in self.hash_functions[:num_hashes]:
+            def hash_func(x, a=a, b=b):
+                # Convert to integer if string
+                if isinstance(x, str):
+                    x = int(hashlib.md5(x.encode()).hexdigest()[:8], 16)
+                return (a * x + b) % self.prime
+            
+            functions.append(hash_func)
+        
+        return functions
+    
+    def _minhash(self, text: str, num_hashes: Optional[int] = None) -> List[int]:
+        """
+        Compute MinHash signature.
+        
+        Args:
+            text: Input text
+            num_hashes: Number of hash functions to use
+            
+        Returns:
+            MinHash signature
+        """
+        if num_hashes is None:
+            num_hashes = self.num_hashes
+        
+        # Get shingles
+        shingles = self._get_shingles(text, k=3)
+        
+        if not shingles:
+            return [0] * num_hashes
+        
+        # Generate hash functions
+        hash_funcs = self._generate_hash_functions(num_hashes)
+        
+        # Compute minimum hash for each function
+        signature = []
+        for hash_func in hash_funcs:
+            min_hash = float('inf')
+            for shingle in shingles:
+                h = hash_func(shingle)
+                min_hash = min(min_hash, h)
+            signature.append(int(min_hash))
+        
+        return signature
+    
+    def _get_shingles(self, text: str, k: int = 3) -> Set[str]:
+        """
+        Get k-shingles from text.
+        
+        Args:
+            text: Input text
+            k: Shingle size
+            
+        Returns:
+            Set of shingles
+        """
+        if len(text) < k:
+            return {text}
+        
+        shingles = set()
+        for i in range(len(text) - k + 1):
+            shingles.add(text[i:i + k])
+        
+        return shingles
+    
+    def compare_hashes(self, hash1: Any, hash2: Any) -> float:
+        """
+        Compare two fuzzy hashes and return similarity score.
+        
+        Args:
+            hash1: First hash
+            hash2: Second hash
+            
+        Returns:
+            Similarity score in [0, 1]
+        """
+        if hash1 is None or hash2 is None:
             return 0.0
         
-        score = ssdeep.compare(hash1, hash2)
-        return score / 100.0  # Normalize to [0, 1]
-    
-    def compare_tlsh(self, hash1: str, hash2: str) -> float:
-        """Compare two TLSH hashes (lower distance = more similar)"""
-        if not self.tlsh_available:
-            return 1.0
-        
-        # TLSH diff returns distance (0 = identical, higher = more different)
-        # We normalize to a similarity score. Invalid hashes can raise
-        # ValueError, so we treat those cases as maximal distance (similarity 0).
-        try:
-            distance = tlsh.diff(hash1, hash2)
-        except ValueError:
+        if self.hash_type == 'ssdeep':
+            return self._ssdeep_compare(hash1, hash2)
+        elif self.hash_type == 'tlsh':
+            return self._tlsh_compare(hash1, hash2)
+        elif self.hash_type == 'simhash':
+            return self._hamming_similarity(hash1, hash2)
+        elif self.hash_type == 'minhash':
+            return self._jaccard_similarity(hash1, hash2)
+        else:
             return 0.0
-
-        # Convert distance to similarity (rough approximation)
-        # TLSH distances can be 0-400+, we cap at 200 for normalization
-        max_distance = 200
-        similarity = max(0, 1 - (distance / max_distance))
-
+    
+    def _ssdeep_compare(self, hash1: str, hash2: str) -> float:
+        """
+        Compare SSDeep hashes.
+        
+        Args:
+            hash1: First SSDeep hash
+            hash2: Second SSDeep hash
+            
+        Returns:
+            Similarity score
+        """
+        # Parse hashes
+        parts1 = hash1.split(':')
+        parts2 = hash2.split(':')
+        
+        if len(parts1) < 2 or len(parts2) < 2:
+            return 0.0
+        
+        block_size1 = int(parts1[0])
+        block_size2 = int(parts2[0])
+        
+        # Block sizes should be similar
+        if abs(block_size1 - block_size2) > max(block_size1, block_size2) // 2:
+            return 0.0
+        
+        # Compare hash strings
+        hash_str1 = parts1[1]
+        hash_str2 = parts2[1]
+        
+        # Use Longest Common Substring
+        return self._longest_common_substring_ratio(hash_str1, hash_str2)
+    
+    def _tlsh_compare(self, hash1: str, hash2: str) -> float:
+        """
+        Compare TLSH hashes.
+        
+        Args:
+            hash1: First TLSH hash
+            hash2: Second TLSH hash
+            
+        Returns:
+            Similarity score
+        """
+        if len(hash1) != len(hash2):
+            return 0.0
+        
+        # Compute Hamming distance
+        distance = sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+        
+        # Convert to similarity
+        max_distance = len(hash1)
+        similarity = 1.0 - (distance / max_distance)
+        
         return similarity
     
-    def compute_combined_similarity(self, tokens1: List[int], 
-                                   tokens2: List[int]) -> Dict[str, float]:
+    def _hamming_similarity(self, hash1: int, hash2: int) -> float:
         """
-        Compute similarity using all available methods
+        Compute Hamming similarity between SimHash values.
         
+        Args:
+            hash1: First SimHash
+            hash2: Second SimHash
+            
         Returns:
-            Dictionary with similarity scores for each method
+            Similarity score
         """
-        results = {}
+        # XOR to find different bits
+        xor = hash1 ^ hash2
         
-        if self.ssdeep_available:
-            hash1 = self.compute_ssdeep(tokens1)
-            hash2 = self.compute_ssdeep(tokens2)
-            if hash1 and hash2:
-                results['ssdeep'] = self.compare_ssdeep(hash1, hash2)
+        # Count different bits (Hamming distance)
+        distance = bin(xor).count('1')
         
-        if self.tlsh_available:
-            hash1 = self.compute_tlsh(tokens1)
-            hash2 = self.compute_tlsh(tokens2)
-            if hash1 and hash2:
-                results['tlsh'] = self.compare_tlsh(hash1, hash2)
+        # Convert to similarity
+        similarity = 1.0 - (distance / self.hash_bits)
         
-        # Also compute n-gram based similarity
-        hasher = NGramFuzzyHasher()
-        h1 = hasher.compute_fuzzy_hash(tokens1)
-        h2 = hasher.compute_fuzzy_hash(tokens2)
-        results['ngram'] = hasher.jaccard_similarity(h1, h2)
+        return similarity
+    
+    def _jaccard_similarity(self, sig1: List[int], sig2: List[int]) -> float:
+        """
+        Estimate Jaccard similarity from MinHash signatures.
+        
+        Args:
+            sig1: First MinHash signature
+            sig2: Second MinHash signature
+            
+        Returns:
+            Estimated Jaccard similarity
+        """
+        if len(sig1) != len(sig2):
+            return 0.0
+        
+        if not sig1:
+            return 1.0
+        
+        # Count matching hash values
+        matches = sum(h1 == h2 for h1, h2 in zip(sig1, sig2))
+        
+        # Estimate Jaccard similarity
+        similarity = matches / len(sig1)
+        
+        return similarity
+    
+    def _longest_common_substring_ratio(self, s1: str, s2: str) -> float:
+        """
+        Compute ratio based on longest common substring.
+        
+        Args:
+            s1: First string
+            s2: Second string
+            
+        Returns:
+            Similarity ratio
+        """
+        if not s1 or not s2:
+            return 0.0
+        
+        # Dynamic programming for LCS
+        m, n = len(s1), len(s2)
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+        max_length = 0
+        
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if s1[i-1] == s2[j-1]:
+                    dp[i][j] = dp[i-1][j-1] + 1
+                    max_length = max(max_length, dp[i][j])
+        
+        # Compute ratio
+        avg_length = (len(s1) + len(s2)) / 2
+        ratio = max_length / avg_length if avg_length > 0 else 0.0
+        
+        return min(ratio * 2, 1.0)  # Scale up and cap at 1.0
+
+
+class LocalitySensitiveHash:
+    """
+    Locality-Sensitive Hashing for efficient similarity search.
+    """
+    
+    def __init__(self, num_bands: int = 20, rows_per_band: int = 5):
+        """
+        Initialize LSH for approximate nearest neighbor search.
+        
+        Args:
+            num_bands: Number of bands for hashing
+            rows_per_band: Number of rows (hash values) per band
+        """
+        self.num_bands = num_bands
+        self.rows_per_band = rows_per_band
+        self.num_hashes = num_bands * rows_per_band
+        self.buckets = defaultdict(list)
+        self.signatures = {}  # Store signatures for retrieval
+    
+    def index(self, doc_id: str, minhash_signature: List[int]) -> None:
+        """
+        Index document using LSH.
+        
+        Args:
+            doc_id: Document identifier
+            minhash_signature: MinHash signature of document
+        """
+        if len(minhash_signature) != self.num_hashes:
+            raise ValueError(f"Signature must have {self.num_hashes} hash values")
+        
+        # Store signature
+        self.signatures[doc_id] = minhash_signature
+        
+        # Hash into bands
+        for band_idx in range(self.num_bands):
+            start = band_idx * self.rows_per_band
+            end = start + self.rows_per_band
+            band = tuple(minhash_signature[start:end])
+            
+            # Hash band to bucket
+            bucket_id = hash(band)
+            self.buckets[bucket_id].append(doc_id)
+    
+    def query(self, minhash_signature: List[int], 
+             return_similarities: bool = False) -> Union[Set[str], List[Tuple[str, float]]]:
+        """
+        Find similar documents.
+        
+        Args:
+            minhash_signature: MinHash signature to query
+            return_similarities: If True, return (doc_id, similarity) pairs
+            
+        Returns:
+            Set of candidate document IDs or list of (doc_id, similarity) pairs
+        """
+        if len(minhash_signature) != self.num_hashes:
+            raise ValueError(f"Signature must have {self.num_hashes} hash values")
+        
+        candidates = set()
+        
+        # Check each band
+        for band_idx in range(self.num_bands):
+            start = band_idx * self.rows_per_band
+            end = start + self.rows_per_band
+            band = tuple(minhash_signature[start:end])
+            
+            # Look up bucket
+            bucket_id = hash(band)
+            if bucket_id in self.buckets:
+                candidates.update(self.buckets[bucket_id])
+        
+        if not return_similarities:
+            return candidates
+        
+        # Compute actual similarities
+        results = []
+        for doc_id in candidates:
+            stored_sig = self.signatures[doc_id]
+            similarity = self._estimate_jaccard(minhash_signature, stored_sig)
+            results.append((doc_id, similarity))
+        
+        # Sort by similarity
+        results.sort(key=lambda x: x[1], reverse=True)
         
         return results
+    
+    def _estimate_jaccard(self, sig1: List[int], sig2: List[int]) -> float:
+        """
+        Estimate Jaccard similarity from signatures.
+        
+        Args:
+            sig1: First signature
+            sig2: Second signature
+            
+        Returns:
+            Estimated Jaccard similarity
+        """
+        if len(sig1) != len(sig2):
+            return 0.0
+        
+        matches = sum(h1 == h2 for h1, h2 in zip(sig1, sig2))
+        return matches / len(sig1)
+    
+    def remove(self, doc_id: str) -> bool:
+        """
+        Remove document from index.
+        
+        Args:
+            doc_id: Document identifier
+            
+        Returns:
+            True if document was removed, False if not found
+        """
+        if doc_id not in self.signatures:
+            return False
+        
+        signature = self.signatures[doc_id]
+        
+        # Remove from all buckets
+        for band_idx in range(self.num_bands):
+            start = band_idx * self.rows_per_band
+            end = start + self.rows_per_band
+            band = tuple(signature[start:end])
+            
+            bucket_id = hash(band)
+            if bucket_id in self.buckets and doc_id in self.buckets[bucket_id]:
+                self.buckets[bucket_id].remove(doc_id)
+                
+                # Clean up empty buckets
+                if not self.buckets[bucket_id]:
+                    del self.buckets[bucket_id]
+        
+        # Remove signature
+        del self.signatures[doc_id]
+        
+        return True
+    
+    def clear(self):
+        """Clear all indexed documents."""
+        self.buckets.clear()
+        self.signatures.clear()
+    
+    def get_signature(self, doc_id: str) -> Optional[List[int]]:
+        """
+        Get stored signature for a document.
+        
+        Args:
+            doc_id: Document identifier
+            
+        Returns:
+            MinHash signature or None if not found
+        """
+        return self.signatures.get(doc_id)
+    
+    def size(self) -> int:
+        """Get number of indexed documents."""
+        return len(self.signatures)
+    
+    def get_collision_probability(self, similarity: float) -> float:
+        """
+        Calculate probability of collision for given similarity.
+        
+        Args:
+            similarity: Jaccard similarity
+            
+        Returns:
+            Probability of documents being candidates
+        """
+        # Probability = 1 - (1 - s^r)^b
+        # where s = similarity, r = rows_per_band, b = num_bands
+        prob_not_in_band = 1 - (similarity ** self.rows_per_band)
+        prob_not_candidate = prob_not_in_band ** self.num_bands
+        prob_candidate = 1 - prob_not_candidate
+        
+        return prob_candidate
+
+
+# Utility functions
+def compute_text_hashes(text: str, 
+                       hash_types: List[str] = None) -> Dict[str, Any]:
+    """
+    Compute multiple hash types for a text.
+    
+    Args:
+        text: Input text
+        hash_types: List of hash types to compute (default: all)
+        
+    Returns:
+        Dictionary of hash type to hash value
+    """
+    if hash_types is None:
+        hash_types = ['simhash', 'minhash', 'ssdeep']
+    
+    results = {}
+    
+    for hash_type in hash_types:
+        hasher = FuzzyHasher(hash_type=hash_type)
+        hash_value = hasher.compute_hash(text)
+        results[hash_type] = hash_value
+    
+    return results
+
+
+def find_near_duplicates(texts: List[str],
+                        threshold: float = 0.8,
+                        hash_type: str = 'minhash',
+                        use_lsh: bool = True) -> List[Tuple[int, int, float]]:
+    """
+    Find near-duplicate texts using fuzzy hashing.
+    
+    Args:
+        texts: List of texts
+        threshold: Similarity threshold
+        hash_type: Type of hash to use
+        use_lsh: Whether to use LSH for efficiency
+        
+    Returns:
+        List of (index1, index2, similarity) tuples for near-duplicates
+    """
+    if not texts:
+        return []
+    
+    hasher = FuzzyHasher(hash_type=hash_type)
+    
+    # Compute hashes
+    hashes = []
+    for text in texts:
+        hash_value = hasher.compute_hash(text)
+        hashes.append(hash_value)
+    
+    duplicates = []
+    
+    if use_lsh and hash_type == 'minhash':
+        # Use LSH for efficient search
+        # Match the number of hashes from MinHash (128 = 16 * 8)
+        lsh = LocalitySensitiveHash(num_bands=16, rows_per_band=8)
+        
+        # Index all documents
+        for i, signature in enumerate(hashes):
+            lsh.index(str(i), signature)
+        
+        # Query each document
+        for i, signature in enumerate(hashes):
+            candidates = lsh.query(signature, return_similarities=True)
+            
+            for doc_id_str, similarity in candidates:
+                j = int(doc_id_str)
+                if j > i and similarity >= threshold:
+                    duplicates.append((i, j, similarity))
+    else:
+        # Brute force comparison
+        for i in range(len(hashes)):
+            for j in range(i + 1, len(hashes)):
+                similarity = hasher.compare_hashes(hashes[i], hashes[j])
+                if similarity >= threshold:
+                    duplicates.append((i, j, similarity))
+    
+    return duplicates
+
+
+def cluster_by_similarity(texts: List[str],
+                         threshold: float = 0.7,
+                         hash_type: str = 'minhash') -> List[Set[int]]:
+    """
+    Cluster texts by similarity using fuzzy hashing.
+    
+    Args:
+        texts: List of texts
+        threshold: Similarity threshold for clustering
+        hash_type: Type of hash to use
+        
+    Returns:
+        List of clusters (each cluster is a set of text indices)
+    """
+    # Find near duplicates
+    duplicates = find_near_duplicates(texts, threshold, hash_type)
+    
+    # Build clusters using union-find
+    parent = list(range(len(texts)))
+    
+    def find(x):
+        if parent[x] != x:
+            parent[x] = find(parent[x])
+        return parent[x]
+    
+    def union(x, y):
+        px, py = find(x), find(y)
+        if px != py:
+            parent[px] = py
+    
+    # Union similar texts
+    for i, j, _ in duplicates:
+        union(i, j)
+    
+    # Group by cluster
+    clusters = defaultdict(set)
+    for i in range(len(texts)):
+        root = find(i)
+        clusters[root].add(i)
+    
+    return list(clusters.values())

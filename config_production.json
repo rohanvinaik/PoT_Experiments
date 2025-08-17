@@ -1,0 +1,45 @@
+{
+  "model_name": "gpt2",
+  "device": "cuda",
+  "num_challenges": 100,
+  "challenge_types": [
+    "factual",
+    "reasoning",
+    "arithmetic",
+    "completion"
+  ],
+  "difficulty_curve": "adaptive",
+  "verification_method": "sequential",
+  "distance_metric": "combined",
+  "distance_threshold": 0.05,
+  "sprt_alpha": 0.001,
+  "sprt_beta": 0.001,
+  "sprt_p0": 0.5,
+  "sprt_p1": 0.8,
+  "max_trials": 500,
+  "min_trials": 20,
+  "normalization_mode": "canonical",
+  "fuzzy_threshold": 0.95,
+  "fuzzy_method": "token_set_ratio",
+  "hash_type": "simhash",
+  "hash_size": 64,
+  "template_categories": [
+    "factual",
+    "reasoning",
+    "arithmetic",
+    "completion",
+    "logic",
+    "language"
+  ],
+  "use_dynamic_challenges": true,
+  "dynamic_topics": [
+    "math",
+    "logic",
+    "knowledge",
+    "coding",
+    "pattern"
+  ],
+  "output_format": "json",
+  "save_detailed_results": true,
+  "plot_progress": false
+}

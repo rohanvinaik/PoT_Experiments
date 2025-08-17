@@ -1,0 +1,40 @@
+challenge_types:
+- factual
+- reasoning
+- arithmetic
+- completion
+device: cuda
+difficulty_curve: adaptive
+distance_metric: combined
+distance_threshold: 0.05
+dynamic_topics:
+- math
+- logic
+- knowledge
+- coding
+- pattern
+fuzzy_method: token_set_ratio
+fuzzy_threshold: 0.95
+hash_size: 64
+hash_type: simhash
+max_trials: 100
+min_trials: 5
+model_name: gpt2
+normalization_mode: canonical
+num_challenges: 25
+output_format: json
+plot_progress: false
+save_detailed_results: true
+sprt_alpha: 0.01
+sprt_beta: 0.01
+sprt_p0: 0.5
+sprt_p1: 0.8
+template_categories:
+- factual
+- reasoning
+- arithmetic
+- completion
+- logic
+- language
+use_dynamic_challenges: true
+verification_method: sequential

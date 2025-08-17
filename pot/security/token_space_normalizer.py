@@ -1,1275 +1,956 @@
 """
-Token Space Normalizer and Stochastic Decoding Controller
-
-This module provides comprehensive tokenization normalization and controlled
-stochastic decoding for consistent model verification across different
-tokenization schemes and generation strategies.
+Token Space Normalizer for Proof-of-Training
+Handles normalization of token sequences across different tokenizers and models
 """
 
-import hashlib
-import json
-import logging
-import unicodedata
 import re
+import unicodedata
+from typing import Any, List, Tuple, Dict, Optional, Union
 import numpy as np
-from typing import List, Dict, Any, Optional, Tuple, Union, Callable
-from dataclasses import dataclass, field
-from enum import Enum
-from collections import defaultdict, OrderedDict
-import time
-from functools import lru_cache
-import warnings
-
-# Try to import torch and transformers
-try:
-    import torch
-    import torch.nn.functional as F
-    TORCH_AVAILABLE = True
-except ImportError:
-    TORCH_AVAILABLE = False
-    warnings.warn("PyTorch not available. Some features will be limited.")
-
-try:
-    from transformers import (
-        AutoTokenizer,
-        GPT2Tokenizer,
-        BertTokenizer,
-        T5Tokenizer,
-        PreTrainedTokenizer
-    )
-    TRANSFORMERS_AVAILABLE = True
-except ImportError:
-    TRANSFORMERS_AVAILABLE = False
-    warnings.warn("Transformers not available. Using mock tokenizers.")
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-class TokenizerType(Enum):
-    """Supported tokenizer types"""
-    BPE = "bpe"  # Byte Pair Encoding (GPT-2, GPT-3)
-    WORDPIECE = "wordpiece"  # WordPiece (BERT)
-    SENTENCEPIECE = "sentencepiece"  # SentencePiece (T5, XLNet)
-    CHARACTER = "character"  # Character-level
-    WHITESPACE = "whitespace"  # Simple whitespace
-    CUSTOM = "custom"
-
-
-class SamplingMethod(Enum):
-    """Sampling methods for generation"""
-    ARGMAX = "argmax"  # Greedy decoding
-    TEMPERATURE = "temperature"  # Temperature sampling
-    TOP_K = "top_k"  # Top-k sampling
-    TOP_P = "top_p"  # Nucleus sampling
-    BEAM_SEARCH = "beam_search"  # Beam search
-    TYPICAL = "typical"  # Typical sampling
-
-
-@dataclass
-class TokenizationResult:
-    """Result of tokenization with metadata"""
-    tokens: List[Union[int, str]]
-    text: str
-    tokenizer_type: TokenizerType
-    vocab_size: int
-    special_tokens: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    timestamp: float = field(default_factory=time.time)
+import torch
+import torch.nn.functional as F
+from dataclasses import dataclass
+from collections import defaultdict
 
 
 @dataclass
 class AlignmentResult:
-    """Result of token alignment between tokenizers"""
-    text: str
-    tokenizer_a_tokens: List[Any]
-    tokenizer_b_tokens: List[Any]
-    alignment_map: List[Tuple[int, int]]
-    similarity_score: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-
-class MockTokenizer:
-    """Mock tokenizer for when transformers is not available"""
-    
-    def __init__(self, vocab_size: int = 50000):
-        self.vocab_size = vocab_size
-        self.vocab = {f"token_{i}": i for i in range(vocab_size)}
-        self.inv_vocab = {i: f"token_{i}" for i in range(vocab_size)}
-    
-    def encode(self, text: str) -> List[int]:
-        """Simple encoding based on character codes"""
-        return [ord(c) % self.vocab_size for c in text]
-    
-    def decode(self, token_ids: List[int]) -> str:
-        """Simple decoding"""
-        return ''.join(chr(tid % 128) for tid in token_ids)
-    
-    def tokenize(self, text: str) -> List[str]:
-        """Simple tokenization"""
-        return text.split()
+    """Result of sequence alignment"""
+    alignment: List[Tuple[int, int]]  # List of aligned token pairs (idx1, idx2)
+    score: float  # Alignment quality score
+    method: str  # Alignment method used
+    metadata: Dict[str, Any]  # Additional metadata
 
 
 class TokenSpaceNormalizer:
     """
-    Normalizes model outputs across different tokenization schemes
-    for consistent verification.
+    Normalizes token sequences for robust comparison across different tokenizers.
+    Supports multiple normalization modes for different use cases.
     """
     
-    def __init__(self, tokenizer_type: TokenizerType = TokenizerType.BPE,
-                 vocab_size: int = 50000,
-                 cache_size: int = 1000):
+    def __init__(self, tokenizer: Any, mode: str = 'canonical'):
         """
-        Initialize TokenSpaceNormalizer
+        Initialize normalizer with tokenizer and mode.
         
         Args:
-            tokenizer_type: Type of tokenizer to use
-            vocab_size: Size of vocabulary
-            cache_size: Size of LRU cache for tokenization results
+            tokenizer: Tokenizer instance (HuggingFace or similar)
+            mode: Normalization mode - 'canonical', 'string', 'byte', 'semantic'
         """
-        self.tokenizer_type = tokenizer_type
-        self.vocab_size = vocab_size
-        self.cache_size = cache_size
+        self.tokenizer = tokenizer
+        self.mode = mode
         
-        # Initialize tokenizers
-        self.tokenizers = self._initialize_tokenizers()
-        
-        # Caching
-        self._cache = OrderedDict()
-        self._cache_hits = 0
-        self._cache_misses = 0
-        
-        # Unicode normalization form
-        self.unicode_form = 'NFKC'  # Compatibility decomposition
-        
-        # Special token patterns
-        self.special_token_patterns = {
-            'pad': re.compile(r'\[PAD\]|<pad>|<|pad|>'),
-            'unk': re.compile(r'\[UNK\]|<unk>|<|unk|>'),
-            'bos': re.compile(r'\[CLS\]|<s>|<|startoftext|>'),
-            'eos': re.compile(r'\[SEP\]|</s>|<|endoftext|>'),
-            'mask': re.compile(r'\[MASK\]|<mask>')
-        }
-        
-        # Subword regularization parameters
-        self.subword_regularization_alpha = 0.1
-        
-        logger.info(f"TokenSpaceNormalizer initialized with {tokenizer_type.value}, vocab_size={vocab_size}")
-    
-    def _initialize_tokenizers(self) -> Dict[TokenizerType, Any]:
-        """Initialize available tokenizers"""
-        tokenizers = {}
-        
-        if TRANSFORMERS_AVAILABLE:
-            try:
-                # BPE (GPT-2 style)
-                tokenizers[TokenizerType.BPE] = GPT2Tokenizer.from_pretrained('gpt2')
-            except:
-                tokenizers[TokenizerType.BPE] = MockTokenizer(self.vocab_size)
-            
-            try:
-                # WordPiece (BERT style)
-                tokenizers[TokenizerType.WORDPIECE] = BertTokenizer.from_pretrained('bert-base-uncased')
-            except:
-                tokenizers[TokenizerType.WORDPIECE] = MockTokenizer(self.vocab_size)
-            
-            try:
-                # SentencePiece (T5 style)
-                tokenizers[TokenizerType.SENTENCEPIECE] = T5Tokenizer.from_pretrained('t5-small')
-            except:
-                tokenizers[TokenizerType.SENTENCEPIECE] = MockTokenizer(self.vocab_size)
+        # Get vocabulary
+        if hasattr(tokenizer, 'get_vocab'):
+            self.vocab = tokenizer.get_vocab()
+        elif hasattr(tokenizer, 'vocab'):
+            self.vocab = tokenizer.vocab
         else:
-            # Use mock tokenizers
-            for ttype in TokenizerType:
-                tokenizers[ttype] = MockTokenizer(self.vocab_size)
+            self.vocab = {}
         
-        # Always available tokenizers
-        tokenizers[TokenizerType.CHARACTER] = self._character_tokenizer
-        tokenizers[TokenizerType.WHITESPACE] = self._whitespace_tokenizer
+        # Create inverse vocabulary
+        self.inverse_vocab = {v: k for k, v in self.vocab.items()}
         
-        return tokenizers
+        # Cache for normalized tokens
+        self._normalization_cache = {}
+        
+        # Special token handling
+        self._init_special_tokens()
     
-    def _character_tokenizer(self, text: str, encode: bool = True) -> Union[List[int], List[str]]:
-        """Character-level tokenizer"""
-        if encode:
-            return [ord(c) for c in text]
-        else:
-            return list(text)
+    def _init_special_tokens(self):
+        """Initialize special token handling"""
+        self.special_tokens = set()
+        
+        if hasattr(self.tokenizer, 'special_tokens_map'):
+            for token_type, token in self.tokenizer.special_tokens_map.items():
+                if isinstance(token, str):
+                    token_id = self.vocab.get(token)
+                    if token_id is not None:
+                        self.special_tokens.add(token_id)
+        
+        # Common special tokens
+        for token in ['[PAD]', '[CLS]', '[SEP]', '[MASK]', '<s>', '</s>', '<pad>', '<unk>']:
+            token_id = self.vocab.get(token)
+            if token_id is not None:
+                self.special_tokens.add(token_id)
     
-    def _whitespace_tokenizer(self, text: str, encode: bool = True) -> Union[List[int], List[str]]:
-        """Whitespace tokenizer"""
-        tokens = text.split()
-        if encode:
-            # Simple hash-based encoding
-            return [hash(token) % self.vocab_size for token in tokens]
-        else:
-            return tokens
-    
-    def normalize_text(self, text: str) -> str:
+    def normalize(self, tokens: List[int]) -> Union[List[int], str, bytes, torch.Tensor]:
         """
-        Normalize text using Unicode normalization
+        Normalize tokens based on configured mode.
         
         Args:
-            text: Input text
+            tokens: List of token IDs
             
         Returns:
-            Normalized text
+            Normalized representation based on mode
         """
-        # Unicode normalization
-        text = unicodedata.normalize(self.unicode_form, text)
+        if self.mode == 'canonical':
+            return self.normalize_canonical(tokens)
+        elif self.mode == 'string':
+            text = self.tokenizer.decode(tokens, skip_special_tokens=True)
+            return self.normalize_string(text)
+        elif self.mode == 'byte':
+            return self.normalize_byte(tokens)
+        elif self.mode == 'semantic':
+            return self.normalize_semantic(tokens)
+        else:
+            raise ValueError(f"Unknown normalization mode: {self.mode}")
+    
+    def normalize_canonical(self, tokens: List[int]) -> List[int]:
+        """
+        Canonical normalization: map tokens to canonical forms.
         
+        Handles:
+        - Case variations (Hello, hello, HELLO → canonical)
+        - Unicode normalization (é, è → normalized form)
+        - Whitespace standardization
+        - Punctuation normalization
+        
+        Args:
+            tokens: List of token IDs
+            
+        Returns:
+            List of canonically normalized token IDs
+        """
+        normalized = []
+        
+        for token_id in tokens:
+            # Check cache
+            if token_id in self._normalization_cache:
+                normalized.extend(self._normalization_cache[token_id])
+                continue
+            
+            # Skip special tokens
+            if token_id in self.special_tokens:
+                normalized.append(token_id)
+                self._normalization_cache[token_id] = [token_id]
+                continue
+            
+            # Get token string
+            token_str = self.inverse_vocab.get(token_id, '')
+            if not token_str:
+                normalized.append(token_id)
+                continue
+            
+            # Apply normalization pipeline
+            normalized_str = token_str
+            
+            # 1. Unicode normalization (NFKC - compatibility decomposition)
+            normalized_str = unicodedata.normalize('NFKC', normalized_str)
+            
+            # 2. Case normalization for content tokens
+            if self._is_content_token(normalized_str):
+                # Preserve first character case for sentence boundaries
+                if len(normalized_str) > 0 and not self._is_sentence_start(tokens, normalized):
+                    normalized_str = normalized_str.lower()
+            
+            # 3. Whitespace normalization
+            normalized_str = self._normalize_whitespace(normalized_str)
+            
+            # 4. Punctuation normalization
+            normalized_str = self._normalize_punctuation(normalized_str)
+            
+            # Re-tokenize normalized string
+            if normalized_str:
+                new_tokens = self.tokenizer.encode(normalized_str, add_special_tokens=False)
+                normalized.extend(new_tokens)
+                self._normalization_cache[token_id] = new_tokens
+            
+        return normalized
+    
+    def normalize_string(self, text: str) -> str:
+        """
+        String-level normalization before tokenization.
+        
+        Args:
+            text: Input text string
+            
+        Returns:
+            Normalized text string
+        """
         # Remove zero-width characters
         text = re.sub(r'[\u200b\u200c\u200d\ufeff]', '', text)
         
-        # Normalize whitespace
-        text = re.sub(r'\s+', ' ', text)
+        # Normalize quotes and apostrophes
+        text = re.sub(r'[''`´]', "'", text)
+        text = re.sub(r'[""„"«»]', '"', text)
         
-        # Strip leading/trailing whitespace
-        text = text.strip()
+        # Normalize dashes
+        text = re.sub(r'[–—]', '-', text)
+        
+        # Normalize ellipsis
+        text = re.sub(r'\.{3,}', '...', text)
+        
+        # Normalize whitespace (including non-breaking spaces)
+        text = re.sub(r'[\xa0\t]+', ' ', text)
+        text = ' '.join(text.split())
+        
+        # Remove control characters except newlines
+        text = ''.join(ch for ch in text if ch == '\n' or not unicodedata.category(ch).startswith('C'))
         
         return text
     
-    @lru_cache(maxsize=256)
-    def normalize_token_sequence(self, tokens: tuple,
-                                target_space: str = 'canonical') -> List[Any]:
+    def normalize_byte(self, tokens: List[int]) -> bytes:
         """
-        Convert tokens to canonical representation
+        Byte-level normalization for exact comparison.
         
         Args:
-            tokens: Token sequence (as tuple for caching)
-            target_space: Target representation space
+            tokens: List of token IDs
             
         Returns:
-            Normalized token sequence
+            UTF-8 byte representation
         """
-        tokens = list(tokens)  # Convert back from tuple
+        # Decode tokens to text
+        text = self.tokenizer.decode(tokens, skip_special_tokens=False)
         
-        if target_space == 'canonical':
-            # Convert to canonical integer representation
-            normalized = []
-            for token in tokens:
-                if isinstance(token, str):
-                    # Hash string tokens to integers
-                    normalized.append(hash(token) % self.vocab_size)
-                elif isinstance(token, int):
-                    # Keep integers, ensure within vocab size
-                    normalized.append(token % self.vocab_size)
-                else:
-                    # Handle other types
-                    normalized.append(hash(str(token)) % self.vocab_size)
-            
-            return normalized
+        # Apply string normalization first
+        text = self.normalize_string(text)
         
-        elif target_space == 'string':
-            # Convert to string representation
-            return [str(token) for token in tokens]
-        
-        elif target_space == 'byte':
-            # Convert to byte representation
-            byte_tokens = []
-            for token in tokens:
-                if isinstance(token, str):
-                    byte_tokens.extend(token.encode('utf-8'))
-                elif isinstance(token, int):
-                    byte_tokens.append(token % 256)
-                else:
-                    byte_tokens.extend(str(token).encode('utf-8'))
-            
-            return byte_tokens
-        
-        else:
-            raise ValueError(f"Unknown target space: {target_space}")
+        # Convert to bytes with error handling
+        return text.encode('utf-8', errors='ignore')
     
-    def align_token_boundaries(self, text: str, 
-                              tokenizer_a: Any,
-                              tokenizer_b: Any) -> AlignmentResult:
+    def normalize_semantic(self, tokens: List[int]) -> torch.Tensor:
         """
-        Align tokens from different tokenizers for comparison
+        Semantic normalization using token embeddings.
+        Falls back to one-hot encoding if no embedding model available.
         
         Args:
-            text: Input text
-            tokenizer_a: First tokenizer
-            tokenizer_b: Second tokenizer
+            tokens: List of token IDs
             
         Returns:
-            AlignmentResult with mapping
+            Tensor representation of tokens
         """
-        # Normalize text first
-        text = self.normalize_text(text)
+        # For now, return one-hot encoding as fallback
+        # In practice, this would use an embedding model
+        vocab_size = len(self.vocab) if self.vocab else max(tokens) + 1
         
-        # Tokenize with both tokenizers
-        if hasattr(tokenizer_a, 'tokenize'):
-            tokens_a = tokenizer_a.tokenize(text)
-        else:
-            tokens_a = tokenizer_a(text, encode=False)
+        embeddings = []
+        for token_id in tokens:
+            one_hot = torch.zeros(vocab_size)
+            if token_id < vocab_size:
+                one_hot[token_id] = 1.0
+            embeddings.append(one_hot)
         
-        if hasattr(tokenizer_b, 'tokenize'):
-            tokens_b = tokenizer_b.tokenize(text)
-        else:
-            tokens_b = tokenizer_b(text, encode=False)
-        
-        # Build character position maps
-        char_to_token_a = self._build_char_to_token_map(text, tokens_a)
-        char_to_token_b = self._build_char_to_token_map(text, tokens_b)
-        
-        # Create alignment map
-        alignment_map = []
-        token_pairs = set()
-        
-        for char_idx in range(len(text)):
-            if char_idx in char_to_token_a and char_idx in char_to_token_b:
-                pair = (char_to_token_a[char_idx], char_to_token_b[char_idx])
-                if pair not in token_pairs:
-                    alignment_map.append(pair)
-                    token_pairs.add(pair)
-        
-        # Calculate similarity score
-        similarity = self._calculate_alignment_similarity(tokens_a, tokens_b, alignment_map)
-        
-        return AlignmentResult(
-            text=text,
-            tokenizer_a_tokens=tokens_a,
-            tokenizer_b_tokens=tokens_b,
-            alignment_map=alignment_map,
-            similarity_score=similarity,
-            metadata={
-                'tokenizer_a_count': len(tokens_a),
-                'tokenizer_b_count': len(tokens_b),
-                'alignment_count': len(alignment_map)
-            }
-        )
+        return torch.stack(embeddings) if embeddings else torch.empty(0, vocab_size)
     
-    def _build_char_to_token_map(self, text: str, tokens: List[str]) -> Dict[int, int]:
-        """Build mapping from character positions to token indices"""
-        char_to_token = {}
-        char_idx = 0
+    def _is_content_token(self, token_str: str) -> bool:
+        """Check if token is a content word (not punctuation or special)"""
+        if not token_str:
+            return False
         
-        for token_idx, token in enumerate(tokens):
-            # Handle special tokens
-            if token.startswith('[') and token.endswith(']'):
-                continue
-            if token.startswith('<') and token.endswith('>'):
-                continue
-            
-            # Remove special prefixes (e.g., "##" for BERT)
-            clean_token = token.replace('##', '').replace('▁', ' ')
-            
-            # Find token in text
-            token_start = text.find(clean_token, char_idx)
-            if token_start != -1:
-                for i in range(token_start, token_start + len(clean_token)):
-                    char_to_token[i] = token_idx
-                char_idx = token_start + len(clean_token)
-        
-        return char_to_token
+        # Check if token is primarily alphanumeric
+        alpha_count = sum(c.isalnum() for c in token_str)
+        return alpha_count > len(token_str) / 2
     
-    def _calculate_alignment_similarity(self, tokens_a: List[str],
-                                       tokens_b: List[str],
-                                       alignment_map: List[Tuple[int, int]]) -> float:
-        """Calculate similarity score for token alignment"""
-        if not alignment_map:
-            return 0.0
+    def _is_sentence_start(self, tokens: List[int], normalized: List[int]) -> bool:
+        """Check if current position is likely a sentence start"""
+        if not normalized:
+            return True
         
-        # Calculate coverage
-        covered_a = len(set(a for a, _ in alignment_map))
-        covered_b = len(set(b for _, b in alignment_map))
+        # Check if previous token was sentence-ending punctuation
+        if normalized:
+            prev_token_str = self.inverse_vocab.get(normalized[-1], '')
+            if prev_token_str in {'.', '!', '?', ':', ';'}:
+                return True
         
-        coverage_a = covered_a / len(tokens_a) if tokens_a else 0
-        coverage_b = covered_b / len(tokens_b) if tokens_b else 0
-        
-        # Average coverage as similarity
-        return (coverage_a + coverage_b) / 2
-    
-    def compute_token_invariant_hash(self, text: str,
-                                    normalize_unicode: bool = True,
-                                    normalize_case: bool = False) -> str:
-        """
-        Generate hash that's invariant to tokenization differences
-        
-        Args:
-            text: Input text
-            normalize_unicode: Whether to normalize Unicode
-            normalize_case: Whether to normalize case
-            
-        Returns:
-            Invariant hash string
-        """
-        # Normalize text
-        if normalize_unicode:
-            text = self.normalize_text(text)
-        
-        if normalize_case:
-            text = text.lower()
-        
-        # Remove all special tokens
-        for pattern in self.special_token_patterns.values():
-            text = pattern.sub('', text)
-        
-        # Remove all whitespace for true invariance
-        invariant_text = ''.join(text.split())
-        
-        # Generate hash
-        hash_obj = hashlib.sha256(invariant_text.encode('utf-8'))
-        
-        # Add structural information
-        structure_info = {
-            'char_count': len(invariant_text),
-            'word_count': len(text.split()),
-            'unique_chars': len(set(invariant_text))
-        }
-        
-        hash_obj.update(json.dumps(structure_info, sort_keys=True).encode())
-        
-        return hash_obj.hexdigest()
-    
-    def tokenize_with_subword_regularization(self, text: str,
-                                            alpha: Optional[float] = None,
-                                            num_samples: int = 1) -> List[List[Any]]:
-        """
-        Apply subword regularization for robustness
-        
-        Args:
-            text: Input text
-            alpha: Regularization strength
-            num_samples: Number of samples to generate
-            
-        Returns:
-            List of tokenization variants
-        """
-        if alpha is None:
-            alpha = self.subword_regularization_alpha
-        
-        variants = []
-        
-        for _ in range(num_samples):
-            # Get base tokenization
-            if self.tokenizer_type in self.tokenizers:
-                tokenizer = self.tokenizers[self.tokenizer_type]
-                
-                if hasattr(tokenizer, 'encode'):
-                    tokens = tokenizer.encode(text)
-                else:
-                    tokens = tokenizer(text, encode=True)
-                
-                # Apply regularization
-                if alpha > 0 and len(tokens) > 1:
-                    # Randomly merge or split tokens
-                    regularized = []
-                    i = 0
-                    while i < len(tokens):
-                        if np.random.random() < alpha and i < len(tokens) - 1:
-                            # Merge tokens
-                            if isinstance(tokens[i], int):
-                                merged = (tokens[i] + tokens[i + 1]) % self.vocab_size
-                            else:
-                                merged = str(tokens[i]) + str(tokens[i + 1])
-                            regularized.append(merged)
-                            i += 2
-                        else:
-                            regularized.append(tokens[i])
-                            i += 1
-                    
-                    variants.append(regularized)
-                else:
-                    variants.append(tokens)
-            else:
-                # Fallback to character tokenization
-                variants.append(self._character_tokenizer(text))
-        
-        return variants
-    
-    def handle_unknown_tokens(self, tokens: List[Any],
-                            fallback_strategy: str = 'hash') -> List[Any]:
-        """
-        Handle unknown tokens with fallback strategies
-        
-        Args:
-            tokens: Token sequence
-            fallback_strategy: Strategy for handling unknown tokens
-            
-        Returns:
-            Processed token sequence
-        """
-        processed = []
-        
-        for token in tokens:
-            if self._is_unknown_token(token):
-                if fallback_strategy == 'hash':
-                    # Hash unknown token to known range
-                    processed.append(hash(str(token)) % self.vocab_size)
-                elif fallback_strategy == 'skip':
-                    # Skip unknown tokens
-                    continue
-                elif fallback_strategy == 'replace':
-                    # Replace with UNK token
-                    processed.append(0)  # Assuming 0 is UNK
-                else:
-                    processed.append(token)
-            else:
-                processed.append(token)
-        
-        return processed
-    
-    def _is_unknown_token(self, token: Any) -> bool:
-        """Check if token is unknown"""
-        if isinstance(token, str):
-            return token in ['[UNK]', '<unk>', 'UNK']
-        elif isinstance(token, int):
-            return token >= self.vocab_size
         return False
     
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
-        total_requests = self._cache_hits + self._cache_misses
-        hit_rate = self._cache_hits / total_requests if total_requests > 0 else 0
+    def _normalize_whitespace(self, text: str) -> str:
+        """Normalize whitespace variations"""
+        # Replace multiple spaces with single space
+        text = re.sub(r' +', ' ', text)
         
-        return {
-            'cache_size': len(self._cache),
-            'cache_hits': self._cache_hits,
-            'cache_misses': self._cache_misses,
-            'hit_rate': hit_rate,
-            'max_cache_size': self.cache_size
+        # Normalize leading/trailing whitespace in tokens
+        if text.startswith(' ') and len(text.strip()) > 0:
+            text = ' ' + text.strip()
+        elif text.endswith(' ') and len(text.strip()) > 0:
+            text = text.strip() + ' '
+        
+        return text
+    
+    def _normalize_punctuation(self, text: str) -> str:
+        """Normalize punctuation variations"""
+        # Normalize similar punctuation marks
+        replacements = {
+            '…': '...',
+            '‚': ',',
+            '‛': "'",
+            '‟': '"',
+            '′': "'",
+            '″': '"',
         }
+        
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        
+        return text
     
-    def clear_cache(self):
-        """Clear tokenization cache"""
-        self._cache.clear()
-        self._cache_hits = 0
-        self._cache_misses = 0
-        logger.info("Tokenization cache cleared")
-
-
-class StochasticDecodingController:
-    """
-    Controls stochastic decoding for reproducible and verifiable generation
-    """
-    
-    def __init__(self, seed: Optional[int] = None):
+    def compute_distance(self, tokens1: List[int], tokens2: List[int],
+                        method: str = 'jaccard') -> float:
         """
-        Initialize StochasticDecodingController
+        Compute distance between two token sequences.
         
         Args:
-            seed: Random seed for reproducibility
-        """
-        self.seed = seed if seed is not None else int(time.time())
-        self.rng = np.random.RandomState(self.seed)
-        
-        if TORCH_AVAILABLE:
-            torch.manual_seed(self.seed)
-            if torch.cuda.is_available():
-                torch.cuda.manual_seed_all(self.seed)
-        
-        # Default generation parameters
-        self.temperature = 1.0
-        self.top_k = 50
-        self.top_p = 0.95
-        self.typical_p = 0.95
-        self.repetition_penalty = 1.0
-        
-        # Deterministic mode flag
-        self.deterministic_mode = False
-        
-        # Generation history for verification
-        self.generation_history = []
-        
-        logger.info(f"StochasticDecodingController initialized with seed={self.seed}")
-    
-    def set_deterministic_mode(self, temperature: float = 0.0,
-                              top_k: int = 1,
-                              top_p: float = 1.0):
-        """
-        Configure fully deterministic generation
-        
-        Args:
-            temperature: Temperature for softmax (0 = deterministic)
-            top_k: Number of top tokens to consider
-            top_p: Cumulative probability for nucleus sampling
-        """
-        self.deterministic_mode = True
-        self.temperature = max(1e-10, temperature)  # Avoid division by zero
-        self.top_k = top_k
-        self.top_p = top_p
-        
-        logger.info(f"Deterministic mode set: temp={temperature}, top_k={top_k}, top_p={top_p}")
-    
-    def controlled_sampling(self, logits: Union[np.ndarray, 'torch.Tensor'],
-                          method: SamplingMethod = SamplingMethod.ARGMAX,
-                          **kwargs) -> Union[int, List[int]]:
-        """
-        Sample with controlled randomness
-        
-        Args:
-            logits: Model output logits
-            method: Sampling method to use
-            **kwargs: Additional sampling parameters
+            tokens1: First token sequence
+            tokens2: Second token sequence
+            method: Distance metric ('jaccard', 'levenshtein', 'cosine')
             
         Returns:
-            Sampled token ID(s)
+            Distance score (0 = identical, 1 = completely different)
         """
-        if not TORCH_AVAILABLE and not isinstance(logits, np.ndarray):
-            raise ValueError("PyTorch not available, please provide numpy array")
+        # Normalize both sequences
+        norm1 = self.normalize(tokens1)
+        norm2 = self.normalize(tokens2)
         
-        # Convert to tensor if needed
-        if isinstance(logits, np.ndarray):
-            if TORCH_AVAILABLE:
-                logits = torch.from_numpy(logits).float()
+        if method == 'jaccard':
+            set1 = set(norm1) if isinstance(norm1, list) else {norm1}
+            set2 = set(norm2) if isinstance(norm2, list) else {norm2}
+            
+            if not set1 and not set2:
+                return 0.0
+            
+            intersection = len(set1 & set2)
+            union = len(set1 | set2)
+            
+            return 1.0 - (intersection / union if union > 0 else 0.0)
+        
+        elif method == 'levenshtein':
+            # Simple Levenshtein distance
+            if isinstance(norm1, list) and isinstance(norm2, list):
+                return self._levenshtein_distance(norm1, norm2) / max(len(norm1), len(norm2), 1)
             else:
-                # Use numpy implementation
-                return self._numpy_sampling(logits, method, **kwargs)
+                return 1.0
         
-        # Apply temperature
-        if self.temperature != 1.0:
-            logits = logits / self.temperature
-        
-        # Apply repetition penalty if specified
-        if 'token_history' in kwargs and self.repetition_penalty != 1.0:
-            logits = self._apply_repetition_penalty(logits, kwargs['token_history'])
-        
-        if method == SamplingMethod.ARGMAX:
-            return torch.argmax(logits, dim=-1).item()
-        
-        elif method == SamplingMethod.TEMPERATURE:
-            probs = F.softmax(logits, dim=-1)
-            return torch.multinomial(probs, num_samples=1).item()
-        
-        elif method == SamplingMethod.TOP_K:
-            return self._top_k_sampling(logits, k=kwargs.get('k', self.top_k))
-        
-        elif method == SamplingMethod.TOP_P:
-            return self._top_p_sampling(logits, p=kwargs.get('p', self.top_p))
-        
-        elif method == SamplingMethod.TYPICAL:
-            return self._typical_sampling(logits, p=kwargs.get('p', self.typical_p))
-        
-        elif method == SamplingMethod.BEAM_SEARCH:
-            return self._beam_search(logits, beam_size=kwargs.get('beam_size', 5))
+        elif method == 'cosine':
+            # Cosine distance for semantic normalization
+            if isinstance(norm1, torch.Tensor) and isinstance(norm2, torch.Tensor):
+                cos_sim = F.cosine_similarity(norm1.mean(0).unsqueeze(0), 
+                                             norm2.mean(0).unsqueeze(0))
+                return 1.0 - cos_sim.item()
+            else:
+                return 1.0
         
         else:
-            raise ValueError(f"Unknown sampling method: {method}")
+            raise ValueError(f"Unknown distance method: {method}")
     
-    def _numpy_sampling(self, logits: np.ndarray, method: SamplingMethod, **kwargs) -> int:
-        """Numpy implementation of sampling methods"""
-        # Apply temperature
-        if self.temperature != 1.0:
-            logits = logits / self.temperature
+    def _levenshtein_distance(self, seq1: List[int], seq2: List[int]) -> int:
+        """Compute Levenshtein distance between sequences"""
+        n, m = len(seq1), len(seq2)
         
-        if method == SamplingMethod.ARGMAX:
-            return np.argmax(logits)
-        
-        # Softmax
-        exp_logits = np.exp(logits - np.max(logits))
-        probs = exp_logits / exp_logits.sum()
-        
-        if method == SamplingMethod.TEMPERATURE:
-            return self.rng.choice(len(probs), p=probs)
-        
-        elif method == SamplingMethod.TOP_K:
-            k = kwargs.get('k', self.top_k)
-            top_k_idx = np.argsort(logits)[-k:]
-            top_k_probs = probs[top_k_idx]
-            top_k_probs = top_k_probs / top_k_probs.sum()
-            return top_k_idx[self.rng.choice(len(top_k_idx), p=top_k_probs)]
-        
-        elif method == SamplingMethod.TOP_P:
-            p = kwargs.get('p', self.top_p)
-            sorted_idx = np.argsort(logits)[::-1]
-            sorted_probs = probs[sorted_idx]
-            cumsum = np.cumsum(sorted_probs)
-            mask = cumsum <= p
-            if mask.sum() == 0:
-                mask[0] = True
-            nucleus = sorted_idx[mask]
-            nucleus_probs = probs[nucleus]
-            nucleus_probs = nucleus_probs / nucleus_probs.sum()
-            return nucleus[self.rng.choice(len(nucleus), p=nucleus_probs)]
-        
-        return np.argmax(logits)
-    
-    def _top_k_sampling(self, logits: 'torch.Tensor', k: int) -> int:
-        """Top-k sampling"""
-        top_k_values, top_k_indices = torch.topk(logits, k=min(k, logits.size(-1)))
-        top_k_probs = F.softmax(top_k_values, dim=-1)
-        sampled_idx = torch.multinomial(top_k_probs, num_samples=1)
-        return top_k_indices[sampled_idx].item()
-    
-    def _top_p_sampling(self, logits: 'torch.Tensor', p: float) -> int:
-        """Nucleus (top-p) sampling"""
-        sorted_logits, sorted_indices = torch.sort(logits, descending=True)
-        cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
-        
-        # Remove tokens with cumulative probability above threshold
-        sorted_indices_to_remove = cumulative_probs > p
-        sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
-        sorted_indices_to_remove[..., 0] = 0
-        
-        indices_to_remove = sorted_indices[sorted_indices_to_remove]
-        logits[indices_to_remove] = float('-inf')
-        
-        probs = F.softmax(logits, dim=-1)
-        return torch.multinomial(probs, num_samples=1).item()
-    
-    def _typical_sampling(self, logits: 'torch.Tensor', p: float) -> int:
-        """Typical sampling"""
-        # Calculate entropy
-        probs = F.softmax(logits, dim=-1)
-        entropy = -torch.sum(probs * torch.log(probs + 1e-10), dim=-1)
-        
-        # Calculate surprisal
-        surprisal = -torch.log(probs + 1e-10)
-        
-        # Calculate typical score
-        typical_score = torch.abs(surprisal - entropy.unsqueeze(-1))
-        
-        # Sort by typical score
-        sorted_scores, sorted_indices = torch.sort(typical_score)
-        cumulative_probs = torch.cumsum(probs[sorted_indices], dim=-1)
-        
-        # Find cutoff
-        cutoff_idx = torch.searchsorted(cumulative_probs, p)
-        selected_indices = sorted_indices[:cutoff_idx + 1]
-        
-        selected_probs = probs[selected_indices]
-        selected_probs = selected_probs / selected_probs.sum()
-        
-        sampled_idx = torch.multinomial(selected_probs, num_samples=1)
-        return selected_indices[sampled_idx].item()
-    
-    def _beam_search(self, logits: 'torch.Tensor', beam_size: int) -> List[int]:
-        """Simple beam search (returns top sequence)"""
-        # For single step, just return top-k
-        top_k_values, top_k_indices = torch.topk(logits, k=min(beam_size, logits.size(-1)))
-        return top_k_indices.tolist()
-    
-    def _apply_repetition_penalty(self, logits: 'torch.Tensor',
-                                 token_history: List[int]) -> 'torch.Tensor':
-        """Apply repetition penalty to logits"""
-        for token_id in set(token_history):
-            if token_id < logits.size(-1):
-                logits[token_id] /= self.repetition_penalty
-        return logits
-    
-    def generate_verification_response(self, model: Any,
-                                      challenge: Any,
-                                      num_variants: int = 5,
-                                      max_length: int = 100) -> List[str]:
-        """
-        Generate multiple controlled variants for robustness testing
-        
-        Args:
-            model: Model to generate with
-            challenge: Input challenge
-            num_variants: Number of variants to generate
-            max_length: Maximum generation length
-            
-        Returns:
-            List of generated responses
-        """
-        responses = []
-        
-        # Store original parameters
-        orig_temp = self.temperature
-        orig_top_k = self.top_k
-        orig_top_p = self.top_p
-        
-        # Generate variants with different settings
-        settings = [
-            {'temperature': 0.0, 'top_k': 1},  # Deterministic
-            {'temperature': 0.5, 'top_k': 10},  # Low randomness
-            {'temperature': 0.8, 'top_k': 40},  # Medium randomness
-            {'temperature': 1.0, 'top_p': 0.9},  # Nucleus sampling
-            {'temperature': 0.7, 'top_p': 0.95},  # Typical settings
-        ]
-        
-        for i in range(min(num_variants, len(settings))):
-            setting = settings[i]
-
-            # Apply settings
-            self.temperature = setting.get('temperature', self.temperature)
-            self.top_k = setting.get('top_k', self.top_k)
-            self.top_p = setting.get('top_p', self.top_p)
-
-            # Generate response and associated metadata
-            response, metadata = self._generate_single_response(
-                model, challenge, max_length
-            )
-            responses.append(response)
-
-            # Store in history
-            self.generation_history.append({
-                'challenge': str(challenge),
-                'response': response,
-                'settings': setting,
-                'metadata': metadata,
-                'timestamp': time.time()
-            })
-        
-        # Restore original parameters
-        self.temperature = orig_temp
-        self.top_k = orig_top_k
-        self.top_p = orig_top_p
-        
-        return responses
-    
-    def _generate_single_response(self, model: Any, challenge: Any,
-                                 max_length: int) -> Tuple[str, Dict[str, Any]]:
-        """Generate a single response and associated metadata"""
-        # Models exposing a .generate API (e.g., Hugging Face)
-        if hasattr(model, 'generate'):
-            tokenizer = getattr(model, 'tokenizer', None)
-
-            # HuggingFace-style path with tokenizer support
-            if TORCH_AVAILABLE and isinstance(challenge, str) and callable(tokenizer):
-                inputs = tokenizer(challenge, return_tensors='pt')
-
-                device = getattr(model, 'device', None)
-                if device is None and hasattr(model, 'parameters'):
-                    try:
-                        device = next(model.parameters()).device
-                    except StopIteration:
-                        device = torch.device('cpu')
-
-                if device is not None:
-                    inputs = {k: v.to(device) for k, v in inputs.items()}
-
-                with torch.no_grad():
-                    outputs = model.generate(
-                        **inputs,
-                        max_length=max_length,
-                        temperature=self.temperature,
-                        top_k=self.top_k,
-                        top_p=self.top_p,
-                        do_sample=self.temperature > 0
-                    )
-
-                text = tokenizer.decode(outputs[0], skip_special_tokens=True)
-                metadata = {
-                    'input_ids': inputs['input_ids'].tolist(),
-                    'output_ids': outputs[0].tolist(),
-                    'device': str(device) if device is not None else 'cpu'
-                }
-                return text, metadata
-
-            # Generic generate method without tokenizer
-            result = model.generate(
-                challenge,
-                max_length=max_length,
-                temperature=self.temperature,
-                top_k=self.top_k,
-                top_p=self.top_p,
-                do_sample=self.temperature > 0
-            )
-            if isinstance(result, tuple):
-                return result
-            return result, {}
-
-        # Callable models without generate - simple fallback
-        if callable(model):
-            result = model(challenge,
-                           temperature=self.temperature,
-                           top_k=self.top_k,
-                           top_p=self.top_p,
-                           max_length=max_length)
-            if isinstance(result, tuple):
-                return result
-            return result, {}
-
-        # Fallback when no generation method
-        text = f"Response to {challenge} with temp={self.temperature}"
-        return text, {}
-    
-    def compute_semantic_similarity(self, responses: List[str],
-                                  method: str = 'jaccard') -> float:
-        """
-        Verify semantic consistency across variants
-        
-        Args:
-            responses: List of response strings
-            method: Similarity metric to use
-            
-        Returns:
-            Average pairwise similarity score
-        """
-        if len(responses) < 2:
-            return 1.0
-        
-        similarities = []
-        
-        for i in range(len(responses)):
-            for j in range(i + 1, len(responses)):
-                if method == 'jaccard':
-                    sim = self._jaccard_similarity(responses[i], responses[j])
-                elif method == 'levenshtein':
-                    sim = self._levenshtein_similarity(responses[i], responses[j])
-                elif method == 'cosine':
-                    sim = self._cosine_similarity(responses[i], responses[j])
-                else:
-                    sim = self._token_overlap(responses[i], responses[j])
-                
-                similarities.append(sim)
-        
-        return np.mean(similarities) if similarities else 0.0
-    
-    def _jaccard_similarity(self, text1: str, text2: str) -> float:
-        """Calculate Jaccard similarity between texts"""
-        set1 = set(text1.split())
-        set2 = set(text2.split())
-        
-        if not set1 and not set2:
-            return 1.0
-        
-        intersection = set1.intersection(set2)
-        union = set1.union(set2)
-        
-        return len(intersection) / len(union) if union else 0.0
-    
-    def _levenshtein_similarity(self, text1: str, text2: str) -> float:
-        """Calculate normalized Levenshtein similarity"""
-        if text1 == text2:
-            return 1.0
-        
-        len1, len2 = len(text1), len(text2)
-        if len1 == 0 or len2 == 0:
-            return 0.0
+        if n == 0:
+            return m
+        if m == 0:
+            return n
         
         # Create distance matrix
-        dist = [[0] * (len2 + 1) for _ in range(len1 + 1)]
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
         
-        for i in range(len1 + 1):
-            dist[i][0] = i
-        for j in range(len2 + 1):
-            dist[0][j] = j
+        # Initialize first row and column
+        for i in range(n + 1):
+            dp[i][0] = i
+        for j in range(m + 1):
+            dp[0][j] = j
         
-        for i in range(1, len1 + 1):
-            for j in range(1, len2 + 1):
-                if text1[i-1] == text2[j-1]:
-                    dist[i][j] = dist[i-1][j-1]
-                else:
-                    dist[i][j] = 1 + min(dist[i-1][j], dist[i][j-1], dist[i-1][j-1])
+        # Fill matrix
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                cost = 0 if seq1[i-1] == seq2[j-1] else 1
+                dp[i][j] = min(
+                    dp[i-1][j] + 1,      # deletion
+                    dp[i][j-1] + 1,      # insertion
+                    dp[i-1][j-1] + cost  # substitution
+                )
         
-        # Normalize
-        max_len = max(len1, len2)
-        return 1.0 - (dist[len1][len2] / max_len)
+        return dp[n][m]
+
+
+class TokenAligner:
+    """
+    Aligns token sequences for detailed comparison.
+    Supports multiple alignment algorithms.
+    """
     
-    def _cosine_similarity(self, text1: str, text2: str) -> float:
-        """Calculate cosine similarity between texts"""
-        # Simple bag-of-words cosine similarity
-        words1 = text1.split()
-        words2 = text2.split()
+    def __init__(self, normalizer: Optional[TokenSpaceNormalizer] = None):
+        """
+        Initialize aligner with optional normalizer.
         
-        # Create vocabulary
-        vocab = list(set(words1 + words2))
+        Args:
+            normalizer: TokenSpaceNormalizer instance for pre-processing
+        """
+        self.normalizer = normalizer
+    
+    def align_sequences(self, 
+                       seq1: List[int], 
+                       seq2: List[int],
+                       method: str = 'dynamic_programming') -> AlignmentResult:
+        """
+        Align two token sequences for comparison.
         
-        # Create vectors
-        vec1 = [words1.count(word) for word in vocab]
-        vec2 = [words2.count(word) for word in vocab]
+        Args:
+            seq1: First token sequence
+            seq2: Second token sequence
+            method: Alignment method ('dynamic_programming', 'needleman_wunsch', 'semantic')
+            
+        Returns:
+            AlignmentResult with alignment pairs and score
+        """
+        # Optionally normalize sequences first
+        if self.normalizer:
+            seq1 = self.normalizer.normalize(seq1)
+            seq2 = self.normalizer.normalize(seq2)
+            
+            # Convert back to list if needed
+            if not isinstance(seq1, list):
+                seq1 = [seq1]
+            if not isinstance(seq2, list):
+                seq2 = [seq2]
         
-        # Calculate cosine similarity
-        dot_product = sum(a * b for a, b in zip(vec1, vec2))
-        norm1 = sum(a * a for a in vec1) ** 0.5
-        norm2 = sum(b * b for b in vec2) ** 0.5
+        # Apply alignment method
+        if method == 'dynamic_programming':
+            alignment = self._dp_alignment(seq1, seq2)
+        elif method == 'needleman_wunsch':
+            alignment = self._needleman_wunsch(seq1, seq2)
+        elif method == 'semantic':
+            alignment = self._semantic_alignment(seq1, seq2)
+        else:
+            raise ValueError(f"Unknown alignment method: {method}")
         
-        if norm1 == 0 or norm2 == 0:
+        # Compute alignment score
+        score = self.compute_alignment_score(alignment, seq1, seq2)
+        
+        # Gather metadata
+        metadata = {
+            'seq1_length': len(seq1),
+            'seq2_length': len(seq2),
+            'num_aligned': len(alignment),
+            'num_gaps': max(len(seq1), len(seq2)) - len(alignment)
+        }
+        
+        return AlignmentResult(
+            alignment=alignment,
+            score=score,
+            method=method,
+            metadata=metadata
+        )
+    
+    def _dp_alignment(self, seq1: List[int], seq2: List[int]) -> List[Tuple[int, int]]:
+        """
+        Dynamic programming sequence alignment (Longest Common Subsequence).
+        
+        Args:
+            seq1: First sequence
+            seq2: Second sequence
+            
+        Returns:
+            List of aligned token pairs (idx1, idx2)
+        """
+        n, m = len(seq1), len(seq2)
+        
+        # DP table for LCS
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
+        
+        # Fill DP table
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if seq1[i-1] == seq2[j-1]:
+                    dp[i][j] = dp[i-1][j-1] + 1
+                else:
+                    dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+        
+        # Backtrack to find alignment
+        alignment = []
+        i, j = n, m
+        
+        while i > 0 and j > 0:
+            if seq1[i-1] == seq2[j-1]:
+                alignment.append((i-1, j-1))
+                i -= 1
+                j -= 1
+            elif dp[i-1][j] > dp[i][j-1]:
+                i -= 1
+            else:
+                j -= 1
+        
+        return list(reversed(alignment))
+    
+    def _needleman_wunsch(self, seq1: List[int], seq2: List[int],
+                         match_score: float = 1.0,
+                         mismatch_score: float = -1.0,
+                         gap_score: float = -1.0) -> List[Tuple[int, int]]:
+        """
+        Needleman-Wunsch global alignment algorithm.
+        
+        Args:
+            seq1: First sequence
+            seq2: Second sequence
+            match_score: Score for matching tokens
+            mismatch_score: Score for mismatched tokens
+            gap_score: Score for gaps
+            
+        Returns:
+            List of aligned token pairs (idx1, idx2)
+        """
+        n, m = len(seq1), len(seq2)
+        
+        # Initialize scoring matrix
+        score_matrix = [[0.0] * (m + 1) for _ in range(n + 1)]
+        
+        # Initialize first row and column with gap penalties
+        for i in range(1, n + 1):
+            score_matrix[i][0] = i * gap_score
+        for j in range(1, m + 1):
+            score_matrix[0][j] = j * gap_score
+        
+        # Fill scoring matrix
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                # Match/mismatch score
+                if seq1[i-1] == seq2[j-1]:
+                    diag_score = score_matrix[i-1][j-1] + match_score
+                else:
+                    diag_score = score_matrix[i-1][j-1] + mismatch_score
+                
+                # Gap scores
+                up_score = score_matrix[i-1][j] + gap_score
+                left_score = score_matrix[i][j-1] + gap_score
+                
+                # Take maximum
+                score_matrix[i][j] = max(diag_score, up_score, left_score)
+        
+        # Backtrack to find alignment
+        alignment = []
+        i, j = n, m
+        
+        while i > 0 or j > 0:
+            if i > 0 and j > 0:
+                current_score = score_matrix[i][j]
+                diag_score = score_matrix[i-1][j-1]
+                
+                # Check if we came from diagonal (match/mismatch)
+                expected_score = diag_score + (match_score if seq1[i-1] == seq2[j-1] else mismatch_score)
+                
+                if abs(current_score - expected_score) < 1e-6:
+                    alignment.append((i-1, j-1))
+                    i -= 1
+                    j -= 1
+                elif i > 0 and abs(current_score - (score_matrix[i-1][j] + gap_score)) < 1e-6:
+                    i -= 1
+                else:
+                    j -= 1
+            elif i > 0:
+                i -= 1
+            else:
+                j -= 1
+        
+        return list(reversed(alignment))
+    
+    def _semantic_alignment(self, seq1: List[int], seq2: List[int],
+                           threshold: float = 0.7) -> List[Tuple[int, int]]:
+        """
+        Semantic alignment based on token similarity.
+        Requires embeddings or falls back to exact matching.
+        
+        Args:
+            seq1: First sequence
+            seq2: Second sequence
+            threshold: Similarity threshold for alignment
+            
+        Returns:
+            List of aligned token pairs (idx1, idx2)
+        """
+        # For now, fall back to exact matching
+        # In practice, this would use semantic similarity
+        alignment = []
+        
+        # Create similarity matrix
+        for i, token1 in enumerate(seq1):
+            for j, token2 in enumerate(seq2):
+                if token1 == token2:  # Exact match for now
+                    # Check if this position is not already aligned
+                    if not any(a[0] == i or a[1] == j for a in alignment):
+                        alignment.append((i, j))
+                        break
+        
+        # Sort by first index
+        alignment.sort(key=lambda x: x[0])
+        
+        return alignment
+    
+    def compute_alignment_score(self, 
+                               alignment: List[Tuple[int, int]],
+                               seq1: List[int],
+                               seq2: List[int]) -> float:
+        """
+        Compute quality score for alignment.
+        
+        Args:
+            alignment: List of aligned pairs
+            seq1: First sequence
+            seq2: Second sequence
+            
+        Returns:
+            Alignment score (0.0 = no alignment, 1.0 = perfect alignment)
+        """
+        if not alignment:
             return 0.0
         
-        return dot_product / (norm1 * norm2)
-    
-    def _token_overlap(self, text1: str, text2: str) -> float:
-        """Calculate token overlap ratio"""
-        tokens1 = set(text1.split())
-        tokens2 = set(text2.split())
+        # Number of matches
+        matches = len(alignment)
         
-        if not tokens1 and not tokens2:
+        # Total possible matches
+        total = max(len(seq1), len(seq2))
+        
+        if total == 0:
             return 1.0
         
-        overlap = len(tokens1.intersection(tokens2))
-        total = len(tokens1) + len(tokens2)
+        # Basic score
+        basic_score = matches / total
         
-        return (2 * overlap) / total if total > 0 else 0.0
+        # Penalize for gaps in alignment
+        if matches > 1:
+            # Check for consecutive alignments
+            consecutive = 0
+            for i in range(1, len(alignment)):
+                if (alignment[i][0] == alignment[i-1][0] + 1 and 
+                    alignment[i][1] == alignment[i-1][1] + 1):
+                    consecutive += 1
+            
+            # Bonus for consecutive alignments
+            consecutivity_bonus = consecutive / (matches - 1) * 0.2
+            basic_score = min(1.0, basic_score + consecutivity_bonus)
+        
+        return basic_score
     
-    def get_generation_stats(self) -> Dict[str, Any]:
-        """Get generation statistics"""
-        if not self.generation_history:
-            return {
-                'total_generations': 0,
-                'deterministic_ratio': 0,
-                'average_similarity': 0
-            }
-        
-        deterministic_count = sum(
-            1 for g in self.generation_history
-            if g['settings'].get('temperature', 1.0) == 0.0
-        )
-        
-        # Calculate average similarity of recent generations
-        recent_responses = [g['response'] for g in self.generation_history[-10:]]
-        avg_similarity = self.compute_semantic_similarity(recent_responses) if len(recent_responses) > 1 else 1.0
-        
-        return {
-            'total_generations': len(self.generation_history),
-            'deterministic_ratio': deterministic_count / len(self.generation_history),
-            'average_similarity': avg_similarity,
-            'seed': self.seed,
-            'current_settings': {
-                'temperature': self.temperature,
-                'top_k': self.top_k,
-                'top_p': self.top_p,
-                'deterministic_mode': self.deterministic_mode
-            }
-        }
-    
-    def reset_seed(self, seed: int):
-        """Reset random seed for reproducibility"""
-        self.seed = seed
-        self.rng = np.random.RandomState(seed)
-        
-        if TORCH_AVAILABLE:
-            torch.manual_seed(seed)
-            if torch.cuda.is_available():
-                torch.cuda.manual_seed_all(seed)
-        
-        logger.info(f"Random seed reset to {seed}")
-
-
-class IntegratedVerificationSystem:
-    """
-    Integrates TokenSpaceNormalizer and StochasticDecodingController
-    with challenge-response verification system
-    """
-    
-    def __init__(self, tokenizer_type: TokenizerType = TokenizerType.BPE,
-                 vocab_size: int = 50000,
-                 seed: Optional[int] = None):
+    def visualize_alignment(self, 
+                           alignment: List[Tuple[int, int]],
+                           seq1: List[int],
+                           seq2: List[int],
+                           tokenizer: Optional[Any] = None) -> str:
         """
-        Initialize integrated verification system
+        Create a visual representation of the alignment.
         
         Args:
-            tokenizer_type: Type of tokenizer
-            vocab_size: Vocabulary size
-            seed: Random seed
-        """
-        self.normalizer = TokenSpaceNormalizer(tokenizer_type, vocab_size)
-        self.controller = StochasticDecodingController(seed)
-        
-        # Verification thresholds
-        self.min_similarity_threshold = 0.85
-        self.max_variance_threshold = 0.15
-        
-        # Verification history
-        self.verification_results = []
-        
-        logger.info("IntegratedVerificationSystem initialized")
-    
-    def verify_model_response(self, model: Any, challenge: Any,
-                             num_variants: int = 3) -> Dict[str, Any]:
-        """
-        Verify model response with tokenization normalization and controlled generation
-        
-        Args:
-            model: Model to verify
-            challenge: Challenge input
-            num_variants: Number of variants to generate
+            alignment: List of aligned pairs
+            seq1: First sequence
+            seq2: Second sequence
+            tokenizer: Optional tokenizer for decoding tokens
             
         Returns:
-            Verification result dictionary
+            String visualization of alignment
         """
-        # Generate response variants
-        responses = self.controller.generate_verification_response(
-            model, challenge, num_variants
-        )
+        lines = []
         
-        # Normalize responses
-        normalized_hashes = []
-        for response in responses:
-            hash_val = self.normalizer.compute_token_invariant_hash(response)
-            normalized_hashes.append(hash_val)
+        # Convert tokens to strings if tokenizer provided
+        if tokenizer:
+            str1 = [tokenizer.decode([t]) if hasattr(tokenizer, 'decode') else str(t) for t in seq1]
+            str2 = [tokenizer.decode([t]) if hasattr(tokenizer, 'decode') else str(t) for t in seq2]
+        else:
+            str1 = [str(t) for t in seq1]
+            str2 = [str(t) for t in seq2]
         
-        # Check consistency
-        unique_hashes = len(set(normalized_hashes))
-        hash_consistency = unique_hashes / len(normalized_hashes)
+        # Create alignment map
+        align_map = {i: j for i, j in alignment}
         
-        # Compute semantic similarity
-        semantic_similarity = self.controller.compute_semantic_similarity(responses)
+        # Build visualization
+        top_line = []
+        middle_line = []
+        bottom_line = []
         
-        # Determine verification result
-        is_verified = (
-            semantic_similarity >= self.min_similarity_threshold and
-            hash_consistency >= (1 - self.max_variance_threshold)
-        )
+        i, j = 0, 0
         
-        result = {
-            'verified': is_verified,
-            'num_variants': num_variants,
-            'unique_hashes': unique_hashes,
-            'hash_consistency': hash_consistency,
-            'semantic_similarity': semantic_similarity,
-            'responses': responses,
-            'normalized_hashes': normalized_hashes,
-            'timestamp': time.time()
-        }
+        while i < len(seq1) or j < len(seq2):
+            if i in align_map and align_map[i] == j:
+                # Aligned tokens
+                token1 = str1[i] if i < len(str1) else ''
+                token2 = str2[j] if j < len(str2) else ''
+                max_len = max(len(token1), len(token2))
+                
+                top_line.append(token1.ljust(max_len))
+                middle_line.append('|'.ljust(max_len))
+                bottom_line.append(token2.ljust(max_len))
+                
+                i += 1
+                j += 1
+            elif i < len(seq1) and (i not in align_map or align_map[i] > j):
+                # Gap in seq2
+                token1 = str1[i]
+                
+                top_line.append(token1)
+                middle_line.append(' ' * len(token1))
+                bottom_line.append('-' * len(token1))
+                
+                i += 1
+            else:
+                # Gap in seq1
+                token2 = str2[j] if j < len(str2) else ''
+                
+                top_line.append('-' * len(token2))
+                middle_line.append(' ' * len(token2))
+                bottom_line.append(token2)
+                
+                j += 1
         
-        self.verification_results.append(result)
+        # Join with spaces
+        lines.append(' '.join(top_line))
+        lines.append(' '.join(middle_line))
+        lines.append(' '.join(bottom_line))
         
-        return result
+        return '\n'.join(lines)
+
+
+class SemanticNormalizer:
+    """
+    Semantic normalization using embeddings and clustering.
+    Maps tokens to semantic space for robust comparison.
+    """
     
-    def cross_tokenizer_verification(self, text: str,
-                                    tokenizer_types: List[TokenizerType]) -> Dict[str, Any]:
+    def __init__(self, embedding_model: Optional[Any] = None,
+                 num_clusters: int = 1000,
+                 embedding_dim: int = 768):
         """
-        Verify text across multiple tokenizer types
+        Initialize semantic normalizer.
         
         Args:
-            text: Text to verify
-            tokenizer_types: List of tokenizer types to test
+            embedding_model: Model for generating token embeddings
+            num_clusters: Number of semantic clusters for quantization
+            embedding_dim: Dimension of embeddings
+        """
+        self.embedding_model = embedding_model
+        self.num_clusters = num_clusters
+        self.embedding_dim = embedding_dim
+        
+        # Initialize cluster centers (would be learned in practice)
+        self.cluster_centers = None
+        self._init_clusters()
+    
+    def _init_clusters(self):
+        """Initialize cluster centers for vector quantization"""
+        # Random initialization (would be learned from data in practice)
+        self.cluster_centers = torch.randn(self.num_clusters, self.embedding_dim)
+        self.cluster_centers = F.normalize(self.cluster_centers, p=2, dim=1)
+    
+    def normalize_semantic(self, tokens: List[int]) -> torch.Tensor:
+        """
+        Map tokens to semantic embedding space.
+        
+        Args:
+            tokens: List of token IDs
             
         Returns:
-            Cross-tokenizer verification results
+            Normalized semantic representation
         """
-        results = {}
-        hashes = []
+        if self.embedding_model:
+            # Get embeddings from model
+            embeddings = self.embedding_model.get_token_embeddings(tokens)
+        else:
+            # Fallback: random embeddings based on token ID
+            embeddings = []
+            for token_id in tokens:
+                # Use token ID as seed for reproducible random embedding
+                torch.manual_seed(token_id)
+                emb = torch.randn(self.embedding_dim)
+                embeddings.append(emb)
+            
+            embeddings = torch.stack(embeddings) if embeddings else torch.empty(0, self.embedding_dim)
         
-        for ttype in tokenizer_types:
-            if ttype in self.normalizer.tokenizers:
-                tokenizer = self.normalizer.tokenizers[ttype]
-                
-                # Tokenize
-                if hasattr(tokenizer, 'encode'):
-                    tokens = tokenizer.encode(text)
-                else:
-                    tokens = tokenizer(text, encode=True)
-                
-                # Normalize
-                normalized = self.normalizer.normalize_token_sequence(
-                    tuple(tokens), 'canonical'
-                )
-                
-                # Compute hash
-                hash_val = self.normalizer.compute_token_invariant_hash(text)
-                
-                results[ttype.value] = {
-                    'token_count': len(tokens),
-                    'normalized_tokens': normalized[:10],  # First 10 for display
-                    'hash': hash_val
-                }
-                
-                hashes.append(hash_val)
+        # Apply semantic quantization
+        normalized = self._semantic_quantization(embeddings)
         
-        # Check consistency across tokenizers
-        unique_hashes = len(set(hashes))
-        consistency = 1.0 if unique_hashes == 1 else 1.0 / unique_hashes
+        return normalized
+    
+    def _semantic_quantization(self, embeddings: torch.Tensor) -> torch.Tensor:
+        """
+        Quantize embeddings to semantic clusters.
         
-        return {
-            'tokenizer_results': results,
-            'unique_hashes': unique_hashes,
-            'consistency_score': consistency,
-            'all_hashes_match': unique_hashes == 1
-        }
+        Args:
+            embeddings: Token embeddings [seq_len, embed_dim]
+            
+        Returns:
+            Quantized embeddings
+        """
+        if embeddings.shape[0] == 0:
+            return embeddings
+        
+        # Normalize embeddings
+        embeddings = F.normalize(embeddings, p=2, dim=1)
+        
+        # Find nearest cluster for each embedding
+        quantized = []
+        
+        for emb in embeddings:
+            # Compute distances to all clusters
+            distances = torch.cdist(emb.unsqueeze(0), self.cluster_centers)
+            
+            # Find nearest cluster
+            nearest_idx = distances.argmin()
+            
+            # Use cluster center as quantized embedding
+            quantized.append(self.cluster_centers[nearest_idx])
+        
+        return torch.stack(quantized) if quantized else embeddings
+    
+    def compute_semantic_similarity(self, 
+                                   tokens1: List[int],
+                                   tokens2: List[int],
+                                   method: str = 'cosine') -> float:
+        """
+        Compute semantic similarity between token sequences.
+        
+        Args:
+            tokens1: First token sequence
+            tokens2: Second token sequence
+            method: Similarity method ('cosine', 'euclidean', 'manhattan')
+            
+        Returns:
+            Similarity score (0.0 = different, 1.0 = identical)
+        """
+        # Get semantic representations
+        emb1 = self.normalize_semantic(tokens1)
+        emb2 = self.normalize_semantic(tokens2)
+        
+        if emb1.shape[0] == 0 or emb2.shape[0] == 0:
+            return 0.0
+        
+        # Aggregate embeddings (mean pooling)
+        emb1_pooled = emb1.mean(dim=0)
+        emb2_pooled = emb2.mean(dim=0)
+        
+        if method == 'cosine':
+            similarity = F.cosine_similarity(emb1_pooled.unsqueeze(0),
+                                            emb2_pooled.unsqueeze(0))
+            return similarity.item()
+        
+        elif method == 'euclidean':
+            distance = torch.dist(emb1_pooled, emb2_pooled, p=2)
+            # Convert distance to similarity (assuming max distance ~2 for normalized vectors)
+            similarity = 1.0 - min(distance.item() / 2.0, 1.0)
+            return similarity
+        
+        elif method == 'manhattan':
+            distance = torch.dist(emb1_pooled, emb2_pooled, p=1)
+            # Convert distance to similarity
+            max_distance = self.embedding_dim * 2  # Max L1 distance for normalized vectors
+            similarity = 1.0 - min(distance.item() / max_distance, 1.0)
+            return similarity
+        
+        else:
+            raise ValueError(f"Unknown similarity method: {method}")
+    
+    def find_semantic_clusters(self, token_sequences: List[List[int]],
+                              n_clusters: int = 10) -> Dict[int, List[int]]:
+        """
+        Find semantic clusters in a collection of token sequences.
+        
+        Args:
+            token_sequences: List of token sequences
+            n_clusters: Number of clusters to find
+            
+        Returns:
+            Dictionary mapping cluster ID to sequence indices
+        """
+        if not token_sequences:
+            return {}
+        
+        # Get embeddings for all sequences
+        sequence_embeddings = []
+        for tokens in token_sequences:
+            emb = self.normalize_semantic(tokens)
+            if emb.shape[0] > 0:
+                # Mean pooling
+                sequence_embeddings.append(emb.mean(dim=0))
+            else:
+                sequence_embeddings.append(torch.zeros(self.embedding_dim))
+        
+        if not sequence_embeddings:
+            return {}
+        
+        embeddings_matrix = torch.stack(sequence_embeddings)
+        
+        # Simple k-means clustering
+        clusters = defaultdict(list)
+        
+        # Initialize cluster centers randomly
+        n_sequences = len(sequence_embeddings)
+        n_clusters = min(n_clusters, n_sequences)
+        
+        indices = torch.randperm(n_sequences)[:n_clusters]
+        centers = embeddings_matrix[indices]
+        
+        # Iterate until convergence (simplified)
+        for _ in range(10):  # Fixed iterations for simplicity
+            # Assign sequences to nearest cluster
+            new_clusters = defaultdict(list)
+            
+            for i, emb in enumerate(embeddings_matrix):
+                distances = torch.cdist(emb.unsqueeze(0), centers)
+                nearest = distances.argmin().item()
+                new_clusters[nearest].append(i)
+            
+            # Update centers
+            for cluster_id, member_indices in new_clusters.items():
+                if member_indices:
+                    member_embeddings = embeddings_matrix[member_indices]
+                    centers[cluster_id] = member_embeddings.mean(dim=0)
+            
+            clusters = new_clusters
+        
+        return dict(clusters)
 
 
-# Example usage
-if __name__ == "__main__":
-    print("=" * 70)
-    print("Token Space Normalizer and Stochastic Decoding Controller")
-    print("=" * 70)
+# Utility functions
+def create_normalizer(tokenizer: Any, mode: str = 'canonical') -> TokenSpaceNormalizer:
+    """
+    Factory function to create a normalizer.
     
-    # Initialize components
-    normalizer = TokenSpaceNormalizer(TokenizerType.BPE, vocab_size=50000)
-    controller = StochasticDecodingController(seed=42)
+    Args:
+        tokenizer: Tokenizer instance
+        mode: Normalization mode
+        
+    Returns:
+        Configured TokenSpaceNormalizer
+    """
+    return TokenSpaceNormalizer(tokenizer, mode)
+
+
+def align_and_compare(tokens1: List[int], 
+                     tokens2: List[int],
+                     tokenizer: Any,
+                     normalize: bool = True,
+                     alignment_method: str = 'dynamic_programming') -> Dict[str, Any]:
+    """
+    Complete pipeline for aligning and comparing token sequences.
     
-    # Test text
-    test_text = "The quick brown fox jumps over the lazy dog."
+    Args:
+        tokens1: First token sequence
+        tokens2: Second token sequence
+        tokenizer: Tokenizer for normalization
+        normalize: Whether to normalize before alignment
+        alignment_method: Method for alignment
+        
+    Returns:
+        Dictionary with alignment results and metrics
+    """
+    # Create normalizer and aligner
+    normalizer = TokenSpaceNormalizer(tokenizer) if normalize else None
+    aligner = TokenAligner(normalizer)
     
-    print(f"\nTest text: {test_text}")
+    # Perform alignment
+    alignment_result = aligner.align_sequences(tokens1, tokens2, method=alignment_method)
     
-    # Test normalization
-    print("\n" + "=" * 70)
-    print("Text Normalization")
-    print("=" * 70)
+    # Compute additional metrics
+    if normalizer:
+        jaccard_distance = normalizer.compute_distance(tokens1, tokens2, method='jaccard')
+        levenshtein_distance = normalizer.compute_distance(tokens1, tokens2, method='levenshtein')
+    else:
+        # Basic metrics without normalization
+        set1, set2 = set(tokens1), set(tokens2)
+        jaccard_distance = 1.0 - len(set1 & set2) / len(set1 | set2) if set1 | set2 else 0.0
+        levenshtein_distance = None
     
-    normalized = normalizer.normalize_text(test_text)
-    print(f"Normalized: {normalized}")
-    
-    invariant_hash = normalizer.compute_token_invariant_hash(test_text)
-    print(f"Invariant hash: {invariant_hash[:40]}...")
-    
-    # Test tokenization with regularization
-    print("\n" + "=" * 70)
-    print("Subword Regularization")
-    print("=" * 70)
-    
-    variants = normalizer.tokenize_with_subword_regularization(test_text, alpha=0.2, num_samples=3)
-    for i, variant in enumerate(variants):
-        print(f"Variant {i+1}: {variant[:10]}... (length: {len(variant)})")
-    
-    # Test controlled sampling
-    print("\n" + "=" * 70)
-    print("Controlled Sampling")
-    print("=" * 70)
-    
-    # Simulate logits
-    logits = np.random.randn(50)
-    
-    # Deterministic sampling
-    controller.set_deterministic_mode(temperature=0.0)
-    deterministic_token = controller.controlled_sampling(logits, SamplingMethod.ARGMAX)
-    print(f"Deterministic token: {deterministic_token}")
-    
-    # Stochastic sampling
-    controller.temperature = 0.8
-    controller.top_k = 10
-    stochastic_tokens = [
-        controller.controlled_sampling(logits, SamplingMethod.TOP_K)
-        for _ in range(5)
-    ]
-    print(f"Stochastic tokens (top-k): {stochastic_tokens}")
-    
-    # Test semantic similarity
-    print("\n" + "=" * 70)
-    print("Semantic Similarity")
-    print("=" * 70)
-    
-    responses = [
-        "The quick brown fox jumps over the lazy dog.",
-        "A quick brown fox jumped over a lazy dog.",
-        "The fast brown fox leaps over the sleepy dog.",
-        "Something completely different."
-    ]
-    
-    similarity = controller.compute_semantic_similarity(responses[:3])
-    print(f"Similarity (similar texts): {similarity:.4f}")
-    
-    similarity_with_different = controller.compute_semantic_similarity(responses)
-    print(f"Similarity (with different): {similarity_with_different:.4f}")
-    
-    # Test integrated verification
-    print("\n" + "=" * 70)
-    print("Integrated Verification")
-    print("=" * 70)
-    
-    verifier = IntegratedVerificationSystem(TokenizerType.BPE, vocab_size=50000, seed=42)
-    
-    # Cross-tokenizer verification
-    cross_results = verifier.cross_tokenizer_verification(
-        test_text,
-        [TokenizerType.BPE, TokenizerType.WORDPIECE, TokenizerType.CHARACTER]
-    )
-    
-    print(f"Cross-tokenizer consistency: {cross_results['consistency_score']:.4f}")
-    print(f"All hashes match: {cross_results['all_hashes_match']}")
-    
-    for tokenizer, result in cross_results['tokenizer_results'].items():
-        print(f"  {tokenizer}: {result['token_count']} tokens, hash: {result['hash'][:20]}...")
-    
-    # Statistics
-    print("\n" + "=" * 70)
-    print("Statistics")
-    print("=" * 70)
-    
-    cache_stats = normalizer.get_cache_stats()
-    print(f"Cache stats: {cache_stats}")
-    
-    gen_stats = controller.get_generation_stats()
-    print(f"Generation stats: {gen_stats}")
-    
-    print("\n" + "=" * 70)
-    print("Complete")
-    print("=" * 70)
+    return {
+        'alignment': alignment_result.alignment,
+        'alignment_score': alignment_result.score,
+        'alignment_method': alignment_result.method,
+        'jaccard_distance': jaccard_distance,
+        'levenshtein_distance': levenshtein_distance,
+        'metadata': alignment_result.metadata
+    }
