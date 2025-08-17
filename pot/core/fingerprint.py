@@ -1618,3 +1618,54 @@ def find_closest_match(query: FingerprintResult,
     if return_all_scores:
         return int(best_idx), float(best_similarity), similarities
     return int(best_idx), float(best_similarity)
+
+
+# ============================================================================
+# Compatibility API for Validation Reports
+# ============================================================================
+
+class Fingerprint:
+    """Compatibility class for validation reports and tests.
+    
+    This class provides a simplified interface that wraps the comprehensive
+    fingerprinting functionality implemented in this module.
+    """
+    
+    def __init__(self, config: Optional[FingerprintConfig] = None):
+        """Initialize fingerprint system with configuration.
+        
+        Args:
+            config: Optional FingerprintConfig. If None, uses minimal config.
+        """
+        self.config = config or FingerprintConfig.minimal()
+        
+    def compute(self, model: Callable, challenges: List[Any]) -> FingerprintResult:
+        """Compute fingerprint for a model on given challenges.
+        
+        Args:
+            model: Callable model function
+            challenges: List of challenge inputs
+            
+        Returns:
+            FingerprintResult with io_hash and optional jacobian_sketch
+        """
+        return fingerprint_run(model, challenges, self.config)
+
+
+def compute_fingerprint(model: Callable, 
+                       challenges: List[Any], 
+                       config: Optional[FingerprintConfig] = None) -> FingerprintResult:
+    """Top-level fingerprint computation function.
+    
+    This is the main entry point for behavioral fingerprinting that can be
+    called directly without creating a Fingerprint class instance.
+    
+    Args:
+        model: Callable model function
+        challenges: List of challenge inputs  
+        config: Optional FingerprintConfig
+        
+    Returns:
+        FingerprintResult with behavioral fingerprint data
+    """
+    return fingerprint_run(model, challenges, config)
