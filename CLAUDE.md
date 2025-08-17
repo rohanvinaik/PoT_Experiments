@@ -193,6 +193,37 @@ PoT_Experiments/
     - `secure_compare()` for constant-time comparisons preventing timing attacks
     - `get_available_features()` for runtime cryptographic feature detection
     - Support for both cryptography package and fallback implementations
+- **Audit Trail Query System** (`query.py`): Advanced audit trail analysis and visualization (NEW 2025-08-17)
+  - **AuditTrailQuery**: Comprehensive querying and analysis system for audit trails
+    - Multi-dimensional querying: by model, time range, confidence, verification result, session
+    - Efficient indexing for fast queries on large datasets (10,000+ records)
+    - Support for single files (JSON/JSONL) and directories of audit files
+    - Automatic timestamp parsing with multiple format support
+  - **Integrity Verification**: Complete audit trail integrity analysis
+    - Hash chain validation for tamper detection
+    - Commitment verification with detailed reporting
+    - Missing field detection and data validation
+    - Integrity scoring with actionable recommendations
+  - **Advanced Anomaly Detection**: AI-powered pattern recognition for security monitoring
+    - Accuracy drift detection using statistical analysis (3-sigma rule)
+    - Timing anomaly detection for performance monitoring
+    - Fingerprint drift detection for model integrity
+    - Frequency anomaly detection for usage pattern analysis
+    - Confidence anomaly detection for quality assurance
+    - Severity scoring (0.0-1.0) for prioritized alerting
+  - **Multi-Format Report Generation**: Comprehensive audit reporting
+    - JSON reports with complete metadata and analytics
+    - Markdown reports for documentation and sharing
+    - HTML reports with styling for web presentation
+    - Model-specific analysis with performance metrics
+    - Statistical summaries and trend analysis
+  - **AuditDashboard**: Interactive web dashboard for real-time monitoring
+    - Streamlit-based visualization with filtering capabilities
+    - Timeline visualization of verification events
+    - Real-time anomaly highlighting with severity indicators
+    - Model performance comparison and trending
+    - Interactive filtering by model, time range, and confidence
+    - Export capabilities for reports and visualizations
 
 ### 3.1. Blockchain Infrastructure (`pot/prototypes/training_provenance_auditor.py`) (UPDATED 2025-08-17)
 - **Blockchain Client** (`BlockchainClient`): Production-ready blockchain client for on-chain commitment storage
@@ -528,6 +559,23 @@ Comprehensive unit tests are available in `pot/core/`, `pot/audit/`, and `tests/
   - Performance benchmarking (sub-millisecond operations)
   - Integration scenarios with complete audit workflow testing
 
+**Audit Trail Query System Tests** (NEW 2025-08-17):
+- `test_audit_query.py`: Comprehensive audit trail analysis test suite
+  - Audit trail loading from single files and directories (JSON/JSONL)
+  - Multi-dimensional querying validation with realistic datasets
+  - Integrity verification with hash chain and commitment validation
+  - Advanced anomaly detection with statistical significance testing
+  - Multi-format report generation (JSON, Markdown, HTML)
+  - Dashboard initialization and Streamlit integration testing
+  - Edge case handling with malformed data and empty trails
+  - Performance benchmarking with large datasets (500+ records)
+  - Integration testing with cryptographic utilities
+- `demo_audit_query.py`: Complete demonstration system showcasing real-world scenarios
+  - Security incident investigation workflows
+  - Model performance monitoring and compliance reporting
+  - Performance analysis with scalability testing
+  - Interactive dashboard setup and configuration
+
 Run all tests:
 ```bash
 # Run specific test suites
@@ -539,6 +587,10 @@ python -m pot.core.test_fingerprint       # Behavioral fingerprinting
 # Run cryptographic utilities tests
 python test_crypto_utils.py               # Cryptographic primitives
 python test_crypto_integration.py         # Integration with audit system
+
+# Run audit trail query system tests
+python test_audit_query.py                # Audit trail analysis
+python demo_audit_query.py                # Interactive demonstration
 
 # Run all pytest tests
 pytest tests/ -v
