@@ -459,3 +459,119 @@ class SequentialTest:
         """Reset test state."""
         self.state = CSState()
         self.decision_history = []
+
+
+def compare_bounds(series, eb_cfg=None, hoeff_cfg=None):
+    """
+    Return dict with widths/coverage of EB vs Hoeffding on `series` in [0,1].
+    Uses ConfidenceSequence (EB) and a Hoeffding-style fixed-width bound.
+    
+    Args:
+        series: List/array of values in [0,1] to analyze
+        eb_cfg: Configuration dict for EB bounds (optional)
+        hoeff_cfg: Configuration dict for Hoeffding bounds (optional)
+    
+    Returns:
+        Dict with comparison metrics:
+        {
+            'eb_width': float,        # Average width of EB confidence intervals
+            'hoeff_width': float,     # Average width of Hoeffding intervals
+            'eb_coverage': float,     # Coverage rate of EB intervals
+            'hoeff_coverage': float,  # Coverage rate of Hoeffding intervals
+            'improvement_ratio': float # hoeff_width / eb_width (EB improvement)
+        }
+    """
+    import math
+    
+    # Default configurations
+    eb_config = eb_cfg or {'alpha': 0.05, 'c': 1.0}
+    hoeff_config = hoeff_cfg or {'alpha': 0.05}
+    
+    alpha_eb = eb_config.get('alpha', 0.05)
+    alpha_hoeff = hoeff_config.get('alpha', 0.05)
+    c = eb_config.get('c', 1.0)
+    
+    if series is None or len(series) == 0:
+        return {
+            'eb_width': 0.0,
+            'hoeff_width': 0.0,
+            'eb_coverage': 0.0,
+            'hoeff_coverage': 0.0,
+            'improvement_ratio': 1.0
+        }
+    
+    series = [float(x) for x in series]
+    n = len(series)
+    
+    # Validate series is in [0,1]
+    for x in series:
+        if not (0.0 <= x <= 1.0):
+            raise ValueError(f"All values must be in [0,1], got {x}")
+    
+    # Compute true mean for coverage assessment
+    true_mean = sum(series) / n
+    
+    # Initialize running statistics for EB
+    state = CSState()
+    eb_widths = []
+    hoeff_widths = []
+    eb_coverage_count = 0
+    hoeff_coverage_count = 0
+    
+    # Process each time step
+    for i, value in enumerate(series):
+        state.update(value)
+        t = state.n  # Current time step
+        
+        if t < 1:
+            continue
+            
+        # Compute EB confidence interval
+        eb_rad = eb_radius(state, alpha_eb, c)
+        eb_lower = max(0.0, state.mean - eb_rad)
+        eb_upper = min(1.0, state.mean + eb_rad)
+        eb_width = eb_upper - eb_lower
+        eb_widths.append(eb_width)
+        
+        # Check EB coverage
+        if eb_lower <= true_mean <= eb_upper:
+            eb_coverage_count += 1
+            
+        # Compute Hoeffding confidence interval
+        # Hoeffding bound: sqrt(log(2/α) / (2n))
+        # For bounded [0,1] variables
+        hoeff_radius = math.sqrt(math.log(2/alpha_hoeff) / (2*t))
+        hoeff_lower = max(0.0, state.mean - hoeff_radius)
+        hoeff_upper = min(1.0, state.mean + hoeff_radius)
+        hoeff_width = hoeff_upper - hoeff_lower
+        hoeff_widths.append(hoeff_width)
+        
+        # Check Hoeffding coverage
+        if hoeff_lower <= true_mean <= hoeff_upper:
+            hoeff_coverage_count += 1
+    
+    # Compute average metrics
+    if eb_widths:
+        avg_eb_width = sum(eb_widths) / len(eb_widths)
+        avg_hoeff_width = sum(hoeff_widths) / len(hoeff_widths)
+        eb_coverage = eb_coverage_count / len(eb_widths)
+        hoeff_coverage = hoeff_coverage_count / len(hoeff_widths)
+        
+        # Improvement ratio (how much better EB is)
+        improvement_ratio = avg_hoeff_width / avg_eb_width if avg_eb_width > 0 else 1.0
+    else:
+        avg_eb_width = 0.0
+        avg_hoeff_width = 0.0
+        eb_coverage = 0.0
+        hoeff_coverage = 0.0
+        improvement_ratio = 1.0
+    
+    return {
+        'eb_width': avg_eb_width,
+        'hoeff_width': avg_hoeff_width,
+        'eb_coverage': eb_coverage,
+        'hoeff_coverage': hoeff_coverage,
+        'improvement_ratio': improvement_ratio,
+        'n_samples': n,
+        'true_mean': true_mean
+    }
