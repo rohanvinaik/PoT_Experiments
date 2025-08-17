@@ -97,6 +97,21 @@ from .topography import (
     compare_topographies
 )
 
+# Optimized topographical components
+try:
+    from .topography_optimized import (
+        IncrementalUMAP,
+        OnlineSOM,
+        project_latents_batched,
+        CachedProjector,
+        ApproximateProjector,
+        optimize_projection_pipeline,
+        RAPIDS_AVAILABLE
+    )
+    OPTIMIZED_TOPOGRAPHY_AVAILABLE = True
+except ImportError:
+    OPTIMIZED_TOPOGRAPHY_AVAILABLE = False
+
 from .topography_utils import (
     compute_distance_matrix,
     compute_neighborhood_preservation,
