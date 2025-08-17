@@ -632,6 +632,12 @@ fig = plot_verification_trajectory(result, config=config, save_path='publication
 # Features: real-time parameter adjustment, live visualization, educational annotations
 ```
 
+**Comprehensive Documentation**:
+For complete theoretical background and worked examples, see:
+- **Theory**: [docs/statistical_verification.md](docs/statistical_verification.md) - Mathematical foundations, EB bounds, anytime validity
+- **Tutorials**: [examples/sequential_analysis.ipynb](examples/sequential_analysis.ipynb) - Interactive examples and parameter analysis
+- **Quick Start**: [README.md](README.md#sequential-verification-quick-start) - When to use sequential vs fixed-sample testing
+
 ## Running Experiments
 
 ### Quick Start
@@ -846,11 +852,39 @@ After implementing ANY feature or change, verify you have:
 4. Ensure examples and usage patterns are current
 5. NEVER skip documentation updates - they are PART of the implementation
 
+## Documentation Structure
+
+**Core Documentation**:
+- **CLAUDE.md** (this file): Complete framework overview with API examples
+- **README.md**: Project overview with quick start guides and performance characteristics
+- **EXPERIMENTS.md**: Detailed experimental protocols and reproducibility instructions
+- **AGENTS.md**: Integration instructions for AI agents and automation
+
+**Specialized Documentation**:
+- **docs/statistical_verification.md**: Comprehensive theoretical background for sequential testing
+  - Empirical-Bernstein bound theory and mathematical foundations
+  - Anytime validity guarantees and error rate proofs
+  - Parameter selection guidelines and practical recommendations
+  - Comparison with fixed-sample methods and baseline approaches
+- **examples/sequential_analysis.ipynb**: Interactive worked examples and tutorials
+  - Complete workflow demonstrations with real scenarios
+  - Parameter sensitivity analysis and threshold selection
+  - Performance benchmarking and visualization examples
+  - Advanced features including mixture testing and adaptive thresholds
+
+**API Documentation**:
+- Function docstrings include mathematical formulations and paper references (§2.4)
+- Usage examples in docstrings demonstrate practical implementation
+- Error handling and edge cases documented for production use
+
 ## Contact & Support
 
-- Check EXPERIMENTS.md for detailed experimental protocols
-- Review AGENTS.md for integration instructions
-- See README.md for general project overview
+- **Quick Start**: See README.md sequential verification section
+- **Theory**: Read docs/statistical_verification.md for mathematical background
+- **Examples**: Run examples/sequential_analysis.ipynb for hands-on tutorials
+- **Implementation**: Check function docstrings for detailed API documentation
+- **Experiments**: Review EXPERIMENTS.md for detailed protocols
+- **Integration**: See AGENTS.md for automation and AI agent instructions
 
 ## Remember
 
