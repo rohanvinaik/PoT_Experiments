@@ -18,8 +18,10 @@ import sys
 import os
 import warnings
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__ if "__file__" in locals() else sys.argv[0])))
+# Add parent directory to path for pot module
+script_dir = os.path.dirname(os.path.abspath(__file__ if "__file__" in locals() else sys.argv[0]))
+parent_dir = os.path.dirname(script_dir)
+sys.path.insert(0, parent_dir)
 
 try:
     import torch

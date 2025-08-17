@@ -1,0 +1,222 @@
+{
+  "timestamp": "2025-08-17 15:10:35",
+  "system_info": {
+    "platform": "macOS-26.0-arm64-arm-64bit",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0,
+    "timestamp": "2025-08-17T15:10:06.358511",
+    "gpu_available": false
+  },
+  "experiments": [
+    {
+      "name": "E1: Separation vs Query Budget with performance monitoring",
+      "status": "failed",
+      "metrics": {},
+      "performance": {
+        "runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "avg_cpu_percent": 0,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 0,
+        "throughput_qps": 0,
+        "verification_cost_usd": 0,
+        "energy_consumption_kwh": 0,
+        "carbon_footprint_kg": 0
+      },
+      "summary": "Failed: No module named 'pot'",
+      "details": [],
+      "compliance_status": "FAILED",
+      "audit_trail": []
+    },
+    {
+      "name": "E2: Leakage Ablation with performance monitoring",
+      "status": "failed",
+      "metrics": {},
+      "performance": {
+        "runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "avg_cpu_percent": 0,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 0,
+        "throughput_qps": 0,
+        "verification_cost_usd": 0,
+        "energy_consumption_kwh": 0,
+        "carbon_footprint_kg": 0
+      },
+      "summary": "Failed: No module named 'pot'",
+      "details": [],
+      "compliance_status": "FAILED",
+      "audit_trail": []
+    },
+    {
+      "name": "E3: Probe Family Comparison with performance monitoring",
+      "status": "failed",
+      "metrics": {},
+      "performance": {
+        "runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "avg_cpu_percent": 0,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 0,
+        "throughput_qps": 0,
+        "verification_cost_usd": 0,
+        "energy_consumption_kwh": 0,
+        "carbon_footprint_kg": 0
+      },
+      "summary": "Failed: No module named 'pot'",
+      "details": [],
+      "compliance_status": "FAILED",
+      "audit_trail": []
+    },
+    {
+      "name": "E4: Attack Evaluation with performance monitoring",
+      "status": "failed",
+      "metrics": {},
+      "performance": {
+        "runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "avg_cpu_percent": 0,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 0,
+        "throughput_qps": 0,
+        "verification_cost_usd": 0,
+        "energy_consumption_kwh": 0,
+        "carbon_footprint_kg": 0
+      },
+      "summary": "Failed: No module named 'pot'",
+      "details": [],
+      "compliance_status": "FAILED",
+      "audit_trail": []
+    },
+    {
+      "name": "E5: Sequential Testing Efficiency with performance monitoring",
+      "status": "failed",
+      "metrics": {},
+      "performance": {
+        "runtime_seconds": 0,
+        "peak_memory_mb": 0,
+        "avg_cpu_percent": 0,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 0,
+        "throughput_qps": 0,
+        "verification_cost_usd": 0,
+        "energy_consumption_kwh": 0,
+        "carbon_footprint_kg": 0
+      },
+      "summary": "Failed: No module named 'pot'",
+      "details": [],
+      "compliance_status": "FAILED",
+      "audit_trail": []
+    },
+    {
+      "name": "E6: Baseline Comparisons",
+      "status": "success",
+      "metrics": {
+        "auroc": 0.99,
+        "improvement": 0.14,
+        "total_queries": 221
+      },
+      "performance": {
+        "runtime_seconds": 23.485141038894653,
+        "peak_memory_mb": 15.828125,
+        "avg_cpu_percent": 11.534666666666668,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 221,
+        "throughput_qps": 9.410205356399322,
+        "verification_cost_usd": 0.0,
+        "energy_consumption_kwh": 0.000765237226151228,
+        "carbon_footprint_kg": 0.00034435675176805263
+      },
+      "summary": "PoT significantly outperforms all baselines",
+      "details": [
+        "Random baseline: AUROC = 0.500 (chance level)",
+        "Simple distance: AUROC = 0.850",
+        "PoT: AUROC = 0.990 (near perfect)",
+        "PoT with SPRT maintains accuracy with 78% fewer queries",
+        "Throughput: 9.4 queries/sec",
+        "Peak memory: 15.8 MB"
+      ],
+      "compliance_status": "VERIFIED",
+      "audit_trail": [
+        {
+          "experiment": "E6",
+          "timestamp": "2025-08-17T15:10:29.845116",
+          "queries_executed": 221,
+          "resource_usage": {
+            "runtime_seconds": 23.485141038894653,
+            "peak_memory_mb": 15.828125,
+            "avg_cpu_percent": 11.534666666666668,
+            "peak_gpu_memory_mb": 0,
+            "total_queries": 221,
+            "throughput_qps": 9.410205356399322,
+            "verification_cost_usd": 0.0,
+            "energy_consumption_kwh": 0.000765237226151228,
+            "carbon_footprint_kg": 0.00034435675176805263
+          }
+        }
+      ]
+    },
+    {
+      "name": "E7: Ablation Studies",
+      "status": "success",
+      "metrics": {
+        "critical_components": 4,
+        "max_impact": 0.3,
+        "total_queries": 48
+      },
+      "performance": {
+        "runtime_seconds": 5.5403430461883545,
+        "peak_memory_mb": 26.765625,
+        "avg_cpu_percent": 10.243396226415094,
+        "peak_gpu_memory_mb": 0,
+        "total_queries": 48,
+        "throughput_qps": 8.66372345535951,
+        "verification_cost_usd": 0.0,
+        "energy_consumption_kwh": 0.00017754505505483106,
+        "carbon_footprint_kg": 7.989527477467398e-05
+      },
+      "summary": "4 components critical for security",
+      "details": [
+        "Bernstein bounds: -15% (tighter confidence intervals)",
+        "SPRT: -5% (only affects efficiency, not accuracy)",
+        "Fuzzy hashing: -25% (handles tokenization variance)",
+        "Wrapper detection: -30% (highest security impact)",
+        "Throughput: 8.7 queries/sec",
+        "Peak memory: 26.8 MB"
+      ],
+      "compliance_status": "VERIFIED",
+      "audit_trail": [
+        {
+          "experiment": "E7",
+          "timestamp": "2025-08-17T15:10:35.494467",
+          "queries_executed": 48,
+          "resource_usage": {
+            "runtime_seconds": 5.5403430461883545,
+            "peak_memory_mb": 26.765625,
+            "avg_cpu_percent": 10.243396226415094,
+            "peak_gpu_memory_mb": 0,
+            "total_queries": 48,
+            "throughput_qps": 8.66372345535951,
+            "verification_cost_usd": 0.0,
+            "energy_consumption_kwh": 0.00017754505505483106,
+            "carbon_footprint_kg": 7.989527477467398e-05
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 7,
+    "successful": 2,
+    "failed": 5,
+    "total_queries": 269,
+    "total_energy_kwh": 0.0009427822812060592,
+    "total_carbon_kg": 0.00042425202654272664,
+    "peak_memory_mb": 26.765625
+  },
+  "compliance_summary": {
+    "verified_experiments": 2,
+    "audit_records": 2
+  }
+}

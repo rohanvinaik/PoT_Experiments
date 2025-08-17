@@ -1,0 +1,84 @@
+{
+  "E1": {
+    "status": "FAILED",
+    "error": "Unknown family numeric"
+  },
+  "E2": {
+    "status": "PASSED",
+    "detection_rates": {
+      "wrapper": 0.9501070113960168,
+      "fine-tuning": 0.9611389440988932,
+      "compression": 0.9762900370830961,
+      "distillation": 0.9925428349691766
+    }
+  },
+  "E3": {
+    "status": "PASSED",
+    "verification_times": {
+      "1B": 0.07384058673002657,
+      "3B": 0.2562197950412732,
+      "7B": 0.7227899665938838,
+      "13B": 1.2661177529470886
+    }
+  },
+  "E4": {
+    "status": "FAILED",
+    "error": "SequentialTester.__init__() got an unexpected keyword argument 'tau'"
+  },
+  "E5": {
+    "status": "PASSED",
+    "api_results": {
+      "OpenAI": {
+        "success_rate": 0.996625695708729,
+        "latency_ms": 52.996109709513235
+      },
+      "Anthropic": {
+        "success_rate": 0.983288480483217,
+        "latency_ms": 120.04909023579954
+      },
+      "Google": {
+        "success_rate": 0.9937724326327635,
+        "latency_ms": 179.13817893486447
+      },
+      "Local": {
+        "success_rate": 0.9963149554900467,
+        "latency_ms": 115.77441941586774
+      }
+    }
+  },
+  "E6": {
+    "status": "PASSED",
+    "baselines": {
+      "Random": {
+        "FAR": 0.5,
+        "FRR": 0.5,
+        "AUROC": 0.5
+      },
+      "Simple Distance": {
+        "FAR": 0.15,
+        "FRR": 0.12,
+        "AUROC": 0.85
+      },
+      "PoT (no SPRT)": {
+        "FAR": 0.01,
+        "FRR": 0.01,
+        "AUROC": 0.99
+      },
+      "PoT (with SPRT)": {
+        "FAR": 0.01,
+        "FRR": 0.01,
+        "AUROC": 0.99
+      }
+    }
+  },
+  "E7": {
+    "status": "PASSED",
+    "ablation_results": {
+      "Bernstein Bounds": -0.15,
+      "SPRT": -0.05,
+      "Fuzzy Hashing": -0.25,
+      "KDF": -0.1,
+      "Wrapper Detection": -0.3
+    }
+  }
+}
