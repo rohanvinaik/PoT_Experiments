@@ -1,0 +1,91 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-08-17T12:59:44.063224",
+    "results_path": "custom_results.json",
+    "total_experiments": 2,
+    "generator_version": "1.0"
+  },
+  "metrics": {
+    "far": 0.007,
+    "frr": 0.0135,
+    "accuracy": 0.9924999999999999,
+    "precision": 0.993,
+    "recall": 0.9865,
+    "f1_score": 0.9897393281131599,
+    "total_queries": 20,
+    "avg_queries": 10.0,
+    "processing_time": 0.2605,
+    "confidence_intervals": {
+      "far": [
+        0.006,
+        0.008
+      ],
+      "frr": [
+        0.012,
+        0.015
+      ],
+      "accuracy": [
+        0.991,
+        0.994
+      ]
+    }
+  },
+  "paper_claims": {
+    "far": 0.01,
+    "frr": 0.01,
+    "accuracy": 0.99,
+    "efficiency_gain": 0.9,
+    "average_queries": 10.0,
+    "confidence_level": 0.95
+  },
+  "discrepancies": [
+    {
+      "metric": "far",
+      "claimed": 0.01,
+      "actual": 0.007,
+      "difference": -0.003,
+      "relative_difference": 0.3,
+      "severity": "major",
+      "suggestion": "Check threshold settings, challenge difficulty, or model calibration"
+    },
+    {
+      "metric": "frr",
+      "claimed": 0.01,
+      "actual": 0.0135,
+      "difference": 0.0034999999999999996,
+      "relative_difference": 0.35,
+      "severity": "major",
+      "suggestion": "Verify challenge generation parameters and model evaluation conditions"
+    }
+  ],
+  "raw_data": [
+    {
+      "experiment_id": "custom_001",
+      "far": 0.008,
+      "frr": 0.012,
+      "accuracy": 0.994,
+      "queries": 8,
+      "processing_time": 0.234,
+      "challenge_family": "vision:freq",
+      "custom_metric_1": 0.85,
+      "custom_metric_2": 42.7,
+      "model_size_mb": 15.2,
+      "gpu_memory_mb": 512,
+      "timestamp": "2024-01-15T10:30:00"
+    },
+    {
+      "experiment_id": "custom_002",
+      "far": 0.006,
+      "frr": 0.015,
+      "accuracy": 0.991,
+      "queries": 12,
+      "processing_time": 0.287,
+      "challenge_family": "vision:texture",
+      "custom_metric_1": 0.78,
+      "custom_metric_2": 38.9,
+      "model_size_mb": 18.7,
+      "gpu_memory_mb": 768,
+      "timestamp": "2024-01-15T10:35:00"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "experiment_name": "test_full_pipeline",
+  "trial_id": "0712a2d7bb365d83",
+  "model_type": "vision",
+  "model_architecture": "simple_cnn",
+  "challenge_families": [
+    "vision:freq"
+  ],
+  "n_challenges_per_family": 2,
+  "master_key_hex": "01374b6bd7f2920c45e5efdfd2e57ac21c72198b246be7dc56a89b56d07e6d1c",
+  "session_nonce_hex": "999cee3474da35afb104800a06dbcc11",
+  "alpha": 0.05,
+  "beta": 0.05,
+  "tau_id": 0.01,
+  "tau_far": 0.1,
+  "max_challenges": 3,
+  "global_seed": 42,
+  "torch_seed": 42,
+  "numpy_seed": 42,
+  "output_dir": "outputs/test_experiments",
+  "save_models": false,
+  "verbose": false,
+  "use_jacobian": false,
+  "batch_size": 32
+}

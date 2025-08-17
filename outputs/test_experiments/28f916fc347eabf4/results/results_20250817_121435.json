@@ -1,0 +1,75 @@
+{
+  "experiment_config": {
+    "experiment_name": "test_repro_1",
+    "trial_id": "28f916fc347eabf4",
+    "model_type": "vision",
+    "model_architecture": "simple_cnn",
+    "challenge_families": [
+      "vision:freq"
+    ],
+    "n_challenges_per_family": 2,
+    "master_key_hex": "2d041c508c8403c96ecf5d57a4d82ea2e6c4282866ae40fc0f06c205b3bd47c2",
+    "session_nonce_hex": "2f00df9d9cbfbe4815cfc3fbfae0fdfd",
+    "alpha": 0.05,
+    "beta": 0.05,
+    "tau_id": 0.01,
+    "tau_far": 0.1,
+    "max_challenges": 100,
+    "global_seed": 123,
+    "torch_seed": 123,
+    "numpy_seed": 123,
+    "output_dir": "outputs/test_experiments",
+    "save_models": false,
+    "verbose": false,
+    "use_jacobian": false,
+    "batch_size": 32
+  },
+  "metrics": {
+    "far": 0.0,
+    "frr": 1.0,
+    "accuracy": 0.0,
+    "avg_confidence": 0.0,
+    "avg_distance": 1.0,
+    "avg_stopping_time": 1.0,
+    "avg_fingerprint_time": 4.506111145019531e-05,
+    "avg_decision_time": 5.340576171875e-05,
+    "total_experiments": 2,
+    "legitimate_count": 2,
+    "illegitimate_count": 0
+  },
+  "results": [
+    {
+      "trial_id": "28f916fc347eabf4",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.637057+00:00",
+      "challenge_id": "1ce4cd17bbb198bc",
+      "fingerprint_time": 6.985664367675781e-05,
+      "decision_time": 8.296966552734375e-05
+    },
+    {
+      "trial_id": "28f916fc347eabf4",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.637104+00:00",
+      "challenge_id": "e02ccda141503d04",
+      "fingerprint_time": 2.0265579223632812e-05,
+      "decision_time": 2.384185791015625e-05
+    }
+  ],
+  "metadata": {
+    "timestamp": "2025-08-17T16:14:35.637621+00:00",
+    "total_results": 2,
+    "core_available": true
+  }
+}

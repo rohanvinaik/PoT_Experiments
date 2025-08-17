@@ -1,0 +1,52 @@
+{
+  "far": {
+    "value": 0.011015911872705019,
+    "confidence_interval": [
+      0.0047731274588170385,
+      0.018561556706714753
+    ],
+    "sample_size": 2000,
+    "standard_error": 0.003651689563570219,
+    "metric_type": "false_accept_rate"
+  },
+  "frr": {
+    "value": 0.0076077768385460695,
+    "confidence_interval": [
+      0.0033084510797120772,
+      0.012820786997433699
+    ],
+    "sample_size": 2000,
+    "standard_error": 0.0025262608177818472,
+    "metric_type": "false_reject_rate"
+  },
+  "accuracy": {
+    "value": 0.991,
+    "confidence_interval": [
+      0.9865,
+      0.995
+    ],
+    "sample_size": 2000,
+    "standard_error": 0.002111752826445369,
+    "metric_type": "accuracy"
+  },
+  "average_queries": {
+    "value": 8.947,
+    "confidence_interval": [
+      8.818,
+      9.0730125
+    ],
+    "sample_size": 2000,
+    "standard_error": 0.0660234465928582,
+    "metric_type": "average_queries"
+  },
+  "efficiency_gain": {
+    "value": 0.9105300000000001,
+    "confidence_interval": [
+      0.90922,
+      0.911835
+    ],
+    "sample_size": 2000,
+    "standard_error": 0.0006625795931954143,
+    "metric_type": "efficiency_gain"
+  }
+}

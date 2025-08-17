@@ -1,0 +1,3 @@
+trial_id,challenge_type,distance,confidence_radius,stopping_time,verified,confidence_score,ground_truth,timestamp,challenge_id,fingerprint_time,decision_time
+312b3cecbecfa148,vision:freq,1.0,0.0,1,False,0.0,True,2025-08-17T16:14:35.492997+00:00,91f9e384bef6ff45,7.700920104980469e-05,9.012222290039062e-05
+312b3cecbecfa148,vision:freq,1.0,0.0,1,False,0.0,True,2025-08-17T16:14:35.493045+00:00,ab5ddbe1a8d14235,1.9788742065429688e-05,2.5033950805664062e-05

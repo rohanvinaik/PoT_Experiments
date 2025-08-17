@@ -1,0 +1,127 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-08-17T12:59:42.277033",
+    "results_path": "extended_results.json",
+    "total_experiments": 5,
+    "generator_version": "1.0"
+  },
+  "metrics": {
+    "far": 0.0082,
+    "frr": 0.012,
+    "accuracy": 0.9938,
+    "precision": 0.9918,
+    "recall": 0.988,
+    "f1_score": 0.9898963531669867,
+    "total_queries": 42,
+    "avg_queries": 8.4,
+    "processing_time": 0.2596,
+    "confidence_intervals": {
+      "far": [
+        0.0068000000000000005,
+        0.009600000000000001
+      ],
+      "frr": [
+        0.010199999999999999,
+        0.013600000000000001
+      ],
+      "accuracy": [
+        0.9922000000000001,
+        0.9952
+      ]
+    }
+  },
+  "paper_claims": {
+    "far": 0.01,
+    "frr": 0.01,
+    "accuracy": 0.99,
+    "efficiency_gain": 0.85,
+    "average_queries": 8.0,
+    "confidence_level": 0.95
+  },
+  "discrepancies": [
+    {
+      "metric": "far",
+      "claimed": 0.01,
+      "actual": 0.0082,
+      "difference": -0.0017999999999999995,
+      "relative_difference": 0.17999999999999994,
+      "severity": "moderate",
+      "suggestion": "Check threshold settings, challenge difficulty, or model calibration"
+    },
+    {
+      "metric": "frr",
+      "claimed": 0.01,
+      "actual": 0.012,
+      "difference": 0.002,
+      "relative_difference": 0.2,
+      "severity": "moderate",
+      "suggestion": "Verify challenge generation parameters and model evaluation conditions"
+    },
+    {
+      "metric": "average_queries",
+      "claimed": 8.0,
+      "actual": 8.4,
+      "difference": 0.40000000000000036,
+      "relative_difference": 0.050000000000000044,
+      "severity": "minor",
+      "suggestion": "Check early stopping criteria and challenge generation strategy"
+    }
+  ],
+  "raw_data": [
+    {
+      "experiment_id": "exp_vision_freq_001",
+      "far": 0.008,
+      "frr": 0.012,
+      "accuracy": 0.994,
+      "queries": 8,
+      "processing_time": 0.234,
+      "challenge_family": "vision:freq",
+      "threshold": 0.05,
+      "timestamp": "2024-01-15T10:30:00"
+    },
+    {
+      "experiment_id": "exp_vision_freq_002",
+      "far": 0.006,
+      "frr": 0.015,
+      "accuracy": 0.991,
+      "queries": 12,
+      "processing_time": 0.287,
+      "challenge_family": "vision:freq",
+      "threshold": 0.03,
+      "timestamp": "2024-01-15T10:35:00"
+    },
+    {
+      "experiment_id": "exp_vision_texture_001",
+      "far": 0.011,
+      "frr": 0.009,
+      "accuracy": 0.996,
+      "queries": 6,
+      "processing_time": 0.198,
+      "challenge_family": "vision:texture",
+      "threshold": 0.05,
+      "timestamp": "2024-01-15T10:40:00"
+    },
+    {
+      "experiment_id": "exp_lm_templates_001",
+      "far": 0.009,
+      "frr": 0.011,
+      "accuracy": 0.995,
+      "queries": 7,
+      "processing_time": 0.267,
+      "challenge_family": "lm:templates",
+      "threshold": 0.04,
+      "timestamp": "2024-01-15T10:45:00"
+    },
+    {
+      "experiment_id": "exp_lm_templates_002",
+      "far": 0.007,
+      "frr": 0.013,
+      "accuracy": 0.993,
+      "queries": 9,
+      "processing_time": 0.312,
+      "challenge_family": "lm:templates",
+      "threshold": 0.05,
+      "timestamp": "2024-01-15T10:50:00"
+    }
+  ]
+}

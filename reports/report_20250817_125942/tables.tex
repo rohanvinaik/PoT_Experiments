@@ -1,0 +1,47 @@
+% Main Results Table
+\begin{table}[htbp]
+\centering
+\caption{Experimental Results Summary}
+\label{tab:results}
+\begin{tabular}{lcccc}
+\toprule
+Metric & Actual & Paper Claim & Difference & Status \\
+\midrule
+FAR & 0.0070 & 0.0100 & -0.0030 & \times \\
+FRR & 0.0135 & 0.0100 & +0.0035 & \times \\
+Accuracy & 0.9925 & 0.9900 & +0.0025 & \checkmark \\
+Avg. Queries & 10.0000 & 10.0000 & +0.0000 & \checkmark \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Confidence Intervals Table
+\begin{table}[htbp]
+\centering
+\caption{95\% Confidence Intervals}
+\label{tab:confidence}
+\begin{tabular}{lccc}
+\toprule
+Metric & Mean & Lower Bound & Upper Bound \\
+\midrule
+FAR & 0.0070 & 0.0060 & 0.0080 \\
+FRR & 0.0135 & 0.0120 & 0.0150 \\
+ACCURACY & 0.9925 & 0.9910 & 0.9940 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Discrepancies Table
+\begin{table}[htbp]
+\centering
+\caption{Identified Discrepancies}
+\label{tab:discrepancies}
+\begin{tabular}{lccl}
+\toprule
+Metric & Rel. Difference & Severity & Recommendation \\
+\midrule
+FAR & 30.0% & \textcolor{red}{Major} & \parbox{3cm}{Check threshold settings, challenge diff...} \\
+FRR & 35.0% & \textcolor{red}{Major} & \parbox{3cm}{Verify challenge generation parameters a...} \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,89 @@
+{
+  "experiment_config": {
+    "experiment_name": "test_basic",
+    "trial_id": "5a23144f1ee2a004",
+    "model_type": "vision",
+    "model_architecture": "basic_cnn",
+    "challenge_families": [
+      "vision:freq"
+    ],
+    "n_challenges_per_family": 3,
+    "master_key_hex": "9f0b5f23333e31a83c29319586040b2e9b918c9f92fe457e1db1c1ac6401313b",
+    "session_nonce_hex": "0f9e9a05313d25b32d2ddcec3b011f2d",
+    "alpha": 0.05,
+    "beta": 0.05,
+    "tau_id": 0.01,
+    "tau_far": 0.1,
+    "max_challenges": 5,
+    "global_seed": 42,
+    "torch_seed": 42,
+    "numpy_seed": 42,
+    "output_dir": "outputs/test_experiments",
+    "save_models": false,
+    "verbose": true,
+    "use_jacobian": false,
+    "batch_size": 32
+  },
+  "metrics": {
+    "far": 0.0,
+    "frr": 1.0,
+    "accuracy": 0.0,
+    "avg_confidence": 0.0,
+    "avg_distance": 1.0,
+    "avg_stopping_time": 1.0,
+    "avg_fingerprint_time": 0.0002562999725341797,
+    "avg_decision_time": 0.00033736228942871094,
+    "total_experiments": 3,
+    "legitimate_count": 3,
+    "illegitimate_count": 0
+  },
+  "results": [
+    {
+      "trial_id": "5a23144f1ee2a004",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.412218+00:00",
+      "challenge_id": "b6516d7d1d3ce317",
+      "fingerprint_time": 0.00020599365234375,
+      "decision_time": 0.0003008842468261719
+    },
+    {
+      "trial_id": "5a23144f1ee2a004",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.413598+00:00",
+      "challenge_id": "9c7202f4e4d2af9a",
+      "fingerprint_time": 0.0005118846893310547,
+      "decision_time": 0.0006511211395263672
+    },
+    {
+      "trial_id": "5a23144f1ee2a004",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.413822+00:00",
+      "challenge_id": "032c557f702b4ddd",
+      "fingerprint_time": 5.1021575927734375e-05,
+      "decision_time": 6.008148193359375e-05
+    }
+  ],
+  "metadata": {
+    "timestamp": "2025-08-17T16:14:35.415037+00:00",
+    "total_results": 3,
+    "core_available": true
+  }
+}

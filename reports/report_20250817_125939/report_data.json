@@ -1,0 +1,102 @@
+{
+  "report_metadata": {
+    "generated_at": "2025-08-17T12:59:39.776269",
+    "results_path": "example_results.json",
+    "total_experiments": 3,
+    "generator_version": "1.0"
+  },
+  "metrics": {
+    "far": 0.008333333333333333,
+    "frr": 0.011999999999999999,
+    "accuracy": 0.9936666666666666,
+    "precision": 0.9916666666666667,
+    "recall": 0.988,
+    "f1_score": 0.9898299376999495,
+    "total_queries": 26,
+    "avg_queries": 8.666666666666666,
+    "processing_time": 0.2396666666666667,
+    "confidence_intervals": {
+      "far": [
+        0.006000000000000001,
+        0.011000000000000001
+      ],
+      "frr": [
+        0.009,
+        0.015
+      ],
+      "accuracy": [
+        0.991,
+        0.996
+      ]
+    }
+  },
+  "paper_claims": {
+    "far": 0.01,
+    "frr": 0.01,
+    "accuracy": 0.99,
+    "efficiency_gain": 0.9,
+    "average_queries": 10.0,
+    "confidence_level": 0.95
+  },
+  "discrepancies": [
+    {
+      "metric": "far",
+      "claimed": 0.01,
+      "actual": 0.008333333333333333,
+      "difference": -0.001666666666666667,
+      "relative_difference": 0.16666666666666669,
+      "severity": "moderate",
+      "suggestion": "Check threshold settings, challenge difficulty, or model calibration"
+    },
+    {
+      "metric": "frr",
+      "claimed": 0.01,
+      "actual": 0.011999999999999999,
+      "difference": 0.0019999999999999983,
+      "relative_difference": 0.19999999999999982,
+      "severity": "moderate",
+      "suggestion": "Verify challenge generation parameters and model evaluation conditions"
+    },
+    {
+      "metric": "average_queries",
+      "claimed": 10.0,
+      "actual": 8.666666666666666,
+      "difference": -1.333333333333334,
+      "relative_difference": 0.1333333333333334,
+      "severity": "moderate",
+      "suggestion": "Check early stopping criteria and challenge generation strategy"
+    }
+  ],
+  "raw_data": [
+    {
+      "experiment_id": "exp_001",
+      "far": 0.008,
+      "frr": 0.012,
+      "accuracy": 0.994,
+      "queries": 8,
+      "processing_time": 0.234,
+      "challenge_family": "vision:freq",
+      "timestamp": "2024-01-15T10:30:00"
+    },
+    {
+      "experiment_id": "exp_002",
+      "far": 0.006,
+      "frr": 0.015,
+      "accuracy": 0.991,
+      "queries": 12,
+      "processing_time": 0.287,
+      "challenge_family": "vision:texture",
+      "timestamp": "2024-01-15T10:35:00"
+    },
+    {
+      "experiment_id": "exp_003",
+      "far": 0.011,
+      "frr": 0.009,
+      "accuracy": 0.996,
+      "queries": 6,
+      "processing_time": 0.198,
+      "challenge_family": "lm:templates",
+      "timestamp": "2024-01-15T10:40:00"
+    }
+  ]
+}

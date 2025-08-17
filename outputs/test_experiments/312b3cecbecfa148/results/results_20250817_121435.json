@@ -1,0 +1,75 @@
+{
+  "experiment_config": {
+    "experiment_name": "test_full_pipeline",
+    "trial_id": "312b3cecbecfa148",
+    "model_type": "vision",
+    "model_architecture": "simple_cnn",
+    "challenge_families": [
+      "vision:freq"
+    ],
+    "n_challenges_per_family": 2,
+    "master_key_hex": "4d407bd258e43325398bdb06734d40a6b940255b03f6957b0833539751fbe74d",
+    "session_nonce_hex": "6323294b0634013b2866ebaff966382c",
+    "alpha": 0.05,
+    "beta": 0.05,
+    "tau_id": 0.01,
+    "tau_far": 0.1,
+    "max_challenges": 3,
+    "global_seed": 42,
+    "torch_seed": 42,
+    "numpy_seed": 42,
+    "output_dir": "outputs/test_experiments",
+    "save_models": false,
+    "verbose": false,
+    "use_jacobian": false,
+    "batch_size": 32
+  },
+  "metrics": {
+    "far": 0.0,
+    "frr": 1.0,
+    "accuracy": 0.0,
+    "avg_confidence": 0.0,
+    "avg_distance": 1.0,
+    "avg_stopping_time": 1.0,
+    "avg_fingerprint_time": 4.839897155761719e-05,
+    "avg_decision_time": 5.7578086853027344e-05,
+    "total_experiments": 2,
+    "legitimate_count": 2,
+    "illegitimate_count": 0
+  },
+  "results": [
+    {
+      "trial_id": "312b3cecbecfa148",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.492997+00:00",
+      "challenge_id": "91f9e384bef6ff45",
+      "fingerprint_time": 7.700920104980469e-05,
+      "decision_time": 9.012222290039062e-05
+    },
+    {
+      "trial_id": "312b3cecbecfa148",
+      "challenge_type": "vision:freq",
+      "distance": 1.0,
+      "confidence_radius": 0.0,
+      "stopping_time": 1,
+      "verified": false,
+      "confidence_score": 0.0,
+      "ground_truth": true,
+      "timestamp": "2025-08-17T16:14:35.493045+00:00",
+      "challenge_id": "ab5ddbe1a8d14235",
+      "fingerprint_time": 1.9788742065429688e-05,
+      "decision_time": 2.5033950805664062e-05
+    }
+  ],
+  "metadata": {
+    "timestamp": "2025-08-17T16:14:35.493563+00:00",
+    "total_results": 2,
+    "core_available": true
+  }
+}

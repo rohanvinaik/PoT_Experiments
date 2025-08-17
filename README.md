@@ -297,7 +297,112 @@ Adversary may (i) fine-tune or compress a copy, (ii) perform wrapper routing, (i
 | 2–3 queries avg | EB `delta=0.02`, `B=1` | `python scripts/run_verify.py --config configs/vision_cifar10.yaml --n 512 --seq eb --store-trace` | `outputs/vision_cifar10/E5/sequential_trace.jsonl` |
 | ρ=0.25 leakage | targeted fine-tune attack | `python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune --rho 0.25` | `attacks/targeted_finetune_rho0.25/attack_log.jsonl` |
 
-## Reproducibility
+## Reproduction
+
+### Quick Reproduction
+
+The PoT framework provides comprehensive tools for reproducing paper results with minimal effort:
+
+```bash
+# Quick reproduction with minimal configuration
+make reproduce
+
+# Or run directly
+python scripts/run_reproduction.py --config configs/minimal_reproduce.yaml
+
+# Generate comprehensive report
+python pot/experiments/report_generator.py --results outputs/reproduction/
+```
+
+### Reproduction Command
+
+The `make reproduce` command orchestrates the complete reproduction pipeline:
+
+1. **Environment Setup**: Validates dependencies and GPU availability
+2. **Challenge Generation**: Creates deterministic challenges using PRF
+3. **Model Verification**: Runs sequential and fixed-sample tests
+4. **Metrics Calculation**: Computes FAR, FRR, accuracy with confidence intervals
+5. **Report Generation**: Creates markdown, HTML, and JSON reports
+6. **Validation**: Compares results against paper claims
+
+### Output Files
+
+After running reproduction, you'll find:
+
+```
+outputs/reproduction/
+├── results.json           # Raw experimental results
+├── metrics.json          # Calculated metrics with confidence intervals
+├── report.md            # Markdown report with tables and analysis
+├── report.html          # Interactive HTML report with plots
+├── validation.json      # Comparison with paper claims
+├── plots/
+│   ├── roc_curve.png   # ROC curve with AUC
+│   ├── query_dist.png  # Query distribution histogram
+│   └── confidence.png  # Confidence interval visualization
+└── logs/
+    └── reproduction.log # Detailed execution log
+```
+
+### Interpreting Results
+
+The reproduction report includes:
+
+- **Executive Summary**: High-level metrics comparison
+- **Detailed Metrics**: FAR, FRR, accuracy with bootstrap CIs
+- **Discrepancy Analysis**: Automatic detection of deviations from paper claims
+- **Reconciliation**: Suggested explanations for any differences
+
+Expected results (with 10% tolerance):
+- FAR: 0.01 ± 0.001
+- FRR: 0.01 ± 0.001  
+- Accuracy: 0.99 ± 0.01
+- Average Queries: 10 ± 2
+
+### Troubleshooting
+
+**Issue: Results don't match paper claims**
+- Check seed configuration in `configs/minimal_reproduce.yaml`
+- Ensure deterministic mode is enabled
+- Verify GPU/CPU consistency with `CUBLAS_WORKSPACE_CONFIG`
+- See reconciliation suggestions in report
+
+**Issue: Out of memory errors**
+- Reduce `batch_size` in configuration
+- Disable Jacobian computation (`use_jacobian: false`)
+- Use `quick_mode: true` for reduced memory usage
+
+**Issue: Slow execution**
+- Enable `quick_mode` in configuration
+- Reduce `samples_per_family` for faster testing
+- Use `--profile quick` for minimal verification
+
+**Issue: Missing dependencies**
+```bash
+# Install all requirements
+pip install -r requirements.txt
+
+# Verify installation
+python -c "from pot.experiments import ReportGenerator; print('✓')"
+```
+
+### Advanced Reproduction
+
+For comprehensive reproduction with all experiments:
+
+```bash
+# Run all experiments from paper
+bash run_all.sh
+
+# Or selectively run experiments
+python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
+python scripts/run_attack.py --config configs/lm_small.yaml --attack targeted_finetune
+python scripts/run_verify_enhanced.py --config configs/vision_cifar10.yaml
+```
+
+See [REPRODUCTION_GUIDE.md](REPRODUCTION_GUIDE.md) for detailed instructions.
+
+### Original Reproducibility Details
 
 - **Environment**: tested on CUDA 12, cuDNN 9, torch 2.8 (see `requirements.txt` for Python deps).
 - **GPU**: A100 40GB.

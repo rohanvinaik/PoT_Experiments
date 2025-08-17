@@ -1,0 +1,25 @@
+{
+  "experiment_name": "test_repro_1",
+  "trial_id": "28f916fc347eabf4",
+  "model_type": "vision",
+  "model_architecture": "simple_cnn",
+  "challenge_families": [
+    "vision:freq"
+  ],
+  "n_challenges_per_family": 2,
+  "master_key_hex": "2d041c508c8403c96ecf5d57a4d82ea2e6c4282866ae40fc0f06c205b3bd47c2",
+  "session_nonce_hex": "2f00df9d9cbfbe4815cfc3fbfae0fdfd",
+  "alpha": 0.05,
+  "beta": 0.05,
+  "tau_id": 0.01,
+  "tau_far": 0.1,
+  "max_challenges": 100,
+  "global_seed": 123,
+  "torch_seed": 123,
+  "numpy_seed": 123,
+  "output_dir": "outputs/test_experiments",
+  "save_models": false,
+  "verbose": false,
+  "use_jacobian": false,
+  "batch_size": 32
+}

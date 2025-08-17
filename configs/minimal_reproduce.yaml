@@ -1,0 +1,121 @@
+# Minimal Reproduction Configuration for PoT Experiments
+# Optimized for quick testing and verification of PoT framework
+# This configuration reproduces paper results with minimal computational resources
+
+experiment:
+  name: "minimal_reproduction"
+  seed: 42
+  description: "Minimal reproduction run to verify paper claims"
+  version: "1.0.0"
+  
+models:
+  vision:
+    type: "resnet18"  # Lightweight model for quick testing
+    architecture: "test"  # Use test mode for speed
+    dataset: "cifar10"
+    use_cache: true
+    device: "auto"  # auto-detect: cuda > mps > cpu
+    
+  language:
+    type: "distilbert-base"
+    max_length: 512
+    use_cache: true
+    device: "auto"
+    
+challenges:
+  # Challenge families to test
+  families: 
+    - "vision:freq"
+    - "vision:texture"
+    - "lm:templates"
+  
+  # Minimal samples for quick testing
+  samples_per_family: 10
+  n_challenges_per_family: 5  # Legacy support
+  
+  # Challenge difficulty
+  difficulty_range: [0.1, 0.5]
+  
+  # Vision-specific parameters
+  vision_params:
+    freq_range: [0.1, 0.5]
+    patch_size: 32
+    epsilon: 0.03
+    
+  # Language model parameters  
+  lm_params:
+    template_types: ["basic", "paraphrase_simple"]
+    mask_ratio: 0.15
+    
+sequential_decision:
+  # Statistical parameters (from paper)
+  alpha: 0.05      # Type I error rate (false accept)
+  beta: 0.05       # Type II error rate (false reject)
+  tau_id: 0.01     # Identity threshold
+  tau_far: 0.1     # False accept rate threshold
+  
+  # Query limits
+  max_queries: 10
+  max_challenges: 20  # Legacy support
+  confidence_threshold: 0.95
+  
+  # Efficiency
+  use_early_stopping: true
+  batch_size: 32
+  
+validation:
+  # Comparison with paper claims
+  compare_to_paper: true
+  tolerance: 0.1  # 10% tolerance for metrics
+  strict_mode: false
+  
+  # Expected metrics from paper
+  expected:
+    far: 0.01
+    frr: 0.01
+    accuracy: 0.99
+    avg_queries: 10.0
+    
+output:
+  # File outputs
+  save_raw: true
+  save_models: false  # Don't save models to reduce storage
+  save_challenges: true  # Save challenges for analysis
+  save_fingerprints: true  # Save fingerprints for comparison
+  
+  # Report generation
+  generate_plots: true
+  generate_reports:
+    markdown: true
+    html: true
+    json: true
+    latex: false
+    
+  # Comparison
+  compare_to_paper: true
+  
+  # Logging
+  verbose: true
+  log_level: "INFO"
+  
+performance:
+  # Optimization settings
+  use_jacobian: false  # Disable for speed
+  parallel_workers: 1  # Single worker for deterministic results
+  batch_size: 32
+  
+  # Efficiency flags
+  quick_mode: true
+  skip_expensive_checks: true
+  use_mock_fallbacks: true
+  
+reproducibility:
+  # Seed configuration
+  global_seed: 42
+  torch_seed: 42
+  numpy_seed: 42
+  deterministic: true
+  
+  # Environment tracking
+  log_environment: true
+  save_config: true
