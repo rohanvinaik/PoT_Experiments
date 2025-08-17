@@ -1,0 +1,36 @@
+{
+  "experiment_name": "custom_robustness_test",
+  "attacks": {
+    "selected": [
+      "distillation_moderate",
+      "compression_pruning_50"
+    ],
+    "custom_parameters": {
+      "distillation_moderate": {
+        "temperature": 5.0,
+        "epochs": 30
+      },
+      "compression_pruning_50": {
+        "fine_tuning_lr": 0.0001,
+        "recovery_epochs": 15
+      }
+    }
+  },
+  "defense": {
+    "profile": "high_security",
+    "adaptive_enabled": true,
+    "filtering_strength": 0.8,
+    "randomization_level": 0.15
+  },
+  "evaluation": {
+    "metrics": [
+      "robustness_score",
+      "far",
+      "frr",
+      "accuracy"
+    ],
+    "save_results": true,
+    "generate_report": true,
+    "create_dashboard": true
+  }
+}

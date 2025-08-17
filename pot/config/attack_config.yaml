@@ -1,0 +1,303 @@
+# Attack Resistance Configuration
+# Comprehensive settings for attack and defense mechanisms
+
+attacks:
+  # Distillation attack configurations
+  distillation:
+    temperatures: [1.0, 3.0, 5.0, 7.0, 10.0, 15.0]
+    alpha_values: [0.1, 0.3, 0.5, 0.7, 0.9]
+    default_epochs: 20
+    early_stopping_patience: 5
+    learning_rates:
+      weak: 0.01
+      moderate: 0.001
+      strong: 0.0001
+    optimizer_configs:
+      adam:
+        betas: [0.9, 0.999]
+        eps: 1e-08
+        weight_decay: 0.0001
+      sgd:
+        momentum: 0.9
+        weight_decay: 0.0005
+    loss_functions:
+      - kl_divergence
+      - mse
+      - cosine_similarity
+    augmentation:
+      enabled: true
+      factor: 3
+      transforms:
+        - random_crop
+        - horizontal_flip
+        - color_jitter
+    
+  # Compression attack configurations
+  compression:
+    pruning_ratios: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    quantization_bits: [32, 16, 8, 4, 2, 1]
+    fine_tuning_epochs: 10
+    pruning_methods:
+      magnitude:
+        structured: false
+        global_pruning: true
+      gradient:
+        structured: true
+        importance_metric: taylor
+      lottery_ticket:
+        iterations: 5
+        rewind_epoch: 2
+    quantization_methods:
+      uniform:
+        symmetric: true
+        per_channel: false
+      learned:
+        trainable_scales: true
+        gradient_estimator: ste
+      mixed_precision:
+        weight_bits: 8
+        activation_bits: 16
+    recovery:
+      fine_tuning_lr: 0.0001
+      distillation_temperature: 5.0
+      knowledge_transfer: true
+    
+  # Wrapper attack configurations
+  wrapper:
+    detection_methods: ['timing', 'ecdf', 'behavioral', 'statistical', 'combined']
+    detection_thresholds:
+      timing_zscore: 3.0
+      timing_percentile: 99.0
+      ecdf_ks_statistic: 0.15
+      ecdf_anderson_critical: 2.492
+      behavioral_drift: 0.2
+      statistical_wasserstein: 0.1
+    wrapper_types:
+      fine_tuning:
+        layers_to_modify: ['last', 'last_two', 'all']
+        learning_rates: [0.001, 0.0001, 0.00001]
+        epochs: [5, 10, 20]
+      adapter:
+        bottleneck_dims: [8, 16, 32, 64]
+        adapter_positions: ['after_attention', 'after_ffn', 'both']
+      ensemble:
+        num_models: [3, 5, 7]
+        aggregation: ['mean', 'weighted', 'voting']
+      prompt:
+        prefix_length: [5, 10, 20]
+        optimization: ['discrete', 'continuous']
+    evasion_techniques:
+      noise_injection: true
+      timing_randomization: true
+      output_smoothing: true
+      
+  # Vision-specific attacks
+  vision:
+    adversarial_patch:
+      patch_sizes: [4, 8, 16, 32]
+      epsilon_values: [0.01, 0.03, 0.05, 0.1]
+      optimization_steps: [50, 100, 200, 500]
+      optimizers: ['adam', 'sgd', 'momentum']
+      loss_functions: ['ce', 'cw', 'pgd']
+    universal_perturbation:
+      epsilon: [0.03, 0.05, 0.1]
+      max_iterations: [10, 20, 50]
+      overshoot: 0.02
+      delta: 0.8
+    model_extraction:
+      methods: ['jacobian', 'prediction', 'gradient']
+      query_strategies: ['random', 'adaptive', 'boundary']
+      substitute_architectures: ['same', 'smaller', 'different']
+    backdoor:
+      trigger_patterns: ['checkerboard', 'sine', 'random', 'learned']
+      trigger_sizes: [2, 4, 8]
+      poison_rates: [0.01, 0.05, 0.1]
+      target_classes: ['single', 'all-to-one', 'random']
+      
+  # Language model attacks
+  language:
+    extraction:
+      query_strategies: ['random', 'guided', 'adversarial']
+      max_queries: [1000, 10000, 100000]
+      temperature_sweep: [0.1, 0.5, 1.0, 2.0]
+    prompt_injection:
+      injection_types: ['direct', 'indirect', 'recursive']
+      payloads: ['instruction_override', 'context_manipulation', 'role_confusion']
+    membership_inference:
+      shadow_models: 5
+      attack_models: ['nn', 'rf', 'xgboost']
+      
+  # Attack budgets
+  budgets:
+    minimal:
+      queries: 100
+      compute_hours: 0.01
+      memory_gb: 1
+    weak:
+      queries: 1000
+      compute_hours: 0.1
+      memory_gb: 2
+    moderate:
+      queries: 10000
+      compute_hours: 1.0
+      memory_gb: 4
+    strong:
+      queries: 100000
+      compute_hours: 10.0
+      memory_gb: 8
+    adaptive:
+      queries: 1000000
+      compute_hours: 100.0
+      memory_gb: 16
+      
+defense:
+  # Adaptive defense configurations
+  adaptive:
+    update_frequency: 100
+    learning_rate: 0.01
+    history_size: 1000
+    threshold_adjustment:
+      method: exponential_decay
+      initial_threshold: 0.1
+      min_threshold: 0.001
+      max_threshold: 0.5
+      decay_rate: 0.95
+    pattern_detection:
+      window_size: 50
+      anomaly_threshold: 3.0
+      clustering_method: dbscan
+      min_samples: 5
+      
+  # Input filtering configurations
+  filtering:
+    detection_methods:
+      statistical:
+        methods: ['ks_test', 'anderson_darling', 'chi_square']
+        confidence_level: 0.95
+      outlier:
+        methods: ['zscore', 'iqr', 'isolation_forest']
+        contamination: 0.1
+      adversarial:
+        detectors: ['feature_squeezing', 'binary_filter', 'magnet']
+        thresholds: [0.1, 0.2, 0.3]
+    sanitization:
+      gaussian_blur:
+        kernel_sizes: [3, 5, 7]
+        sigma_values: [0.5, 1.0, 2.0]
+      median_filter:
+        kernel_sizes: [3, 5, 7]
+      quantization:
+        levels: [256, 128, 64, 32]
+      jpeg_compression:
+        quality: [95, 90, 80, 70]
+    auto_encoder:
+      architectures: ['shallow', 'deep', 'variational']
+      latent_dims: [32, 64, 128]
+      reconstruction_threshold: 0.1
+      
+  # Randomization configurations
+  randomization:
+    levels: [0.001, 0.01, 0.05, 0.1, 0.2]
+    methods:
+      noise_injection:
+        distributions: ['gaussian', 'uniform', 'laplace']
+        adaptive_scaling: true
+      smoothing:
+        num_samples: [10, 20, 50, 100]
+        aggregation: ['mean', 'median', 'trimmed_mean']
+        confidence_bounds: true
+      dropout:
+        rates: [0.1, 0.2, 0.3, 0.5]
+        apply_at_inference: true
+      ensemble:
+        num_models: [3, 5, 7, 10]
+        diversity_penalty: 0.1
+        
+  # Verification configurations
+  verification:
+    methods: ['exact', 'fuzzy', 'statistical', 'behavioral']
+    confidence_thresholds:
+      high: 0.95
+      medium: 0.85
+      low: 0.70
+    ensemble_voting:
+      threshold: 0.7
+      weighted_voting: true
+      confidence_weighting: true
+    continuous_monitoring:
+      enabled: true
+      window_size: 100
+      alert_threshold: 0.8
+      
+  # Performance settings
+  performance:
+    caching:
+      enabled: true
+      max_cache_size_gb: 10
+      ttl_seconds: 3600
+    parallel_processing:
+      enabled: true
+      num_workers: 4
+      batch_size: 32
+    optimization:
+      use_mixed_precision: true
+      gradient_checkpointing: true
+      compiled_mode: false
+      
+# Benchmark configurations
+benchmarking:
+  standard_suite:
+    enabled: true
+    attacks:
+      - distillation_weak
+      - distillation_moderate
+      - distillation_strong
+      - compression_pruning_30
+      - compression_pruning_50
+      - compression_pruning_70
+      - compression_quantization_8bit
+      - compression_quantization_4bit
+      - wrapper_naive
+      - wrapper_adaptive
+      - adversarial_patch_small
+      - adversarial_patch_large
+      - extraction_jacobian
+      - backdoor_simple
+  metrics:
+    - success_rate
+    - execution_time
+    - memory_usage
+    - far_increase
+    - frr_increase
+    - accuracy_drop
+    - defense_detection_rate
+  reporting:
+    formats: ['csv', 'json', 'html']
+    visualizations: ['plotly', 'matplotlib']
+    leaderboard: true
+    
+# Logging configurations
+logging:
+  level: INFO
+  handlers:
+    - console
+    - file
+  file_config:
+    path: logs/attack_defense.log
+    max_bytes: 10485760  # 10MB
+    backup_count: 5
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  
+# Experiment tracking
+tracking:
+  backend: local  # Options: local, mlflow, wandb, tensorboard
+  project_name: pot_attack_resistance
+  experiment_name: default
+  tags:
+    - attack_defense
+    - robustness
+  metrics_to_track:
+    - robustness_score
+    - attack_success_rate
+    - defense_effectiveness
+    - execution_time
