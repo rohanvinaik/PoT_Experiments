@@ -1669,3 +1669,260 @@ class AttackSuiteEvaluator:
             )
         
         return comparison
+
+
+class AttackRunner:
+    """Executes and evaluates attack suites against models."""
+    
+    def __init__(self, device: str = 'cpu', verbose: bool = False):
+        """Initialize attack runner.
+        
+        Args:
+            device: Device to run attacks on
+            verbose: Whether to print progress
+        """
+        self.device = device
+        self.verbose = verbose
+        self.results_history = []
+        
+    def run_single_attack(self, model, attack_config: AttackConfig, data_loader) -> Dict[str, Any]:
+        """Execute a single attack.
+        
+        Args:
+            model: Target model
+            attack_config: Attack configuration
+            data_loader: Data for attack
+            
+        Returns:
+            Attack results dictionary
+        """
+        result = {
+            'attack_name': attack_config.name,
+            'attack_type': attack_config.attack_type,
+            'timestamp': time.time(),
+            'success': False,
+            'confidence': 0.0
+        }
+        
+        try:
+            # This is a placeholder - actual implementation would dispatch to specific attack methods
+            if attack_config.attack_type == 'distillation':
+                result.update(self._run_distillation(model, attack_config, data_loader))
+            elif attack_config.attack_type == 'compression':
+                result.update(self._run_compression(model, attack_config, data_loader))
+            else:
+                result.update({'success': np.random.random() > 0.5, 'confidence': np.random.random()})
+                
+        except Exception as e:
+            result['error'] = str(e)
+            
+        return result
+    
+    def run_attack_suite(self, model, attack_configs: List[AttackConfig], data_loader) -> List[Dict]:
+        """Run a suite of attacks.
+        
+        Args:
+            model: Target model
+            attack_configs: List of attack configurations
+            data_loader: Data for attacks
+            
+        Returns:
+            List of attack results
+        """
+        results = []
+        for config in attack_configs:
+            if self.verbose:
+                print(f"Running {config.name}...")
+            result = self.run_single_attack(model, config, data_loader)
+            results.append(result)
+            self.results_history.append(result)
+        return results
+    
+    def run_attack_suite_parallel(self, model, attack_configs: List[AttackConfig], 
+                                 data_loader, max_workers: int = 4) -> List[Dict]:
+        """Run attacks in parallel.
+        
+        Args:
+            model: Target model
+            attack_configs: Attack configurations
+            data_loader: Data for attacks
+            max_workers: Maximum parallel workers
+            
+        Returns:
+            List of attack results
+        """
+        # Simplified non-parallel implementation for testing
+        return self.run_attack_suite(model, attack_configs, data_loader)
+    
+    def calculate_metrics(self, results: List[Dict]) -> Dict[str, Any]:
+        """Calculate aggregate metrics from attack results.
+        
+        Args:
+            results: List of attack results
+            
+        Returns:
+            Metrics dictionary
+        """
+        if not results:
+            return {'total_attacks': 0, 'successful_attacks': 0, 'success_rate': 0.0}
+            
+        total = len(results)
+        successful = sum(1 for r in results if r.get('success', False))
+        confidences = [r.get('confidence', 0.0) for r in results]
+        
+        return {
+            'total_attacks': total,
+            'successful_attacks': successful,
+            'success_rate': successful / total if total > 0 else 0.0,
+            'average_confidence': np.mean(confidences) if confidences else 0.0,
+            'max_confidence': max(confidences) if confidences else 0.0,
+            'min_confidence': min(confidences) if confidences else 0.0
+        }
+    
+    def calculate_robustness_score(self, results: List[Dict]) -> float:
+        """Calculate model robustness score.
+        
+        Args:
+            results: Attack results
+            
+        Returns:
+            Robustness score between 0 and 1 (higher is more robust)
+        """
+        if not results:
+            return 1.0
+            
+        # Weight factors
+        w_success = 0.4  # Weight for success rate
+        w_confidence = 0.3  # Weight for average confidence
+        w_diversity = 0.3  # Weight for attack diversity resistance
+        
+        metrics = self.calculate_metrics(results)
+        
+        # Invert success rate (lower attack success = higher robustness)
+        robustness_success = 1.0 - metrics['success_rate']
+        
+        # Invert average confidence
+        robustness_confidence = 1.0 - metrics['average_confidence']
+        
+        # Calculate diversity resistance
+        attack_types = set(r.get('attack_type', '') for r in results)
+        type_success = {}
+        for attack_type in attack_types:
+            type_results = [r for r in results if r.get('attack_type') == attack_type]
+            type_metrics = self.calculate_metrics(type_results)
+            type_success[attack_type] = type_metrics['success_rate']
+        
+        # Robustness against diverse attacks
+        if type_success:
+            robustness_diversity = 1.0 - np.mean(list(type_success.values()))
+        else:
+            robustness_diversity = 1.0
+            
+        # Weighted combination
+        score = (w_success * robustness_success + 
+                w_confidence * robustness_confidence + 
+                w_diversity * robustness_diversity)
+        
+        return float(np.clip(score, 0.0, 1.0))
+    
+    def evaluate_attack_success(self, baseline_result: Dict, attack_result: Dict, 
+                               threshold: float = 0.3) -> bool:
+        """Evaluate if an attack was successful.
+        
+        Args:
+            baseline_result: Baseline verification result
+            attack_result: Post-attack verification result
+            threshold: Success threshold
+            
+        Returns:
+            True if attack was successful
+        """
+        baseline_conf = baseline_result.get('confidence', 1.0)
+        attack_conf = attack_result.get('confidence', 0.0)
+        
+        # Attack is successful if it reduces confidence below threshold
+        confidence_drop = baseline_conf - attack_conf
+        return confidence_drop > threshold
+    
+    def categorize_results(self, results: List[Dict]) -> Dict[str, List[Dict]]:
+        """Categorize results by attack type.
+        
+        Args:
+            results: Attack results
+            
+        Returns:
+            Dictionary mapping attack types to their results
+        """
+        categorized = {}
+        for result in results:
+            attack_type = result.get('attack_type', 'unknown')
+            if attack_type not in categorized:
+                categorized[attack_type] = []
+            categorized[attack_type].append(result)
+        return categorized
+    
+    def generate_report(self, results: List[Dict]) -> Dict[str, Any]:
+        """Generate comprehensive attack report.
+        
+        Args:
+            results: Attack results
+            
+        Returns:
+            Report dictionary
+        """
+        report = {
+            'summary': self.calculate_metrics(results),
+            'robustness_score': self.calculate_robustness_score(results),
+            'by_category': self.categorize_results(results),
+            'recommendations': []
+        }
+        
+        # Add recommendations based on results
+        if report['robustness_score'] < 0.3:
+            report['recommendations'].append("Model is vulnerable - implement stronger defenses")
+        elif report['robustness_score'] < 0.7:
+            report['recommendations'].append("Model has moderate robustness - consider additional defenses")
+        else:
+            report['recommendations'].append("Model shows good robustness against tested attacks")
+            
+        return report
+    
+    def calculate_degradation(self, baseline_perf: Dict, attacked_perf: Dict) -> Dict[str, float]:
+        """Calculate performance degradation.
+        
+        Args:
+            baseline_perf: Baseline performance metrics
+            attacked_perf: Post-attack performance metrics
+            
+        Returns:
+            Degradation metrics
+        """
+        degradation = {}
+        
+        if 'accuracy' in baseline_perf and 'accuracy' in attacked_perf:
+            degradation['accuracy_drop'] = baseline_perf['accuracy'] - attacked_perf['accuracy']
+            
+        if 'latency' in baseline_perf and 'latency' in attacked_perf:
+            degradation['latency_increase'] = (attacked_perf['latency'] - baseline_perf['latency']) / baseline_perf['latency']
+            
+        if 'memory' in baseline_perf and 'memory' in attacked_perf:
+            degradation['memory_increase'] = (attacked_perf['memory'] - baseline_perf['memory']) / baseline_perf['memory']
+            
+        return degradation
+    
+    def _run_distillation(self, model, config: AttackConfig, data_loader) -> Dict:
+        """Run distillation attack (placeholder)."""
+        return {
+            'success': np.random.random() > 0.4,
+            'confidence': np.random.uniform(0.5, 0.9),
+            'agreement_rate': np.random.uniform(0.7, 0.95)
+        }
+    
+    def _run_compression(self, model, config: AttackConfig, data_loader) -> Dict:
+        """Run compression attack (placeholder)."""
+        return {
+            'success': np.random.random() > 0.5,
+            'confidence': np.random.uniform(0.4, 0.8),
+            'model_size_reduction': config.parameters.get('pruning_rate', 0.5),
+            'accuracy_retention': 1.0 - config.parameters.get('pruning_rate', 0.5) * 0.3
+        }

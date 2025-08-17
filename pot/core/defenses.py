@@ -2201,6 +2201,86 @@ class IntegratedDefenseSystem:
 
 
 # Helper function for creating defense configurations
+    def calculate_false_positive_rate(self, results: List[Dict]) -> float:
+        """Calculate false positive rate.
+        
+        Args:
+            results: List of detection results
+            
+        Returns:
+            False positive rate
+        """
+        if not results:
+            return 0.0
+            
+        clean_flagged = sum(1 for r in results if r.get('clean', False) and r.get('flagged', False))
+        total_clean = sum(1 for r in results if r.get('clean', False))
+        
+        if total_clean == 0:
+            return 0.0
+            
+        return clean_flagged / total_clean
+    
+    def calculate_detection_accuracy(self, results: List[Dict]) -> float:
+        """Calculate detection accuracy.
+        
+        Args:
+            results: List of detection results
+            
+        Returns:
+            Detection accuracy
+        """
+        if not results:
+            return 0.0
+            
+        correct = sum(1 for r in results if r.get('is_attack', False) == r.get('detected', False))
+        total = len(results)
+        
+        return correct / total if total > 0 else 0.0
+    
+    def _ensemble_vote(self, results: List[Dict]) -> Dict[str, Any]:
+        """Perform ensemble voting on verification results.
+        
+        Args:
+            results: List of verification results
+            
+        Returns:
+            Consensus result
+        """
+        if not results:
+            return {'verified': False, 'confidence': 0.0}
+            
+        # Count votes
+        verified_votes = sum(1 for r in results if r.get('verified', False))
+        total_votes = len(results)
+        
+        # Average confidence
+        confidences = [r.get('confidence', 0.0) for r in results]
+        avg_confidence = np.mean(confidences) if confidences else 0.0
+        
+        return {
+            'verified': verified_votes > total_votes / 2,
+            'confidence': avg_confidence,
+            'vote_ratio': verified_votes / total_votes if total_votes > 0 else 0.0
+        }
+    
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Get performance metrics for the defense system.
+        
+        Returns:
+            Performance metrics dictionary
+        """
+        return {
+            'total_defenses': self.system_stats.get('total_inputs_processed', 0),
+            'threats_detected': self.system_stats.get('threats_detected', 0),
+            'successful_defenses': self.system_stats.get('successful_defenses', 0),
+            'pipeline_failures': self.system_stats.get('pipeline_failures', 0),
+            'detection_rate': (self.system_stats.get('threats_detected', 0) / 
+                             max(1, self.system_stats.get('total_inputs_processed', 0))),
+            'average_latency': 0.0  # Placeholder - would track actual latencies
+        }
+
+
 def create_defense_config(defense_type: str, **kwargs) -> DefenseConfig:
     """
     Create defense configuration with sensible defaults.
