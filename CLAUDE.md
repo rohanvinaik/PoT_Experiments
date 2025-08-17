@@ -310,6 +310,12 @@ The POT system now includes a complete cryptographic verification protocol:
      - `multi_armed_sequential_verify`: Test multiple hypotheses with family-wise error control
      - `power_analysis`: Compute operating characteristics and sample size recommendations
      - `confidence_sequences`: Time-uniform confidence sequences for continuous monitoring
+   - **Visualization Tools** (`pot/core/visualize_sequential.py`) - NEW 2025-08-16:
+     - `plot_verification_trajectory`: Visualize single verification trajectories with confidence bounds
+     - `plot_operating_characteristics`: Compare sequential vs fixed-sample performance
+     - `plot_anytime_validity`: Demonstrate validity across multiple stopping times
+     - `create_interactive_demo`: Streamlit-based interactive exploration tool
+     - `VisualizationConfig`: Customizable styling and output options
 
 5. **Leakage Tracking** (`pot/security/leakage.py`)
    - Challenge reuse policy enforcement
@@ -570,6 +576,60 @@ final_upper = conf_seq.upper_bounds[-1]
 print(f"Final estimate: {final_mean:.3f}")
 print(f"95% confidence interval: [{final_lower:.3f}, {final_upper:.3f}]")
 print(f"Valid at any stopping time: {conf_seq.is_valid}")
+```
+
+### Sequential Verification Visualization (NEW 2025-08-16)
+```python
+from pot.core.visualize_sequential import (
+    plot_verification_trajectory, plot_operating_characteristics,
+    plot_anytime_validity, create_interactive_demo, VisualizationConfig
+)
+
+# 1. Visualize single verification trajectory
+result = sequential_verify(stream=data_stream(), tau=0.05, alpha=0.05, beta=0.05)
+
+fig = plot_verification_trajectory(
+    result=result,
+    save_path='trajectory.png',
+    show_details=True  # Include decision, efficiency, p-value annotations
+)
+print(f"Decision: {result.decision}, Stopped at: {result.stopped_at}")
+
+# 2. Compare sequential vs fixed-sample performance
+fig = plot_operating_characteristics(
+    tau=0.05,
+    alpha=0.05,
+    beta=0.05,
+    effect_sizes=np.linspace(0.0, 0.1, 15),
+    max_samples_fixed=1000
+)
+# Shows power curves, stopping times, efficiency ratios
+
+# 3. Demonstrate anytime validity across multiple runs
+trajectories = []
+for i in range(50):
+    result_i = sequential_verify(stream=generate_stream(seed=i), tau=0.05)
+    trajectories.append(result_i)
+
+fig = plot_anytime_validity(
+    trajectories=trajectories,
+    alpha=0.05  # Shows error control, coverage maintenance
+)
+
+# 4. Custom visualization styling
+config = VisualizationConfig(
+    figsize=(12, 8),
+    dpi=300,  # High resolution for publications
+    style='seaborn-whitegrid',
+    palette='Set2',
+    save_format='pdf'
+)
+
+fig = plot_verification_trajectory(result, config=config, save_path='publication_plot.pdf')
+
+# 5. Interactive demo (requires streamlit)
+# streamlit run pot/core/visualize_sequential.py
+# Features: real-time parameter adjustment, live visualization, educational annotations
 ```
 
 ## Running Experiments

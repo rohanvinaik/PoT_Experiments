@@ -20,8 +20,16 @@ The PoT system provides comprehensive model verification through multiple compon
     - `eb_radius(state, alpha, c=1.0)`: Anytime-valid confidence radius
     - `eb_confidence_interval(mean, variance, n, alpha, c=1.0)`: Confidence bounds
     - `log_log_correction(t, alpha)`: Correction factor for anytime validity
-  - SPRT-based sequential testing with early stopping
-  - Asymmetric error control (α, β)
+  - **Sequential Testing** (`sequential.py`): Complete anytime-valid testing suite
+    - Core SPRT-based sequential testing with early stopping
+    - Advanced features: mixture tests, adaptive thresholds, multi-armed testing
+    - Power analysis and confidence sequences for experimental design
+    - Asymmetric error control (α, β) with trajectory recording
+- **Visualization Tools** (`visualize_sequential.py`) (NEW 2025-08-16)
+  - `plot_verification_trajectory()`: Single trajectory visualization with confidence bounds
+  - `plot_operating_characteristics()`: Sequential vs fixed-sample performance comparison
+  - `plot_anytime_validity()`: Multi-trajectory analysis and error control demonstration
+  - `create_interactive_demo()`: Streamlit-based educational tool with real-time visualization
 - **Behavioral Fingerprinting** (`fingerprint.py`): Fast model identification
   - IO fingerprinting: Hash-based signatures of canonicalized outputs
   - Jacobian sketching: Compressed gradient structure analysis

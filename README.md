@@ -1,6 +1,6 @@
 # Proof-of-Training (PoT) Experiments
 
-Statistical black-box verification of model identity with cryptographically derived challenges. This repo implements the experimental framework from "Proof-of-Training: A Statistical Framework for Black-Box Neural Network Verification" and provides calibrated FAR/FRR, ROC/DET analyses, leakage studies, and sequential early-stopping.
+Statistical black-box verification of model identity with cryptographically derived challenges. This repo implements the experimental framework from "Proof-of-Training: A Statistical Framework for Black-Box Neural Network Verification" and provides calibrated FAR/FRR, ROC/DET analyses, leakage studies, sequential early-stopping, and comprehensive visualization tools.
 
 Headline results (vision & LM, open models; α=β=0.01, τ=0.05, n∈{256,512}):
 - AUROC ≈ 0.99 with empirical-Bernstein calibration;
@@ -41,6 +41,35 @@ The container installs packages from `requirements.txt` and sets `PYTHONPATH`
 so the `pot` modules can be imported without additional configuration.
 
 Note: "Security components" under `pot/security/` are prototypes; core verification uses `pot/core/*` and `scripts/run_*` only.
+
+### Visualization Tools
+
+The framework includes comprehensive visualization tools for sequential verification analysis:
+
+```python
+from pot.core.visualize_sequential import *
+
+# Visualize single verification trajectory
+result = sequential_verify(stream=data_stream(), tau=0.05)
+plot_verification_trajectory(result, save_path='trajectory.png')
+
+# Compare sequential vs fixed-sample performance  
+plot_operating_characteristics(tau=0.05, effect_sizes=[0.0, 0.02, 0.05, 0.1])
+
+# Demonstrate anytime validity across multiple runs
+trajectories = [sequential_verify(...) for _ in range(50)]
+plot_anytime_validity(trajectories)
+
+# Interactive demo (requires streamlit)
+# streamlit run pot/core/visualize_sequential.py
+```
+
+Key features:
+- **Real-time trajectory visualization** with confidence bounds and decision regions
+- **Operating characteristics analysis** comparing sequential vs fixed-sample efficiency  
+- **Anytime validity demonstrations** showing error control across stopping times
+- **Interactive Streamlit demo** for educational exploration and parameter tuning
+- **Publication-ready outputs** with customizable styling and high-resolution export
 
 ### Running without CUDA
 
