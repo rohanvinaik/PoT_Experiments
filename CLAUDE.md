@@ -75,7 +75,37 @@ PoT_Experiments/
   - **Dimensionality Reduction**: PCA for visualization and analysis
   - **Outlier Detection**: Z-score and IQR-based anomaly identification
 
-### 3.2. Blockchain Infrastructure (`pot/prototypes/`) (2025-08-17)
+### 3.2. Topographical Learning (`pot/semantic/topography*`) (NEW 2025-08-17)
+- **Projection Methods** (`topography.py`): Multi-method dimensionality reduction for semantic space visualization
+  - **UMAP**: Uniform manifold approximation (recommended default) - preserves local + global structure
+  - **t-SNE**: Local cluster structure emphasis - excellent for fine-grained analysis
+  - **PCA**: Fast linear projection - ideal for quick exploration and preprocessing
+  - **SOM**: Self-organizing maps - topological preservation and interpretable clustering
+- **Performance Optimization** (`topography_optimized.py`): High-performance implementations (NEW 2025-08-17)
+  - **IncrementalUMAP**: Online learning with append/merge/weighted update strategies
+  - **OnlineSOM**: Streaming SOM with exponential/linear decay functions
+  - **BatchedProjection**: Memory-efficient processing for large datasets (>100k samples)
+  - **CachedProjector**: LRU + persistent disk caching with content-based hashing
+  - **ApproximateProjector**: PCA preprocessing + approximate nearest neighbors for speed
+  - **GPU Acceleration**: RAPIDS cuML integration for 5-10x speedup when available
+- **Quality Assessment** (`topography_utils.py`): Projection evaluation and optimization
+  - **Metrics**: Trustworthiness, continuity, Kruskal stress, Shepard correlation
+  - **Parameter Selection**: Automatic optimization for speed/quality tradeoffs
+  - **Cluster Analysis**: K-means, DBSCAN, Gaussian mixture identification
+  - **Outlier Detection**: Topological anomaly identification
+- **Evolution Tracking** (`topography.py`): Temporal analysis of semantic spaces
+  - **Drift Detection**: Centroid shift, density change, regime change detection
+  - **Trajectory Tracking**: Semantic path analysis with velocity/acceleration
+  - **Cluster Evolution**: Merge/split detection, stability analysis
+  - **Snapshot Management**: Efficient storage and comparison of temporal embeddings
+- **Visualization** (`topography_visualizer.py`): Interactive and static plotting
+  - **Static Plots**: Matplotlib-based with customizable styling and export
+  - **Interactive Exploration**: Plotly-based with hover, zoom, selection
+  - **SOM Visualization**: U-matrix, component planes, hit maps, cluster overlays
+  - **Animation**: Evolution videos with smooth transitions and regime highlighting
+  - **Dashboard Creation**: Multi-panel analysis with quality metrics integration
+
+### 3.3. Blockchain Infrastructure (`pot/prototypes/`) (2025-08-17)
 - **BlockchainClient**: Multi-chain support (Ethereum, Polygon, BSC, Arbitrum, Optimism)
   - Gas optimization: 60-80% savings via Merkle batching, EIP-1559 support
   - Production features: retry logic, context managers, thread-safe operations
@@ -225,6 +255,134 @@ new_library = ConceptLibrary(dim=768, method='gaussian')
 new_library.load('concept_library.pt')
 ```
 
+### Topographical Learning (2025-08-17)
+```python
+from pot.semantic import (
+    TopographicalProjector,
+    create_topographical_semantic_system,
+    analyze_semantic_evolution
+)
+from pot.semantic.topography_optimized import (
+    IncrementalUMAP,
+    OnlineSOM,
+    project_latents_batched,
+    CachedProjector
+)
+import torch
+
+# Basic projection methods
+projector = TopographicalProjector(method='umap')
+embeddings = torch.randn(1000, 768)
+projected_2d = projector.project_latents(embeddings)
+
+# Method comparison
+for method in ['pca', 'umap', 'tsne']:
+    projector = TopographicalProjector(method)
+    projection = projector.project_latents(embeddings)
+    print(f"{method}: {projection.shape}")
+
+# High-performance batch processing
+large_embeddings = torch.randn(50000, 768)
+projected = project_latents_batched(
+    large_embeddings,
+    method='umap',
+    batch_size=2000,
+    use_gpu=True  # If RAPIDS available
+)
+
+# Incremental learning for streaming data
+inc_umap = IncrementalUMAP(update_strategy='append')
+initial_projection = inc_umap.fit(embeddings[:500])
+
+# Add new data incrementally
+for batch in [embeddings[500:700], embeddings[700:900]]:
+    new_projection = inc_umap.partial_fit(batch)
+
+# Online SOM for topological mapping
+online_som = OnlineSOM(grid_size=(15, 15), decay_function='exponential')
+for batch in torch.split(embeddings, 100):
+    online_som.partial_fit(batch.numpy(), epochs=1)
+som_projection = online_som.transform(embeddings.numpy())
+
+# Cached projector for repeated analysis
+base_projector = TopographicalProjector('umap')
+cached_projector = CachedProjector(
+    base_projector,
+    cache_size=100,
+    cache_dir='./projection_cache'
+)
+cached_result = cached_projector.project_latents(embeddings)
+
+# Integrated semantic + topographical system
+library, matcher, projector = create_topographical_semantic_system(
+    dim=768,
+    projection_method='umap',
+    cache_projections=True
+)
+
+# Add concepts and get spatial positions
+library.add_concept('concept_a', torch.randn(100, 768))
+library.add_concept('concept_b', torch.randn(100, 768))
+positions = library.get_concept_positions(method='umap')
+
+# Evolution tracking
+from pot.semantic import TopographicalEvolutionTracker
+
+tracker = TopographicalEvolutionTracker()
+snapshots = [torch.randn(200, 768) for _ in range(5)]
+
+for i, snapshot in enumerate(snapshots):
+    projected = projector.project_latents(snapshot)
+    tracker.add_snapshot(projected, timestamp=float(i), compute_metrics=True)
+
+# Analyze drift and regime changes
+drift_metrics = tracker.compute_drift_metrics()
+regime_changes = tracker.detect_regime_changes(method='gradient')
+print(f"Cumulative drift: {drift_metrics['cumulative_drift']:.3f}")
+print(f"Regime changes: {regime_changes}")
+
+# Semantic trajectory tracking
+trajectory_embeddings = [torch.randn(768) for _ in range(20)]
+trajectory = matcher.track_semantic_trajectory(
+    trajectory_embeddings,
+    projection_method='umap',
+    smooth=True
+)
+print(f"Trajectory distance: {trajectory['total_distance']:.3f}")
+
+# Quality assessment
+from pot.semantic.topography_utils import compute_trustworthiness, compute_continuity
+
+trust = compute_trustworthiness(embeddings.numpy(), projected_2d, n_neighbors=10)
+cont = compute_continuity(embeddings.numpy(), projected_2d, n_neighbors=10)
+print(f"Trustworthiness: {trust:.3f}, Continuity: {cont:.3f}")
+
+# Visualization
+from pot.semantic.topography_visualizer import plot_projection, create_interactive_plot
+
+# Static plot
+fig = plot_projection(projected_2d, title="UMAP Projection")
+
+# Interactive plot (requires plotly)
+interactive_fig = create_interactive_plot(
+    projected_2d,
+    labels=None,
+    title="Interactive Embedding Explorer"
+)
+interactive_fig.show()
+
+# Benchmarking performance
+from benchmarks.topography_benchmarks import BenchmarkSuite
+
+benchmark = BenchmarkSuite(save_results=True)
+methods = ['pca', 'umap', 'approximate_umap', 'optimized_auto']
+results = benchmark.run_scalability_benchmark(
+    methods=methods,
+    sample_sizes=[1000, 5000, 10000],
+    feature_sizes=[50, 100, 200]
+)
+```
+
 ### Challenge Generation
 ```python
 from pot.core.challenge import ChallengeConfig, generate_challenges
@@ -334,6 +492,19 @@ embeddings = torch.randn(20, 128)
 lib.add_concept('test_concept', embeddings)
 print('Semantic library created with', len(lib.list_concepts()), 'concepts')
 "
+
+# Topographical learning example
+python -c "
+from pot.semantic import TopographicalProjector
+import torch
+projector = TopographicalProjector(method='umap')
+embeddings = torch.randn(500, 128)
+projected = projector.project_latents(embeddings)
+print(f'Projected {embeddings.shape} to {projected.shape} using UMAP')
+"
+
+# Performance benchmarking
+python benchmarks/topography_benchmarks.py
 ```
 
 ## Guidelines
@@ -359,7 +530,9 @@ print('Semantic library created with', len(lib.list_concepts()), 'concepts')
 **Add Model Type**: Extend enum in `proof_of_training.py`, add challenges in `challenge.py`, create config  
 **Attack Simulation**: `python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack targeted_finetune`  
 **Compliance**: Use `ProofOfTraining(config).perform_verification()` with 'comprehensive' profile  
-**Semantic Verification**: Build concept library with `ConceptLibrary(dim, method)`, add concepts from embeddings, perform matching with `SemanticMatcher`
+**Semantic Verification**: Build concept library with `ConceptLibrary(dim, method)`, add concepts from embeddings, perform matching with `SemanticMatcher`  
+**Topographical Analysis**: Use `TopographicalProjector(method)` for visualization, `project_latents_batched()` for large datasets, `IncrementalUMAP` for streaming data  
+**Performance Benchmarking**: Run `python benchmarks/topography_benchmarks.py` for speed/quality analysis across methods and dataset sizes
 
 ### Commit-Reveal Protocol (2025-08-17)
 ```python

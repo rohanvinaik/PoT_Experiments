@@ -1,0 +1,363 @@
+# Topographical Learning Configuration
+# Configuration options for topographical projection and analysis
+
+topographical:
+  # Whether to enable topographical learning
+  enabled: true
+  
+  # Default projection method for new analyses
+  # Options: 'umap', 'tsne', 'pca', 'som', 'auto'
+  default_method: 'umap'
+  
+  # Automatic method selection based on data characteristics
+  auto_selection:
+    # Use auto-selection based on data size and dimensionality
+    enabled: true
+    
+    # Thresholds for automatic method selection
+    thresholds:
+      # For small datasets (< small_data_threshold), prefer t-SNE or PCA
+      small_data_threshold: 1000
+      
+      # For large datasets (> large_data_threshold), prefer UMAP or PCA
+      large_data_threshold: 10000
+      
+      # For high-dimensional data (> high_dim_threshold), use PCA preprocessing
+      high_dim_threshold: 1000
+  
+  # UMAP configuration
+  umap_params:
+    # Number of nearest neighbors to consider
+    n_neighbors: 15
+    
+    # Minimum distance between points in low-dimensional space
+    min_dist: 0.1
+    
+    # Number of output dimensions
+    n_components: 2
+    
+    # Distance metric in high-dimensional space
+    # Options: 'euclidean', 'manhattan', 'chebyshev', 'minkowski', 'canberra', 'braycurtis', 'haversine', 'mahalanobis', 'wminkowski', 'seuclidean', 'cosine'
+    metric: 'euclidean'
+    
+    # Learning rate for optimization
+    learning_rate: 1.0
+    
+    # Number of epochs for optimization
+    n_epochs: null  # Auto-select based on data size
+    
+    # Random seed for reproducibility
+    random_state: 42
+    
+    # Number of threads for parallel processing
+    n_jobs: -1
+  
+  # t-SNE configuration
+  tsne_params:
+    # Perplexity parameter (roughly the number of nearest neighbors)
+    # Recommended range: 5-50, typical value: 30
+    perplexity: 30
+    
+    # Learning rate for optimization
+    # If too low: slow convergence, if too high: poor quality
+    learning_rate: 200
+    
+    # Number of iterations for optimization
+    n_iter: 1000
+    
+    # Early exaggeration factor
+    early_exaggeration: 12.0
+    
+    # Number of output dimensions
+    n_components: 2
+    
+    # Distance metric
+    # Options: 'euclidean', 'l2', 'l1', 'manhattan', 'cityblock', 'braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'matching', 'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule'
+    metric: 'euclidean'
+    
+    # Initialization method
+    # Options: 'random', 'pca'
+    init: 'pca'
+    
+    # Random seed
+    random_state: 42
+    
+    # Verbosity level
+    verbose: 0
+    
+    # Number of jobs for parallel processing
+    n_jobs: -1
+  
+  # PCA configuration
+  pca_params:
+    # Number of components to keep
+    n_components: 2
+    
+    # Whether to center the data
+    whiten: false
+    
+    # SVD solver to use
+    # Options: 'auto', 'full', 'arpack', 'randomized'
+    svd_solver: 'auto'
+    
+    # Random seed for randomized SVD
+    random_state: 42
+  
+  # Self-Organizing Map (SOM) configuration
+  som_params:
+    # Grid dimensions [width, height]
+    grid_size: [10, 10]
+    
+    # Initial neighborhood radius
+    sigma: 1.0
+    
+    # Initial learning rate
+    learning_rate: 0.5
+    
+    # Learning rate decay function
+    # Options: 'exponential', 'linear', 'inverse_time'
+    decay_function: 'exponential'
+    
+    # Number of training epochs
+    n_epochs: 100
+    
+    # Initialization method
+    # Options: 'random', 'pca'
+    initialization: 'pca'
+    
+    # Topology type
+    # Options: 'rectangular', 'hexagonal'
+    topology: 'rectangular'
+    
+    # Random seed
+    random_state: 42
+  
+  # Performance optimization settings
+  optimization:
+    # Enable GPU acceleration when available
+    use_gpu: true
+    
+    # Batch size for large dataset processing
+    batch_size: 1000
+    
+    # Enable caching of projections
+    enable_caching: true
+    
+    # Cache size (number of projections to cache)
+    cache_size: 100
+    
+    # Enable persistent caching to disk
+    persistent_cache: true
+    
+    # Cache directory
+    cache_dir: 'outputs/topography_cache/'
+    
+    # Use approximation methods for speed
+    use_approximation: false
+    
+    # PCA preprocessing dimension reduction
+    pca_preprocessing:
+      enabled: false
+      n_components: 50
+    
+    # Approximate nearest neighbors
+    approximate_nn:
+      enabled: false
+      n_trees: 10  # For Annoy
+      search_k: -1  # Auto-select
+  
+  # Evolution tracking configuration
+  evolution_tracking:
+    # Enable evolution tracking
+    enabled: true
+    
+    # Window size for drift detection (number of snapshots)
+    window_size: 100
+    
+    # Interval between snapshots (in terms of data updates)
+    snapshot_interval: 10
+    
+    # Maximum number of snapshots to keep in memory
+    max_snapshots: 1000
+    
+    # Automatic regime change detection
+    regime_detection:
+      enabled: true
+      
+      # Methods to use: 'gradient', 'variance', 'clustering'
+      methods: ['gradient', 'variance']
+      
+      # Sensitivity for gradient-based detection (0.0 to 1.0)
+      gradient_threshold: 0.1
+      
+      # Sensitivity for variance-based detection (0.0 to 1.0)
+      variance_threshold: 0.2
+    
+    # Cluster evolution tracking
+    cluster_evolution:
+      enabled: true
+      
+      # Clustering method: 'kmeans', 'dbscan', 'gaussian_mixture'
+      method: 'kmeans'
+      
+      # Number of clusters (for kmeans)
+      n_clusters: 5
+      
+      # DBSCAN parameters
+      dbscan:
+        eps: 0.5
+        min_samples: 5
+  
+  # Quality metrics configuration
+  quality_metrics:
+    # Enable quality assessment
+    enabled: true
+    
+    # Metrics to compute
+    metrics:
+      - 'trustworthiness'
+      - 'continuity'
+      - 'kruskal_stress'
+      - 'shepard_correlation'
+      - 'neighborhood_preservation'
+    
+    # Number of neighbors for neighborhood-based metrics
+    n_neighbors: 10
+    
+    # Whether to normalize stress metrics
+    normalize_stress: true
+  
+  # Visualization configuration
+  visualization:
+    # Default plot size
+    figure_size: [10, 8]
+    
+    # Default color palette
+    # Options: 'husl', 'Set1', 'Set2', 'tab10', 'viridis', 'plasma'
+    color_palette: 'husl'
+    
+    # Point size for scatter plots
+    point_size: 20
+    
+    # Alpha transparency
+    alpha: 0.7
+    
+    # Enable interactive plots (requires plotly)
+    interactive: true
+    
+    # Save format for static plots
+    # Options: 'png', 'pdf', 'svg', 'eps'
+    save_format: 'png'
+    
+    # DPI for saved figures
+    dpi: 150
+    
+    # Animation settings
+    animation:
+      # Frame duration in milliseconds
+      frame_duration: 500
+      
+      # Enable smooth transitions
+      smooth_transitions: true
+      
+      # Number of intermediate frames for smooth transitions
+      n_transition_frames: 10
+  
+  # Integration with semantic verification
+  semantic_integration:
+    # Enable integration with semantic library
+    enabled: true
+    
+    # Automatically add topographical views to concept libraries
+    auto_add_views: true
+    
+    # Default projection method for semantic spaces
+    semantic_projection_method: 'umap'
+    
+    # Trajectory tracking settings
+    trajectory_tracking:
+      enabled: true
+      
+      # Smoothing factor for trajectories (0.0 to 1.0)
+      smoothing_factor: 0.1
+      
+      # Maximum trajectory length to keep in memory
+      max_trajectory_length: 1000
+  
+  # Reporting and output
+  reporting:
+    # Generate analysis reports
+    generate_reports: true
+    
+    # Report format: 'json', 'html', 'pdf'
+    format: 'json'
+    
+    # Include quality metrics in reports
+    include_metrics: true
+    
+    # Include visualizations in reports
+    include_visualizations: true
+    
+    # Output directory for reports
+    output_dir: 'outputs/topography_reports/'
+    
+    # Auto-save projections
+    auto_save_projections: true
+    
+    # Save projection data
+    save_projection_data: true
+
+# Advanced configuration
+advanced:
+  # Custom projection pipelines
+  custom_pipelines:
+    # Example: PCA + UMAP pipeline
+    pca_umap:
+      - method: 'pca'
+        params:
+          n_components: 50
+      - method: 'umap'
+        params:
+          n_neighbors: 15
+          min_dist: 0.1
+    
+    # Example: High-quality pipeline
+    high_quality:
+      - method: 'umap'
+        params:
+          n_neighbors: 30
+          min_dist: 0.01
+          n_epochs: 1000
+  
+  # Memory management
+  memory_management:
+    # Maximum memory usage in GB
+    max_memory_gb: 8.0
+    
+    # Enable memory monitoring
+    monitor_memory: true
+    
+    # Automatic garbage collection
+    auto_gc: true
+  
+  # Debugging and profiling
+  debugging:
+    # Enable detailed logging
+    verbose_logging: false
+    
+    # Profile performance
+    enable_profiling: false
+    
+    # Save intermediate results
+    save_intermediate: false
+
+# Backward compatibility
+backward_compatibility:
+  # Fallback behavior when topographical learning is unavailable
+  fallback_mode: 'pca_only'  # Options: 'pca_only', 'disable', 'error'
+  
+  # Legacy API support
+  legacy_api: true
+  
+  # Warning level for deprecated features
+  deprecation_warnings: true
