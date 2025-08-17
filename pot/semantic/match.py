@@ -1,268 +1,492 @@
 """
 Semantic matching and scoring utilities for concept vector comparison.
-Implements various distance metrics and similarity scoring functions.
+Implements various distance metrics and similarity scoring functions with ConceptLibrary integration.
 """
 
 import numpy as np
+import torch
 from typing import Dict, List, Optional, Union, Any, Tuple, Callable
 from scipy.spatial.distance import cosine, euclidean, cityblock
 from scipy.stats import entropy
+from sklearn.cluster import KMeans, AgglomerativeClustering
 import logging
 from functools import lru_cache
 import time
+import warnings
 
 from .types import ConceptVector, SemanticMatchResult, MatchingConfig, SemanticDistance, SemanticLibrary
 from .utils import normalize_concept_vector
+from .library import ConceptLibrary
 
 logger = logging.getLogger(__name__)
 
 
 class SemanticMatcher:
     """
-    Main class for performing semantic matching between concept vectors.
-    Supports multiple distance metrics and batch processing.
+    Enhanced semantic matcher for scoring outputs against concept library.
+    Supports multiple similarity measures and semantic drift analysis.
     """
     
-    def __init__(self, config: Optional[MatchingConfig] = None):
+    def __init__(self, library: ConceptLibrary, threshold: float = 0.8):
         """
-        Initialize the semantic matcher.
+        Initialize the semantic matcher with a concept library.
         
         Args:
-            config: Configuration for matching operations
+            library: ConceptLibrary containing reference concepts
+            threshold: Similarity threshold for positive matches
         """
-        self.config = config or MatchingConfig()
-        self._distance_functions = self._setup_distance_functions()
-        self._cache = {} if self.config.cache_results else None
-    
-    def _setup_distance_functions(self) -> Dict[SemanticDistance, Callable]:
-        """Setup distance function mappings."""
-        return {
-            SemanticDistance.COSINE: self._cosine_distance,
-            SemanticDistance.EUCLIDEAN: self._euclidean_distance,
-            SemanticDistance.MANHATTAN: self._manhattan_distance,
-            SemanticDistance.JACCARD: self._jaccard_distance,
-            SemanticDistance.JENSEN_SHANNON: self._jensen_shannon_distance
+        if not isinstance(library, ConceptLibrary):
+            raise TypeError("library must be a ConceptLibrary instance")
+        
+        self.library = library
+        self.threshold = threshold
+        self._similarity_cache = {}
+        
+        # Setup similarity methods based on library type
+        self.similarity_methods = {
+            'cosine': self._cosine_similarity,
+            'euclidean': self._euclidean_similarity,
+            'mahalanobis': self._mahalanobis_similarity,
+            'hamming': self._hamming_similarity
         }
+        
+        logger.info(f"Initialized SemanticMatcher with {len(library.list_concepts())} concepts, threshold={threshold}")
     
-    def match_concept(self, query_concept: ConceptVector, 
-                     library: SemanticLibrary,
-                     top_k: Optional[int] = None) -> List[SemanticMatchResult]:
+    def compute_similarity(self, embedding: torch.Tensor, concept: str, 
+                         method: str = 'cosine') -> float:
         """
-        Find the best matching concepts in a library for a query concept.
+        Compute similarity between an embedding and a concept from the library.
         
         Args:
-            query_concept: The concept to match against
-            library: Library of concepts to search
-            top_k: Number of top matches to return (default: config.max_candidates)
+            embedding: Input embedding tensor
+            concept: Concept name in the library
+            method: Similarity method ('cosine', 'euclidean', 'mahalanobis', 'hamming')
             
         Returns:
-            List of SemanticMatchResult objects sorted by similarity (best first)
-        """
-        if not library.concepts:
-            return []
-        
-        top_k = top_k or self.config.max_candidates
-        results = []
-        
-        query_vector = query_concept.vector
-        if self.config.normalize_vectors:
-            query_vector = normalize_concept_vector(query_vector)
-        
-        for candidate_id, candidate_concept in library.concepts.items():
-            if candidate_id == query_concept.concept_id:
-                continue  # Skip self-matching
+            Similarity score in [0, 1], higher is more similar
             
-            try:
-                distance = self._compute_distance(
-                    query_vector, 
-                    candidate_concept.vector,
-                    self.config.distance_metric
-                )
-                
-                similarity_score = self._distance_to_similarity(
-                    distance, 
-                    self.config.distance_metric
-                )
-                
-                if similarity_score >= self.config.similarity_threshold:
-                    result = SemanticMatchResult(
-                        query_concept_id=query_concept.concept_id,
-                        matched_concept_id=candidate_id,
-                        distance=distance,
-                        similarity_score=similarity_score,
-                        distance_metric=self.config.distance_metric,
-                        metadata={
-                            'query_label': query_concept.label,
-                            'matched_label': candidate_concept.label,
-                            'computation_time': time.time()
-                        }
-                    )
-                    results.append(result)
-                    
-            except Exception as e:
-                logger.warning(f"Failed to compute distance for concept {candidate_id}: {e}")
-                continue
-        
-        # Sort by similarity score (descending) and take top_k
-        results.sort(key=lambda x: x.similarity_score, reverse=True)
-        return results[:top_k]
-    
-    def batch_match_concepts(self, query_concepts: List[ConceptVector],
-                           library: SemanticLibrary,
-                           top_k: Optional[int] = None) -> Dict[str, List[SemanticMatchResult]]:
+        Raises:
+            KeyError: If concept not found
+            ValueError: If method unsupported or dimension mismatch
         """
-        Perform batch matching for multiple query concepts.
+        if concept not in self.library.list_concepts():
+            raise KeyError(f"Concept '{concept}' not found in library")
+        
+        if method not in self.similarity_methods:
+            raise ValueError(f"Unsupported similarity method: {method}")
+        
+        # Validate embedding dimensions
+        if embedding.ndim == 1:
+            embedding = embedding.unsqueeze(0)  # Add batch dimension
+        
+        if embedding.shape[-1] != self.library.dim:
+            raise ValueError(f"Embedding dimension {embedding.shape[-1]} doesn't match library dimension {self.library.dim}")
+        
+        # Check cache
+        cache_key = (embedding.data_ptr(), concept, method)
+        if cache_key in self._similarity_cache:
+            return self._similarity_cache[cache_key]
+        
+        # Get concept vector
+        concept_vector = self.library.get_concept_vector(concept)
+        
+        # Compute similarity
+        try:
+            if method == 'mahalanobis' and self.library.method == 'gaussian':
+                # Mahalanobis requires covariance matrix
+                _, covariance = self.library.get_concept_statistics(concept)
+                if covariance is None:
+                    logger.warning(f"No covariance for concept '{concept}', falling back to cosine")
+                    similarity = self._cosine_similarity(embedding.squeeze(), concept_vector)
+                else:
+                    similarity = self._mahalanobis_similarity(embedding.squeeze(), concept_vector, covariance)
+            elif method == 'hamming' and self.library.method == 'hypervector':
+                # Hamming distance for hypervectors
+                similarity = self._hamming_similarity(embedding.squeeze(), concept_vector)
+            else:
+                # Standard similarity methods
+                similarity_func = self.similarity_methods[method]
+                if method == 'mahalanobis':
+                    # For non-Gaussian libraries, fall back to cosine for Mahalanobis
+                    logger.debug(f"Library method is '{self.library.method}', using cosine instead of mahalanobis")
+                    similarity = self._cosine_similarity(embedding.squeeze(), concept_vector)
+                else:
+                    similarity = similarity_func(embedding.squeeze(), concept_vector)
+            
+            # Cache result
+            self._similarity_cache[cache_key] = similarity
+            
+            # Clear cache if too large
+            if len(self._similarity_cache) > 10000:
+                self._similarity_cache.clear()
+            
+            return similarity
+            
+        except Exception as e:
+            logger.error(f"Error computing {method} similarity: {e}")
+            raise
+    
+    def match_to_library(self, embedding: torch.Tensor) -> Dict[str, float]:
+        """
+        Match an embedding to all concepts in the library.
         
         Args:
-            query_concepts: List of concepts to match
-            library: Library to search against
-            top_k: Number of top matches per query
+            embedding: Input embedding tensor
             
         Returns:
-            Dictionary mapping query concept IDs to their match results
+            Dictionary mapping concept names to similarity scores
         """
+        if embedding.ndim == 1:
+            embedding = embedding.unsqueeze(0)
+        
+        if embedding.shape[-1] != self.library.dim:
+            raise ValueError(f"Embedding dimension {embedding.shape[-1]} doesn't match library dimension {self.library.dim}")
+        
         results = {}
         
-        for i in range(0, len(query_concepts), self.config.batch_size):
-            batch = query_concepts[i:i + self.config.batch_size]
-            
-            for query_concept in batch:
+        # Determine best method based on library type
+        if self.library.method == 'gaussian':
+            primary_method = 'mahalanobis'
+            fallback_method = 'cosine'
+        elif self.library.method == 'hypervector':
+            primary_method = 'hamming'
+            fallback_method = 'cosine'
+        else:
+            primary_method = 'cosine'
+            fallback_method = 'euclidean'
+        
+        for concept_name in self.library.list_concepts():
+            try:
+                # Try primary method first
+                similarity = self.compute_similarity(embedding, concept_name, primary_method)
+            except Exception as e:
+                logger.debug(f"Primary method {primary_method} failed for {concept_name}: {e}, trying {fallback_method}")
                 try:
-                    matches = self.match_concept(query_concept, library, top_k)
-                    results[query_concept.concept_id] = matches
-                except Exception as e:
-                    logger.error(f"Failed to match concept {query_concept.concept_id}: {e}")
-                    results[query_concept.concept_id] = []
+                    similarity = self.compute_similarity(embedding, concept_name, fallback_method)
+                except Exception as e2:
+                    logger.warning(f"Both methods failed for concept {concept_name}: {e2}")
+                    similarity = 0.0
+            
+            results[concept_name] = similarity
+        
+        # Sort by similarity (descending)
+        results = dict(sorted(results.items(), key=lambda x: x[1], reverse=True))
         
         return results
     
-    def _compute_distance(self, vector1: np.ndarray, vector2: np.ndarray,
-                         metric: SemanticDistance) -> float:
+    def compute_semantic_drift(self, embeddings: torch.Tensor, 
+                              reference_concept: str) -> float:
         """
-        Compute distance between two vectors using the specified metric.
+        Compute semantic drift between embeddings and a reference concept.
+        
+        Drift is measured as the average distance from the reference concept,
+        normalized to [0, 1] where 0 means no drift and 1 means maximum drift.
         
         Args:
-            vector1: First vector
-            vector2: Second vector
-            metric: Distance metric to use
+            embeddings: Batch of embeddings (n_samples, dim)
+            reference_concept: Reference concept name
             
         Returns:
-            Distance value
+            Semantic drift score in [0, 1]
+            
+        Raises:
+            KeyError: If reference concept not found
         """
-        # Normalize vectors if configured
-        if self.config.normalize_vectors:
-            vector1 = normalize_concept_vector(vector1)
-            vector2 = normalize_concept_vector(vector2)
+        if reference_concept not in self.library.list_concepts():
+            raise KeyError(f"Reference concept '{reference_concept}' not found")
         
-        # Try primary metric
-        try:
-            distance_func = self._distance_functions[metric]
-            return distance_func(vector1, vector2)
-        except Exception as e:
-            logger.warning(f"Primary metric {metric} failed: {e}")
-            
-            # Try fallback metrics
-            for fallback_metric in self.config.fallback_metrics:
-                try:
-                    distance_func = self._distance_functions[fallback_metric]
-                    return distance_func(vector1, vector2)
-                except Exception:
-                    continue
-            
-            # If all metrics fail, raise the original exception
-            raise e
-    
-    def _distance_to_similarity(self, distance: float, 
-                               metric: SemanticDistance) -> float:
-        """
-        Convert distance to similarity score (0-1, higher is more similar).
+        if embeddings.ndim == 1:
+            embeddings = embeddings.unsqueeze(0)
         
-        Args:
-            distance: Distance value
-            metric: Distance metric used
+        if embeddings.shape[-1] != self.library.dim:
+            raise ValueError(f"Embedding dimension {embeddings.shape[-1]} doesn't match library dimension {self.library.dim}")
+        
+        # Get reference concept vector
+        reference_vector = self.library.get_concept_vector(reference_concept)
+        
+        # Compute distances for each embedding
+        distances = []
+        for i in range(embeddings.shape[0]):
+            # Use cosine distance as default metric for drift
+            similarity = self._cosine_similarity(embeddings[i], reference_vector)
+            distance = 1.0 - similarity  # Convert similarity to distance
+            distances.append(distance)
+        
+        # Calculate drift metrics
+        mean_distance = np.mean(distances)
+        
+        # For Gaussian concepts, also consider variance change
+        if self.library.method == 'gaussian':
+            reference_mean, reference_cov = self.library.get_concept_statistics(reference_concept)
             
-        Returns:
-            Similarity score between 0 and 1
-        """
-        if metric == SemanticDistance.COSINE:
-            # Cosine distance is 1 - cosine_similarity, so similarity = 1 - distance
-            return max(0.0, min(1.0, 1.0 - distance))
-        elif metric in [SemanticDistance.EUCLIDEAN, SemanticDistance.MANHATTAN]:
-            # For euclidean/manhattan, use exponential decay
-            return np.exp(-distance)
-        elif metric == SemanticDistance.JACCARD:
-            # Jaccard distance is 1 - jaccard_similarity
-            return max(0.0, min(1.0, 1.0 - distance))
-        elif metric == SemanticDistance.JENSEN_SHANNON:
-            # JS distance is sqrt(JS divergence), convert to similarity
-            return max(0.0, min(1.0, 1.0 - distance))
+            if reference_mean is not None and reference_cov is not None:
+                # Compute empirical mean and covariance of embeddings
+                embeddings_mean = torch.mean(embeddings, dim=0)
+                if embeddings.shape[0] > 1:
+                    centered = embeddings - embeddings_mean
+                    embeddings_cov = torch.mm(centered.t(), centered) / (embeddings.shape[0] - 1)
+                    
+                    # Measure drift in mean
+                    mean_drift = torch.norm(embeddings_mean - reference_mean).item()
+                    
+                    # Measure drift in covariance (Frobenius norm)
+                    cov_drift = torch.norm(embeddings_cov - reference_cov, p='fro').item()
+                    
+                    # Normalize drifts
+                    mean_drift_norm = 1.0 - np.exp(-mean_drift / self.library.dim)
+                    cov_drift_norm = 1.0 - np.exp(-cov_drift / (self.library.dim ** 2))
+                    
+                    # Combine distance and statistical drift
+                    semantic_drift = 0.5 * mean_distance + 0.25 * mean_drift_norm + 0.25 * cov_drift_norm
+                else:
+                    # Only one sample, just use distance
+                    semantic_drift = mean_distance
+            else:
+                semantic_drift = mean_distance
         else:
-            # Default: exponential decay
-            return np.exp(-distance)
+            # For non-Gaussian methods, use distance-based drift
+            semantic_drift = mean_distance
+        
+        # Ensure drift is in [0, 1]
+        semantic_drift = np.clip(semantic_drift, 0.0, 1.0)
+        
+        logger.debug(f"Semantic drift from '{reference_concept}': {semantic_drift:.3f}")
+        return float(semantic_drift)
     
-    # Distance function implementations
-    def _cosine_distance(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
-        """Compute cosine distance between vectors."""
-        return float(cosine(vector1, vector2))
-    
-    def _euclidean_distance(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
-        """Compute Euclidean distance between vectors."""
-        return float(euclidean(vector1, vector2))
-    
-    def _manhattan_distance(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
-        """Compute Manhattan (L1) distance between vectors."""
-        return float(cityblock(vector1, vector2))
-    
-    def _jaccard_distance(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
+    def cluster_outputs(self, embeddings: List[torch.Tensor], 
+                       n_clusters: Optional[int] = None) -> np.ndarray:
         """
-        Compute Jaccard distance between vectors.
-        Treats vectors as sets by thresholding at mean value.
+        Cluster output embeddings to identify semantic groups.
+        
+        Args:
+            embeddings: List of embedding tensors
+            n_clusters: Number of clusters (auto-determined if None)
+            
+        Returns:
+            Cluster labels for each embedding
         """
-        # Convert to binary vectors using mean as threshold
-        threshold1 = np.mean(vector1)
-        threshold2 = np.mean(vector2)
+        if not embeddings:
+            return np.array([])
         
-        binary1 = vector1 > threshold1
-        binary2 = vector2 > threshold2
+        # Convert to matrix
+        if isinstance(embeddings[0], torch.Tensor):
+            embeddings_matrix = torch.stack([e.squeeze() for e in embeddings])
+            embeddings_matrix = embeddings_matrix.detach().cpu().numpy()
+        else:
+            embeddings_matrix = np.vstack([e.squeeze() for e in embeddings])
         
-        intersection = np.sum(binary1 & binary2)
-        union = np.sum(binary1 | binary2)
+        n_samples = len(embeddings_matrix)
         
-        if union == 0:
-            return 1.0  # Maximum distance if both vectors are all zeros
+        # Auto-determine number of clusters if not specified
+        if n_clusters is None:
+            # Use elbow method heuristic: sqrt(n/2)
+            n_clusters = max(2, min(int(np.sqrt(n_samples / 2)), 10))
+            logger.debug(f"Auto-determined n_clusters={n_clusters} for {n_samples} samples")
         
-        jaccard_similarity = intersection / union
-        return 1.0 - jaccard_similarity
+        # Ensure valid number of clusters
+        n_clusters = min(n_clusters, n_samples)
+        
+        if n_clusters < 2:
+            # All in one cluster
+            return np.zeros(n_samples, dtype=int)
+        
+        try:
+            # Use KMeans for clustering
+            kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+            labels = kmeans.fit_predict(embeddings_matrix)
+            
+            # Compute cluster quality metrics
+            inertia = kmeans.inertia_
+            logger.info(f"Clustered {n_samples} embeddings into {n_clusters} clusters (inertia={inertia:.3f})")
+            
+            return labels
+            
+        except Exception as e:
+            logger.error(f"Clustering failed: {e}")
+            # Fall back to single cluster
+            return np.zeros(n_samples, dtype=int)
     
-    def _jensen_shannon_distance(self, vector1: np.ndarray, vector2: np.ndarray) -> float:
+    # Similarity computation methods
+    
+    def _cosine_similarity(self, vec1: torch.Tensor, vec2: torch.Tensor) -> float:
         """
-        Compute Jensen-Shannon distance between vectors.
-        Treats vectors as probability distributions.
+        Compute cosine similarity between two vectors.
+        
+        Returns similarity in [0, 1] where 1 is identical.
         """
-        # Ensure vectors are non-negative and sum to 1
-        p = np.abs(vector1)
-        q = np.abs(vector2)
+        # Handle edge cases
+        if torch.allclose(vec1, torch.zeros_like(vec1)) or torch.allclose(vec2, torch.zeros_like(vec2)):
+            logger.warning("Computing cosine similarity with zero vector")
+            return 0.0
         
-        if np.sum(p) == 0 or np.sum(q) == 0:
-            return 1.0  # Maximum distance if either vector is all zeros
+        # Normalize vectors
+        vec1_norm = vec1 / (torch.norm(vec1) + 1e-8)
+        vec2_norm = vec2 / (torch.norm(vec2) + 1e-8)
         
-        p = p / np.sum(p)
-        q = q / np.sum(q)
+        # Compute cosine similarity
+        similarity = torch.dot(vec1_norm, vec2_norm).item()
         
-        # Compute JS divergence
-        m = 0.5 * (p + q)
+        # Map from [-1, 1] to [0, 1]
+        similarity = (similarity + 1.0) / 2.0
         
-        # Add small epsilon to avoid log(0)
-        epsilon = 1e-10
-        p = p + epsilon
-        q = q + epsilon
-        m = m + epsilon
+        return float(np.clip(similarity, 0.0, 1.0))
+    
+    def _euclidean_similarity(self, vec1: torch.Tensor, vec2: torch.Tensor) -> float:
+        """
+        Compute normalized Euclidean similarity between two vectors.
         
-        js_divergence = 0.5 * entropy(p, m) + 0.5 * entropy(q, m)
+        Returns similarity in [0, 1] where 1 is identical.
+        """
+        # Compute Euclidean distance
+        distance = torch.norm(vec1 - vec2).item()
         
-        # JS distance is sqrt(JS divergence)
-        return np.sqrt(js_divergence)
+        # Normalize by maximum possible distance (assuming unit vectors)
+        max_distance = 2.0 * np.sqrt(self.library.dim)
+        
+        # Convert to similarity
+        similarity = 1.0 - (distance / max_distance)
+        
+        return float(np.clip(similarity, 0.0, 1.0))
+    
+    def _mahalanobis_similarity(self, vec: torch.Tensor, mean: torch.Tensor, 
+                               covariance: torch.Tensor) -> float:
+        """
+        Compute Mahalanobis similarity using stored covariance.
+        
+        Returns similarity in [0, 1] where 1 is at the mean.
+        """
+        try:
+            # Center the vector
+            diff = vec - mean
+            
+            # Add regularization for numerical stability
+            cov_reg = covariance + 1e-6 * torch.eye(covariance.shape[0], 
+                                                    dtype=covariance.dtype, 
+                                                    device=covariance.device)
+            
+            # Compute inverse covariance
+            try:
+                cov_inv = torch.linalg.inv(cov_reg)
+            except torch.linalg.LinAlgError:
+                # If inversion fails, use pseudo-inverse
+                logger.warning("Covariance matrix inversion failed, using pseudo-inverse")
+                cov_inv = torch.linalg.pinv(cov_reg)
+            
+            # Compute Mahalanobis distance
+            mahal_dist_sq = torch.dot(diff, torch.mv(cov_inv, diff)).item()
+            
+            # Ensure non-negative
+            mahal_dist_sq = max(0.0, mahal_dist_sq)
+            mahal_dist = np.sqrt(mahal_dist_sq)
+            
+            # Convert to similarity using exponential decay
+            # This maps distance to [0, 1] where 0 distance = 1 similarity
+            similarity = np.exp(-0.5 * mahal_dist)
+            
+            return float(np.clip(similarity, 0.0, 1.0))
+            
+        except Exception as e:
+            logger.error(f"Mahalanobis computation failed: {e}")
+            # Fall back to cosine similarity
+            return self._cosine_similarity(vec, mean)
+    
+    def _hamming_similarity(self, vec1: torch.Tensor, vec2: torch.Tensor) -> float:
+        """
+        Compute Hamming similarity for hypervectors.
+        
+        Returns similarity in [0, 1] where 1 is identical.
+        """
+        # Convert to ternary/binary representation
+        vec1_discrete = torch.sign(vec1)
+        vec2_discrete = torch.sign(vec2)
+        
+        # Count matching elements
+        matches = torch.sum(vec1_discrete == vec2_discrete).item()
+        
+        # Compute similarity
+        similarity = matches / len(vec1)
+        
+        return float(np.clip(similarity, 0.0, 1.0))
+    
+    def get_best_match(self, embedding: torch.Tensor, 
+                      min_similarity: Optional[float] = None) -> Tuple[Optional[str], float]:
+        """
+        Find the best matching concept for an embedding.
+        
+        Args:
+            embedding: Input embedding
+            min_similarity: Minimum similarity threshold (default: self.threshold)
+            
+        Returns:
+            Tuple of (concept_name, similarity_score) or (None, 0.0) if no match
+        """
+        min_similarity = min_similarity or self.threshold
+        
+        matches = self.match_to_library(embedding)
+        
+        if not matches:
+            return None, 0.0
+        
+        best_concept = next(iter(matches))
+        best_score = matches[best_concept]
+        
+        if best_score >= min_similarity:
+            return best_concept, best_score
+        else:
+            return None, best_score
+    
+    def batch_match(self, embeddings: torch.Tensor, 
+                   return_scores: bool = False) -> Union[List[str], List[Tuple[str, float]]]:
+        """
+        Batch matching of multiple embeddings to library.
+        
+        Args:
+            embeddings: Batch of embeddings (n_samples, dim)
+            return_scores: Whether to return similarity scores
+            
+        Returns:
+            List of best matching concept names (and scores if requested)
+        """
+        if embeddings.ndim == 1:
+            embeddings = embeddings.unsqueeze(0)
+        
+        results = []
+        for i in range(embeddings.shape[0]):
+            concept, score = self.get_best_match(embeddings[i])
+            if return_scores:
+                results.append((concept, score))
+            else:
+                results.append(concept)
+        
+        return results
+    
+    def compute_coverage(self, embeddings: torch.Tensor) -> float:
+        """
+        Compute how well the library covers a set of embeddings.
+        
+        Coverage is the fraction of embeddings that match at least one concept
+        above the threshold.
+        
+        Args:
+            embeddings: Batch of embeddings
+            
+        Returns:
+            Coverage score in [0, 1]
+        """
+        if embeddings.ndim == 1:
+            embeddings = embeddings.unsqueeze(0)
+        
+        matched_count = 0
+        for i in range(embeddings.shape[0]):
+            concept, score = self.get_best_match(embeddings[i])
+            if concept is not None:
+                matched_count += 1
+        
+        coverage = matched_count / embeddings.shape[0]
+        return float(coverage)
 
+
+# Standalone functions for backward compatibility
 
 def compute_semantic_distance(concept1: ConceptVector, concept2: ConceptVector,
                             metric: SemanticDistance = SemanticDistance.COSINE,
@@ -279,14 +503,24 @@ def compute_semantic_distance(concept1: ConceptVector, concept2: ConceptVector,
     Returns:
         Distance value
     """
-    config = MatchingConfig(
-        distance_metric=metric,
-        normalize_vectors=normalize,
-        cache_results=False
-    )
+    vec1 = torch.tensor(concept1.vector) if isinstance(concept1.vector, np.ndarray) else concept1.vector
+    vec2 = torch.tensor(concept2.vector) if isinstance(concept2.vector, np.ndarray) else concept2.vector
     
-    matcher = SemanticMatcher(config)
-    return matcher._compute_distance(concept1.vector, concept2.vector, metric)
+    if normalize:
+        vec1 = vec1 / (torch.norm(vec1) + 1e-8)
+        vec2 = vec2 / (torch.norm(vec2) + 1e-8)
+    
+    if metric == SemanticDistance.COSINE:
+        distance = 1.0 - torch.dot(vec1, vec2).item()
+    elif metric == SemanticDistance.EUCLIDEAN:
+        distance = torch.norm(vec1 - vec2).item()
+    elif metric == SemanticDistance.MANHATTAN:
+        distance = torch.sum(torch.abs(vec1 - vec2)).item()
+    else:
+        # Default to cosine
+        distance = 1.0 - torch.dot(vec1, vec2).item()
+    
+    return float(distance)
 
 
 def semantic_similarity_score(concept1: ConceptVector, concept2: ConceptVector,
@@ -306,9 +540,15 @@ def semantic_similarity_score(concept1: ConceptVector, concept2: ConceptVector,
     """
     distance = compute_semantic_distance(concept1, concept2, metric, normalize)
     
-    config = MatchingConfig(distance_metric=metric)
-    matcher = SemanticMatcher(config)
-    return matcher._distance_to_similarity(distance, metric)
+    # Convert distance to similarity
+    if metric in [SemanticDistance.EUCLIDEAN, SemanticDistance.MANHATTAN]:
+        # Use exponential decay
+        similarity = np.exp(-distance)
+    else:
+        # For cosine and others, distance is already in [0, 2]
+        similarity = 1.0 - (distance / 2.0)
+    
+    return float(np.clip(similarity, 0.0, 1.0))
 
 
 def batch_semantic_matching(query_concepts: List[ConceptVector],
@@ -327,17 +567,42 @@ def batch_semantic_matching(query_concepts: List[ConceptVector],
     Returns:
         Dictionary mapping query concept IDs to their match results
     """
-    matcher = SemanticMatcher(config)
-    return matcher.batch_match_concepts(query_concepts, library, top_k)
-
-
-@lru_cache(maxsize=1000)
-def _cached_distance_computation(vector1_hash: str, vector2_hash: str,
-                               metric: SemanticDistance) -> float:
-    """
-    Cached distance computation for frequently accessed vector pairs.
-    Note: This is a placeholder for actual caching implementation.
-    """
-    # This would be implemented with proper vector reconstruction from hashes
-    # For now, it's just a cache key placeholder
-    pass
+    from .types import MatchingConfig as MC
+    config = config or MC()
+    
+    # Create a temporary matcher for batch processing
+    class TempMatcher:
+        def __init__(self):
+            self.config = config
+            
+    matcher = TempMatcher()
+    results = {}
+    
+    for query in query_concepts:
+        query_results = []
+        for lib_id, lib_concept in library.concepts.items():
+            if lib_id == query.concept_id:
+                continue
+            
+            similarity = semantic_similarity_score(
+                query, lib_concept, 
+                config.distance_metric, 
+                config.normalize_vectors
+            )
+            
+            if similarity >= config.similarity_threshold:
+                result = SemanticMatchResult(
+                    query_concept_id=query.concept_id,
+                    matched_concept_id=lib_id,
+                    distance=1.0 - similarity,
+                    similarity_score=similarity,
+                    distance_metric=config.distance_metric,
+                    metadata={'timestamp': time.time()}
+                )
+                query_results.append(result)
+        
+        # Sort and take top_k
+        query_results.sort(key=lambda x: x.similarity_score, reverse=True)
+        results[query.concept_id] = query_results[:top_k]
+    
+    return results

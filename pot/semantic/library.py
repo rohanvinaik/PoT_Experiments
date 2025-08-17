@@ -8,9 +8,11 @@ import json
 import pickle
 import time
 import numpy as np
+import torch
 from typing import Dict, List, Optional, Union, Any, Tuple, Iterator
 from pathlib import Path
 import logging
+import hashlib
 
 from .types import ConceptVector, SemanticLibrary
 from ..core.utils import set_deterministic
@@ -431,3 +433,379 @@ def _deserialize_library_from_json(data: Dict[str, Any]) -> SemanticLibrary:
         modified_timestamp=data.get('modified_timestamp'),
         metadata=data.get('metadata', {})
     )
+
+
+class ConceptLibrary:
+    """
+    Enhanced concept library for building and managing concept vectors from reference datasets.
+    Supports both Gaussian statistical modeling and hypervector representations.
+    
+    This class builds concept vectors from embeddings extracted from teacher models or 
+    reference datasets, storing statistical parameters (mean, covariance) for each concept.
+    """
+    
+    def __init__(self, dim: int, method: str = 'gaussian'):
+        """
+        Initialize the concept library.
+        
+        Args:
+            dim: Dimensionality of concept vectors
+            method: Representation method ('gaussian' or 'hypervector')
+            
+        Raises:
+            ValueError: If method is unsupported or dim is invalid
+        """
+        if dim <= 0:
+            raise ValueError("Dimension must be positive")
+        
+        if method not in ['gaussian', 'hypervector']:
+            raise ValueError("Method must be 'gaussian' or 'hypervector'")
+        
+        self.dim = dim
+        self.method = method
+        self.concepts = {}  # concept_name -> concept_data
+        self.metadata = {
+            'created_timestamp': time.time(),
+            'modified_timestamp': time.time(),
+            'version': '1.0.0',
+            'total_embeddings_processed': 0
+        }
+        
+        # Set deterministic behavior for reproducibility
+        set_deterministic(42)
+        
+        logger.info(f"Initialized ConceptLibrary with dim={dim}, method={method}")
+    
+    def add_concept(self, name: str, embeddings: torch.Tensor) -> None:
+        """
+        Add a concept by computing statistics from embedding samples.
+        
+        Args:
+            name: Concept name/identifier
+            embeddings: Tensor of shape (n_samples, dim) containing embedding vectors
+            
+        Raises:
+            ValueError: If embeddings have wrong shape or concept already exists
+        """
+        if name in self.concepts:
+            raise ValueError(f"Concept '{name}' already exists")
+        
+        if not isinstance(embeddings, torch.Tensor):
+            raise TypeError("embeddings must be a torch.Tensor")
+        
+        if embeddings.ndim != 2:
+            raise ValueError("embeddings must be 2-dimensional (n_samples, dim)")
+        
+        if embeddings.shape[1] != self.dim:
+            raise ValueError(f"embeddings dimension {embeddings.shape[1]} doesn't match library dimension {self.dim}")
+        
+        if embeddings.shape[0] == 0:
+            raise ValueError("embeddings cannot be empty")
+        
+        # Compute statistics based on method
+        if self.method == 'gaussian':
+            mean, covariance = self.compute_statistics(embeddings)
+            concept_vector = mean  # Use mean as the concept vector
+        elif self.method == 'hypervector':
+            concept_vector = self._build_hypervector(embeddings)
+            mean, covariance = None, None
+        
+        # Store concept data
+        concept_data = {
+            'vector': concept_vector,
+            'mean': mean,
+            'covariance': covariance,
+            'n_samples': embeddings.shape[0],
+            'method': self.method,
+            'timestamp': time.time(),
+            'hash': self._compute_concept_hash(concept_vector)
+        }
+        
+        self.concepts[name] = concept_data
+        self.metadata['modified_timestamp'] = time.time()
+        self.metadata['total_embeddings_processed'] += embeddings.shape[0]
+        
+        logger.info(f"Added concept '{name}' with {embeddings.shape[0]} samples")
+    
+    def compute_statistics(self, embeddings: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute mean and covariance statistics from embeddings.
+        
+        Args:
+            embeddings: Tensor of shape (n_samples, dim)
+            
+        Returns:
+            Tuple of (mean, covariance) tensors
+            
+        Raises:
+            ValueError: If embeddings are invalid
+        """
+        if embeddings.shape[0] < 2:
+            raise ValueError("Need at least 2 samples to compute covariance")
+        
+        # Compute mean
+        mean = torch.mean(embeddings, dim=0)
+        
+        # Compute covariance matrix
+        centered = embeddings - mean
+        covariance = torch.mm(centered.t(), centered) / (embeddings.shape[0] - 1)
+        
+        # Add small regularization for numerical stability
+        regularization = 1e-6 * torch.eye(self.dim, dtype=embeddings.dtype, device=embeddings.device)
+        covariance = covariance + regularization
+        
+        logger.debug(f"Computed statistics: mean shape {mean.shape}, cov shape {covariance.shape}")
+        return mean, covariance
+    
+    def _build_hypervector(self, embeddings: torch.Tensor) -> torch.Tensor:
+        """
+        Build hypervector representation from embeddings.
+        
+        Uses majority voting to create binary/ternary hypervector.
+        
+        Args:
+            embeddings: Tensor of shape (n_samples, dim)
+            
+        Returns:
+            Hypervector tensor of shape (dim,)
+        """
+        # Normalize embeddings to [-1, 1] range
+        embeddings_norm = torch.tanh(embeddings)
+        
+        # Compute element-wise majority vote
+        mean_values = torch.mean(embeddings_norm, dim=0)
+        
+        # Create ternary hypervector {-1, 0, 1}
+        hypervector = torch.zeros_like(mean_values)
+        hypervector[mean_values > 0.1] = 1.0
+        hypervector[mean_values < -0.1] = -1.0
+        # Values in [-0.1, 0.1] remain 0
+        
+        logger.debug(f"Built hypervector with {torch.sum(hypervector == 1)} positive, "
+                    f"{torch.sum(hypervector == -1)} negative, {torch.sum(hypervector == 0)} zero elements")
+        
+        return hypervector
+    
+    def get_concept_vector(self, name: str) -> torch.Tensor:
+        """
+        Get the concept vector for a given concept name.
+        
+        Args:
+            name: Concept name
+            
+        Returns:
+            Concept vector tensor
+            
+        Raises:
+            KeyError: If concept doesn't exist
+        """
+        if name not in self.concepts:
+            raise KeyError(f"Concept '{name}' not found")
+        
+        return self.concepts[name]['vector']
+    
+    def get_concept_statistics(self, name: str) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
+        """
+        Get mean and covariance statistics for a concept (Gaussian method only).
+        
+        Args:
+            name: Concept name
+            
+        Returns:
+            Tuple of (mean, covariance) tensors, or (None, None) for hypervector method
+            
+        Raises:
+            KeyError: If concept doesn't exist
+        """
+        if name not in self.concepts:
+            raise KeyError(f"Concept '{name}' not found")
+        
+        concept_data = self.concepts[name]
+        return concept_data['mean'], concept_data['covariance']
+    
+    def list_concepts(self) -> List[str]:
+        """Return list of all concept names."""
+        return list(self.concepts.keys())
+    
+    def remove_concept(self, name: str) -> bool:
+        """
+        Remove a concept from the library.
+        
+        Args:
+            name: Concept name to remove
+            
+        Returns:
+            True if concept was removed, False if not found
+        """
+        if name in self.concepts:
+            del self.concepts[name]
+            self.metadata['modified_timestamp'] = time.time()
+            logger.info(f"Removed concept '{name}'")
+            return True
+        return False
+    
+    def save(self, path: str) -> None:
+        """
+        Save library to disk using torch.save for efficient tensor storage.
+        
+        Args:
+            path: File path to save to
+            
+        Raises:
+            ValueError: If save fails
+        """
+        try:
+            save_data = {
+                'dim': self.dim,
+                'method': self.method,
+                'concepts': self.concepts,
+                'metadata': self.metadata
+            }
+            
+            # Create parent directory if needed
+            Path(path).parent.mkdir(parents=True, exist_ok=True)
+            
+            torch.save(save_data, path)
+            logger.info(f"Saved ConceptLibrary to {path}")
+            
+        except Exception as e:
+            raise ValueError(f"Failed to save library: {e}")
+    
+    def load(self, path: str) -> None:
+        """
+        Load library from disk.
+        
+        Args:
+            path: File path to load from
+            
+        Raises:
+            FileNotFoundError: If file doesn't exist
+            ValueError: If load fails or data is invalid
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Library file not found: {path}")
+        
+        try:
+            data = torch.load(path, map_location='cpu')
+            
+            # Validate loaded data
+            required_keys = ['dim', 'method', 'concepts', 'metadata']
+            for key in required_keys:
+                if key not in data:
+                    raise ValueError(f"Missing required key: {key}")
+            
+            self.dim = data['dim']
+            self.method = data['method']
+            self.concepts = data['concepts']
+            self.metadata = data['metadata']
+            
+            # Validate dimensions
+            for name, concept_data in self.concepts.items():
+                vector_shape = concept_data['vector'].shape
+                if len(vector_shape) != 1 or vector_shape[0] != self.dim:
+                    raise ValueError(f"Invalid vector shape for concept '{name}': {vector_shape}")
+            
+            logger.info(f"Loaded ConceptLibrary from {path} with {len(self.concepts)} concepts")
+            
+        except Exception as e:
+            raise ValueError(f"Failed to load library: {e}")
+    
+    def _compute_concept_hash(self, vector: torch.Tensor) -> str:
+        """Compute SHA256 hash of concept vector for integrity checking."""
+        vector_bytes = vector.detach().cpu().numpy().tobytes()
+        return hashlib.sha256(vector_bytes).hexdigest()[:16]
+    
+    def validate_integrity(self) -> Tuple[bool, List[str]]:
+        """
+        Validate the integrity of all concepts in the library.
+        
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        errors = []
+        
+        for name, concept_data in self.concepts.items():
+            try:
+                # Check vector shape
+                vector = concept_data['vector']
+                if vector.shape != (self.dim,):
+                    errors.append(f"Concept '{name}': invalid vector shape {vector.shape}")
+                
+                # Check hash integrity
+                expected_hash = self._compute_concept_hash(vector)
+                if concept_data['hash'] != expected_hash:
+                    errors.append(f"Concept '{name}': hash mismatch")
+                
+                # Check method-specific data
+                if self.method == 'gaussian':
+                    if concept_data['mean'] is None or concept_data['covariance'] is None:
+                        errors.append(f"Concept '{name}': missing Gaussian statistics")
+                    elif concept_data['covariance'].shape != (self.dim, self.dim):
+                        errors.append(f"Concept '{name}': invalid covariance shape")
+                
+                # Check required fields
+                required_fields = ['n_samples', 'method', 'timestamp']
+                for field in required_fields:
+                    if field not in concept_data:
+                        errors.append(f"Concept '{name}': missing field '{field}'")
+                        
+            except Exception as e:
+                errors.append(f"Concept '{name}': validation error - {e}")
+        
+        return len(errors) == 0, errors
+    
+    def get_summary(self) -> Dict[str, Any]:
+        """
+        Get summary statistics about the library.
+        
+        Returns:
+            Dictionary with library summary information
+        """
+        if not self.concepts:
+            return {
+                'n_concepts': 0,
+                'total_samples': 0,
+                'dimension': self.dim,
+                'method': self.method
+            }
+        
+        total_samples = sum(cd['n_samples'] for cd in self.concepts.values())
+        concept_names = list(self.concepts.keys())
+        
+        return {
+            'n_concepts': len(self.concepts),
+            'total_samples': total_samples,
+            'dimension': self.dim,
+            'method': self.method,
+            'concept_names': concept_names,
+            'created_timestamp': self.metadata['created_timestamp'],
+            'modified_timestamp': self.metadata['modified_timestamp'],
+            'avg_samples_per_concept': total_samples / len(self.concepts) if self.concepts else 0
+        }
+    
+    def export_vectors_matrix(self, concept_names: Optional[List[str]] = None) -> Tuple[torch.Tensor, List[str]]:
+        """
+        Export concept vectors as a matrix for batch operations.
+        
+        Args:
+            concept_names: Specific concepts to export, or None for all
+            
+        Returns:
+            Tuple of (matrix, concept_names) where matrix is (n_concepts, dim)
+        """
+        if not self.concepts:
+            return torch.empty(0, self.dim), []
+        
+        if concept_names is None:
+            concept_names = list(self.concepts.keys())
+        
+        # Filter to existing concepts
+        valid_names = [name for name in concept_names if name in self.concepts]
+        
+        if not valid_names:
+            return torch.empty(0, self.dim), []
+        
+        # Stack vectors into matrix
+        vectors = torch.stack([self.concepts[name]['vector'] for name in valid_names])
+        
+        return vectors, valid_names

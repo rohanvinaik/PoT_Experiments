@@ -5,11 +5,19 @@ Proof-of-Training (PoT) framework for behavioral verification of neural networks
 ## Project Structure
 ```
 PoT_Experiments/
-├── pot/{core,vision,lm,eval,security,audit,prototypes}/  # Core implementation
-├── configs/                 # YAML configurations
-├── scripts/                 # Experiment runners
-├── outputs/                 # Results (auto-created)
-└── verification_reports/    # Compliance reports
+├── pot/                     # Core implementation
+│   ├── core/               # Framework fundamentals
+│   ├── vision/             # Vision model verification
+│   ├── lm/                 # Language model verification
+│   ├── semantic/           # Semantic verification (NEW 2025-08-17)
+│   ├── security/           # Security and verification protocols
+│   ├── audit/              # Audit infrastructure
+│   ├── eval/               # Evaluation utilities
+│   └── prototypes/         # Experimental features
+├── configs/                # YAML configurations
+├── scripts/                # Experiment runners
+├── outputs/                # Results (auto-created)
+└── verification_reports/   # Compliance reports
 ```
 
 ## Core Components
@@ -47,7 +55,27 @@ PoT_Experiments/
   - Multi-dimensional querying (10,000+ records), integrity verification
   - Streamlit dashboard with real-time monitoring and export capabilities
 
-### 3.1. Blockchain Infrastructure (`pot/prototypes/`) (2025-08-17)
+### 3.1. Semantic Verification (`pot/semantic/`) (NEW 2025-08-17)
+- **ConceptLibrary** (`library.py`): Foundation for concept vector management
+  - **Statistical Modeling**: Gaussian (μ, Σ) and hypervector representations
+  - **Dual Method Support**: Traditional statistics and modern hypervector approaches
+  - **Tensor Operations**: PyTorch integration with efficient torch.save/load persistence
+  - **Integrity Checking**: Hash-based validation and comprehensive error handling
+- **Semantic Matching** (`match.py`): Multi-metric concept vector comparison
+  - **Distance Metrics**: Cosine, Euclidean, Manhattan, Jaccard, Jensen-Shannon
+  - **Batch Processing**: Efficient similarity scoring and candidate matching
+  - **Fallback Support**: Robust matching with multiple metric attempts
+- **Type System** (`types.py`): Core data structures for semantic operations
+  - **ConceptVector**: Metadata-rich vector representations with integrity checks
+  - **SemanticMatchResult**: Comprehensive matching results with confidence scoring
+  - **MatchingConfig**: Flexible configuration for semantic comparison operations
+- **Utilities** (`utils.py`): Helper functions for semantic analysis
+  - **Vector Operations**: Normalization (L2, L1, max, z-score), centroid computation
+  - **Clustering**: K-means and DBSCAN with statistical analysis
+  - **Dimensionality Reduction**: PCA for visualization and analysis
+  - **Outlier Detection**: Z-score and IQR-based anomaly identification
+
+### 3.2. Blockchain Infrastructure (`pot/prototypes/`) (2025-08-17)
 - **BlockchainClient**: Multi-chain support (Ethereum, Polygon, BSC, Arbitrum, Optimism)
   - Gas optimization: 60-80% savings via Merkle batching, EIP-1559 support
   - Production features: retry logic, context managers, thread-safe operations
@@ -158,6 +186,45 @@ lm_verifier = LMVerifier(reference_model=ref_lm, use_fingerprinting=True, use_se
 result = lm_verifier.verify(model, prompts, alpha=0.01, beta=0.01)
 ```
 
+### Semantic Verification (2025-08-17)
+```python
+from pot.semantic import ConceptLibrary, SemanticMatcher, MatchingConfig, SemanticDistance
+import torch
+
+# Build concept library from reference embeddings
+library = ConceptLibrary(dim=768, method='gaussian')  # or 'hypervector'
+
+# Add concepts from teacher model embeddings
+animal_embeddings = torch.randn(100, 768)  # From reference dataset
+vehicle_embeddings = torch.randn(80, 768)
+library.add_concept('animal', animal_embeddings)
+library.add_concept('vehicle', vehicle_embeddings)
+
+# Get concept vectors and statistics
+animal_vector = library.get_concept_vector('animal')
+animal_mean, animal_cov = library.get_concept_statistics('animal')
+
+# Semantic matching and scoring
+config = MatchingConfig(
+    distance_metric=SemanticDistance.COSINE,
+    similarity_threshold=0.8,
+    max_candidates=5
+)
+
+matcher = SemanticMatcher(config)
+query_concept = ConceptVector(vector=test_embedding, concept_id='test_concept')
+matches = matcher.match_concept(query_concept, library_as_semantic_library)
+
+# Batch processing
+vectors_matrix, concept_names = library.export_vectors_matrix()
+print(f"Exported {vectors_matrix.shape[0]} concepts with {vectors_matrix.shape[1]} dimensions")
+
+# Persistence
+library.save('concept_library.pt')
+new_library = ConceptLibrary(dim=768, method='gaussian')
+new_library.load('concept_library.pt')
+```
+
 ### Challenge Generation
 ```python
 from pot.core.challenge import ChallengeConfig, generate_challenges
@@ -257,6 +324,16 @@ python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
 # Test suite
 bash run_all_quick.sh  # Smoke test
 bash run_all.sh        # Full test suite
+
+# Semantic verification example
+python -c "
+from pot.semantic import ConceptLibrary
+import torch
+lib = ConceptLibrary(dim=128, method='gaussian')
+embeddings = torch.randn(20, 128)
+lib.add_concept('test_concept', embeddings)
+print('Semantic library created with', len(lib.list_concepts()), 'concepts')
+"
 ```
 
 ## Guidelines
@@ -281,7 +358,8 @@ bash run_all.sh        # Full test suite
 
 **Add Model Type**: Extend enum in `proof_of_training.py`, add challenges in `challenge.py`, create config  
 **Attack Simulation**: `python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack targeted_finetune`  
-**Compliance**: Use `ProofOfTraining(config).perform_verification()` with 'comprehensive' profile
+**Compliance**: Use `ProofOfTraining(config).perform_verification()` with 'comprehensive' profile  
+**Semantic Verification**: Build concept library with `ConceptLibrary(dim, method)`, add concepts from embeddings, perform matching with `SemanticMatcher`
 
 ### Commit-Reveal Protocol (2025-08-17)
 ```python
@@ -311,4 +389,4 @@ is_valid = verify_reveal(commitment, verification_results, salt)
 
 ## Remember
 
-Research framework for Proof-of-Training validation. Maintain separation: core framework (`pot/`) vs security extensions (`pot/security/`).
+Research framework for Proof-of-Training validation. Maintain separation: core framework (`pot/`) vs security extensions (`pot/security/`) vs semantic verification (`pot/semantic/`).
