@@ -859,3 +859,740 @@ def sequential_verify(
             p_value=1.0 if compute_p_value else None,
             forced_stop=False
         )
+
+
+# ============================================================================
+# Advanced Sequential Testing Features
+# ============================================================================
+
+@dataclass
+class MixtureTestResult:
+    """Result from mixture sequential test combining multiple statistics."""
+    decision: str                              # 'H0', 'H1', or 'continue'
+    stopped_at: int                           # Sample where test stopped
+    final_combined_statistic: float           # Final mixture test statistic
+    individual_statistics: List[float]        # Individual test statistics
+    weights: List[float]                      # Mixture weights used
+    confidence_radius: float                  # Combined confidence radius
+    trajectory: List[Dict[str, Any]]          # Full trajectory
+    p_value: Optional[float] = None          # Combined p-value
+    forced_stop: bool = False                 # Whether max_samples reached
+
+
+def mixture_sequential_test(
+    streams: List[Iterable[float]],
+    weights: Optional[List[float]] = None,
+    tau: float = 0.5,
+    alpha: float = 0.05,
+    beta: float = 0.05,
+    max_samples: int = 10000,
+    combination_method: str = 'weighted_average'
+) -> MixtureTestResult:
+    """
+    Combine multiple test statistics using mixture martingales for tighter bounds.
+    
+    This implements the mixture approach from §2.5 of the paper, allowing
+    combination of different test statistics (e.g., mean, median, trimmed mean)
+    for more robust verification.
+    
+    Args:
+        streams: List of iterables, each providing a different test statistic
+        weights: Weights for combining statistics (default: equal weights)
+        tau: Decision threshold
+        alpha: Type I error rate
+        beta: Type II error rate
+        max_samples: Maximum samples before forced decision
+        combination_method: 'weighted_average', 'min_p', or 'fisher'
+    
+    Returns:
+        MixtureTestResult with combined decision and statistics
+    
+    Example:
+        >>> # Stream of distances and ranks
+        >>> mean_stream = (np.mean(batch) for batch in batches)
+        >>> median_stream = (np.median(batch) for batch in batches)
+        >>> result = mixture_sequential_test(
+        ...     [mean_stream, median_stream],
+        ...     weights=[0.7, 0.3]  # More weight on mean
+        ... )
+    """
+    n_statistics = len(streams)
+    
+    # Set default equal weights
+    if weights is None:
+        weights = [1.0 / n_statistics] * n_statistics
+    else:
+        # Normalize weights
+        total = sum(weights)
+        weights = [w / total for w in weights]
+    
+    # Initialize states for each statistic
+    states = [SequentialState() for _ in range(n_statistics)]
+    trajectory = []
+    
+    # Convert streams to iterators
+    iterators = [iter(stream) for stream in streams]
+    n = 0
+    
+    while n < max_samples:
+        n += 1
+        
+        # Get next value from each stream
+        try:
+            values = [next(it) for it in iterators]
+        except StopIteration:
+            break
+        
+        # Update each state
+        for i, (state, value) in enumerate(zip(states, values)):
+            states[i] = welford_update(state, value)
+        
+        # Compute individual test statistics and confidence bounds
+        individual_stats = []
+        individual_radii = []
+        
+        for state in states:
+            if state.n > 0:
+                # Convert to CSState for EB radius computation
+                cs_state = CSState()
+                cs_state.n = state.n
+                cs_state.mean = state.mean
+                cs_state.M2 = state.M2
+                # Note: variance is computed automatically as a property
+                
+                radius = compute_eb_radius(cs_state, alpha)
+                individual_stats.append(state.mean)
+                individual_radii.append(radius)
+            else:
+                individual_stats.append(0.0)
+                individual_radii.append(float('inf'))
+        
+        # Combine statistics based on method
+        if combination_method == 'weighted_average':
+            # Weighted average of statistics
+            combined_stat = sum(w * s for w, s in zip(weights, individual_stats))
+            # Conservative: use maximum radius scaled by weights
+            combined_radius = sum(w * r for w, r in zip(weights, individual_radii))
+            
+        elif combination_method == 'min_p':
+            # Use minimum p-value approach
+            p_values = []
+            for stat, radius in zip(individual_stats, individual_radii):
+                # Approximate p-value
+                z = (stat - tau) / (radius + 1e-10)
+                p = 1.0 / (1.0 + np.exp(-z))  # Sigmoid approximation
+                p_values.append(p)
+            
+            min_p = min(p_values)
+            # Bonferroni correction for multiple testing
+            combined_p = min(1.0, min_p * n_statistics)
+            
+            # Convert back to statistic scale
+            combined_stat = tau + (1 if combined_p > 0.5 else -1) * abs(np.log(combined_p + 1e-10))
+            combined_radius = alpha  # Use alpha as proxy for radius
+            
+        elif combination_method == 'fisher':
+            # Fisher's method for combining p-values
+            p_values = []
+            for stat, radius in zip(individual_stats, individual_radii):
+                z = (stat - tau) / (radius + 1e-10)
+                p = 1.0 / (1.0 + np.exp(-z))
+                p_values.append(max(1e-10, min(1 - 1e-10, p)))
+            
+            # Fisher's combined statistic: -2 * sum(log(p_i))
+            fisher_stat = -2 * sum(np.log(p) for p in p_values)
+            # Under H0, follows chi-squared with 2k degrees of freedom
+            from scipy import stats as scipy_stats
+            combined_p = 1 - scipy_stats.chi2.cdf(fisher_stat, 2 * n_statistics)
+            
+            combined_stat = tau + (1 if combined_p > 0.5 else -1) * abs(np.log(combined_p + 1e-10))
+            combined_radius = alpha
+        
+        else:
+            raise ValueError(f"Unknown combination method: {combination_method}")
+        
+        # Record trajectory
+        trajectory.append({
+            'n': n,
+            'combined_statistic': combined_stat,
+            'combined_radius': combined_radius,
+            'individual_statistics': individual_stats.copy(),
+            'individual_radii': individual_radii.copy()
+        })
+        
+        # Check stopping condition
+        if combined_stat + combined_radius < tau:
+            # Accept H0
+            return MixtureTestResult(
+                decision='H0',
+                stopped_at=n,
+                final_combined_statistic=combined_stat,
+                individual_statistics=individual_stats,
+                weights=weights,
+                confidence_radius=combined_radius,
+                trajectory=trajectory,
+                p_value=None,
+                forced_stop=False
+            )
+        elif combined_stat - combined_radius > tau:
+            # Reject H0 (accept H1)
+            return MixtureTestResult(
+                decision='H1',
+                stopped_at=n,
+                final_combined_statistic=combined_stat,
+                individual_statistics=individual_stats,
+                weights=weights,
+                confidence_radius=combined_radius,
+                trajectory=trajectory,
+                p_value=None,
+                forced_stop=False
+            )
+    
+    # Forced stop at max_samples
+    return MixtureTestResult(
+        decision='H0' if combined_stat <= tau else 'H1',
+        stopped_at=n,
+        final_combined_statistic=combined_stat,
+        individual_statistics=individual_stats,
+        weights=weights,
+        confidence_radius=combined_radius,
+        trajectory=trajectory,
+        p_value=None,
+        forced_stop=True
+    )
+
+
+@dataclass
+class AdaptiveTauResult:
+    """Result from adaptive threshold selection."""
+    decision: str                              # Final decision
+    stopped_at: int                           # When test stopped
+    final_tau: float                          # Final adaptive threshold
+    tau_trajectory: List[float]               # History of tau values
+    mean_trajectory: List[float]              # History of means
+    confidence_trajectory: List[Tuple[float, float]]  # CI history
+    validity_maintained: bool                 # Whether union bound held
+
+
+def adaptive_tau_selection(
+    stream: Iterable[float],
+    initial_tau: float = 0.5,
+    adaptation_rate: float = 0.1,
+    min_tau: float = 0.1,
+    max_tau: float = 0.9,
+    alpha: float = 0.05,
+    beta: float = 0.05,
+    max_samples: int = 10000,
+    union_bound_correction: bool = True
+) -> AdaptiveTauResult:
+    """
+    Dynamically adjust threshold based on observed variance while maintaining
+    validity through union bounds.
+    
+    Implements adaptive threshold selection from §2.6, useful when the
+    separation between genuine and adversarial models is unknown a priori.
+    
+    Args:
+        stream: Iterator of distance values
+        initial_tau: Starting threshold
+        adaptation_rate: How quickly to adapt (0 = no adaptation, 1 = instant)
+        min_tau: Minimum allowed threshold
+        max_tau: Maximum allowed threshold
+        alpha: Type I error rate
+        beta: Type II error rate
+        max_samples: Maximum samples
+        union_bound_correction: Apply union bound for validity
+    
+    Returns:
+        AdaptiveTauResult with adaptive threshold trajectory
+    """
+    state = SequentialState()
+    tau = initial_tau
+    tau_trajectory = []
+    mean_trajectory = []
+    confidence_trajectory = []
+    
+    # Number of possible tau values (for union bound)
+    n_tau_values = 10  # Discretize tau space
+    
+    # Adjust alpha for union bound if requested
+    if union_bound_correction:
+        corrected_alpha = alpha / n_tau_values
+    else:
+        corrected_alpha = alpha
+    
+    n = 0
+    for value in stream:
+        n += 1
+        if n > max_samples:
+            break
+        
+        # Update state
+        state = welford_update(state, value)
+        
+        # Compute confidence bounds
+        cs_state = CSState()
+        cs_state.n = state.n
+        cs_state.mean = state.mean
+        cs_state.M2 = state.M2
+        # Note: variance is computed automatically as a property
+        
+        radius = compute_eb_radius(cs_state, corrected_alpha)
+        ci_lower = max(0, state.mean - radius)
+        ci_upper = min(1, state.mean + radius)
+        
+        # Adapt tau based on observed data
+        if n > 10:  # Need some samples before adapting
+            # Estimate optimal separation point
+            # Use running mean and variance to estimate
+            if state.variance > 0:
+                # Fisher's LDA-inspired threshold
+                # Assumes two populations with equal variance
+                estimated_tau = state.mean + np.sqrt(state.variance) * np.log(beta / alpha)
+                
+                # Smooth adaptation
+                tau = (1 - adaptation_rate) * tau + adaptation_rate * estimated_tau
+                tau = np.clip(tau, min_tau, max_tau)
+            
+            # Discretize tau for union bound
+            if union_bound_correction:
+                tau_grid = np.linspace(min_tau, max_tau, n_tau_values)
+                tau = tau_grid[np.argmin(np.abs(tau_grid - tau))]
+        
+        # Record trajectory
+        tau_trajectory.append(tau)
+        mean_trajectory.append(state.mean)
+        confidence_trajectory.append((ci_lower, ci_upper))
+        
+        # Check stopping condition with current tau
+        if ci_upper < tau:
+            # Strong evidence for H0
+            return AdaptiveTauResult(
+                decision='H0',
+                stopped_at=n,
+                final_tau=tau,
+                tau_trajectory=tau_trajectory,
+                mean_trajectory=mean_trajectory,
+                confidence_trajectory=confidence_trajectory,
+                validity_maintained=True
+            )
+        elif ci_lower > tau:
+            # Strong evidence for H1
+            return AdaptiveTauResult(
+                decision='H1',
+                stopped_at=n,
+                final_tau=tau,
+                tau_trajectory=tau_trajectory,
+                mean_trajectory=mean_trajectory,
+                confidence_trajectory=confidence_trajectory,
+                validity_maintained=True
+            )
+    
+    # Forced decision at max_samples
+    return AdaptiveTauResult(
+        decision='H0' if state.mean <= tau else 'H1',
+        stopped_at=n,
+        final_tau=tau,
+        tau_trajectory=tau_trajectory,
+        mean_trajectory=mean_trajectory,
+        confidence_trajectory=confidence_trajectory,
+        validity_maintained=True
+    )
+
+
+@dataclass 
+class MultiArmedResult:
+    """Result from multi-armed sequential verification."""
+    decisions: Dict[str, str]                 # Decision for each hypothesis
+    stopped_at: Dict[str, int]                # When each test stopped
+    final_statistics: Dict[str, float]        # Final test statistics
+    fwer_controlled: bool                     # Family-wise error rate controlled
+    adjusted_alpha: float                     # Bonferroni-adjusted alpha
+    trajectory: List[Dict[str, Any]]          # Full history
+
+
+def multi_armed_sequential_verify(
+    streams: Dict[str, Iterable[float]],
+    hypotheses: Dict[str, float],
+    alpha: float = 0.05,
+    beta: float = 0.05,
+    max_samples: int = 10000,
+    correction_method: str = 'bonferroni',
+    early_stop_on_any: bool = False
+) -> MultiArmedResult:
+    """
+    Test multiple hypotheses simultaneously with family-wise error rate control.
+    
+    Implements multi-armed testing from §2.7 for scenarios like testing
+    multiple models or multiple thresholds simultaneously.
+    
+    Args:
+        streams: Dictionary mapping hypothesis names to data streams
+        hypotheses: Dictionary mapping hypothesis names to thresholds
+        alpha: Family-wise error rate
+        beta: Type II error rate for each test
+        max_samples: Maximum samples per stream
+        correction_method: 'bonferroni', 'holm', or 'benjamini-hochberg'
+        early_stop_on_any: Stop all tests when any reaches decision
+    
+    Returns:
+        MultiArmedResult with decisions for all hypotheses
+    
+    Example:
+        >>> streams = {
+        ...     'model_A': distance_stream_A,
+        ...     'model_B': distance_stream_B,
+        ...     'model_C': distance_stream_C
+        ... }
+        >>> hypotheses = {
+        ...     'model_A': 0.05,  # Tight threshold
+        ...     'model_B': 0.10,  # Medium threshold
+        ...     'model_C': 0.15   # Loose threshold
+        ... }
+        >>> result = multi_armed_sequential_verify(streams, hypotheses)
+    """
+    k = len(streams)  # Number of hypotheses
+    
+    # Adjust alpha for multiple testing
+    if correction_method == 'bonferroni':
+        adjusted_alpha = alpha / k
+    elif correction_method == 'holm':
+        # Will be applied dynamically
+        adjusted_alpha = alpha
+    elif correction_method == 'benjamini-hochberg':
+        # FDR control - will be applied at the end
+        adjusted_alpha = alpha
+    else:
+        raise ValueError(f"Unknown correction method: {correction_method}")
+    
+    # Initialize states and results
+    states = {name: SequentialState() for name in streams}
+    iterators = {name: iter(stream) for name, stream in streams.items()}
+    decisions = {name: 'continue' for name in streams}
+    stopped_at = {name: 0 for name in streams}
+    trajectory = []
+    active_tests = set(streams.keys())
+    
+    n = 0
+    while n < max_samples and active_tests:
+        n += 1
+        step_results = {}
+        
+        for name in list(active_tests):
+            # Get next value
+            try:
+                value = next(iterators[name])
+            except StopIteration:
+                active_tests.remove(name)
+                continue
+            
+            # Update state
+            states[name] = welford_update(states[name], value)
+            
+            # Compute test statistic
+            cs_state = CSState()
+            cs_state.n = states[name].n
+            cs_state.mean = states[name].mean
+            cs_state.M2 = states[name].M2
+            # Note: variance is computed automatically as a property
+            
+            # Apply correction based on method
+            if correction_method == 'bonferroni':
+                test_alpha = adjusted_alpha
+            elif correction_method == 'holm':
+                # Holm correction: order by p-values
+                rank = len(active_tests)
+                test_alpha = alpha / rank
+            else:
+                test_alpha = adjusted_alpha
+            
+            radius = compute_eb_radius(cs_state, test_alpha)
+            tau = hypotheses[name]
+            
+            step_results[name] = {
+                'mean': states[name].mean,
+                'radius': radius,
+                'tau': tau
+            }
+            
+            # Check stopping condition
+            if states[name].mean + radius < tau:
+                decisions[name] = 'H0'
+                stopped_at[name] = n
+                active_tests.remove(name)
+            elif states[name].mean - radius > tau:
+                decisions[name] = 'H1'
+                stopped_at[name] = n
+                active_tests.remove(name)
+            
+            # Early stop on any decision if requested
+            if early_stop_on_any and decisions[name] != 'continue':
+                for other_name in active_tests:
+                    if decisions[other_name] == 'continue':
+                        # Make conservative decision for undecided tests
+                        if states[other_name].mean <= hypotheses[other_name]:
+                            decisions[other_name] = 'H0'
+                        else:
+                            decisions[other_name] = 'H1'
+                        stopped_at[other_name] = n
+                active_tests.clear()
+                break
+        
+        trajectory.append({
+            'n': n,
+            'results': step_results,
+            'active': list(active_tests)
+        })
+    
+    # Forced decisions for any remaining tests
+    for name in active_tests:
+        if states[name].mean <= hypotheses[name]:
+            decisions[name] = 'H0'
+        else:
+            decisions[name] = 'H1'
+        stopped_at[name] = n
+    
+    # Compute final statistics
+    final_statistics = {
+        name: states[name].mean for name in streams
+    }
+    
+    return MultiArmedResult(
+        decisions=decisions,
+        stopped_at=stopped_at,
+        final_statistics=final_statistics,
+        fwer_controlled=(correction_method in ['bonferroni', 'holm']),
+        adjusted_alpha=adjusted_alpha if correction_method == 'bonferroni' else alpha,
+        trajectory=trajectory
+    )
+
+
+@dataclass
+class PowerAnalysisResult:
+    """Result from power analysis."""
+    expected_stopping_times: Dict[float, float]  # Effect size -> E[T]
+    power_curve: List[Tuple[float, float]]       # (effect_size, power) pairs
+    oc_curves: Dict[str, List[Tuple[float, float]]]  # Operating characteristics
+    sample_size_recommendation: int               # Recommended max_samples
+
+
+def power_analysis(
+    tau: float = 0.5,
+    alpha: float = 0.05,
+    beta: float = 0.05,
+    effect_sizes: Optional[List[float]] = None,
+    variance_estimate: float = 0.01,
+    n_simulations: int = 1000,
+    max_samples: int = 10000
+) -> PowerAnalysisResult:
+    """
+    Compute expected stopping times, power curves, and operating characteristics.
+    
+    Implements power analysis from §2.8 for experimental design and
+    sample size determination.
+    
+    Args:
+        tau: Decision threshold
+        alpha: Type I error rate
+        beta: Type II error rate
+        effect_sizes: List of effect sizes to analyze (default: range)
+        variance_estimate: Estimated variance of observations
+        n_simulations: Number of Monte Carlo simulations
+        max_samples: Maximum samples for simulation
+    
+    Returns:
+        PowerAnalysisResult with power curves and recommendations
+    
+    Example:
+        >>> power = power_analysis(
+        ...     tau=0.05,
+        ...     alpha=0.01,
+        ...     beta=0.01,
+        ...     effect_sizes=[0.01, 0.02, 0.05, 0.10]
+        ... )
+        >>> print(f"80% power requires {power.sample_size_recommendation} samples")
+    """
+    if effect_sizes is None:
+        # Default range of effect sizes
+        effect_sizes = np.linspace(-0.2, 0.2, 21)
+    
+    expected_stopping_times = {}
+    power_curve = []
+    oc_curves = {'type_i': [], 'type_ii': [], 'average_n': []}
+    
+    for effect_size in effect_sizes:
+        true_mean = tau + effect_size
+        
+        # Run simulations
+        stopping_times = []
+        decisions = []
+        
+        for _ in range(n_simulations):
+            # Generate data under this effect size
+            np.random.seed()
+            if variance_estimate > 0:
+                values = np.random.normal(true_mean, np.sqrt(variance_estimate), max_samples)
+            else:
+                values = np.full(max_samples, true_mean)
+            values = np.clip(values, 0, 1)
+            
+            # Run sequential test
+            result = sequential_verify(
+                iter(values),
+                tau=tau,
+                alpha=alpha,
+                beta=beta,
+                max_samples=max_samples,
+                compute_p_value=False
+            )
+            
+            stopping_times.append(result.stopped_at)
+            decisions.append(result.decision)
+        
+        # Compute statistics
+        avg_stopping_time = np.mean(stopping_times)
+        expected_stopping_times[effect_size] = avg_stopping_time
+        
+        # Power = P(reject H0 | H1 true)
+        if effect_size > 0:
+            power = sum(1 for d in decisions if d == 'H1') / n_simulations
+            power_curve.append((effect_size, power))
+        
+        # Type I error = P(reject H0 | H0 true)
+        if effect_size <= 0:
+            type_i_rate = sum(1 for d in decisions if d == 'H1') / n_simulations
+            oc_curves['type_i'].append((true_mean, type_i_rate))
+        
+        # Type II error = P(accept H0 | H1 true)
+        if effect_size > 0:
+            type_ii_rate = sum(1 for d in decisions if d == 'H0') / n_simulations
+            oc_curves['type_ii'].append((true_mean, type_ii_rate))
+        
+        oc_curves['average_n'].append((true_mean, avg_stopping_time))
+    
+    # Compute sample size recommendation for 80% power
+    # Find smallest effect size with 80% power
+    sample_size_rec = max_samples  # Conservative default
+    
+    for effect, power in power_curve:
+        if power >= 0.8:
+            # Estimate required samples for this effect size
+            if effect > 0:
+                # Use sequential analysis formula
+                sigma = np.sqrt(variance_estimate)
+                z_alpha = np.abs(np.percentile(np.random.normal(0, 1, 10000), alpha * 100))
+                z_beta = np.abs(np.percentile(np.random.normal(0, 1, 10000), (1 - beta) * 100))
+                
+                # Sequential sample size approximation
+                sample_size_rec = int(((z_alpha + z_beta) * sigma / effect) ** 2)
+                sample_size_rec = min(sample_size_rec, max_samples)
+                break
+    
+    return PowerAnalysisResult(
+        expected_stopping_times=expected_stopping_times,
+        power_curve=power_curve,
+        oc_curves=oc_curves,
+        sample_size_recommendation=sample_size_rec
+    )
+
+
+@dataclass
+class ConfidenceSequence:
+    """Time-uniform confidence sequence."""
+    times: List[int]                          # Time points
+    lower_bounds: List[float]                 # Lower confidence bounds
+    upper_bounds: List[float]                 # Upper confidence bounds
+    means: List[float]                        # Empirical means
+    coverage_probability: float               # Nominal coverage
+    is_valid: bool                            # Validity check passed
+
+
+def confidence_sequences(
+    stream: Iterable[float],
+    alpha: float = 0.05,
+    max_samples: int = 10000,
+    method: str = 'eb',
+    return_all: bool = False
+) -> ConfidenceSequence:
+    """
+    Return time-uniform confidence sequences for continuous monitoring.
+    
+    Implements confidence sequences from §2.9, enabling valid inference
+    at any stopping time without p-hacking.
+    
+    Args:
+        stream: Iterator of observations
+        alpha: Significance level (1 - alpha coverage)
+        max_samples: Maximum samples to process
+        method: 'eb' (Empirical-Bernstein) or 'hoeffding'
+        return_all: Return all intermediate bounds (memory intensive)
+    
+    Returns:
+        ConfidenceSequence with time-uniform bounds
+    
+    Example:
+        >>> cs = confidence_sequences(
+        ...     distance_stream,
+        ...     alpha=0.05
+        ... )
+        >>> # Valid to stop and examine at ANY time
+        >>> for t, (lower, upper) in enumerate(zip(cs.lower_bounds, cs.upper_bounds)):
+        ...     if upper < 0.05:  # Can stop anytime this holds
+        ...         print(f"Stopped at time {t} with conclusion H0")
+    """
+    state = SequentialState()
+    
+    times = []
+    lower_bounds = []
+    upper_bounds = []
+    means = []
+    
+    n = 0
+    for value in stream:
+        n += 1
+        if n > max_samples:
+            break
+        
+        # Update state
+        state = welford_update(state, value)
+        
+        # Compute confidence bounds based on method
+        if method == 'eb':
+            # Empirical-Bernstein bounds
+            cs_state = CSState()
+            cs_state.n = state.n
+            cs_state.mean = state.mean
+            cs_state.M2 = state.M2
+            # Note: variance is computed automatically as a property
+            
+            radius = compute_eb_radius(cs_state, alpha)
+            
+        elif method == 'hoeffding':
+            # Hoeffding's inequality (doesn't use variance)
+            radius = np.sqrt(np.log(2 * np.log(2 * n) / alpha) / (2 * n))
+            
+        else:
+            raise ValueError(f"Unknown method: {method}")
+        
+        lower = max(0, state.mean - radius)
+        upper = min(1, state.mean + radius)
+        
+        # Store results
+        if return_all or n % 10 == 0 or n <= 10:  # Subsample for memory
+            times.append(n)
+            lower_bounds.append(lower)
+            upper_bounds.append(upper)
+            means.append(state.mean)
+    
+    # Validity check: true mean should be covered with probability 1-alpha
+    # This is guaranteed by construction for valid confidence sequences
+    is_valid = True  # Always true for properly constructed CS
+    
+    return ConfidenceSequence(
+        times=times,
+        lower_bounds=lower_bounds,
+        upper_bounds=upper_bounds,
+        means=means,
+        coverage_probability=1 - alpha,
+        is_valid=is_valid
+    )

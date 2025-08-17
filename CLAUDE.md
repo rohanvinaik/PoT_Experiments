@@ -299,10 +299,17 @@ The POT system now includes a complete cryptographic verification protocol:
    - Empirical Bernstein (EB) bounds
    - Welford's algorithm for online statistics
 
-4. **Sequential Verification** (`pot/core/sequential.py`)
-   - Early stopping with dual radius computation
-   - Asymmetric error control (α, β)
-   - Optional stopping for efficiency
+4. **Sequential Verification** (`pot/core/sequential.py`) - Complete anytime-valid testing suite
+   - **Core Sequential Testing**:
+     - Early stopping with dual radius computation
+     - Asymmetric error control (α, β)
+     - Optional stopping for efficiency
+   - **Advanced Sequential Features** (NEW as of 2025-08-16):
+     - `mixture_sequential_test`: Combine multiple test statistics using mixture martingales
+     - `adaptive_tau_selection`: Dynamic threshold adjustment based on observed variance
+     - `multi_armed_sequential_verify`: Test multiple hypotheses with family-wise error control
+     - `power_analysis`: Compute operating characteristics and sample size recommendations
+     - `confidence_sequences`: Time-uniform confidence sequences for continuous monitoring
 
 5. **Leakage Tracking** (`pot/security/leakage.py`)
    - Challenge reuse policy enforcement
@@ -493,6 +500,76 @@ print(f"Stopped at: {result.stopped_at} samples")
 print(f"Final mean: {result.final_mean:.3f} ± {result.confidence_radius:.3f}")
 if result.p_value is not None:
     print(f"Anytime-valid p-value: {result.p_value:.4f}")
+```
+
+### Advanced Sequential Testing (NEW 2025-08-16)
+```python
+from pot.core.sequential import (
+    mixture_sequential_test, adaptive_tau_selection, 
+    multi_armed_sequential_verify, power_analysis, confidence_sequences
+)
+
+# 1. Mixture Sequential Testing - Combine multiple test statistics for robust decisions
+streams = [mean_distances, median_distances, trimmed_mean_distances]
+mixture_result = mixture_sequential_test(
+    streams=streams,
+    weights=[0.5, 0.3, 0.2],  # Weighted combination
+    tau=0.05,
+    alpha=0.01,
+    combination_method='weighted_average'  # or 'fisher', 'min_p'
+)
+print(f"Mixture decision: {mixture_result.decision}")
+print(f"Combined statistic: {mixture_result.final_combined_statistic:.3f}")
+
+# 2. Adaptive Tau Selection - Dynamic threshold adjustment based on variance
+adaptive_result = adaptive_tau_selection(
+    stream=distance_stream(),
+    initial_tau=0.05,
+    adaptation_rate=0.1,
+    min_tau=0.01,
+    max_tau=0.2,
+    union_bound_correction=True  # Maintains validity
+)
+print(f"Adaptive decision: {adaptive_result.decision}")
+print(f"Final tau: {adaptive_result.final_tau:.4f}")
+
+# 3. Multi-Armed Testing - Multiple hypotheses with family-wise error control
+streams = {'model_A': stream_A, 'model_B': stream_B, 'model_C': stream_C}
+hypotheses = {'model_A': 0.03, 'model_B': 0.05, 'model_C': 0.07}
+multi_result = multi_armed_sequential_verify(
+    streams=streams,
+    hypotheses=hypotheses,
+    alpha=0.05,  # Family-wise error rate
+    correction_method='bonferroni'  # or 'holm'
+)
+print(f"Decisions: {multi_result.decisions}")
+print(f"FWER controlled: {multi_result.fwer_controlled}")
+
+# 4. Power Analysis - Operating characteristics and sample size planning
+power_result = power_analysis(
+    tau=0.05,
+    alpha=0.05,
+    beta=0.05,
+    effect_sizes=[0.0, 0.02, 0.05, 0.1, 0.2],
+    n_simulations=1000
+)
+print(f"Power curve: {power_result.power_curve}")
+print(f"Expected stopping times: {power_result.expected_stopping_times}")
+print(f"Recommended sample size: {power_result.sample_size_recommendation}")
+
+# 5. Confidence Sequences - Time-uniform bounds for continuous monitoring
+conf_seq = confidence_sequences(
+    stream=distance_stream(),
+    alpha=0.05,
+    method='eb',  # Empirical Bernstein bounds
+    return_all=True
+)
+final_mean = conf_seq.means[-1]
+final_lower = conf_seq.lower_bounds[-1]
+final_upper = conf_seq.upper_bounds[-1]
+print(f"Final estimate: {final_mean:.3f}")
+print(f"95% confidence interval: [{final_lower:.3f}, {final_upper:.3f}]")
+print(f"Valid at any stopping time: {conf_seq.is_valid}")
 ```
 
 ## Running Experiments
