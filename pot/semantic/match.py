@@ -702,6 +702,263 @@ class SemanticMatcher:
         
         coverage = matched_count / embeddings.shape[0]
         return float(coverage)
+    
+    def project_and_match(self, embedding: torch.Tensor,
+                         projection_method: str = 'umap',
+                         k_neighbors: int = 5) -> Dict[str, Any]:
+        """
+        Project embedding and find nearest concepts in 2D/3D space.
+        
+        Args:
+            embedding: Single embedding vector to project and match
+            projection_method: Method for projection ('umap', 'tsne', 'som', 'pca')
+            k_neighbors: Number of nearest neighbors to find
+            
+        Returns:
+            Dictionary containing:
+                - 'position': 2D/3D position of the embedding
+                - 'nearest_concepts': List of (concept_name, distance) tuples
+                - 'visualization': Optional figure if visualization is enabled
+        """
+        from .topography import TopographicalProjector
+        
+        # Ensure we have topographical positions
+        positions = self.library.get_concept_positions(method=projection_method)
+        
+        if not positions:
+            logger.warning("No concepts with topographical positions")
+            return {
+                'position': None,
+                'nearest_concepts': [],
+                'visualization': None
+            }
+        
+        # Create projector if needed
+        if not hasattr(self, '_topographical_projector'):
+            config = {'default_method': projection_method}
+            self._topographical_projector = TopographicalProjector(config)
+        
+        # Set method
+        self._topographical_projector.config['default_method'] = projection_method
+        
+        # Project the embedding
+        if isinstance(embedding, torch.Tensor):
+            embedding = embedding.detach().cpu()
+        
+        projected_position = self._topographical_projector.project_latents(
+            embedding.unsqueeze(0) if embedding.ndim == 1 else embedding
+        )[0]
+        
+        # Find nearest concepts in topographical space
+        nearest = self.library.find_nearest_concepts_topographical(
+            projected_position, k=k_neighbors
+        )
+        
+        result = {
+            'position': projected_position,
+            'nearest_concepts': nearest,
+            'projection_method': projection_method
+        }
+        
+        # Also compute semantic similarities for the nearest concepts
+        if nearest:
+            semantic_scores = {}
+            for concept_name, spatial_dist in nearest:
+                # Compute semantic similarity using the concept name
+                try:
+                    similarity = self.compute_similarity(embedding, concept_name)
+                    semantic_scores[concept_name] = similarity
+                except (KeyError, ValueError) as e:
+                    logger.debug(f"Could not compute similarity for {concept_name}: {e}")
+                    semantic_scores[concept_name] = 0.0
+            
+            result['semantic_scores'] = semantic_scores
+        
+        logger.debug(f"Projected embedding to {projection_method} space at {projected_position}")
+        return result
+    
+    def track_semantic_trajectory(self, embeddings: List[torch.Tensor],
+                                 timestamps: Optional[List[float]] = None,
+                                 projection_method: str = 'umap',
+                                 smooth: bool = True) -> Dict[str, Any]:
+        """
+        Track movement through semantic space over time.
+        
+        Args:
+            embeddings: List of embedding vectors over time
+            timestamps: Optional timestamps for each embedding
+            projection_method: Method for projection
+            smooth: Whether to apply trajectory smoothing
+            
+        Returns:
+            Dictionary containing:
+                - 'trajectory': Array of 2D/3D positions over time
+                - 'velocities': Movement velocities between points
+                - 'accelerations': Changes in velocity
+                - 'total_distance': Total distance traveled
+                - 'concept_visits': Concepts passed near during trajectory
+        """
+        from .topography import TopographicalProjector
+        from .topography_utils import interpolate_manifold
+        
+        if not embeddings:
+            return {
+                'trajectory': np.array([]),
+                'velocities': np.array([]),
+                'accelerations': np.array([]),
+                'total_distance': 0.0,
+                'concept_visits': []
+            }
+        
+        # Create projector if needed
+        if not hasattr(self, '_topographical_projector'):
+            config = {'default_method': projection_method}
+            self._topographical_projector = TopographicalProjector(config)
+        
+        # Set method
+        self._topographical_projector.config['default_method'] = projection_method
+        
+        # Stack embeddings
+        if isinstance(embeddings[0], torch.Tensor):
+            embeddings_tensor = torch.stack([e.squeeze() for e in embeddings])
+        else:
+            embeddings_tensor = torch.tensor(np.vstack([e.squeeze() for e in embeddings]))
+        
+        # Project all embeddings
+        trajectory = self._topographical_projector.project_latents(embeddings_tensor)
+        
+        # Smooth trajectory if requested
+        if smooth and len(trajectory) > 3:
+            from scipy.ndimage import gaussian_filter1d
+            trajectory = gaussian_filter1d(trajectory, sigma=1, axis=0)
+        
+        # Generate timestamps if not provided
+        if timestamps is None:
+            timestamps = np.arange(len(trajectory), dtype=float)
+        else:
+            timestamps = np.array(timestamps)
+        
+        # Compute velocities and accelerations
+        velocities = []
+        accelerations = []
+        total_distance = 0.0
+        
+        for i in range(1, len(trajectory)):
+            dt = timestamps[i] - timestamps[i-1] if timestamps is not None else 1.0
+            
+            # Velocity: change in position over time
+            displacement = trajectory[i] - trajectory[i-1]
+            velocity = displacement / dt if dt > 0 else displacement
+            velocities.append(velocity)
+            
+            # Distance
+            distance = np.linalg.norm(displacement)
+            total_distance += distance
+            
+            # Acceleration (if we have previous velocity)
+            if i > 1 and len(velocities) > 1:
+                dv = velocities[-1] - velocities[-2]
+                acceleration = dv / dt if dt > 0 else dv
+                accelerations.append(acceleration)
+        
+        velocities = np.array(velocities) if velocities else np.array([])
+        accelerations = np.array(accelerations) if accelerations else np.array([])
+        
+        # Track concepts visited along trajectory
+        concept_visits = []
+        concept_positions = self.library.get_concept_positions(method=projection_method)
+        
+        if concept_positions:
+            visit_threshold = 0.1  # Distance threshold for "visiting" a concept
+            
+            for i, pos in enumerate(trajectory):
+                for concept_name, concept_pos in concept_positions.items():
+                    dist = np.linalg.norm(pos - concept_pos)
+                    if dist < visit_threshold:
+                        concept_visits.append({
+                            'concept': concept_name,
+                            'time_index': i,
+                            'timestamp': timestamps[i] if timestamps is not None else i,
+                            'distance': dist
+                        })
+        
+        # Compute trajectory statistics
+        result = {
+            'trajectory': trajectory,
+            'timestamps': timestamps,
+            'velocities': velocities,
+            'accelerations': accelerations,
+            'total_distance': float(total_distance),
+            'concept_visits': concept_visits,
+            'mean_velocity': float(np.mean(np.linalg.norm(velocities, axis=1))) if len(velocities) > 0 else 0.0,
+            'max_velocity': float(np.max(np.linalg.norm(velocities, axis=1))) if len(velocities) > 0 else 0.0,
+            'trajectory_length': len(trajectory),
+            'projection_method': projection_method
+        }
+        
+        logger.info(f"Tracked semantic trajectory: {len(trajectory)} points, "
+                   f"distance={total_distance:.3f}, visits={len(concept_visits)}")
+        
+        return result
+    
+    def visualize_semantic_flow(self, embeddings: List[torch.Tensor],
+                               timestamps: Optional[List[float]] = None,
+                               projection_method: str = 'umap',
+                               save_path: Optional[str] = None) -> 'matplotlib.figure.Figure':
+        """
+        Visualize the flow through semantic space.
+        
+        Args:
+            embeddings: List of embedding vectors
+            timestamps: Optional timestamps
+            projection_method: Projection method to use
+            save_path: Optional path to save figure
+            
+        Returns:
+            matplotlib Figure object
+        """
+        from .topography_visualizer import plot_concept_trajectory
+        
+        # Get trajectory
+        trajectory_data = self.track_semantic_trajectory(
+            embeddings, timestamps, projection_method
+        )
+        
+        if len(trajectory_data['trajectory']) == 0:
+            import matplotlib.pyplot as plt
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.text(0.5, 0.5, 'No trajectory data', ha='center', va='center')
+            return fig
+        
+        # Get concept positions
+        concept_positions = self.library.get_concept_positions(method=projection_method)
+        
+        # Prepare concept data for visualization
+        concept_points = []
+        concept_labels = []
+        if concept_positions:
+            for name, pos in concept_positions.items():
+                concept_points.append(pos)
+                concept_labels.append(name)
+            concept_points = np.array(concept_points)
+        else:
+            concept_points = None
+            concept_labels = None
+        
+        # Create visualization
+        fig = plot_concept_trajectory(
+            trajectory_data['trajectory'],
+            concept_positions=concept_points,
+            concept_labels=concept_labels,
+            timestamps=trajectory_data['timestamps'],
+            title=f"Semantic Flow ({projection_method.upper()})"
+        )
+        
+        if save_path:
+            fig.savefig(save_path, dpi=150, bbox_inches='tight')
+            logger.info(f"Saved semantic flow visualization to {save_path}")
+        
+        return fig
 
 
 # Standalone functions for backward compatibility

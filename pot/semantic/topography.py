@@ -695,24 +695,31 @@ class TopographicalProjector:
     Implements multiple projection methods with automatic parameter selection.
     """
     
-    def __init__(self, method: str = 'umap', **kwargs):
+    def __init__(self, method: Union[str, Dict[str, Any]] = 'umap', **kwargs):
         """
         Initialize projector with specified method.
         
         Args:
-            method: Projection method ('umap', 'tsne', 'som')
+            method: Projection method ('umap', 'tsne', 'som') or config dict
             **kwargs: Method-specific parameters:
                 UMAP: n_neighbors, min_dist, n_components, metric
                 t-SNE: perplexity, learning_rate, n_components
                 SOM: grid_size, learning_rate, topology
         """
-        self.method = method.lower()
-        self.params = kwargs
+        # Handle both string method and config dict
+        if isinstance(method, dict):
+            self.config = method
+            self.method = method.get('default_method', 'umap').lower()
+            self.params = {k: v for k, v in method.items() if k != 'default_method'}
+        else:
+            self.method = method.lower()
+            self.params = kwargs
+            self.config = {'default_method': self.method, **kwargs}
         self.fitted_model = None
         self.is_fitted = False
         
         # Validate method
-        valid_methods = ['umap', 'tsne', 'som']
+        valid_methods = ['umap', 'tsne', 'som', 'pca']
         if self.method not in valid_methods:
             raise ValueError(f"Method must be one of {valid_methods}, got {self.method}")
         
@@ -752,6 +759,12 @@ class TopographicalProjector:
                 'sigma': 1.0,
                 'num_iteration': 100,
                 'random_seed': 42
+            }
+        elif self.method == 'pca':
+            self.params = {
+                'n_components': 2,
+                'whiten': False,
+                'random_state': 42
             }
     
     def _auto_adjust_params(self, n_samples: int, n_features: int):
@@ -845,6 +858,8 @@ class TopographicalProjector:
             projected, model = self._project_tsne(latents_np)
         elif current_method == 'som':
             projected, model = self._project_som(latents_np)
+        elif current_method == 'pca':
+            projected, model = self._project_pca(latents_np)
         else:
             raise ValueError(f"Unknown projection method: {current_method}")
         
@@ -935,6 +950,41 @@ class TopographicalProjector:
             logger.warning("Fell back to PCA due to t-SNE failure")
         
         return projected, model
+    
+    def _project_pca(self, data: np.ndarray) -> Tuple[np.ndarray, Any]:
+        """
+        Project using PCA.
+        
+        Args:
+            data: Input data
+            
+        Returns:
+            Tuple of (projected_data, fitted_model)
+        """
+        from sklearn.decomposition import PCA
+        
+        n_components = self.params.get('n_components', 2)
+        whiten = self.params.get('whiten', False)
+        random_state = self.params.get('random_state', 42)
+        
+        # Adjust n_components if needed
+        n_samples, n_features = data.shape
+        max_components = min(n_samples, n_features)
+        if n_components > max_components:
+            n_components = max_components
+            logger.warning(f"Adjusted n_components to {n_components} (max for data shape)")
+        
+        pca = PCA(n_components=n_components, whiten=whiten, random_state=random_state)
+        projected = pca.fit_transform(data)
+        
+        # If single sample and need 2D, pad with zeros
+        if n_samples == 1 and projected.shape[1] < 2:
+            padding = np.zeros((1, 2 - projected.shape[1]))
+            projected = np.hstack([projected, padding])
+        
+        logger.info(f"PCA projection: output shape = {projected.shape}")
+        
+        return projected, pca
     
     def _project_som(self, latents: np.ndarray) -> Tuple[np.ndarray, Any]:
         """

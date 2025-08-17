@@ -731,6 +731,162 @@ class ConceptLibrary:
         vector_bytes = vector.detach().cpu().numpy().tobytes()
         return hashlib.sha256(vector_bytes).hexdigest()[:16]
     
+    def add_topographical_view(self, projector: 'TopographicalProjector') -> None:
+        """
+        Add topographical projection to concept library.
+        
+        Args:
+            projector: TopographicalProjector instance for creating 2D/3D views
+        """
+        from .topography import TopographicalProjector
+        
+        if not isinstance(projector, TopographicalProjector):
+            raise TypeError("projector must be a TopographicalProjector instance")
+        
+        # Store projector for later use
+        self._topographical_projector = projector
+        
+        # Compute projections for all concepts
+        if self.concepts:
+            # Gather all concept vectors
+            vectors = []
+            names = []
+            for name, concept_data in self.concepts.items():
+                vectors.append(concept_data['vector'])
+                names.append(name)
+            
+            # Stack vectors
+            vectors_tensor = torch.stack(vectors)
+            
+            # Project to 2D/3D space
+            projected = projector.project_latents(vectors_tensor)
+            
+            # Store positions for each concept
+            for i, name in enumerate(names):
+                self.concepts[name]['topographical_position'] = projected[i]
+            
+            logger.info(f"Added topographical view for {len(names)} concepts")
+    
+    def get_concept_positions(self, method: str = 'umap', recompute: bool = False) -> Dict[str, np.ndarray]:
+        """
+        Get 2D/3D positions of concepts in projected space.
+        
+        Args:
+            method: Projection method ('umap', 'tsne', 'som', 'pca')
+            recompute: Whether to recompute projections even if cached
+            
+        Returns:
+            Dictionary mapping concept names to their 2D/3D positions
+        """
+        # Check if we need to compute projections
+        need_compute = recompute or not any(
+            'topographical_position' in data 
+            for data in self.concepts.values()
+        )
+        
+        if need_compute:
+            from .topography import TopographicalProjector
+            
+            # Create projector if not exists
+            if not hasattr(self, '_topographical_projector'):
+                config = {'default_method': method}
+                self._topographical_projector = TopographicalProjector(config)
+            
+            # Set method
+            self._topographical_projector.config['default_method'] = method
+            
+            # Compute projections
+            self.add_topographical_view(self._topographical_projector)
+        
+        # Extract positions
+        positions = {}
+        for name, concept_data in self.concepts.items():
+            if 'topographical_position' in concept_data:
+                positions[name] = concept_data['topographical_position']
+            else:
+                # Fallback: return first 2 dimensions of vector
+                positions[name] = concept_data['vector'][:2].detach().cpu().numpy()
+        
+        return positions
+    
+    def visualize_concept_space(self, method: str = 'umap', 
+                               save_path: Optional[str] = None,
+                               show_labels: bool = True,
+                               **kwargs) -> 'matplotlib.figure.Figure':
+        """
+        Visualize all concepts in topographical space.
+        
+        Args:
+            method: Projection method ('umap', 'tsne', 'som', 'pca')
+            save_path: Optional path to save the figure
+            show_labels: Whether to show concept labels
+            **kwargs: Additional arguments for visualization
+            
+        Returns:
+            matplotlib Figure object
+        """
+        import matplotlib.pyplot as plt
+        from .topography_visualizer import plot_projection
+        
+        # Get concept positions
+        positions = self.get_concept_positions(method=method)
+        
+        if not positions:
+            logger.warning("No concepts to visualize")
+            fig, ax = plt.subplots(figsize=(8, 6))
+            ax.text(0.5, 0.5, 'No concepts in library', 
+                   ha='center', va='center', fontsize=14)
+            return fig
+        
+        # Prepare data for visualization
+        names = list(positions.keys())
+        positions_array = np.array([positions[name] for name in names])
+        
+        # Create labels array if needed
+        labels = np.array(names) if show_labels else None
+        
+        # Visualize
+        title = f"Concept Space ({method.upper()}) - {len(names)} concepts"
+        fig = plot_projection(
+            positions_array,
+            labels=labels,
+            title=title,
+            **kwargs
+        )
+        
+        if save_path:
+            fig.savefig(save_path, dpi=150, bbox_inches='tight')
+            logger.info(f"Saved concept space visualization to {save_path}")
+        
+        return fig
+    
+    def find_nearest_concepts_topographical(self, position: np.ndarray, 
+                                           k: int = 5) -> List[Tuple[str, float]]:
+        """
+        Find nearest concepts to a given position in topographical space.
+        
+        Args:
+            position: 2D/3D position in projected space
+            k: Number of nearest neighbors to return
+            
+        Returns:
+            List of (concept_name, distance) tuples
+        """
+        positions = self.get_concept_positions()
+        
+        if not positions:
+            return []
+        
+        # Compute distances
+        distances = []
+        for name, concept_pos in positions.items():
+            dist = np.linalg.norm(position - concept_pos)
+            distances.append((name, dist))
+        
+        # Sort by distance and return top k
+        distances.sort(key=lambda x: x[1])
+        return distances[:k]
+    
     def validate_integrity(self) -> Tuple[bool, List[str]]:
         """
         Validate the integrity of all concepts in the library.
