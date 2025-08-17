@@ -1,599 +1,123 @@
 # Claude Instructions for PoT Experiments
 
-## Project Overview
-
-This is the Proof-of-Training (PoT) Experiments repository, which implements a comprehensive framework for behavioral verification of neural networks. The system combines cryptographic techniques with machine learning to verify model identity and training integrity.
+Proof-of-Training (PoT) framework for behavioral verification of neural networks using cryptographic techniques and machine learning.
 
 ## Project Structure
-
 ```
 PoT_Experiments/
-├── pot/                      # Core implementation
-│   ├── core/                # Core utilities (challenges, stats, governance)
-│   ├── vision/              # Vision model components
-│   ├── lm/                  # Language model components
-│   ├── eval/                # Evaluation metrics and plotting
-│   └── security/            # Advanced security components
-├── configs/                 # YAML configuration files
-├── scripts/                 # Experiment runner scripts
-├── outputs/                 # Experiment results (auto-created)
+├── pot/{core,vision,lm,eval,security,audit,prototypes}/  # Core implementation
+├── configs/                 # YAML configurations
+├── scripts/                 # Experiment runners
+├── outputs/                 # Results (auto-created)
 └── verification_reports/    # Compliance reports
 ```
 
-## Key Components
+## Core Components
 
 ### 1. Core Framework (`pot/core/`)
-- **Challenge Generation** (`challenge.py`): KDF-based deterministic challenge creation
-  - Supports vision:freq, vision:texture, lm:templates families
-  - Challenge dataclass with unique IDs via xxhash
-  - Model-specific challenges via optional model_id
-- **PRF Module** (`prf.py`): HMAC-SHA256 based pseudorandom functions
-  - `prf_derive_key`: Domain-separated key derivation
-  - `prf_bytes`: NIST SP 800-108 counter mode PRF
-  - `prf_integers`, `prf_floats`, `prf_choice`: Typed random generation
-  - `prf_expand`: Hybrid HMAC/xxhash for performance
-- **Boundaries** (`boundaries.py`): Confidence sequences with EB radius (UPDATED 2025-08-16)
-  - `CSState`: Online confidence sequence state tracking with Welford's algorithm
-  - `eb_radius(state, alpha, c=1.0)`: Empirical Bernstein bounds computation
-    - Formula: r_t(α) = sqrt(2 * σ²_t * log(log(t) / α) / t) + c * log(log(t) / α) / t
-    - Configurable constant c for bias term tuning (default 1.0)
-    - Anytime-valid with log-log correction factor
-  - `eb_confidence_interval(mean, variance, n, alpha, c=1.0)`: Confidence bounds
-    - Returns (lower, upper) tuple clipped to [0,1]
-    - Uses EB radius for anytime-valid intervals
-  - `log_log_correction(t, alpha)`: Log-log correction for anytime validity
-    - Handles edge cases for small t (t < e)
-    - Returns log(log(max(e, t)) / α)
-- **Sequential Testing** (`sequential.py`): Anytime-valid sequential verification (UPDATED 2025-08-16)
-  - `SequentialState`: State tracking with Welford's algorithm for numerical stability
-    - Maintains running mean, variance, sum_x, sum_x2, and M2
-    - Online updates with `update(x)` method
-  - `SPRTResult`: Complete test result with trajectory and audit trail
-    - Contains decision, stopped_at, final statistics, confidence bounds
-    - Full trajectory for analysis and visualization
-    - Optional anytime-valid p-value computation
-  - **Numerical Stability Helpers** (NEW):
-    - `welford_update(state, new_value)`: Numerically stable mean/variance updates
-      - Uses Welford's online algorithm to avoid catastrophic cancellation
-      - Maintains precision for very long sequences
-    - `compute_empirical_variance(state, bessel_correction)`: Robust variance estimation
-      - Handles n=1 case appropriately
-      - Ensures non-negative results
-    - `check_stopping_condition(state, tau, alpha)`: EB-based stopping decisions
-      - Returns (should_stop, decision) tuple
-      - Uses confidence intervals to determine H0/H1
-    - `compute_anytime_p_value(state, tau)`: Martingale-based p-values
-      - Remains valid despite optional stopping
-      - Uses law of iterated logarithm for correction
-  - `sequential_verify(stream, tau, alpha, beta, max_samples, compute_p_value)`: Main function
-    - Now uses numerical stability helpers internally
-    - Optional anytime-valid p-value computation
-    - Returns complete SPRTResult with audit trail
-  - `SequentialTester`: Legacy SPRT implementation
-  - Asymmetric error control (α, β)
-- **Behavioral Fingerprinting** (`fingerprint.py`): Comprehensive model fingerprinting system
-  - `FingerprintConfig`: Configuration with parameter tuning guidelines
-  - `FingerprintResult`: Dataclass storing IO hash, Jacobian sketch, timing
-  - `fingerprint_run`: Main function to compute behavioral fingerprints
-  - **IO Fingerprinting**: Hash-based signatures of canonicalized outputs
-  - **Jacobian Analysis**: Gradient structure capture via sketching
-    - `jacobian_sign_hash`: Sign pattern compression (most robust)
-    - `jacobian_magnitude_sketch`: Scale-preserving sketch
-    - `compute_jacobian_sketch`: Integrated sketch computation
-  - **Comparison Utilities**:
-    - `compare_fingerprints`: Weighted similarity scoring
-    - `fingerprint_distance`: Multiple distance metrics
-    - `is_behavioral_match`: Binary decision with threshold
-    - `batch_compare_fingerprints`: Efficient batch processing
-    - `find_closest_match`: Best match from candidates
-  - **Canonicalization Integration**: Ensures reproducible comparisons
-  - **Performance**: Sub-100ms for IO, ~500ms with Jacobian
-- **Canonicalization** (`canonicalize.py`): Normalization for robust comparison
-  - `canonicalize_number`: Numeric precision normalization
-  - `canonicalize_text`: Text/token normalization
-  - `canonicalize_logits`: Handle NaN/Inf in neural network outputs
-  - `canonicalize_model_output`: Auto-detect and process various output types
-  - `canonicalize_batch_outputs`: Batch processing with deterministic ordering
-- **Statistics** (`stats.py`): Statistical testing utilities
-  - `empirical_bernstein_bound`: Confidence intervals
-  - `t_statistic`: Test statistics computation
-  - FAR/FRR calculation utilities
-- **Wrapper Detection** (`wrapper_detection.py`): Attack detection
-  - Statistical anomaly detection in responses
-  - Timing analysis for wrapper identification
-- **Governance** (`governance.py`): Session and nonce management
-  - `new_session_nonce`: Generate unique session identifiers
-  - Policy enforcement utilities
-- **Logging** (`logging.py`): Structured logging for experiments
-  - `StructuredLogger`: JSONL format logging
-  - Experiment tracking and metrics recording
-- **Cost Tracking** (`cost_tracker.py`): API usage monitoring
-  - Token counting for LLM APIs
-  - Cost estimation and budgeting
+- **Challenge Generation** (`challenge.py`): KDF-based deterministic challenges for vision:freq, vision:texture, lm:templates
+- **PRF Module** (`prf.py`): HMAC-SHA256 NIST SP 800-108 pseudorandom functions
+- **Boundaries** (`boundaries.py`): EB confidence sequences with Welford's algorithm (2025-08-16)
+  - Formula: r_t(α) = sqrt(2σ²log(log(t)/α)/t) + c*log(log(t)/α)/t
+- **Sequential Testing** (`sequential.py`): Anytime-valid verification with numerical stability (2025-08-16)
+  - `sequential_verify()`: Main function with trajectory recording and p-values
+  - Advanced features: mixture testing, adaptive thresholds, multi-armed verification
+- **Behavioral Fingerprinting** (`fingerprint.py`): IO hashing + Jacobian sketching
+  - Performance: <100ms IO-only, ~500ms with Jacobian
+  - Factory configs: `FingerprintConfig.for_vision_model()`, `.for_language_model()`
+- **Canonicalization** (`canonicalize.py`): Robust normalization for NaN/Inf handling
+- **Statistics/Logging/Governance**: Testing utilities, JSONL logging, session management
 
 ### 2. Security Components (`pot/security/`)
-- **Proof of Training** (`proof_of_training.py`): Main verification system (UPDATED 2025-08-17)
-  - `ProofOfTraining`: Complete verification protocol with expected ranges validation
-  - **Expected Ranges Verification** (NEW): Behavioral validation against calibrated reference ranges
-    - `ExpectedRanges`: Range validation for accuracy, latency, fingerprint similarity, and Jacobian norm
-    - `ValidationReport`: Structured validation results with violation details and confidence scoring
-    - `RangeCalibrator`: Automatic range calibration from reference model performance
-    - Statistical significance testing with anytime-valid confidence bounds
-    - Tolerance factors for production robustness (configurable slack in range validation)
-  - Model registration and fingerprinting
-  - Verification profiles (quick, standard, comprehensive)
-  - Cryptographic proof generation
-- **Fuzzy Hash Verifier** (`fuzzy_hash_verifier.py`): Approximate matching
-  - SSDeep and TLSH algorithm support
-  - `ChallengeVector`: Challenge generation for verification
-  - Similarity threshold-based verification
-- **Token Space Normalizer** (`token_space_normalizer.py`): LM tokenization handling
-  - Handles BPE, WordPiece, SentencePiece tokenizers
-  - Token-invariant hashing for cross-tokenizer verification
-  - Stochastic decoding control for determinism
-- **Integrated Verification** (`integrated_verification.py`): Combined protocols
-  - Multi-method verification (exact, fuzzy, statistical)
-  - Cross-platform verification support
-  - Batch verification capabilities
-- **Leakage Tracking** (`leakage.py`): Challenge reuse policy
-  - `ReusePolicy`: Enforce maximum challenge uses
-  - `LeakageAuditor`: Track and report leakage ratio (ρ)
-  - Session-based tracking with JSON persistence
+- **Proof of Training** (`proof_of_training.py`): Complete 6-step verification protocol (2025-08-17)
+  - **Expected Ranges**: Behavioral validation against calibrated reference ranges
+  - Profiles: quick (~1s), standard (~5s), comprehensive (~30s)
+- **Fuzzy Hash Verifier**: SSDeep/TLSH approximate matching
+- **Token Space Normalizer**: Cross-tokenizer LM verification
+- **Integrated Verification**: Multi-method (exact, fuzzy, statistical) protocols
+- **Leakage Tracking**: Challenge reuse policy with ρ monitoring
 
-### 3. Audit Infrastructure (`pot/audit/`) (UPDATED 2025-08-17)
-- **Commit-Reveal Protocol** (`commit_reveal.py`): Complete cryptographic audit trail system
-  - `CommitmentRecord`: Dataclass for commitment records with metadata
-  - `serialize_for_commit(data)`: Canonical JSON serialization with timestamps and versioning
-  - `compute_commitment(data, salt)`: SHA256-based commitment generation with automatic salt
-  - `verify_reveal(commitment, revealed_data, salt)`: Constant-time verification with timestamp checks
-  - `write_commitment_record(record, filepath)`: Atomic writes for commitment records with integrity checks
-  - `write_audit_record(record_dict, filepath)`: Atomic writes for audit records with schema validation
-  - `read_and_verify_audit_trail(filepath)`: Complete trail verification with type detection and checksum validation
-  - `read_commitment_records(filepath)`: Specialized reader for commitment records only
-  - **Legacy compatibility**: Maintains existing HMAC-based API (`make_commitment`, `verify_commitment`)
-  - **Security features**: Constant-time comparisons, atomic file operations, tamper detection
-- **Audit Schema** (`schema.py`): Comprehensive audit record validation (UPDATED 2025-08-17)
-  - **Enhanced audit schema**: Complete commit-reveal protocol support with structured verification results
-  - **Legacy compatibility**: Maintains backward compatibility with existing audit format
-  - **Commitment record schema**: Dedicated schema for cryptographic commitment records
-  - **validate_audit_record(record)**: Auto-detects record type and validates against appropriate schema
-  - **sanitize_for_audit(data)**: Removes sensitive information and ensures JSON serialization
-  - **Custom validations**: Timestamp consistency, hex string validation, verification result logic
-  - **Helper functions**: Enhanced audit record creation, schema version management
-  - **Security features**: Sensitive field redaction, large value truncation, integrity metadata
-- **Cryptographic Utilities** (`crypto_utils.py`): Advanced cryptographic primitives for enhanced audit capabilities (NEW 2025-08-17)
-  - **Salt Generation**: `generate_cryptographic_salt(length)` with cryptographically secure random generation and validation
-    - Uses OS-provided secure random number generator
-    - Validates length requirements (16-1024 bytes) for security
-    - Returns cryptographically strong entropy for all cryptographic operations
-  - **Hash Chains**: `compute_hash_chain(hashes, algorithm)` for tamper-evident audit trails
-    - Supports SHA256, SHA3-256, BLAKE2B, SHA512 algorithms
-    - Creates H(H_n || H_{n-1} || ... || H_0) structure for chronological integrity
-    - Tamper detection: any modification changes final hash
-  - **Timestamp Proofs**: `create_timestamp_proof(data, timestamp, proof_type)` for proving data existence at specific times
-    - `TimestampProof`: Complete timestamp proof structure with verification metadata
-    - **LOCAL**: System clock timestamps with HMAC verification
-    - **RFC3161**: RFC 3161 timestamp authority support (requires cryptography package)
-    - **OPENTIMESTAMPS**: OpenTimestamps protocol integration (requires network access)
-    - `verify_timestamp_proof(proof, data)`: Cryptographic verification of timestamp claims
-  - **Commitment Aggregation**: `aggregate_commitments(records)` using Merkle trees for efficient batch verification
-    - `AggregateCommitment`: Merkle root and individual proofs for logarithmic verification complexity
-    - Supports thousands of commitments with O(log n) proof size per commitment
-    - Integration with existing Merkle tree implementation for consistency
-  - **Zero-Knowledge Proofs**: `create_zk_proof(statement, witness, proof_type)` for privacy-preserving verification
-    - `ZKProof`: Schnorr-style and commitment-based proofs hiding sensitive model details
-    - Proves verification success without revealing model parameters or intermediate results
-    - `verify_zk_proof(proof)`: Verification without revealing private witness data
-    - Educational implementations - production should use established ZK libraries
-  - **Key Management**: `derive_key_from_password()` using PBKDF2 with configurable iterations
-    - PBKDF2-HMAC-SHA256 with 100,000 iterations (default)
-    - Fallback to hashlib implementation when cryptography package unavailable
-    - Configurable key length and iteration count for different security requirements
-  - **Security Utilities**: 
-    - `secure_compare()` for constant-time comparisons preventing timing attacks
-    - `get_available_features()` for runtime cryptographic feature detection
-    - Support for both cryptography package and fallback implementations
-- **Audit Trail Query System** (`query.py`): Advanced audit trail analysis and visualization (NEW 2025-08-17)
-  - **AuditTrailQuery**: Comprehensive querying and analysis system for audit trails
-    - Multi-dimensional querying: by model, time range, confidence, verification result, session
-    - Efficient indexing for fast queries on large datasets (10,000+ records)
-    - Support for single files (JSON/JSONL) and directories of audit files
-    - Automatic timestamp parsing with multiple format support
-  - **Integrity Verification**: Complete audit trail integrity analysis
-    - Hash chain validation for tamper detection
-    - Commitment verification with detailed reporting
-    - Missing field detection and data validation
-    - Integrity scoring with actionable recommendations
-  - **Advanced Anomaly Detection**: AI-powered pattern recognition for security monitoring
-    - Accuracy drift detection using statistical analysis (3-sigma rule)
-    - Timing anomaly detection for performance monitoring
-    - Fingerprint drift detection for model integrity
-    - Frequency anomaly detection for usage pattern analysis
-    - Confidence anomaly detection for quality assurance
-    - Severity scoring (0.0-1.0) for prioritized alerting
-  - **Multi-Format Report Generation**: Comprehensive audit reporting
-    - JSON reports with complete metadata and analytics
-    - Markdown reports for documentation and sharing
-    - HTML reports with styling for web presentation
-    - Model-specific analysis with performance metrics
-    - Statistical summaries and trend analysis
-  - **AuditDashboard**: Interactive web dashboard for real-time monitoring
-    - Streamlit-based visualization with filtering capabilities
-    - Timeline visualization of verification events
-    - Real-time anomaly highlighting with severity indicators
-    - Model performance comparison and trending
-    - Interactive filtering by model, time range, and confidence
-    - Export capabilities for reports and visualizations
+### 3. Audit Infrastructure (`pot/audit/`) (2025-08-17)
+- **Commit-Reveal Protocol** (`commit_reveal.py`): SHA256 cryptographic audit trails with atomic writes
+- **Audit Schema** (`schema.py`): Auto-detection validation with legacy compatibility
+- **Cryptographic Utilities** (`crypto_utils.py`): Advanced primitives (NEW 2025-08-17)
+  - Salt generation, hash chains, timestamp proofs (LOCAL/RFC3161/OpenTimestamps)
+  - Commitment aggregation via Merkle trees, ZK proofs, PBKDF2 key derivation
+- **Audit Trail Query** (`query.py`): Analysis system with anomaly detection (NEW 2025-08-17)
+  - Multi-dimensional querying (10,000+ records), integrity verification
+  - Streamlit dashboard with real-time monitoring and export capabilities
 
-### 3.1. Blockchain Infrastructure (`pot/prototypes/training_provenance_auditor.py`) (UPDATED 2025-08-17)
-- **Blockchain Client** (`BlockchainClient`): Production-ready blockchain client for on-chain commitment storage
-  - **Multi-chain support**: Ethereum, Polygon, BSC, Arbitrum, Optimism, and local development chains
-  - **BlockchainConfig**: Comprehensive configuration management with predefined chain setups
-    - `ethereum_mainnet(rpc_url)`: Ethereum mainnet with 3 confirmation blocks and optimal gas settings
-    - `polygon_mainnet(rpc_url)`: Polygon mainnet with 5 confirmation blocks and fast finality
-    - `bsc_mainnet(rpc_url)`: Binance Smart Chain with 3 confirmation blocks
-    - `arbitrum_mainnet(rpc_url)`: Arbitrum One with 1 confirmation block (instant finality)
-    - `optimism_mainnet(rpc_url)`: Optimism mainnet with 1 confirmation block
-    - `local_ganache()`: Local development configuration for testing
-  - **Core Methods**:
-    - `connect()`: Establish Web3 connection with automatic account detection and contract setup
-    - `store_commitment(commitment_hash, metadata)`: Store single commitment with smart contract integration
-    - `retrieve_commitment(tx_hash)`: Retrieve commitment record with gas usage and metadata
-    - `verify_commitment_onchain(commitment_hash)`: On-chain existence verification with block confirmation
-    - `batch_store_commitments(commitments)`: Gas-optimized batch storage using Merkle tree compression
-  - **Gas Optimization Features**:
-    - `gas_price_oracle(web3, strategy)`: Dynamic gas pricing with multiple strategies (slow/standard/fast/fastest)
-    - EIP-1559 transaction support with max fee and priority fee calculation
-    - Batch operations reduce gas costs by 60-80% compared to individual transactions
-    - Merkle tree compression: O(1) on-chain storage for O(n) commitments
-  - **Error Handling & Reliability**:
-    - `@retry_on_failure` decorator with exponential backoff for network resilience
-    - Custom exceptions: `BlockchainError`, `ConnectionError`, `TransactionError`, `ContractError`
-    - Context manager support for automatic connection cleanup
-    - Thread-safe operations with internal locking
-  - **Smart Contract Integration**:
-    - Default ABI for commitment storage contracts with standard functions
-    - Support for `storeCommitment`, `storeBatchCommitments`, `getCommitment`, `verifyCommitment`
-    - Configurable contract addresses and custom ABI support
-    - Automatic contract deployment detection and validation
-- **MockBlockchainClient**: Complete testing implementation with full API compatibility
-  - **Storage simulation**: In-memory blockchain state with transaction counters and block numbers
-  - **Batch operations**: Full Merkle tree proof generation and verification
-  - **Gas estimation**: Realistic gas cost simulation for performance testing
-  - **Legacy compatibility**: Maintains existing `store_hash`, `retrieve_hash`, `verify_hash` methods
-  - **Performance characteristics**: Sub-millisecond operations for testing and development
-- **Merkle Tree Integration**: Cryptographic batch optimization for gas efficiency
-  - **Batch commitment structure**: `BatchCommitmentRecord` with Merkle root and individual proofs
-  - **Proof generation**: Automatic Merkle proof creation for each commitment in batch
-  - **Verification support**: Complete proof verification with `verify_merkle_proof` integration
-  - **Gas savings**: Logarithmic on-chain storage (O(log n) proof size vs O(n) individual storage)
+### 3.1. Blockchain Infrastructure (`pot/prototypes/`) (2025-08-17)
+- **BlockchainClient**: Multi-chain support (Ethereum, Polygon, BSC, Arbitrum, Optimism)
+  - Gas optimization: 60-80% savings via Merkle batching, EIP-1559 support
+  - Production features: retry logic, context managers, thread-safe operations
+- **MockBlockchainClient**: Zero-cost testing with full API compatibility
 
-### 4. Vision Components (`pot/vision/`) (UPDATED 2025-08-16)
-- **Vision Verifier** (`verifier.py`): Vision model verification with fingerprinting and sequential testing
-  - `VisionVerifier`: Main verification class with integrated fingerprinting and sequential verification
-    - `use_fingerprinting`: Enable behavioral fingerprinting
-    - `fingerprint_config`: Configuration for fingerprint computation
-    - `use_sequential`: Enable sequential testing for early stopping
-    - `sequential_mode`: 'legacy' (old SPRT) or 'enhanced' (new EB-based)
-    - `compute_reference_fingerprint`: Generate reference model fingerprint
-    - `compute_fingerprint_similarity`: Compare fingerprints
-  - `VisionVerificationResult`: Enhanced with fingerprint and sequential fields
-    - `fingerprint`: FingerprintResult object
-    - `fingerprint_match`: Similarity score to reference
-    - `sequential_result`: SPRTResult with trajectory and p-values
-  - Sine grating and texture challenge generation
-  - Perceptual distance computation (cosine, L2, L1)
-  - Augmentation-based robustness testing
-  - `BatchVisionVerifier`: Multi-model verification with fingerprinting
-  - **Sequential Integration** (NEW):
-    - Enhanced mode uses EB-based sequential verification
-    - Early stopping reduces evaluations by up to 90%
-    - Complete trajectory recording for audit
-    - Anytime-valid p-values and confidence intervals
-  - **Fingerprint Integration**:
-    - Automatic fingerprint computation during verification
-    - Early rejection based on fingerprint mismatch
-    - Fingerprint metadata in verification results
-- **Vision Models** (`models.py`): Model wrappers and utilities
-  - `VisionModel`: Base class for vision models
-  - Feature extraction interfaces
-  - Model loading and checkpoint management
-- **Vision Probes** (`probes.py`): Challenge generation
-  - Frequency-based patterns (sine gratings)
-  - Texture synthesis (Perlin noise, Gabor filters)
-  - Geometric patterns (checkerboards)
+### 4. Vision Components (`pot/vision/`) (2025-08-16)
+- **VisionVerifier**: Integrated fingerprinting + sequential testing
+  - Sequential modes: 'legacy' SPRT or 'enhanced' EB-based (90% evaluation reduction)
+  - Challenges: sine gratings, textures (Perlin/Gabor/checkerboard)
+  - Distance metrics: cosine, L2, L1 with augmentation robustness
+- **Vision Models/Probes**: Base classes and pattern generation utilities
 
-### 5. Language Model Components (`pot/lm/`) (UPDATED 2025-08-16)
-- **LM Verifier** (`verifier.py`): Language model verification with fingerprinting and sequential testing
-  - `LMVerifier`: Main verification class with integrated fingerprinting and sequential verification
-    - `use_fingerprinting`: Enable behavioral fingerprinting for text
-    - `fingerprint_config`: LM-specific fingerprint configuration
-    - `use_sequential`: Enable sequential testing for early stopping
-    - `sequential_mode`: 'legacy' (old SPRT) or 'enhanced' (new EB-based)
-    - `compute_reference_fingerprint`: Generate fingerprint from prompts
-    - `compute_fingerprint_similarity`: Text-aware similarity comparison
-  - `LMVerificationResult`: Enhanced with fingerprint and sequential fields
-    - `fingerprint`: FingerprintResult for text outputs
-    - `fingerprint_match`: Similarity using fuzzy text matching
-    - `sequential_result`: SPRTResult with trajectory and p-values
-  - Template-based challenge generation
-  - Output distance computation (fuzzy, exact, edit, embedding)
-  - Time-tolerance verification for model drift
-  - `BatchLMVerifier`: Multi-model verification with fingerprinting
-  - Adaptive verification with dynamic challenge counts
-  - **Sequential Integration** (NEW):
-    - Enhanced mode uses EB-based sequential verification
-    - Early stopping with text-specific distance metrics
-    - Handles variable-length outputs gracefully
-    - Maintains fuzzy similarity tracking alongside sequential tests
-  - **Fingerprint Integration**:
-    - Text canonicalization for consistent hashing
-    - Fuzzy matching for fingerprint comparison
-    - Conservative thresholds for text variability
-- **Fuzzy Hashing** (`fuzzy_hash.py`): Token-level matching
-  - `TokenSpaceNormalizer`: Cross-tokenizer normalization
-  - `NGramFuzzyHasher`: N-gram based fuzzy matching
-  - `AdvancedFuzzyHasher`: SSDeep/TLSH integration
-- **LM Models** (`models.py`): Model interfaces
-  - `LM`: Base class for language models
-  - Tokenizer integration
-  - Deterministic generation control
+### 5. Language Model Components (`pot/lm/`) (2025-08-16)
+- **LMVerifier**: Text-aware fingerprinting + sequential testing
+  - Template challenges, fuzzy/exact/edit/embedding distance metrics
+  - Handles variable-length outputs with conservative text thresholds
+- **Fuzzy Hashing**: Token-level matching with cross-tokenizer normalization
+- **LM Models**: Base classes with deterministic generation control
 
-### 6. Evaluation Components (`pot/eval/`)
-- **Metrics**: ROC, DET curves, FAR/FRR analysis
-- **Baselines**: Reference implementations for comparison
-- **Plotting**: Visualization utilities for results
+### 6. Evaluation/Prototypes/Scripts
+- **Evaluation** (`pot/eval/`): ROC/DET curves, FAR/FRR analysis, plotting utilities
+- **Merkle Trees** (`pot/prototypes/`): Complete implementation for training provenance (2025-08-17)
+  - Core functions: `build_merkle_tree()`, `generate_merkle_proof()`, `verify_merkle_proof()`
+  - O(log n) proof size, handles millions of events, integration with blockchain storage
+- **Scripts**: Experiments (E1-E7), attack simulations, baselines, demos
+- **Configs**: YAML files for CIFAR-10, ImageNet, small/large LMs
 
-### 7. Prototype Components (`pot/prototypes/`) (UPDATED 2025-08-17)
-- **Training Provenance Auditor** (`training_provenance_auditor.py`): Complete Merkle tree implementation for cryptographic provenance tracking
-  - `MerkleNode`: Binary tree node with SHA256 hash computation
-    - Supports both leaf nodes (with data) and internal nodes (with left/right children)
-    - Automatic hash computation: leaf nodes hash their data, internal nodes hash concatenated child hashes
-    - Methods: `is_leaf()`, `get_hex_hash()` for easy inspection
-  - **Core Merkle Tree Functions** (NEW 2025-08-17):
-    - `build_merkle_tree(data_blocks: List[bytes]) -> MerkleNode`: Complete tree construction
-      - Handles any number of input blocks (1 to millions)
-      - Automatically pads odd numbers with duplicate last block for balanced tree
-      - Returns root node of constructed tree
-      - Special case optimization for single-block trees
-    - `compute_merkle_root(data_blocks: List[bytes]) -> bytes`: Root hash computation
-      - Builds tree and returns just the root hash
-      - Validates input is non-empty
-      - Deterministic output for same input blocks
-    - `generate_merkle_proof(tree: MerkleNode, index: int) -> List[Tuple[bytes, bool]]`: Proof generation
-      - Creates cryptographic proof that a leaf at given index is in the tree
-      - Returns list of (sibling_hash, is_right) tuples for path from leaf to root
-      - Handles trees of any size with logarithmic proof length
-      - Validates index bounds and tree structure
-    - `verify_merkle_proof(leaf_hash: bytes, proof: List[Tuple[bytes, bool]], root_hash: bytes) -> bool`: Proof verification
-      - Verifies that a leaf hash is part of tree with given root
-      - Reconstructs path from leaf to root using proof
-      - Constant-time verification regardless of tree size
-      - Returns False for any tampering or invalid proofs
-  - **Helper Functions**:
-    - `_collect_leaves(node: MerkleNode) -> List[MerkleNode]`: Collect all leaves in left-to-right order
-    - `_get_subtree_size(node: MerkleNode) -> int`: Count leaf nodes in subtree
-  - **Integration with Training Auditor**:
-    - `TrainingProvenanceAuditor`: Main class for training event tracking with Merkle trees
-    - `MerkleTree`: Higher-level wrapper for training events with built-in proof generation
-    - Integration with blockchain storage and zero-knowledge proofs
-    - Compression and export functionality for large training histories
+## Functionality Overview
 
-### 8. Experiment Scripts and Demos
-- **Core Experiments** (`scripts/`):
-  - `run_generate_reference.py`: Create reference models
-  - `run_grid.py`: Grid search experiments (E1-E7)
-  - `run_verify.py`: Basic verification runner
-  - `run_verify_enhanced.py`: Enhanced verification with full protocol
-  - `run_plots.py`: Generate ROC/DET curves and visualizations
-- **Demonstration Scripts** (`pot/core/`) (UPDATED 2025-08-16):
-  - `demo_sequential_verify.py`: Complete sequential verification demo
-    - Three test scenarios: H0 (mean<tau), H1 (mean>tau), borderline (mean≈tau)
-    - Trajectory plotting with confidence bounds
-    - Anytime validity demonstration across different stopping times
-    - Type I/II error rate verification over 1000+ simulations
-    - Shows early stopping saves computation while maintaining guarantees
-- **Attack Simulations**:
-  - `run_attack.py`: Basic attack scenarios
-  - `run_attack_realistic.py`: Realistic adversarial scenarios
-  - `run_attack_simulator.py`: Comprehensive attack simulation
-- **Advanced Features**:
-  - `run_baselines.py`: Baseline method comparisons
-  - `run_coverage.py`: Coverage analysis for challenges
-  - `run_api_verify.py`: API-based verification
-  - `ablation_scaling.py`: Scaling and ablation studies
-  - `audit_log_demo.py`: Audit system demonstration
+### Challenge Families
+- **vision:freq**: Sine gratings (frequency, orientation, phase, contrast)
+- **vision:texture**: Perlin noise, Gabor filters, checkerboard patterns  
+- **lm:templates**: Text generation with slots (subject, verb, object, etc.)
 
-### 8. Configuration Files (`configs/`)
-- `vision_cifar10.yaml`: CIFAR-10 vision experiments
-- `vision_imagenet.yaml`: ImageNet vision experiments
-- `lm_small.yaml`: Small language model experiments
-- `lm_large.yaml`: Large language model experiments
-- Model-specific configurations with hyperparameters
+### Verification Profiles & Security Levels
+- **quick**: 1 challenge, ~1s, 70-80% confidence (low security, development)
+- **standard**: 3-5 challenges, ~5s, 85-90% confidence (medium security, staging)
+- **comprehensive**: All challenges, ~30s, 95%+ confidence (high security, production)
 
-## Complete Functionality Overview
+### Cryptographic Protocols (2025-08-17)
+- **Commit-Reveal**: SHA256 tamper-evident workflow with automatic salt generation
+- **6-Step Verification**: Pre-commitment → Challenges → Execution → Testing → Validation → Audit
 
-### Supported Challenge Families
-1. **vision:freq**: Sine grating patterns
-   - Parameters: frequency (cycles/degree), orientation, phase, contrast
-   - Use: Testing frequency response and orientation selectivity
+## Enhanced Verification Protocol (2025-08-16)
 
-2. **vision:texture**: Complex texture patterns
-   - Types: Perlin noise, Gabor filters, checkerboard
-   - Parameters: octaves, wavelength, square_size, etc.
-   - Use: Testing response to naturalistic and synthetic textures
+**6-Step Cryptographic Verification Protocol:**
+1. **Commit-Reveal**: SHA256 pre-verification commitment with automatic salt
+2. **PRF Challenges**: NIST SP 800-108 deterministic challenge generation  
+3. **EB Bounds**: Empirical Bernstein confidence sequences with Welford's algorithm
+4. **Sequential Testing**: Anytime-valid verification with early stopping (up to 90% reduction)
+   - Advanced: mixture testing, adaptive thresholds, multi-armed verification
+   - Visualization: trajectory plots, operating characteristics, interactive demos
+5. **Leakage Tracking**: Challenge reuse policy with ρ monitoring
 
-3. **lm:templates**: Template-based text generation
-   - Slots: subject, verb, object, adjective, adverb
-   - Use: Testing consistent language understanding
-
-### Verification Profiles
-- **quick**: 1 challenge, ~1 second, 70-80% confidence
-- **standard**: 3-5 challenges, ~5 seconds, 85-90% confidence
-- **comprehensive**: All challenges, ~30 seconds, 95%+ confidence
-
-### Security Levels
-- **low**: 70% threshold, development use
-- **medium**: 85% threshold, staging use
-- **high**: 95% threshold, production use
-
-### Cryptographic Audit Protocols (UPDATED 2025-08-17)
-1. **Commit-Reveal Protocol**: Complete tamper-evident verification workflow
-   - Pre-verification commitment with SHA256 hashing and automatic salt generation
-   - Post-verification reveal with constant-time verification and timestamp validation
-   - Deterministic serialization for reproducible hashing across platforms
-   - Atomic file operations with integrity checksums for corruption prevention
-   - Support for both commitment records and traditional audit records
-   - Legacy HMAC-based compatibility for existing integrations
-   - Use: Ensuring verification parameters cannot be modified after commitment
-
-## Enhanced Verification Protocol
-
-### Protocol Features (Updated 2025-08-16)
-
-The POT system now includes a complete cryptographic verification protocol:
-
-1. **Commit-Reveal Protocol** (`pot/audit/commit_reveal.py`) (UPDATED 2025-08-17)
-   - Complete cryptographic commitment system with SHA256 hashing
-   - Pre-verification commitment generation with automatic salt
-   - Post-verification reveal with constant-time verification
-   - Tamper-evident audit trails with integrity checksums
-   - Atomic file operations to prevent corruption
-   - Schema validation and timestamp consistency checks
-
-2. **PRF-Based Challenge Generation** (`pot/core/prf.py`)
-   - NIST SP 800-108 counter mode construction
-   - Deterministic pseudorandom generation
-   - Cryptographically secure challenge derivation
-
-3. **Confidence Sequences** (`pot/core/boundaries.py`)
-   - Anytime-valid sequential testing
-   - Empirical Bernstein (EB) bounds
-   - Welford's algorithm for online statistics
-
-4. **Sequential Verification** (`pot/core/sequential.py`) - Complete anytime-valid testing suite
-   - **Core Sequential Testing**:
-     - Early stopping with dual radius computation
-     - Asymmetric error control (α, β)
-     - Optional stopping for efficiency
-   - **Advanced Sequential Features** (NEW as of 2025-08-16):
-     - `mixture_sequential_test`: Combine multiple test statistics using mixture martingales
-     - `adaptive_tau_selection`: Dynamic threshold adjustment based on observed variance
-     - `multi_armed_sequential_verify`: Test multiple hypotheses with family-wise error control
-     - `power_analysis`: Compute operating characteristics and sample size recommendations
-     - `confidence_sequences`: Time-uniform confidence sequences for continuous monitoring
-   - **Visualization Tools** (`pot/core/visualize_sequential.py`) - NEW 2025-08-16:
-     - `plot_verification_trajectory`: Visualize single verification trajectories with confidence bounds
-     - `plot_operating_characteristics`: Compare sequential vs fixed-sample performance
-     - `plot_anytime_validity`: Demonstrate validity across multiple stopping times
-     - `create_interactive_demo`: Streamlit-based interactive exploration tool
-     - `VisualizationConfig`: Customizable styling and output options
-
-5. **Leakage Tracking** (`pot/security/leakage.py`)
-   - Challenge reuse policy enforcement
-   - Leakage ratio (ρ) calculation
-   - Session-based tracking with persistence
-
-### Enhanced CLI (`scripts/run_verify_enhanced.py`)
-
+### Enhanced CLI
 ```bash
-# Strict verification with tight bounds
-python scripts/run_verify_enhanced.py \
-    --config configs/vision_cifar10.yaml \
-    --alpha 0.001 --beta 0.001 --tau-id 0.01 \
-    --n-max 1000 --boundary EB \
-    --master-key $(openssl rand -hex 32) \
-    --reuse-u 5 --rho-max 0.3 \
-    --outdir outputs/verify/strict
+python scripts/run_verify_enhanced.py --config configs/vision_cifar10.yaml \
+  --alpha 0.001 --beta 0.001 --tau-id 0.01 --boundary EB --rho-max 0.3
 ```
 
-### Test Suite (UPDATED 2025-08-17)
+### Test Suite (2025-08-17)
+**Core Tests:** boundaries, PRF, sequential verification, fingerprinting
+**Security Tests:** audit trails, leakage tracking, crypto utilities, query system
 
-Comprehensive unit tests are available in `pot/core/`, `pot/audit/`, and `tests/`:
-
-**Core Framework Tests**:
-- `pot/core/test_boundaries.py`: Confidence sequence tests with FPR validation
-  - Welford's algorithm correctness
-  - EB radius computation and properties
-  - Sequential decision making (one-sided and two-sided)
-  - Adaptive threshold computation
-  - Variance bounds for [0,1] values
-- `pot/core/test_prf.py`: PRF determinism and uniformity tests
-  - Cryptographic PRF validation
-  - Challenge generation determinism
-  - Output uniformity verification
-  - Edge case handling
-- `pot/core/test_sequential_verify.py`: Complete sequential verification tests (NEW)
-  - Type I error control (false positives < α)
-  - Type II error control (false negatives < β)
-  - Borderline behavior at decision boundary
-  - Anytime validity across different stopping strategies
-  - Numerical stability with 100k+ samples
-  - Trajectory recording and audit trails
-  - Anytime-valid p-value computation
-  - Integration testing with performance benchmarks
-- `pot/core/test_fingerprint.py`: Behavioral fingerprinting tests
-  - Determinism and reproducibility
-  - Sensitivity to model changes
-  - Jacobian computation correctness
-  - Canonicalization integration
-  - Edge cases (NaN/Inf, failures, variable outputs)
-  - Performance characteristics
-
-**Security Component Tests**:
-- `test_audit.py`: Commit-reveal protocol tests
-- `test_reuse.py`: Leakage tracking and policy tests
-- `test_equivalence.py`: Transform equivalence tests
-
-**Cryptographic Utilities Tests** (NEW 2025-08-17):
-- `test_crypto_utils.py`: Comprehensive cryptographic primitives test suite
-  - Cryptographically secure salt generation with validation
-  - Hash chain computation for tamper-evident audit trails
-  - Timestamp proof creation and verification (Local, RFC3161, OpenTimestamps)
-  - Commitment aggregation with Merkle tree efficiency testing
-  - Zero-knowledge proof creation and verification
-  - Key derivation from passwords with PBKDF2
-  - Secure constant-time comparison testing
-  - Feature availability detection and compatibility
-  - Edge cases and error handling validation
-  - Performance benchmarking (sub-millisecond operations)
-  - Integration scenarios with complete audit workflow testing
-
-**Audit Trail Query System Tests** (NEW 2025-08-17):
-- `test_audit_query.py`: Comprehensive audit trail analysis test suite
-  - Audit trail loading from single files and directories (JSON/JSONL)
-  - Multi-dimensional querying validation with realistic datasets
-  - Integrity verification with hash chain and commitment validation
-  - Advanced anomaly detection with statistical significance testing
-  - Multi-format report generation (JSON, Markdown, HTML)
-  - Dashboard initialization and Streamlit integration testing
-  - Edge case handling with malformed data and empty trails
-  - Performance benchmarking with large datasets (500+ records)
-  - Integration testing with cryptographic utilities
-- `demo_audit_query.py`: Complete demonstration system showcasing real-world scenarios
-  - Security incident investigation workflows
-  - Model performance monitoring and compliance reporting
-  - Performance analysis with scalability testing
-  - Interactive dashboard setup and configuration
-
-Run all tests:
 ```bash
-# Run specific test suites
+# Quick test commands
 python -m pot.core.test_sequential_verify  # Sequential verification
-python -m pot.core.test_boundaries         # Confidence sequences
-python -m pot.core.test_prf               # PRF and challenges
-python -m pot.core.test_fingerprint       # Behavioral fingerprinting
-
-# Run cryptographic utilities tests
 python test_crypto_utils.py               # Cryptographic primitives
-python test_crypto_integration.py         # Integration with audit system
-
-# Run audit trail query system tests
-python test_audit_query.py                # Audit trail analysis
-python demo_audit_query.py                # Interactive demonstration
-
-# Run all pytest tests
-pytest tests/ -v
+python test_audit_query.py                # Audit analysis
+bash run_all_quick.sh                      # Full smoke test
 ```
 
 ## API Usage Examples
@@ -602,1851 +126,189 @@ pytest tests/ -v
 ```python
 from pot.security.proof_of_training import ProofOfTraining
 
-pot = ProofOfTraining({
-    'verification_type': 'fuzzy',
-    'model_type': 'vision',
-    'security_level': 'high'
-})
-
+pot = ProofOfTraining({'verification_type': 'fuzzy', 'model_type': 'vision', 'security_level': 'high'})
 result = pot.perform_verification(model, model_id, 'standard')
 print(f"Verified: {result.verified} (confidence: {result.confidence:.2%})")
 ```
 
 ### Behavioral Fingerprinting
 ```python
-from pot.core.fingerprint import (
-    FingerprintConfig, 
-    fingerprint_run,
-    compare_fingerprints,
-    is_behavioral_match
-)
+from pot.core.fingerprint import FingerprintConfig, fingerprint_run, compare_fingerprints
 
-# Configure fingerprinting for vision model
-config = FingerprintConfig.for_vision_model(
-    compute_jacobian=True,  # Enable gradient analysis
-    include_timing=True,
-    memory_efficient=False
-)
-
-# Compute fingerprint
+config = FingerprintConfig.for_vision_model(compute_jacobian=True, include_timing=True)
 fingerprint = fingerprint_run(model, challenges, config)
-print(f"IO Hash: {fingerprint.io_hash[:32]}...")
-
-# Compare fingerprints
 similarity = compare_fingerprints(fp1, fp2)
-is_match = is_behavioral_match(fp1, fp2, threshold=0.95)
-
-# Batch comparison
-from pot.core.fingerprint import batch_compare_fingerprints
-similarities = batch_compare_fingerprints(fingerprints, reference=ref_fp)
 ```
 
-### Integrated Verification with Fingerprinting and Sequential Testing (UPDATED 2025-08-16)
+### Integrated Verification (2025-08-16)
 ```python
 from pot.vision.verifier import VisionVerifier
 from pot.lm.verifier import LMVerifier
 
-# Vision model with fingerprinting and enhanced sequential testing
+# Vision with fingerprinting + enhanced sequential testing
 vision_verifier = VisionVerifier(
-    reference_model=ref_model,
-    use_fingerprinting=True,
-    use_sequential=True,
-    sequential_mode='enhanced',  # NEW: Use EB-based sequential verification
-    fingerprint_config=FingerprintConfig.for_vision_model()
+    reference_model=ref_model, use_fingerprinting=True, use_sequential=True,
+    sequential_mode='enhanced', fingerprint_config=FingerprintConfig.for_vision_model()
 )
-result = vision_verifier.verify(
-    model, 
-    challenges,
-    tolerance=0.05,
-    alpha=0.01,  # Type I error rate
-    beta=0.01    # Type II error rate
-)
-print(f"Fingerprint match: {result.fingerprint_match:.3f}")
-if result.sequential_result:
-    print(f"Early stopping at: {result.sequential_result.stopped_at}")
-    print(f"P-value: {result.sequential_result.p_value:.6f}")
-    print(f"Trajectory length: {len(result.sequential_result.trajectory)}")
+result = vision_verifier.verify(model, challenges, tolerance=0.05, alpha=0.01, beta=0.01)
+print(f"Match: {result.fingerprint_match:.3f}, stopped at: {result.sequential_result.stopped_at}")
 
-# Language model with fingerprinting and sequential testing
-lm_verifier = LMVerifier(
-    reference_model=ref_lm,
-    use_fingerprinting=True,
-    use_sequential=True,
-    sequential_mode='enhanced',
-    fingerprint_config=FingerprintConfig.for_language_model()
-)
+# Language model verification
+lm_verifier = LMVerifier(reference_model=ref_lm, use_fingerprinting=True, use_sequential=True)
 result = lm_verifier.verify(model, prompts, alpha=0.01, beta=0.01)
-print(f"Decision: {result.accepted}, stopped at {result.n_challenges} challenges")
 ```
 
 ### Challenge Generation
 ```python
 from pot.core.challenge import ChallengeConfig, generate_challenges
 
-config = ChallengeConfig(
-    master_key_hex='deadbeef' * 8,
-    session_nonce_hex='cafebabe' * 4,
-    n=10,
-    family='vision:texture',
-    params={'texture_types': ['perlin', 'gabor', 'checkerboard']},
-    model_id='resnet50_v1'
-)
-
+config = ChallengeConfig(master_key_hex='deadbeef'*8, session_nonce_hex='cafebabe'*4, 
+                        n=10, family='vision:texture', model_id='resnet50_v1')
 challenges = generate_challenges(config)
 ```
 
-### Sequential Verification (UPDATED 2025-08-16)
+### Sequential Verification (2025-08-16)
 ```python
 from pot.core.sequential import sequential_verify
 
-def distance_stream():
-    for challenge in challenges:
-        yield compute_distance(model, challenge)
-
-result = sequential_verify(
-    stream=distance_stream(),
-    tau=0.05,
-    alpha=0.01,
-    beta=0.01,
-    max_samples=500,
-    compute_p_value=True  # Optional: compute anytime-valid p-value
-)
-
-print(f"Decision: {result.decision}")
-print(f"Stopped at: {result.stopped_at} samples")
-print(f"Final mean: {result.final_mean:.3f} ± {result.confidence_radius:.3f}")
-if result.p_value is not None:
-    print(f"Anytime-valid p-value: {result.p_value:.4f}")
+result = sequential_verify(stream=distance_stream(), tau=0.05, alpha=0.01, beta=0.01, 
+                          max_samples=500, compute_p_value=True)
+print(f"Decision: {result.decision}, stopped at: {result.stopped_at}")
+print(f"Mean: {result.final_mean:.3f} ± {result.confidence_radius:.3f}")
 ```
 
-### Advanced Sequential Testing (NEW 2025-08-16)
+### Advanced Sequential Testing (2025-08-16)
 ```python
-from pot.core.sequential import (
-    mixture_sequential_test, adaptive_tau_selection, 
-    multi_armed_sequential_verify, power_analysis, confidence_sequences
-)
+from pot.core.sequential import mixture_sequential_test, adaptive_tau_selection, power_analysis
 
-# 1. Mixture Sequential Testing - Combine multiple test statistics for robust decisions
-streams = [mean_distances, median_distances, trimmed_mean_distances]
-mixture_result = mixture_sequential_test(
-    streams=streams,
-    weights=[0.5, 0.3, 0.2],  # Weighted combination
-    tau=0.05,
-    alpha=0.01,
-    combination_method='weighted_average'  # or 'fisher', 'min_p'
-)
-print(f"Mixture decision: {mixture_result.decision}")
-print(f"Combined statistic: {mixture_result.final_combined_statistic:.3f}")
+# Mixture testing - combine multiple statistics
+mixture_result = mixture_sequential_test(streams=[mean_distances, median_distances], 
+                                        weights=[0.6, 0.4], tau=0.05, alpha=0.01)
 
-# 2. Adaptive Tau Selection - Dynamic threshold adjustment based on variance
-adaptive_result = adaptive_tau_selection(
-    stream=distance_stream(),
-    initial_tau=0.05,
-    adaptation_rate=0.1,
-    min_tau=0.01,
-    max_tau=0.2,
-    union_bound_correction=True  # Maintains validity
-)
-print(f"Adaptive decision: {adaptive_result.decision}")
-print(f"Final tau: {adaptive_result.final_tau:.4f}")
+# Adaptive thresholds based on variance
+adaptive_result = adaptive_tau_selection(stream=distance_stream(), initial_tau=0.05)
 
-# 3. Multi-Armed Testing - Multiple hypotheses with family-wise error control
-streams = {'model_A': stream_A, 'model_B': stream_B, 'model_C': stream_C}
-hypotheses = {'model_A': 0.03, 'model_B': 0.05, 'model_C': 0.07}
-multi_result = multi_armed_sequential_verify(
-    streams=streams,
-    hypotheses=hypotheses,
-    alpha=0.05,  # Family-wise error rate
-    correction_method='bonferroni'  # or 'holm'
-)
-print(f"Decisions: {multi_result.decisions}")
-print(f"FWER controlled: {multi_result.fwer_controlled}")
-
-# 4. Power Analysis - Operating characteristics and sample size planning
-power_result = power_analysis(
-    tau=0.05,
-    alpha=0.05,
-    beta=0.05,
-    effect_sizes=[0.0, 0.02, 0.05, 0.1, 0.2],
-    n_simulations=1000
-)
-print(f"Power curve: {power_result.power_curve}")
-print(f"Expected stopping times: {power_result.expected_stopping_times}")
-print(f"Recommended sample size: {power_result.sample_size_recommendation}")
-
-# 5. Confidence Sequences - Time-uniform bounds for continuous monitoring
-conf_seq = confidence_sequences(
-    stream=distance_stream(),
-    alpha=0.05,
-    method='eb',  # Empirical Bernstein bounds
-    return_all=True
-)
-final_mean = conf_seq.means[-1]
-final_lower = conf_seq.lower_bounds[-1]
-final_upper = conf_seq.upper_bounds[-1]
-print(f"Final estimate: {final_mean:.3f}")
-print(f"95% confidence interval: [{final_lower:.3f}, {final_upper:.3f}]")
-print(f"Valid at any stopping time: {conf_seq.is_valid}")
+# Power analysis for sample size planning
+power_result = power_analysis(tau=0.05, alpha=0.05, beta=0.05, effect_sizes=[0.0, 0.05, 0.1])
 ```
 
-### Sequential Verification Visualization (NEW 2025-08-16)
+### Visualization (2025-08-16)
 ```python
-from pot.core.visualize_sequential import (
-    plot_verification_trajectory, plot_operating_characteristics,
-    plot_anytime_validity, create_interactive_demo, VisualizationConfig
-)
+from pot.core.visualize_sequential import plot_verification_trajectory, plot_operating_characteristics
 
-# 1. Visualize single verification trajectory
-result = sequential_verify(stream=data_stream(), tau=0.05, alpha=0.05, beta=0.05)
+# Plot single trajectory with confidence bounds
+fig = plot_verification_trajectory(result, save_path='trajectory.png', show_details=True)
 
-fig = plot_verification_trajectory(
-    result=result,
-    save_path='trajectory.png',
-    show_details=True  # Include decision, efficiency, p-value annotations
-)
-print(f"Decision: {result.decision}, Stopped at: {result.stopped_at}")
+# Compare sequential vs fixed-sample performance  
+fig = plot_operating_characteristics(tau=0.05, alpha=0.05, beta=0.05)
 
-# 2. Compare sequential vs fixed-sample performance
-fig = plot_operating_characteristics(
-    tau=0.05,
-    alpha=0.05,
-    beta=0.05,
-    effect_sizes=np.linspace(0.0, 0.1, 15),
-    max_samples_fixed=1000
-)
-# Shows power curves, stopping times, efficiency ratios
-
-# 3. Demonstrate anytime validity across multiple runs
-trajectories = []
-for i in range(50):
-    result_i = sequential_verify(stream=generate_stream(seed=i), tau=0.05)
-    trajectories.append(result_i)
-
-fig = plot_anytime_validity(
-    trajectories=trajectories,
-    alpha=0.05  # Shows error control, coverage maintenance
-)
-
-# 4. Custom visualization styling
-config = VisualizationConfig(
-    figsize=(12, 8),
-    dpi=300,  # High resolution for publications
-    style='seaborn-whitegrid',
-    palette='Set2',
-    save_format='pdf'
-)
-
-fig = plot_verification_trajectory(result, config=config, save_path='publication_plot.pdf')
-
-# 5. Interactive demo (requires streamlit)
-# streamlit run pot/core/visualize_sequential.py
-# Features: real-time parameter adjustment, live visualization, educational annotations
+# Interactive demo: streamlit run pot/core/visualize_sequential.py
 ```
 
-**Comprehensive Documentation**:
-For complete theoretical background and worked examples, see:
-- **Theory**: [docs/statistical_verification.md](docs/statistical_verification.md) - Mathematical foundations, EB bounds, anytime validity
-- **Tutorials**: [examples/sequential_analysis.ipynb](examples/sequential_analysis.ipynb) - Interactive examples and parameter analysis
-- **Quick Start**: [README.md](README.md#sequential-verification-quick-start) - When to use sequential vs fixed-sample testing
+**Documentation**: See docs/statistical_verification.md (theory), examples/sequential_analysis.ipynb (tutorials)
 
-### Blockchain Client for On-Chain Commitment Storage (NEW 2025-08-17)
+### Blockchain Client (2025-08-17)
+**Networks**: Ethereum, Polygon, BSC, Arbitrum, Optimism + local development  
+**Features**: 60-80% gas savings via Merkle batching, EIP-1559 support, automatic retry logic  
+**Operations**: `store_commitment()`, `batch_store_commitments()`, `verify_commitment_onchain()`
+
+### Expected Ranges Verification (2025-08-17)
+**Components**: ExpectedRanges, RangeCalibrator, ValidationReport  
+**Features**: Auto-calibration from reference models, attack detection, continuous monitoring with statistical validation
+
+### Merkle Trees for Training Provenance (2025-08-17)
 ```python
-from pot.prototypes.training_provenance_auditor import (
-    BlockchainClient, MockBlockchainClient, BlockchainConfig, ChainType
-)
-import hashlib
+from pot.prototypes.training_provenance_auditor import build_merkle_tree, generate_merkle_proof, verify_merkle_proof
 
-# 1. Basic blockchain client setup
-config = BlockchainConfig.ethereum_mainnet("https://mainnet.infura.io/v3/YOUR_PROJECT_ID")
-client = BlockchainClient(config)
-
-# Connect to blockchain
-success = client.connect()
-print(f"Connected to {config.chain_type.value}: {success}")
-
-# 2. Store individual commitment
-training_data = {"epoch": 10, "loss": 0.123, "accuracy": 0.95}
-commitment_hash = hashlib.sha256(str(training_data).encode()).digest()
-metadata = {"model_id": "resnet50_v1", "training_step": 1000}
-
-tx_hash = client.store_commitment(commitment_hash, metadata)
-print(f"Commitment stored: {tx_hash}")
-
-# 3. Retrieve and verify commitment
-record = client.retrieve_commitment(tx_hash)
-print(f"Retrieved: {record.commitment_hash}, Gas used: {record.gas_used}")
-
-is_valid = client.verify_commitment_onchain(commitment_hash)
-print(f"On-chain verification: {is_valid}")
-
-# 4. Batch storage with gas optimization (60-80% savings)
-training_commitments = []
-for epoch in range(100):
-    epoch_data = {"epoch": epoch, "loss": 1.0/(epoch+1)}
-    commitment = hashlib.sha256(str(epoch_data).encode()).digest()
-    training_commitments.append(commitment)
-
-# Store all 100 commitments in single transaction
-batch_tx_hash = client.batch_store_commitments(training_commitments)
-print(f"Batch stored: {batch_tx_hash}")
-
-# 5. Gas cost comparison
-individual_gas = sum(
-    client.estimate_gas_cost("store_commitment")["gas_needed"] 
-    for _ in training_commitments
-)
-batch_gas = client.estimate_gas_cost("batch_store_commitments")["gas_needed"]
-savings = (individual_gas - batch_gas) / individual_gas * 100
-print(f"Gas savings: {savings:.1f}% ({individual_gas} vs {batch_gas})")
-
-# 6. Multi-chain configuration
-chains = {
-    "ethereum": BlockchainConfig.ethereum_mainnet("https://eth-mainnet.g.alchemy.com/v2/KEY"),
-    "polygon": BlockchainConfig.polygon_mainnet("https://polygon-mainnet.g.alchemy.com/v2/KEY"),
-    "arbitrum": BlockchainConfig.arbitrum_mainnet("https://arb-mainnet.g.alchemy.com/v2/KEY"),
-    "local": BlockchainConfig.local_ganache()  # For development
-}
-
-# Deploy across multiple chains for redundancy
-for chain_name, config in chains.items():
-    client = BlockchainClient(config)
-    if client.connect():
-        tx_hash = client.store_commitment(commitment_hash, metadata)
-        print(f"{chain_name}: {tx_hash}")
-
-# 7. Context manager usage for automatic cleanup
-with BlockchainClient(config) as client:
-    # All operations automatically cleaned up
-    result = client.store_commitment(commitment_hash, metadata)
-    print(f"Stored with context manager: {result}")
-
-# 8. Mock client for testing and development
-mock_client = MockBlockchainClient()
-with mock_client as client:
-    # Identical API, zero network costs
-    tx_hash = client.store_commitment(commitment_hash, metadata)
-    
-    # Test batch operations
-    batch_tx = client.batch_store_commitments(training_commitments)
-    batch_record = client.get_batch_commitment(batch_tx)
-    
-    print(f"Mock batch Merkle root: {batch_record.merkle_root}")
-    print(f"Proof count: {len(batch_record.proofs)}")
-    
-    # Verify Merkle proofs
-    for commitment in training_commitments[:3]:  # Check first 3
-        proof = batch_record.proofs[commitment.hex()]
-        root_hash = bytes.fromhex(batch_record.merkle_root)
-        
-        # Hash commitment to get leaf hash for verification
-        leaf_hash = hashlib.sha256(commitment).digest()
-        from pot.prototypes.training_provenance_auditor import verify_merkle_proof
-        is_valid = verify_merkle_proof(leaf_hash, proof, root_hash)
-        print(f"Merkle proof valid: {is_valid}")
-
-# 9. Production deployment example
-def setup_production_blockchain(environment="mainnet"):
-    """Setup blockchain client for production use"""
-    if environment == "mainnet":
-        config = BlockchainConfig.ethereum_mainnet(
-            os.getenv("ETHEREUM_RPC_URL")
-        )
-    elif environment == "polygon":
-        config = BlockchainConfig.polygon_mainnet(
-            os.getenv("POLYGON_RPC_URL") 
-        )
-    else:
-        config = BlockchainConfig.local_ganache()
-    
-    client = BlockchainClient(config)
-    
-    # Test connection
-    if not client.connect():
-        raise ConnectionError(f"Failed to connect to {environment}")
-    
-    # Verify gas settings
-    balance = client.get_balance()
-    if balance < 0.1:  # ETH
-        print(f"Warning: Low balance ({balance} ETH)")
-    
-    return client
-
-# Production usage
-production_client = setup_production_blockchain("polygon")
-training_proof_tx = production_client.batch_store_commitments(training_commitments)
-print(f"Production training proof: {training_proof_tx}")
-```
-
-### Expected Ranges Verification for Behavioral Validation (NEW 2025-08-17)
-```python
-from pot.security.proof_of_training import (
-    ProofOfTraining, ExpectedRanges, RangeCalibrator,
-    ModelType, SecurityLevel, VerificationDepth
-)
-import numpy as np
-
-# 1. Basic Expected Ranges Setup
-config = {
-    'verification_type': 'fuzzy',
-    'model_type': 'vision', 
-    'security_level': 'high'
-}
-
-pot_system = ProofOfTraining(config)
-
-# Mock model for demonstration
-class VisionModel:
-    def forward(self, x):
-        return np.random.randn(1000)  # Simulate model output
-    
-    def state_dict(self):
-        return {'conv1.weight': np.random.randn(64, 3, 7, 7)}
-
-model = VisionModel()
-
-# 2. Register Model and Calibrate Expected Ranges
-model_id = pot_system.register_model(
-    model,
-    architecture="resnet50",
-    parameter_count=25_000_000
-)
-print(f"Model registered: {model_id}")
-
-# Calibrate expected ranges from reference model behavior
-expected_ranges = pot_system.calibrate_expected_ranges(
-    model, model_id, num_calibration_runs=20
-)
-
-print(f"Calibrated ranges:")
-print(f"  Accuracy: [{expected_ranges.accuracy_range[0]:.3f}, {expected_ranges.accuracy_range[1]:.3f}]")
-print(f"  Latency: [{expected_ranges.latency_range[0]:.1f}, {expected_ranges.latency_range[1]:.1f}]ms")
-print(f"  Fingerprint similarity: [{expected_ranges.fingerprint_similarity[0]:.3f}, {expected_ranges.fingerprint_similarity[1]:.3f}]")
-print(f"  Jacobian norm: [{expected_ranges.jacobian_norm_range[0]:.6f}, {expected_ranges.jacobian_norm_range[1]:.6f}]")
-
-# 3. Manual Range Configuration (Alternative to Calibration)
-manual_ranges = ExpectedRanges(
-    accuracy_range=(0.85, 0.95),      # Expected accuracy bounds
-    latency_range=(10.0, 50.0),       # Expected latency in milliseconds
-    fingerprint_similarity=(0.90, 0.99),  # Fingerprint similarity bounds
-    jacobian_norm_range=(0.1, 5.0),   # Jacobian norm bounds
-    confidence_level=0.95,             # Statistical confidence level
-    tolerance_factor=1.1               # 10% tolerance for production robustness
-)
-
-pot_system.set_expected_ranges(model_id, manual_ranges)
-
-# 4. Verification with Expected Ranges Validation
-result = pot_system.perform_verification(model, model_id, 'comprehensive')
-
-print(f"\nVerification Results:")
-print(f"  Overall verified: {result.verified}")
-print(f"  Confidence: {result.confidence:.3f}")
-print(f"  Challenges passed: {result.challenges_passed}/{result.challenges_total}")
-
-# Enhanced metrics from expected ranges validation
-print(f"\nMeasured Metrics:")
-print(f"  Accuracy: {result.accuracy:.3f}" if result.accuracy else "  Accuracy: N/A")
-print(f"  Latency: {result.latency_ms:.1f}ms" if result.latency_ms else "  Latency: N/A")
-print(f"  Fingerprint similarity: {result.fingerprint_similarity:.3f}" if result.fingerprint_similarity else "  Fingerprint similarity: N/A")
-print(f"  Jacobian norm: {result.jacobian_norm:.6f}" if result.jacobian_norm else "  Jacobian norm: N/A")
-
-# Range validation results
-if result.range_validation:
-    print(f"\nRange Validation:")
-    print(f"  Passed: {result.range_validation.passed}")
-    print(f"  Confidence: {result.range_validation.confidence:.3f}")
-    
-    if result.range_validation.violations:
-        print(f"  Violations:")
-        for violation in result.range_validation.violations:
-            print(f"    - {violation}")
-    
-    print(f"  Range scores:")
-    for metric, score in result.range_validation.range_scores.items():
-        print(f"    {metric}: {score:.3f}")
-    
-    if result.range_validation.statistical_significance:
-        print(f"  Statistical significance (p-value): {result.range_validation.statistical_significance:.6f}")
-
-# 5. Advanced Range Calibrator Usage
-calibrator = RangeCalibrator(
-    confidence_level=0.99,    # Higher confidence
-    percentile_margin=0.02    # Tighter ranges (2% margin)
-)
-
-# Create custom test suite for calibration
-test_suite = [
-    np.random.randn(224, 224, 3) for _ in range(50)  # 50 test images
-]
-
-custom_ranges = calibrator.calibrate(
-    reference_model=model,
-    test_suite=test_suite,
-    model_type=ModelType.VISION,
-    num_runs=30  # More runs for better statistics
-)
-
-# 6. Production Deployment with Expected Ranges
-def deploy_model_with_ranges(model, architecture, test_data):
-    """Production deployment with automated range calibration"""
-    
-    # Register model
-    model_id = pot_system.register_model(
-        model, architecture=architecture, parameter_count=len(list(model.parameters()))
-    )
-    
-    # Calibrate ranges with production test data
-    ranges = pot_system.calibrate_expected_ranges(
-        model, model_id, num_calibration_runs=50
-    )
-    
-    # Adjust tolerance for production robustness
-    ranges.tolerance_factor = 1.2  # 20% tolerance
-    
-    # Store calibrated ranges
-    pot_system.set_expected_ranges(model_id, ranges)
-    
-    return model_id, ranges
-
-# Deploy model
-model_id, production_ranges = deploy_model_with_ranges(
-    model, "production_resnet50_v2", test_suite
-)
-
-print(f"\nProduction deployment complete:")
-print(f"  Model ID: {model_id}")
-print(f"  Ranges calibrated with tolerance: {production_ranges.tolerance_factor}")
-
-# 7. Continuous Monitoring with Expected Ranges
-def monitor_model_performance(model, model_id, monitoring_data):
-    """Continuous monitoring of model performance against expected ranges"""
-    
-    violations_detected = []
-    
-    for i, data_batch in enumerate(monitoring_data):
-        # Quick verification for monitoring
-        result = pot_system.perform_verification(model, model_id, 'quick')
-        
-        if result.range_validation and not result.range_validation.passed:
-            violations_detected.append({
-                'batch_id': i,
-                'violations': result.range_validation.violations,
-                'confidence': result.range_validation.confidence
-            })
-    
-    return violations_detected
-
-# Monitor model (example)
-monitoring_data = [np.random.randn(224, 224, 3) for _ in range(10)]
-violations = monitor_model_performance(model, model_id, monitoring_data)
-
-if violations:
-    print(f"\nMonitoring detected {len(violations)} batches with range violations")
-else:
-    print(f"\nMonitoring complete: All batches within expected ranges")
-
-# 8. Attack Detection with Expected Ranges
-class AdversarialModel:
-    """Simulated adversarial model with different behavior"""
-    def forward(self, x):
-        # Adversarial model produces different outputs
-        return np.random.randn(1000) * 10  # Different scale
-    
-    def state_dict(self):
-        return {'conv1.weight': np.random.randn(64, 3, 7, 7)}
-
-adversarial_model = AdversarialModel()
-
-# Verify adversarial model against legitimate ranges
-attack_result = pot_system.perform_verification(adversarial_model, model_id, 'comprehensive')
-
-print(f"\nAdversarial Model Detection:")
-print(f"  Verified: {attack_result.verified}")
-print(f"  Confidence: {attack_result.confidence:.3f}")
-
-if attack_result.range_validation and not attack_result.range_validation.passed:
-    print(f"  🚨 ATTACK DETECTED - Range violations:")
-    for violation in attack_result.range_validation.violations:
-        print(f"    - {violation}")
-    print(f"  Validation confidence: {attack_result.range_validation.confidence:.3f}")
-
-# 9. Multi-Model Range Comparison
-models_to_compare = [model, adversarial_model]
-model_names = ["legitimate", "adversarial"]
-
-print(f"\nMulti-Model Range Analysis:")
-for model_instance, name in zip(models_to_compare, model_names):
-    result = pot_system.perform_verification(model_instance, model_id, 'standard')
-    
-    range_passed = result.range_validation.passed if result.range_validation else "N/A"
-    range_conf = result.range_validation.confidence if result.range_validation else 0.0
-    
-    print(f"  {name}: verified={result.verified}, range_passed={range_passed}, range_conf={range_conf:.3f}")
-
-# 10. Range Statistics and Analytics
-stats = pot_system.get_statistics()
-print(f"\nSystem Statistics:")
-print(f"  Models with expected ranges: {stats['models_with_expected_ranges']}")
-print(f"  Range calibrator available: {stats['components']['range_calibrator']}")
-print(f"  Expected ranges enabled: {stats['components']['expected_ranges']}")
-```
-
-### Merkle Tree for Training Provenance (UPDATED 2025-08-17)
-```python
-from pot.prototypes.training_provenance_auditor import (
-    build_merkle_tree, compute_merkle_root, generate_merkle_proof, 
-    verify_merkle_proof, TrainingProvenanceAuditor
-)
-import hashlib
-
-# Basic Merkle tree operations
-training_data = [
-    b"epoch_0_metrics",
-    b"epoch_1_metrics", 
-    b"epoch_2_metrics",
-    b"checkpoint_saved"
-]
-
-# Build complete tree
-tree = build_merkle_tree(training_data)
-root_hash = tree.hash
-
-# Alternative: just compute root hash
-root_hash_direct = compute_merkle_root(training_data)
-assert root_hash == root_hash_direct
-
-# Generate proof for specific training event (e.g., epoch 1)
+# Build tree and generate proofs (O(log n) proof size)
+tree = build_merkle_tree([b"epoch_0", b"epoch_1", b"epoch_2"])
 proof = generate_merkle_proof(tree, 1)
-print(f"Proof length: {len(proof)} steps (logarithmic in tree size)")
+is_valid = verify_merkle_proof(leaf_hash, proof, tree.hash)
 
-# Verify the proof (can be done without access to full tree)
-leaf_hash = hashlib.sha256(b"epoch_1_metrics").digest()
-is_valid = verify_merkle_proof(leaf_hash, proof, root_hash)
-print(f"Proof valid: {is_valid}")
-
-# Detect tampering
-fake_hash = hashlib.sha256(b"fake_metrics").digest()
-is_fake_valid = verify_merkle_proof(fake_hash, proof, root_hash)
-print(f"Fake proof valid: {is_fake_valid}")  # Should be False
-
-# Integration with Training Provenance Auditor
-auditor = TrainingProvenanceAuditor(
-    model_id="resnet50_cifar10",
-    blockchain_client=None  # Use mock client for demo
-)
-
-# Log training events with automatic Merkle tree construction
+# Training provenance auditor
+auditor = TrainingProvenanceAuditor(model_id="resnet50_cifar10")
 for epoch in range(5):
-    auditor.log_training_event(
-        epoch=epoch,
-        metrics={'loss': 1.0/(epoch+1), 'accuracy': 0.5 + epoch*0.1},
-        checkpoint_hash=hashlib.sha256(f"checkpoint_{epoch}".encode()).hexdigest(),
-        event_type=auditor.EventType.EPOCH_END
-    )
-
-# Generate cryptographic proof of training progression
-proof_data = auditor.generate_training_proof(
-    start_epoch=0, 
-    end_epoch=4, 
-    proof_type=auditor.ProofType.MERKLE
-)
-
-print(f"Training proof generated:")
-print(f"  Root hash: {proof_data['root_hash'][:32]}...")
-print(f"  Events covered: {proof_data['num_events']}")
-print(f"  Proof includes: start/end event hashes and Merkle proofs")
-
-# Embed provenance into model for distribution
-model_state = {'weights': 'model_weights', 'architecture': 'resnet50'}
-model_with_provenance = auditor.embed_provenance(model_state)
-
-# Later: verify training history from embedded provenance
-claimed_history = [event.to_dict() for event in auditor.events]
-is_history_valid = auditor.verify_training_history(
-    model_with_provenance, 
-    claimed_history
-)
-print(f"Training history verified: {is_history_valid}")
-
-# Performance characteristics
-print(f"Merkle tree operations:")
-print(f"  Tree construction: O(n) where n = number of training events")
-print(f"  Proof generation: O(log n)")  
-print(f"  Proof verification: O(log n)")
-print(f"  Storage: O(1) for root hash, O(log n) for individual proofs")
+    auditor.log_training_event(epoch=epoch, metrics={'loss': 1.0/(epoch+1)})
+proof_data = auditor.generate_training_proof(start_epoch=0, end_epoch=4)
 ```
 
-### Advanced Merkle Tree Usage
-```python
-# Large scale training with millions of events
-large_training_events = [f"event_{i}".encode() for i in range(1000000)]
-
-# Build tree efficiently
-import time
-start_time = time.time()
-large_tree = build_merkle_tree(large_training_events)
-build_time = time.time() - start_time
-print(f"Built tree with 1M events in {build_time:.2f}s")
-
-# Proof size stays logarithmic
-proof_for_event_500k = generate_merkle_proof(large_tree, 500000)
-print(f"Proof size for 1M tree: {len(proof_for_event_500k)} hashes")
-print(f"Theoretical minimum: {len(large_training_events).bit_length()-1} hashes")
-
-# Batch verification for audit
-events_to_verify = [100, 50000, 500000, 999999]
-all_valid = True
-
-for event_idx in events_to_verify:
-    proof = generate_merkle_proof(large_tree, event_idx)
-    event_hash = hashlib.sha256(f"event_{event_idx}".encode()).digest()
-    is_valid = verify_merkle_proof(event_hash, proof, large_tree.hash)
-    print(f"Event {event_idx}: {'✓' if is_valid else '✗'}")
-    all_valid &= is_valid
-
-print(f"Batch verification: {'PASSED' if all_valid else 'FAILED'}")
-
-# Integration with external verification
-def external_audit_callback(event_index: int, tree_root: bytes) -> bool:
-    """Example external auditor that requests proof for random events."""
-    proof = generate_merkle_proof(large_tree, event_index)
-    event_data = f"event_{event_index}".encode()
-    event_hash = hashlib.sha256(event_data).digest()
-    
-    # External auditor verifies without access to full tree
-    return verify_merkle_proof(event_hash, proof, tree_root)
-
-# Demonstrate external verification
-import random
-audit_samples = random.sample(range(len(large_training_events)), 10)
-audit_results = [
-    external_audit_callback(idx, large_tree.hash) 
-    for idx in audit_samples
-]
-print(f"External audit: {sum(audit_results)}/{len(audit_results)} passed")
-```
-
-### Advanced Cryptographic Utilities for Enhanced Audit Capabilities (NEW 2025-08-17)
-```python
-from pot.audit.crypto_utils import (
-    generate_cryptographic_salt, compute_hash_chain, create_timestamp_proof,
-    aggregate_commitments, create_zk_proof, verify_timestamp_proof, verify_zk_proof,
-    HashAlgorithm, TimestampProofType, derive_key_from_password, secure_compare,
-    get_available_features
-)
-import hashlib
-import json
-from datetime import datetime, timezone
-
-# 1. Cryptographically Secure Salt Generation
-print("=== Secure Salt Generation ===")
-
-# Generate secure salts for different purposes
-commitment_salt = generate_cryptographic_salt(32)  # For commitments
-key_derivation_salt = generate_cryptographic_salt(16)  # For key derivation
-session_salt = generate_cryptographic_salt(64)  # For session tokens
-
-print(f"Commitment salt: {commitment_salt.hex()[:32]}...")
-print(f"Key derivation salt: {key_derivation_salt.hex()}")
-print(f"Session salt: {session_salt.hex()[:32]}...")
-
-# Validate salt uniqueness
-salt1 = generate_cryptographic_salt()
-salt2 = generate_cryptographic_salt()
-assert salt1 != salt2  # Cryptographically certain to be different
-print(f"Salts are unique: {salt1 != salt2}")
-
-# 2. Hash Chains for Tamper-Evident Audit Trails
-print("\n=== Hash Chains for Audit Trails ===")
-
-# Create audit events
-audit_events = [
-    b"model_registration_event",
-    b"challenge_generation_event", 
-    b"verification_execution_event",
-    b"result_commitment_event",
-    b"blockchain_storage_event"
-]
-
-# Hash each event
-event_hashes = [hashlib.sha256(event).digest() for event in audit_events]
-
-# Create tamper-evident chain
-audit_chain = compute_hash_chain(event_hashes, HashAlgorithm.SHA256)
-print(f"Audit chain hash: {audit_chain.hex()[:32]}...")
-
-# Demonstrate tamper detection
-tampered_events = event_hashes.copy()
-tampered_events[2] = hashlib.sha256(b"modified_verification_event").digest()
-tampered_chain = compute_hash_chain(tampered_events, HashAlgorithm.SHA256)
-
-print(f"Original chain:  {audit_chain.hex()[:16]}...")
-print(f"Tampered chain:  {tampered_chain.hex()[:16]}...")
-print(f"Tampering detected: {audit_chain != tampered_chain}")
-
-# 3. Timestamp Proofs for Proving Data Existence
-print("\n=== Timestamp Proofs ===")
-
-# Important verification result to timestamp
-verification_result = {
-    "model_id": "production_model_v3.1",
-    "verification_decision": "PASS",
-    "confidence": 0.97,
-    "timestamp": datetime.now(timezone.utc).isoformat(),
-    "challenge_count": 50
-}
-
-result_data = json.dumps(verification_result, sort_keys=True).encode()
-
-# Create local timestamp proof (always available)
-local_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.LOCAL)
-print(f"Local timestamp proof created: {local_proof.timestamp}")
-print(f"Proof type: {local_proof.proof_type.value}")
-print(f"Verifier info: {local_proof.verifier_info['type']}")
-
-# Verify timestamp proof
-is_valid = verify_timestamp_proof(local_proof, result_data)
-print(f"Timestamp proof valid: {is_valid}")
-
-# Create RFC 3161 timestamp if cryptography available
-features = get_available_features()
-if features['rfc3161_timestamps']:
-    rfc3161_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.RFC3161)
-    print(f"RFC 3161 proof created with signature: {rfc3161_proof.signature is not None}")
-    print(f"RFC 3161 proof valid: {verify_timestamp_proof(rfc3161_proof, result_data)}")
-
-# Create OpenTimestamps proof if network available
-if features['opentimestamps']:
-    ots_proof = create_timestamp_proof(result_data, proof_type=TimestampProofType.OPENTIMESTAMPS)
-    print(f"OpenTimestamps proof created: {ots_proof.verifier_info['blockchain']}")
-
-# 4. Commitment Aggregation with Merkle Trees
-print("\n=== Commitment Aggregation ===")
-
-# Create multiple verification session commitments
-from pot.audit.commit_reveal import CommitmentRecord
-
-verification_sessions = []
-for i in range(10):
-    session_data = {
-        "session_id": f"session_{i:03d}",
-        "model_id": "aggregate_test_model",
-        "verification_result": "PASS" if i % 4 != 0 else "FAIL",  # Mostly pass
-        "confidence": 0.9 + (i % 5) * 0.02,
-        "challenge_count": 20 + i * 5
-    }
-    
-    # Create commitment for session
-    session_bytes = json.dumps(session_data, sort_keys=True).encode()
-    commitment_hash = hashlib.sha256(session_bytes).hexdigest()
-    
-    # Mock CommitmentRecord (in practice, use actual commit-reveal)
-    from test_crypto_utils import MockCommitmentRecord
-    commitment_record = MockCommitmentRecord(commitment_hash, session_data)
-    verification_sessions.append(commitment_record)
-
-# Aggregate all commitments using Merkle tree
-try:
-    aggregate = aggregate_commitments(verification_sessions, metadata={
-        "aggregation_purpose": "monthly_verification_summary",
-        "model_version": "v3.1"
-    })
-    
-    print(f"Aggregated {aggregate.size} verification sessions")
-    print(f"Merkle root: {aggregate.merkle_root[:32]}...")
-    print(f"Aggregate hash: {aggregate.aggregate_hash[:32]}...")
-    print(f"Merkle tree depth: {aggregate.metadata['merkle_tree_depth']}")
-    
-    # Verify individual commitment proofs
-    first_commitment = verification_sessions[0].commitment_hash
-    proof = aggregate.proofs[first_commitment]
-    print(f"First commitment has proof with {len(proof)} steps")
-    
-    # Batch verification is now O(log n) instead of O(n)
-    efficiency_gain = aggregate.size / aggregate.metadata['merkle_tree_depth']
-    print(f"Verification efficiency gain: {efficiency_gain:.1f}x")
-    
-except ImportError:
-    print("⚠ Merkle tree implementation not available - skipping aggregation demo")
-
-# 5. Zero-Knowledge Proofs for Privacy-Preserving Verification
-print("\n=== Zero-Knowledge Proofs ===")
-
-# Public statement (what we want to prove without revealing details)
-public_statement = {
-    "verification_passed": True,
-    "confidence_above_threshold": True,
-    "model_type": "vision",
-    "security_level": "high"
-}
-
-# Private witness (sensitive information we don't want to reveal)
-private_witness = {
-    "actual_confidence": 0.97,
-    "secret_model_parameters": [1.234, 5.678, 9.012],
-    "private_challenge_responses": [0.95, 0.98, 0.93, 0.96],
-    "internal_model_state": "confidential_state_data",
-    "proprietary_algorithm_details": "trade_secret_implementation"
-}
-
-# Create zero-knowledge proof (Schnorr-style)
-schnorr_proof = create_zk_proof(public_statement, private_witness, "schnorr")
-print(f"Schnorr ZK proof created: {schnorr_proof.proof_type}")
-print(f"Public statement: {schnorr_proof.statement}")
-print(f"Proof metadata: {schnorr_proof.metadata['proof_algorithm']}")
-
-# Verify ZK proof (verifier only sees public statement, not witness)
-zk_valid = verify_zk_proof(schnorr_proof)
-print(f"ZK proof verification: {zk_valid}")
-
-# Create commitment-based proof
-commit_proof = create_zk_proof(public_statement, private_witness, "simple_commit")
-print(f"Commitment ZK proof created: {commit_proof.proof_type}")
-print(f"Commitment proof valid: {verify_zk_proof(commit_proof)}")
-
-# Demonstrate privacy: verifier cannot extract witness
-print("Privacy demonstration:")
-print(f"  Public knows: verification_passed = {public_statement['verification_passed']}")
-print(f"  Public knows: confidence_above_threshold = {public_statement['confidence_above_threshold']}")
-print(f"  Private actual_confidence: {private_witness['actual_confidence']} (HIDDEN)")
-print(f"  Private model parameters: (HIDDEN from verifier)")
-
-# 6. Key Derivation and Secure Operations
-print("\n=== Key Derivation and Security ===")
-
-# Derive keys from password for different purposes
-master_password = "secure_master_password_123!"
-verification_salt = generate_cryptographic_salt(32)
-
-# Derive different keys for different purposes
-commitment_key = derive_key_from_password(master_password, verification_salt, key_length=32)
-encryption_key = derive_key_from_password(master_password + "_encryption", verification_salt, key_length=32)
-signing_key = derive_key_from_password(master_password + "_signing", verification_salt, key_length=32)
-
-print(f"Commitment key: {commitment_key.hex()[:16]}...")
-print(f"Encryption key: {encryption_key.hex()[:16]}...")
-print(f"Signing key: {signing_key.hex()[:16]}...")
-
-# Demonstrate secure comparison (constant-time, prevents timing attacks)
-secret_value = b"super_secret_verification_key"
-user_input = b"super_secret_verification_key"
-wrong_input = b"wrong_verification_key"
-
-# Secure comparison (timing-attack resistant)
-correct_auth = secure_compare(secret_value, user_input)
-wrong_auth = secure_compare(secret_value, wrong_input)
-
-print(f"Correct authentication: {correct_auth}")
-print(f"Wrong authentication: {wrong_auth}")
-
-# 7. Feature Detection and Compatibility
-print("\n=== Feature Availability ===")
-
-available_features = get_available_features()
-print("Cryptographic features available:")
-for feature, available in available_features.items():
-    status = "✓" if available else "✗"
-    print(f"  {status} {feature}")
-
-# 8. Complete Audit Trail Example
-print("\n=== Complete Audit Trail Workflow ===")
-
-# Step 1: Generate secure session salt
-session_salt = generate_cryptographic_salt(32)
-session_id = hashlib.sha256(session_salt).hexdigest()[:16]
-
-# Step 2: Create audit events with timestamps
-audit_workflow = []
-workflow_events = [
-    "session_initialization",
-    "model_loading",
-    "challenge_generation", 
-    "verification_execution",
-    "result_computation",
-    "commitment_creation",
-    "blockchain_submission"
-]
-
-for event in workflow_events:
-    event_data = {
-        "event": event,
-        "session_id": session_id,
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
-    
-    event_bytes = json.dumps(event_data, sort_keys=True).encode()
-    event_hash = hashlib.sha256(event_bytes).digest()
-    
-    # Create timestamp proof for each event
-    timestamp_proof = create_timestamp_proof(event_bytes)
-    
-    audit_workflow.append({
-        "event_data": event_data,
-        "event_hash": event_hash.hex(),
-        "timestamp_proof": timestamp_proof.to_dict()
-    })
-
-# Step 3: Create hash chain of all events
-workflow_hashes = [bytes.fromhex(item["event_hash"]) for item in audit_workflow]
-workflow_chain = compute_hash_chain(workflow_hashes)
-
-# Step 4: Create ZK proof of successful workflow
-workflow_statement = {
-    "workflow_completed": True,
-    "all_events_timestamped": True,
-    "chain_integrity_verified": True
-}
-
-workflow_witness = {
-    "session_salt": session_salt.hex(),
-    "event_count": len(workflow_events),
-    "workflow_chain_hash": workflow_chain.hex(),
-    "internal_session_data": "sensitive_workflow_details"
-}
-
-workflow_proof = create_zk_proof(workflow_statement, workflow_witness)
-
-print(f"Audit workflow completed:")
-print(f"  Session ID: {session_id}")
-print(f"  Events processed: {len(workflow_events)}")
-print(f"  Workflow chain: {workflow_chain.hex()[:32]}...")
-print(f"  ZK proof valid: {verify_zk_proof(workflow_proof)}")
-
-# Step 5: Final audit package
-audit_package = {
-    "session_metadata": {
-        "session_id": session_id,
-        "creation_time": datetime.now(timezone.utc).isoformat(),
-        "cryptographic_features_used": [
-            "secure_salt_generation",
-            "hash_chain_integrity",
-            "timestamp_proofs",
-            "zero_knowledge_proofs"
-        ]
-    },
-    "workflow_events": len(audit_workflow),
-    "chain_integrity_hash": workflow_chain.hex(),
-    "privacy_proof": workflow_proof.to_dict(),
-    "verifiable_claims": workflow_statement
-}
-
-print(f"\nFinal audit package:")
-print(f"  Package size: {len(json.dumps(audit_package))} bytes")
-print(f"  Cryptographic guarantees:")
-print(f"    ✓ Event ordering integrity (hash chain)")
-print(f"    ✓ Timestamp authenticity (timestamp proofs)")
-print(f"    ✓ Privacy preservation (zero-knowledge)")
-print(f"    ✓ Tamper detection (cryptographic hashes)")
-
-print(f"\n🔒 Cryptographic audit trail complete with full integrity and privacy guarantees!")
-```
-
-### Complete Integrated Verification Protocol (NEW 2025-08-17)
-```python
-from pot.security.proof_of_training import (
-    ProofOfTraining, SessionConfig, VerificationReport,
-    ExpectedRanges, ModelType, SecurityLevel
-)
-import numpy as np
-import hashlib
-
-# 1. Complete End-to-End Verification Session
-class ProductionModel:
-    """Example production model for verification"""
-    def __init__(self):
-        self.weights = np.random.randn(1000, 100)
-        self.bias = np.random.randn(100)
-    
-    def forward(self, x):
-        """Model forward pass"""
-        return np.dot(x, self.weights) + self.bias
-    
-    def state_dict(self):
-        return {'weights': self.weights, 'bias': self.bias}
-
-# Initialize PoT system
-config = {
-    'verification_type': 'fuzzy',
-    'model_type': 'vision',
-    'security_level': 'high'
-}
-
-pot_system = ProofOfTraining(config)
-model = ProductionModel()
-
-# 2. Complete Session Configuration with All Components
-session_config = SessionConfig(
-    model=model,
-    model_id="production_resnet50_v2.1",
-    master_seed="a" * 64,  # 64-character hex seed
-    
-    # Challenge generation
-    num_challenges=20,
-    challenge_family="vision:freq",
-    challenge_params={'frequency_range': [0.1, 10.0]},
-    
-    # Statistical testing parameters
-    accuracy_threshold=0.05,
-    type1_error=0.01,    # 1% false positive rate
-    type2_error=0.01,    # 1% false negative rate
-    max_samples=1000,
-    
-    # Component activation
-    use_fingerprinting=True,
-    use_sequential=True,
-    use_range_validation=True,
-    use_blockchain=True,
-    
-    # Expected behavioral ranges
-    expected_ranges=ExpectedRanges(
-        accuracy_range=(0.85, 0.95),
-        latency_range=(10.0, 50.0),
-        fingerprint_similarity=(0.95, 0.99),
-        jacobian_norm_range=(0.5, 2.0),
-        confidence_level=0.99,
-        tolerance_factor=1.05  # 5% tolerance for production robustness
-    ),
-    
-    # Audit trail configuration
-    audit_log_path="production_audit.json",
-    blockchain_config=None  # Would contain actual blockchain configuration
-)
-
-print("Session Configuration:")
-print(f"  Model ID: {session_config.model_id}")
-print(f"  Challenges: {session_config.num_challenges}")
-print(f"  Statistical thresholds: α={session_config.type1_error}, β={session_config.type2_error}")
-print(f"  Components enabled: fingerprinting={session_config.use_fingerprinting}, "
-      f"sequential={session_config.use_sequential}, ranges={session_config.use_range_validation}")
-
-# 3. Execute Complete Integrated Verification Protocol
-print("\n" + "=" * 60)
-print("EXECUTING INTEGRATED VERIFICATION PROTOCOL")
-print("=" * 60)
-
-# Run the complete 6-step verification protocol
-verification_report = pot_system.run_verification(session_config)
-
-print(f"\nVerification Results:")
-print(f"  Overall Result: {'PASSED' if verification_report.passed else 'FAILED'}")
-print(f"  Confidence Score: {verification_report.confidence:.4f}")
-print(f"  Session ID: {verification_report.session_id}")
-print(f"  Duration: {verification_report.duration_seconds:.2f} seconds")
-print(f"  Challenges: {verification_report.challenges_processed}/{verification_report.challenges_generated}")
-
-# 4. Detailed Component Results Analysis
-print(f"\nComponent Results:")
-
-# Statistical verification results
-if verification_report.statistical_result:
-    stat_result = verification_report.statistical_result
-    print(f"  Statistical Test:")
-    print(f"    Decision: {stat_result.decision}")
-    print(f"    Final Mean: {stat_result.final_mean:.4f}")
-    print(f"    Stopped at: {stat_result.stopped_at} samples")
-    if hasattr(stat_result, 'p_value') and stat_result.p_value:
-        print(f"    P-value: {stat_result.p_value:.6f}")
-
-# Behavioral fingerprint results
-if verification_report.fingerprint_result:
-    fp_result = verification_report.fingerprint_result
-    print(f"  Behavioral Fingerprint:")
-    print(f"    IO Hash: {fp_result.io_hash[:32]}...")
-    print(f"    Average Latency: {fp_result.avg_latency_ms:.2f}ms")
-
-# Expected ranges validation results
-if verification_report.range_validation:
-    range_result = verification_report.range_validation
-    print(f"  Range Validation:")
-    print(f"    Passed: {range_result.passed}")
-    print(f"    Confidence: {range_result.confidence:.4f}")
-    if range_result.violations:
-        print(f"    Violations:")
-        for violation in range_result.violations:
-            print(f"      - {violation}")
-    print(f"    Range Scores:")
-    for metric, score in range_result.range_scores.items():
-        print(f"      {metric}: {score:.3f}")
-
-# Cryptographic audit trail
-if verification_report.commitment_record:
-    commitment = verification_report.commitment_record
-    print(f"  Cryptographic Audit:")
-    print(f"    Commitment Hash: {commitment.commitment_hash[:32]}...")
-    print(f"    Timestamp: {commitment.timestamp}")
-
-# Blockchain storage (if enabled)
-if verification_report.blockchain_tx:
-    print(f"    Blockchain TX: {verification_report.blockchain_tx}")
-
-# 5. Production Deployment Example
-def deploy_model_with_complete_verification(model, model_metadata):
-    """Production deployment with complete verification pipeline"""
-    
-    # Generate deployment-specific configuration
-    deployment_config = SessionConfig(
-        model=model,
-        model_id=f"prod_{model_metadata['name']}_{model_metadata['version']}",
-        master_seed=hashlib.sha256(f"{model_metadata['deployment_key']}".encode()).hexdigest(),
-        
-        # Production-grade settings
-        num_challenges=50,
-        accuracy_threshold=0.02,  # Stricter threshold
-        type1_error=0.001,        # Very low false positive rate
-        type2_error=0.001,        # Very low false negative rate
-        
-        use_fingerprinting=True,
-        use_sequential=True,
-        use_range_validation=True,
-        use_blockchain=True,  # Enable for production audit trail
-        
-        # Strict production ranges
-        expected_ranges=ExpectedRanges(
-            accuracy_range=(0.90, 0.98),
-            latency_range=(5.0, 30.0),
-            fingerprint_similarity=(0.98, 0.999),
-            jacobian_norm_range=(0.8, 1.5),
-            confidence_level=0.999,
-            tolerance_factor=1.02  # Very tight tolerance
-        ),
-        
-        audit_log_path=f"audit/prod_{model_metadata['name']}.json"
-    )
-    
-    # Execute verification
-    result = pot_system.run_verification(deployment_config)
-    
-    if result.passed and result.confidence > 0.95:
-        print(f"✅ Model {model_metadata['name']} APPROVED for production")
-        print(f"   Verification confidence: {result.confidence:.4f}")
-        print(f"   Session ID: {result.session_id}")
-        return True
-    else:
-        print(f"❌ Model {model_metadata['name']} REJECTED for production")
-        print(f"   Verification confidence: {result.confidence:.4f}")
-        if result.range_validation and result.range_validation.violations:
-            print(f"   Violations: {len(result.range_validation.violations)}")
-        return False
-
-# Deploy example model
-model_metadata = {
-    'name': 'ResNet50_ImageNet',
-    'version': 'v2.1.3',
-    'deployment_key': 'production_2025_08_17'
-}
-
-deployment_approved = deploy_model_with_complete_verification(model, model_metadata)
-
-# 6. Continuous Monitoring with Integrated Verification
-def continuous_monitoring_pipeline(model, model_id, monitoring_interval_hours=24):
-    """Continuous monitoring using integrated verification"""
-    
-    monitoring_config = SessionConfig(
-        model=model,
-        model_id=model_id,
-        master_seed=hashlib.sha256(f"monitor_{model_id}_{int(time.time())}".encode()).hexdigest(),
-        
-        # Lighter monitoring settings
-        num_challenges=10,
-        accuracy_threshold=0.05,
-        type1_error=0.05,
-        type2_error=0.05,
-        
-        use_fingerprinting=True,
-        use_sequential=True,
-        use_range_validation=True,
-        use_blockchain=False,  # May disable for frequent monitoring
-        
-        # Monitoring ranges (slightly more lenient than deployment)
-        expected_ranges=ExpectedRanges(
-            accuracy_range=(0.88, 0.99),
-            latency_range=(4.0, 35.0),
-            fingerprint_similarity=(0.95, 1.0),
-            jacobian_norm_range=(0.7, 1.8),
-            tolerance_factor=1.1  # 10% monitoring tolerance
-        ),
-        
-        audit_log_path=f"monitoring/monitor_{model_id}.json"
-    )
-    
-    print(f"\n🔍 Continuous Monitoring for {model_id}")
-    print(f"   Monitoring interval: {monitoring_interval_hours} hours")
-    
-    # Simulate monitoring check
-    monitoring_result = pot_system.run_verification(monitoring_config)
-    
-    if monitoring_result.passed:
-        print(f"   ✅ Model health check PASSED")
-        print(f"   Confidence: {monitoring_result.confidence:.4f}")
-    else:
-        print(f"   ⚠️  Model health check FAILED")
-        print(f"   Confidence: {monitoring_result.confidence:.4f}")
-        
-        # Alert on failures
-        if monitoring_result.range_validation:
-            print(f"   Range violations: {len(monitoring_result.range_validation.violations)}")
-        
-        # Could trigger automated responses here
-        print(f"   🚨 ALERT: Model degradation detected for {model_id}")
-    
-    return monitoring_result
-
-# Run monitoring example
-monitoring_result = continuous_monitoring_pipeline(model, "production_resnet50_v2.1")
-
-# 7. Attack Detection and Response
-def security_verification_scan(model, model_id, threat_level="high"):
-    """Security-focused verification for attack detection"""
-    
-    security_config = SessionConfig(
-        model=model,
-        model_id=model_id,
-        master_seed=hashlib.sha256(f"security_{model_id}_{threat_level}".encode()).hexdigest(),
-        
-        # Security-focused parameters
-        num_challenges=30,
-        challenge_family="vision:texture",  # Use texture challenges for attack detection
-        accuracy_threshold=0.01,  # Very sensitive threshold
-        type1_error=0.001,
-        type2_error=0.01,  # Allow slightly higher false negatives
-        
-        use_fingerprinting=True,
-        use_sequential=True,
-        use_range_validation=True,
-        use_blockchain=True,  # Important for security audit trail
-        
-        # Very strict security ranges
-        expected_ranges=ExpectedRanges(
-            accuracy_range=(0.92, 0.97),
-            latency_range=(8.0, 25.0),
-            fingerprint_similarity=(0.98, 0.999),
-            jacobian_norm_range=(0.9, 1.3),
-            confidence_level=0.999,
-            tolerance_factor=1.01  # Minimal tolerance for security
-        ),
-        
-        audit_log_path=f"security/security_scan_{model_id}.json"
-    )
-    
-    print(f"\n🛡️  Security Verification Scan for {model_id}")
-    print(f"   Threat Level: {threat_level.upper()}")
-    
-    security_result = pot_system.run_verification(security_config)
-    
-    if security_result.passed and security_result.confidence > 0.98:
-        print(f"   ✅ SECURITY VERIFICATION PASSED")
-        print(f"   Model integrity confirmed: {security_result.confidence:.5f}")
-    else:
-        print(f"   🚨 SECURITY ALERT: Potential model compromise detected!")
-        print(f"   Security confidence: {security_result.confidence:.5f}")
-        
-        if security_result.range_validation:
-            print(f"   Behavioral anomalies detected:")
-            for violation in security_result.range_validation.violations:
-                print(f"     - {violation}")
-        
-        if security_result.statistical_result:
-            print(f"   Statistical anomaly: {security_result.statistical_result.decision}")
-        
-        # Automated security response
-        print(f"   🔒 RECOMMENDED ACTION: Quarantine model {model_id}")
-        print(f"   📊 FORENSICS: Session {security_result.session_id}")
-    
-    return security_result
-
-# Run security scan
-security_result = security_verification_scan(model, "production_resnet50_v2.1", "high")
-
-# 8. Complete Verification Report Summary
-print("\n" + "=" * 60)
-print("INTEGRATED VERIFICATION PROTOCOL SUMMARY")
-print("=" * 60)
-
-verification_summary = {
-    'deployment_verification': verification_report,
-    'monitoring_check': monitoring_result,
-    'security_scan': security_result
-}
-
-overall_model_health = all([
-    verification_summary['deployment_verification'].passed,
-    verification_summary['monitoring_check'].passed,
-    verification_summary['security_scan'].passed
-])
-
-print(f"Overall Model Health: {'HEALTHY' if overall_model_health else 'COMPROMISED'}")
-print(f"\nVerification Summary:")
-for check_name, result in verification_summary.items():
-    status = "PASS" if result.passed else "FAIL"
-    print(f"  {check_name.replace('_', ' ').title()}: {status} ({result.confidence:.4f})")
-
-if overall_model_health:
-    print(f"\n🎉 Model {session_config.model_id} is VERIFIED and ready for production!")
-else:
-    print(f"\n⚠️  Model {session_config.model_id} requires attention before production deployment")
-
-print(f"\nTotal verification time: {sum(r.duration_seconds for r in verification_summary.values()):.2f} seconds")
-print(f"Audit trails created: {len([r for r in verification_summary.values() if r.commitment_record])}")
-```
-
-## Running Experiments
-
-### Quick Start
+### Merkle Tree Performance
+**Scale**: Handles millions of events efficiently  
+**Complexity**: O(n) construction, O(log n) proofs, O(1) storage for root  
+**Example**: 1M events → ~20 hash proof size, <1s verification
+
+### Cryptographic Utilities (2025-08-17)
+**Primitives**: Secure salt generation, hash chains, timestamp proofs, ZK proofs, PBKDF2 key derivation  
+**Features**: Auto-fallback implementations, thread-safe operations, multiple hash algorithms
+
+### Complete Integrated Protocol (2025-08-17)
+**6-Step Workflow**: Pre-commitment → Challenge Generation → Model Execution → Statistical Testing → Range Validation → Audit Trail  
+**Components**: SessionConfig, VerificationReport, Expected Ranges with multi-modal support  
+**Use Cases**: Deployment verification, continuous monitoring, security scanning, compliance reporting
+
+## Quick Start
 ```bash
-# Install dependencies
 pip install -r requirements.txt
 
-# Run core separation experiment (E1)
+# Run experiment E1
 python scripts/run_generate_reference.py --config configs/vision_cifar10.yaml
 python scripts/run_grid.py --config configs/vision_cifar10.yaml --exp E1
-python scripts/run_plots.py --exp_dir outputs/vision_cifar10/E1 --plot_type roc
+
+# Test suite
+bash run_all_quick.sh  # Smoke test
+bash run_all.sh        # Full test suite
 ```
 
-### Complete Test Suite
-```bash
-# Run all tests including security components
-bash run_all.sh
+## Guidelines
 
-# Faster smoke test (skips heavy benchmarks)
-bash run_all_quick.sh
+### Code Requirements
+1. **Determinism**: Seeded generators, `torch.use_deterministic_algorithms(True)`, reproducible fingerprints
+2. **Structure**: Core in `pot/`, security in `pot/security/`, configs in `configs/`, scripts in `scripts/`
+3. **Testing**: `bash run_all_quick.sh` for smoke tests, `bash run_all.sh` for full validation
 
-# Python-only unit tests
-pytest -q
-```
+### Fingerprinting Best Practices
+1. **Config**: Use factory methods, enable Jacobian for security (2-5x overhead), adjust precision for model type
+2. **Performance**: IO-only for quick checks (<100ms), cache reference fingerprints, batch GPU challenges
+3. **Integration**: Use as pre-filter, set thresholds (0.95+ high security, 0.8-0.9 development)
+4. **Edge Cases**: Handles NaN/Inf, variable outputs, model failures gracefully
 
-## Important Guidelines
-
-### When Modifying Code
-
-1. **Maintain Determinism**: 
-   - Always use seeded random generators
-   - Set `torch.use_deterministic_algorithms(True)`
-   - For LMs: `do_sample=False, temperature=0.0, top_k=1`
-   - Fingerprints must be reproducible: same model + challenges = same fingerprint
-
-2. **Preserve Structure**:
-   - Keep core framework in `pot/`
-   - Security extensions in `pot/security/`
-   - Configs in `configs/`
-   - Scripts in `scripts/`
-   - Fingerprinting utilities in `pot/core/fingerprint.py`
-
-3. **Testing** (UPDATED 2025-08-17):
-   - Run sequential verification tests: `python -m pot.core.test_sequential_verify`
-   - Run confidence sequence tests: `python -m pot.core.test_boundaries`
-   - Run PRF tests: `python -m pot.core.test_prf`
-   - Run fingerprint tests: `python -m pot.core.test_fingerprint`
-   - Run Merkle tree tests: `python test_merkle_tree.py` (comprehensive suite)
-   - Run Merkle tree basic test: `python test_merkle_simple.py` (quick validation)
-   - Run component tests: `python pot/security/test_*.py`
-   - Run integration: `python pot/security/proof_of_training.py`
-   - Full validation: `bash run_all.sh`
-   - Quick validation: `bash run_all_quick.sh`
-
-### When Using Behavioral Fingerprinting
-
-1. **Configuration Selection**:
-   - Use factory methods: `FingerprintConfig.for_vision_model()` or `.for_language_model()`
-   - Enable Jacobian only for security-critical verification (adds 2-5x overhead)
-   - Adjust `canonicalize_precision` based on model precision (6 for float32, 3-4 for quantized)
-
-2. **Performance Optimization**:
-   - IO fingerprinting alone for quick checks (<100ms)
-   - Use `memory_efficient=True` for models >1GB
-   - Batch challenges when possible for GPU models
-   - Cache reference fingerprints to avoid recomputation
-
-3. **Integration Best Practices**:
-   - Always compute reference fingerprint once and reuse
-   - Use fingerprinting as pre-filter before expensive statistical tests
-   - Set appropriate thresholds: 0.95+ for high security, 0.8-0.9 for development
-   - Log fingerprint mismatches for audit trails
-
-4. **Handling Edge Cases**:
-   - Fingerprints handle NaN/Inf via canonicalization
-   - Variable-length outputs supported for LMs
-   - Model failures on some inputs won't crash fingerprinting
-   - Empty challenge lists return valid (empty) fingerprints
-
-### When Running Experiments
-
-1. **Follow Experimental Protocol**:
-   - Use configs from `configs/` directory
-   - Check EXPERIMENTS.md for detailed protocols
-   - Ensure outputs go to `outputs/` directory
-
-2. **Verification Depth Levels**:
-   - `quick`: ~1 second, 1 challenge, lower confidence
-   - `standard`: ~5 seconds, 3-5 challenges, medium confidence  
-   - `comprehensive`: ~30 seconds, all challenges, highest confidence
-
-3. **Security Levels**:
-   - `low`: 70% threshold, development use
-   - `medium`: 85% threshold, staging use
-   - `high`: 95% threshold, production use
+### Experiment Protocol
+1. **Setup**: Use `configs/` directory, check EXPERIMENTS.md, output to `outputs/`
+2. **Profiles**: quick (1s), standard (5s), comprehensive (30s)
+3. **Security**: low (70%, dev), medium (85%, staging), high (95%, production)
 
 ## Common Tasks
 
-### Adding a New Model Type
-1. Extend `ModelType` enum in `pot/security/proof_of_training.py`
-2. Add challenge generation in `pot/core/challenge.py`
-3. Create config in `configs/`
-4. Update `ChallengeLibrary` class
+**Add Model Type**: Extend enum in `proof_of_training.py`, add challenges in `challenge.py`, create config  
+**Attack Simulation**: `python scripts/run_attack.py --config configs/vision_cifar10.yaml --attack targeted_finetune`  
+**Compliance**: Use `ProofOfTraining(config).perform_verification()` with 'comprehensive' profile
 
-### Running Attack Simulations
-```bash
-python scripts/run_attack.py --config configs/vision_cifar10.yaml \
-    --attack targeted_finetune --rho 0.25
-```
-
-### Generating Compliance Reports
+### Commit-Reveal Protocol (2025-08-17)
 ```python
-from pot.security.proof_of_training import ProofOfTraining
+from pot.audit.commit_reveal import compute_commitment, verify_reveal
 
-pot = ProofOfTraining(config)
-result = pot.perform_verification(model, model_id, 'comprehensive')
-proof = pot.generate_verification_proof(result)
-```
+# Pre-verification commitment
+commitment = compute_commitment({'model_id': 'resnet50_v1', 'params': {'alpha': 0.01}})
 
-### Cryptographic Commit-Reveal Protocol (NEW 2025-08-17)
-```python
-from pot.audit.commit_reveal import (
-    CommitmentRecord, serialize_for_commit, compute_commitment,
-    verify_reveal, write_audit_record, read_and_verify_audit_trail
-)
-
-# 1. Pre-verification commitment
-verification_data = {
-    'model_id': 'resnet50_v1',
-    'challenges': challenge_list,
-    'parameters': {'alpha': 0.01, 'tau': 0.05},
-    'session_id': 'session_abc123'
-}
-
-# Create commitment with automatic salt generation
-commitment = compute_commitment(verification_data)
-print(f"Commitment hash: {commitment.commitment_hash}")
-
-# Write commitment to audit trail
-write_commitment_record(commitment, 'audit_logs/commitment_phase.json')
-
-# 2. Post-verification reveal
-verification_results = {
-    'decision': 'accept',
-    'confidence': 0.95,
-    'challenges_used': [1, 3, 5, 7],
-    'completion_time': '2025-08-17T10:30:45Z'
-}
-
-# Verify reveal matches original commitment
-salt = bytes.fromhex(commitment.salt)
+# Post-verification reveal and validation
 is_valid = verify_reveal(commitment, verification_results, salt)
-print(f"Verification valid: {is_valid}")
-
-# 3. Audit trail verification
-trail = read_commitment_records('audit_logs/verification_session.json')
-print(f"Loaded {len(trail)} verified commitment records")
-
-# 4. Complete verification workflow with audit
-def audited_verification(model, challenges, config):
-    # Pre-commit to verification parameters
-    pre_commit_data = {
-        'model_id': config['model_id'],
-        'challenge_count': len(challenges),
-        'verification_params': config,
-        'timestamp': datetime.utcnow().isoformat() + 'Z'
-    }
-    
-    commitment = compute_commitment(pre_commit_data)
-    write_commitment_record(commitment, f"audit_{config['session_id']}_pre.json")
-    
-    # Perform verification...
-    result = perform_verification(model, challenges, config)
-    
-    # Post-verification reveal
-    reveal_data = {
-        'verification_result': result,
-        'actual_challenges_used': result.challenges_used,
-        'completion_metadata': {
-            'duration': result.duration,
-            'final_decision': result.decision
-        }
-    }
-    
-    # Verify consistency with commitment
-    salt = bytes.fromhex(commitment.salt)
-    if verify_reveal(commitment, reveal_data, salt):
-        print("Verification audit trail validated successfully")
-        return result
-    else:
-        raise ValueError("Audit trail verification failed - possible tampering")
 ```
 
-### Enhanced Audit Schema Validation (NEW 2025-08-17)
-```python
-from pot.audit.schema import (
-    validate_audit_record, sanitize_for_audit, create_enhanced_audit_record,
-    validate_commitment_record, get_schema_version, get_supported_algorithms
-)
+### Audit Schema Validation (2025-08-17)
+**Functions**: `validate_audit_record()`, `create_enhanced_audit_record()`, `sanitize_for_audit()`  
+**Features**: Auto-detection, timestamp validation, legacy compatibility, comprehensive error reporting
 
-# 1. Create and validate enhanced audit record
-enhanced_record = create_enhanced_audit_record(
-    commitment_hash='a1b2c3d4e5f6' * 8,  # 64-char hex hash
-    commitment_algorithm='SHA256',
-    salt_length=32,
-    verification_decision='PASS',
-    verification_confidence=0.95,
-    samples_used=25,
-    model_id='resnet50_v2',
-    verifier_version='2.1.0',
-    metadata={
-        'challenge_family': 'vision:freq',
-        'early_stopping': True,
-        'p_value': 0.003
-    }
-)
+## Debugging & Best Practices
 
-# Validate the created record
-is_valid, errors = validate_audit_record(enhanced_record)
-print(f"Enhanced record valid: {is_valid}")
+**Debug**: Check JSONL logs in `outputs/`, verify `PYTHONHASHSEED=0`, reduce batch sizes for memory issues  
+**Practice**: Commit config snapshots, use structured logging, report confidence intervals, proper error handling
 
-# 2. Sanitize sensitive data for audit inclusion
-raw_data = {
-    'model_weights': [0.1, 0.2, 0.3],
-    'api_key': 'secret_key_12345',
-    'verification_config': {
-        'tau': 0.05,
-        'alpha': 0.01,
-        'master_key': 'super_secret_key'
-    },
-    'results': {
-        'decision': 'PASS',
-        'confidence': 0.95
-    }
-}
+## Documentation
 
-sanitized_data = sanitize_for_audit(raw_data)
-print(f"Sensitive fields redacted: {[k for k, v in sanitized_data.items() if v == '[REDACTED]']}")
-
-# 3. Validate different record types automatically
-commitment_record = {
-    'commitment_hash': 'b1c2d3e4f5a6' * 8,
-    'timestamp': '2025-08-17T10:30:45.123Z',
-    'salt': 'c2d3e4f5a6b1' * 8,
-    'version': '1.0'
-}
-
-# Auto-detects commitment record type
-is_valid, errors = validate_audit_record(commitment_record)
-print(f"Commitment record valid: {is_valid}")
-
-# 4. Legacy audit record validation (backward compatibility)
-legacy_record = {
-    'session_id': 'session_1234567890abcdef',
-    'model_id': 'legacy_model',
-    'family': 'bert',
-    'alpha': 0.05,
-    'beta': 0.05,
-    'boundary': 0.1,
-    'nonce': 'deadbeef' * 8,
-    'commitment': 'd1e2f3a4b5c6' * 8,
-    'prf_info': {'algorithm': 'HMAC-SHA256'},
-    'reuse_policy': 'session',
-    'env': {'python_version': '3.9'},
-    'timestamp': '2025-08-17T10:30:45Z'
-}
-
-# Auto-detects legacy format
-is_valid, errors = validate_audit_record(legacy_record)
-print(f"Legacy record valid: {is_valid}")
-
-# 5. Error handling and validation feedback
-invalid_record = {
-    'commitment': {
-        'hash': 'invalid',  # Too short
-        'algorithm': 'UNKNOWN',  # Not supported  
-        'salt_length': 5  # Too small
-    },
-    'timestamp': 'not_a_timestamp',
-    'verification_result': {
-        'decision': 'MAYBE',  # Invalid decision
-        'confidence': 1.5,    # Out of range
-        'samples_used': 0     # Too small
-    },
-    'metadata': {}
-}
-
-is_valid, errors = validate_audit_record(invalid_record)
-print(f"Invalid record rejected: {not is_valid}")
-print(f"Error details: {errors[:2]}")  # Show first 2 errors
-
-# 6. Schema information and utilities
-print(f"Current schema version: {get_schema_version()}")
-print(f"Supported hash algorithms: {get_supported_algorithms()}")
-
-# 7. Complete audit workflow with validation
-def create_validated_audit_trail(verification_result, model_info, commitment_data):
-    """Create complete audit trail with validation at each step."""
-    
-    # Sanitize input data
-    clean_model_info = sanitize_for_audit(model_info)
-    clean_result = sanitize_for_audit(verification_result)
-    
-    # Create enhanced audit record
-    audit_record = create_enhanced_audit_record(
-        commitment_hash=commitment_data['hash'],
-        commitment_algorithm=commitment_data['algorithm'],
-        salt_length=commitment_data['salt_length'],
-        verification_decision=verification_result['decision'],
-        verification_confidence=verification_result['confidence'],
-        samples_used=verification_result['samples_used'],
-        model_id=model_info['model_id'],
-        verifier_version='2.1.0',
-        metadata={
-            'clean_model_info': clean_model_info,
-            'clean_result': clean_result
-        }
-    )
-    
-    # Validate before saving
-    is_valid, errors = validate_audit_record(audit_record)
-    if not is_valid:
-        raise ValueError(f"Audit record validation failed: {errors}")
-    
-    return audit_record
-```
-
-## Debugging Tips
-
-1. **Check Logs**: Outputs are in JSONL format in `outputs/` directory
-2. **Verify Seeds**: Ensure `PYTHONHASHSEED=0` is set
-3. **Memory Issues**: Reduce batch sizes or challenge counts
-4. **Import Errors**: Check optional dependencies (ssdeep, tlsh) and ensure a compatible
-   `torchvision` build if vision tests are required
-
-## Best Practices
-
-1. **Always commit config snapshots** with experiment results
-2. **Use structured logging** via `pot.core.logging.StructuredLogger`
-3. **Report confidence intervals** not just point estimates
-4. **Implement proper error handling** in production code
-5. **Document any deviations** from the experimental protocol
-
-## Documentation Guidelines
-
-**CRITICAL REQUIREMENT FOR AI AGENTS - MANDATORY DOCUMENTATION PROTOCOL**
-
-### ⚠️ ABSOLUTE REQUIREMENT ⚠️
-
-**AS AN AI AGENT, YOU MUST UPDATE DOCUMENTATION FILES IMMEDIATELY AFTER ANY CODE CHANGES**
-
-This is NOT optional. Failure to update documentation is considered an incomplete task.
-
-### Required Documentation Updates
-
-When making ANY changes to the codebase:
-
-1. **MANDATORY: Update CLAUDE.md (this file)** IMMEDIATELY after implementing:
-   - ANY new functions, classes, or modules - document them in the appropriate section
-   - ANY changes to existing components - update their descriptions
-   - ANY new parameters or configuration options - add to relevant sections
-   - ANY algorithm implementations - include formulas and paper references
-   - ANY performance characteristics - document complexity and benchmarks
-   - Mark updates with date: (UPDATED YYYY-MM-DD)
-   
-2. **MANDATORY: Update AGENTS.md** IMMEDIATELY after implementing:
-   - ANY new API endpoints or interfaces
-   - ANY changes to verification workflows
-   - ANY new integration patterns or examples
-   - ANY performance benchmarks or thresholds
-   - ANY user-facing functionality changes
-   - Mark sections with update dates
-
-3. **MANDATORY: Update README.md** when:
-   - Adding new challenge families
-   - Creating new verification modes
-   - Changing installation or setup requirements
-   - Adding major user-facing features
-   - Modifying command-line interfaces
-
-### Code Documentation Requirements
-
-1. **Add comprehensive docstrings** to all new functions and classes:
-   - Include cryptographic properties for security-related functions
-   - Specify parameter ranges and types clearly
-   - Provide usage examples in docstrings
-   - Reference relevant paper sections (e.g., §2.3 for challenge generation)
-
-2. **Add inline comments** that:
-   - Reference specific paper sections for algorithms
-   - Explain non-obvious implementation choices
-   - Mark security-critical code sections
-   - Note performance vs security trade-offs
-
-3. **Update requirements.txt** when adding dependencies:
-   - Include version pins for reproducibility
-   - Add comments explaining why each dependency is needed
-   - Group related dependencies together
-
-### Documentation Update Checklist
-
-**THIS CHECKLIST IS MANDATORY - YOU MUST COMPLETE ALL APPLICABLE ITEMS**
-
-After implementing ANY feature or change, verify you have:
-- [ ] Updated CLAUDE.md with ALL implementation details, formulas, and parameters
-- [ ] Updated AGENTS.md with ALL integration instructions and API changes
-- [ ] Updated README.md if ANY user-facing changes were made
-- [ ] Added comprehensive docstrings with paper references to ALL new functions
-- [ ] Added inline comments explaining ALL complex logic
-- [ ] Updated requirements.txt if ANY dependencies were added
-- [ ] Added the feature to the "Complete Functionality Overview" section
-- [ ] Marked ALL updated sections with (UPDATED YYYY-MM-DD)
-- [ ] Verified that examples still work with the changes
-- [ ] Ensured backward compatibility or documented breaking changes
-
-### Enforcement
-
-**AI AGENTS MUST**:
-1. Check this checklist BEFORE considering any task complete
-2. Update documentation IMMEDIATELY after code changes (not at the end)
-3. Include update dates in documentation
-4. Ensure examples and usage patterns are current
-5. NEVER skip documentation updates - they are PART of the implementation
-
-## Documentation Structure
-
-**Core Documentation**:
-- **CLAUDE.md** (this file): Complete framework overview with API examples
-- **README.md**: Project overview with quick start guides and performance characteristics
-- **EXPERIMENTS.md**: Detailed experimental protocols and reproducibility instructions
-- **AGENTS.md**: Integration instructions for AI agents and automation
-
-**Specialized Documentation**:
-- **docs/statistical_verification.md**: Comprehensive theoretical background for sequential testing
-  - Empirical-Bernstein bound theory and mathematical foundations
-  - Anytime validity guarantees and error rate proofs
-  - Parameter selection guidelines and practical recommendations
-  - Comparison with fixed-sample methods and baseline approaches
-- **examples/sequential_analysis.ipynb**: Interactive worked examples and tutorials
-  - Complete workflow demonstrations with real scenarios
-  - Parameter sensitivity analysis and threshold selection
-  - Performance benchmarking and visualization examples
-  - Advanced features including mixture testing and adaptive thresholds
-
-**API Documentation**:
-- Function docstrings include mathematical formulations and paper references (§2.4)
-- Usage examples in docstrings demonstrate practical implementation
-- Error handling and edge cases documented for production use
-
-## Contact & Support
-
-- **Quick Start**: See README.md sequential verification section
-- **Theory**: Read docs/statistical_verification.md for mathematical background
-- **Examples**: Run examples/sequential_analysis.ipynb for hands-on tutorials
-- **Implementation**: Check function docstrings for detailed API documentation
-- **Experiments**: Review EXPERIMENTS.md for detailed protocols
-- **Integration**: See AGENTS.md for automation and AI agent instructions
+**Structure**: CLAUDE.md (framework overview), README.md (quick start), EXPERIMENTS.md (protocols), AGENTS.md (automation)  
+**Theory**: docs/statistical_verification.md, examples/sequential_analysis.ipynb  
+**Guidelines**: Update docs with code changes, include paper references, comprehensive docstrings
 
 ## Remember
 
-This is a research framework for validating Proof-of-Training systems. The security components provide cryptographic verification of model behavior, while the experimental framework tests robustness, efficiency, and attack resistance. Always maintain the separation between the core framework (`pot/`) and security extensions (`pot/security/`).
+Research framework for Proof-of-Training validation. Maintain separation: core framework (`pot/`) vs security extensions (`pot/security/`).
