@@ -1,0 +1,245 @@
+{
+  "timestamp": "2025-08-17T15:50:06.976178",
+  "experiments": [
+    {
+      "name": "Verification Types",
+      "data": [
+        {
+          "type": "exact",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00016570091247558594
+        },
+        {
+          "type": "exact",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00017189979553222656
+        },
+        {
+          "type": "exact",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.0002410411834716797
+        },
+        {
+          "type": "fuzzy",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 8.7738037109375e-05
+        },
+        {
+          "type": "fuzzy",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.0001819133758544922
+        },
+        {
+          "type": "fuzzy",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.00023293495178222656
+        },
+        {
+          "type": "statistical",
+          "depth": "quick",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 8.916854858398438e-05
+        },
+        {
+          "type": "statistical",
+          "depth": "standard",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.000125885009765625
+        },
+        {
+          "type": "statistical",
+          "depth": "comprehensive",
+          "verified": false,
+          "confidence": 0.0,
+          "duration": 0.0002238750457763672
+        }
+      ]
+    },
+    {
+      "name": "Security Levels",
+      "data": [
+        {
+          "level": "low",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false,
+            "range_calibrator": true,
+            "expected_ranges": false
+          }
+        },
+        {
+          "level": "medium",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false,
+            "range_calibrator": true,
+            "expected_ranges": false
+          }
+        },
+        {
+          "level": "high",
+          "threshold": 0.85,
+          "components": {
+            "fuzzy_verifier": false,
+            "provenance_tracker": true,
+            "token_normalizer": false,
+            "range_calibrator": true,
+            "expected_ranges": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "Model Types",
+      "data": [
+        {
+          "model_type": "vision",
+          "num_challenges": 3,
+          "challenge_types": "ndarray"
+        },
+        {
+          "model_type": "language",
+          "num_challenges": 3,
+          "challenge_types": "str"
+        },
+        {
+          "model_type": "multimodal",
+          "num_challenges": 2,
+          "challenge_types": "dict"
+        },
+        {
+          "model_type": "generic",
+          "num_challenges": 3,
+          "challenge_types": "ndarray"
+        }
+      ]
+    },
+    {
+      "name": "Challenge Effectiveness",
+      "data": [
+        {
+          "topology": "complex",
+          "dimension": 100,
+          "mean": -0.10161605868910145,
+          "std": 1.1731471281992105,
+          "sparsity": 0.01
+        },
+        {
+          "topology": "complex",
+          "dimension": 500,
+          "mean": 0.010020606294247898,
+          "std": 1.192793318588757,
+          "sparsity": 0.002
+        },
+        {
+          "topology": "complex",
+          "dimension": 1000,
+          "mean": 0.026415679547241097,
+          "std": 1.178912842652262,
+          "sparsity": 0.003
+        },
+        {
+          "topology": "sparse",
+          "dimension": 100,
+          "mean": 0.016546399013520004,
+          "std": 0.278638167695573,
+          "sparsity": 0.9
+        },
+        {
+          "topology": "sparse",
+          "dimension": 500,
+          "mean": 0.01866508171331803,
+          "std": 0.307731408240359,
+          "sparsity": 0.902
+        },
+        {
+          "topology": "sparse",
+          "dimension": 1000,
+          "mean": 0.009296834992814767,
+          "std": 0.32245173143706085,
+          "sparsity": 0.9
+        },
+        {
+          "topology": "normal",
+          "dimension": 100,
+          "mean": -0.10384651739409384,
+          "std": 0.9036161766446296,
+          "sparsity": 0.01
+        },
+        {
+          "topology": "normal",
+          "dimension": 500,
+          "mean": 0.006837994588647572,
+          "std": 0.9802715029966268,
+          "sparsity": 0.006
+        },
+        {
+          "topology": "normal",
+          "dimension": 1000,
+          "mean": 0.019332055822325486,
+          "std": 0.9787262077473543,
+          "sparsity": 0.004
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "data": [
+        {
+          "operation": "fuzzy_hash",
+          "size": 100,
+          "hash_time": 4.792213439941406e-05,
+          "verify_time": 3.2901763916015625e-05
+        },
+        {
+          "operation": "fuzzy_hash",
+          "size": 1000,
+          "hash_time": 4.1961669921875e-05,
+          "verify_time": 4.1961669921875e-05
+        },
+        {
+          "operation": "fuzzy_hash",
+          "size": 10000,
+          "hash_time": 0.0002918243408203125,
+          "verify_time": 2.9325485229492188e-05
+        },
+        {
+          "operation": "provenance",
+          "num_events": 10,
+          "log_time": 0.0002727508544921875,
+          "proof_time": 0.00011706352233886719
+        },
+        {
+          "operation": "provenance",
+          "num_events": 50,
+          "log_time": 0.0008809566497802734,
+          "proof_time": 0.00022602081298828125
+        },
+        {
+          "operation": "provenance",
+          "num_events": 100,
+          "log_time": 0.0018310546875,
+          "proof_time": 0.0005738735198974609
+        }
+      ]
+    }
+  ]
+}

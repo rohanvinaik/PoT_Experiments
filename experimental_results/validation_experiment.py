@@ -73,19 +73,8 @@ def experiment_verification_types():
             
             # Mock model
             class MockModel:
-                def __init__(self):
-                    # Set seed for consistent responses
-                    np.random.seed(42)
-                    
                 def forward(self, x):
-                    # Return deterministic output based on input
-                    if isinstance(x, np.ndarray):
-                        seed = int(np.sum(x) * 1000) % 2**32
-                    else:
-                        seed = hash(str(x)) % 2**32
-                    np.random.seed(seed)
                     return np.random.randn(10)
-                    
                 def state_dict(self):
                     return {'layer': 'weights'}
             
