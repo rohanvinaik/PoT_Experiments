@@ -17,7 +17,13 @@ from transformers import AutoTokenizer
 from ..core.stats import empirical_bernstein_bound, t_statistic
 from ..core.sequential import SequentialTester, SPRTResult
 from ..core.challenge import generate_challenges, ChallengeConfig
-from .fuzzy_hash import TokenSpaceNormalizer, NGramFuzzyHasher, AdvancedFuzzyHasher
+from .fuzzy_hash import FuzzyHasher
+try:
+    from .fuzzy_hash import NGramFuzzyHasher, AdvancedFuzzyHasher
+except ImportError:
+    NGramFuzzyHasher = None
+    AdvancedFuzzyHasher = None
+from ..security.token_space_normalizer import TokenSpaceNormalizer
 from .models import LM
 
 
@@ -54,15 +60,17 @@ class LMVerifier:
         self.use_sequential = use_sequential
         
         # Initialize tokenizer and normalizer
-        self.tokenizer = reference_model.tok
-        self.normalizer = TokenSpaceNormalizer(self.tokenizer)
-        self.fuzzy_hasher = NGramFuzzyHasher()
+        self.tokenizer = reference_model.tok if hasattr(reference_model, 'tok') else None
+        if self.tokenizer:
+            self.normalizer = TokenSpaceNormalizer(self.tokenizer)
+        else:
+            self.normalizer = None
         
-        # Try to use advanced fuzzy hashing if available
-        try:
-            self.advanced_hasher = AdvancedFuzzyHasher()
-        except ImportError:
-            self.advanced_hasher = None
+        # Use basic FuzzyHasher since NGramFuzzyHasher doesn't exist
+        self.fuzzy_hasher = FuzzyHasher()
+        
+        # Advanced hasher not available
+        self.advanced_hasher = None
         
         # Sequential tester if enabled
         if use_sequential:

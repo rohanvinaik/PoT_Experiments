@@ -162,6 +162,57 @@ python scripts/test_llm_verification.py
 bash scripts/run_all.sh  # Includes LLM verification
 ```
 
+#### 🔥 One-Shot Fine-Tune Detection: Mistral vs Zephyr
+
+Test the PoT framework's ability to detect fine-tuned models with a single command:
+
+```bash
+# Prerequisites (one-time setup)
+pip install transformers torch scipy
+export PYTORCH_ENABLE_MPS_FALLBACK=1  # For Apple Silicon
+
+# Run the comparison (downloads models on first run ~28GB total)
+python scripts/compare_mistral_finetune.py
+
+# Expected output:
+# ✅ Self Match (baseline): PASSED - Same model accepted
+# ✅ Fine-tune Detection: PASSED - Zephyr correctly rejected as modified
+```
+
+**What This Test Demonstrates:**
+- **Base Model**: Mistral-7B-Instruct-v0.3 (reference)
+- **Fine-tuned Model**: Zephyr-7B-beta (Mistral fine-tuned on UltraChat)
+- **Expected Result**: The verifier should ACCEPT the self-match but REJECT Zephyr
+- **Why It Matters**: Proves the framework can detect unauthorized model modifications
+
+**Advanced Usage:**
+
+```bash
+# Test with your own fine-tuned model
+python scripts/compare_mistral_finetune.py \
+  --finetuned "your-org/your-fine-tuned-model"
+
+# Adjust detection sensitivity
+python scripts/compare_mistral_finetune.py \
+  --num-challenges 128 \  # More challenges (stricter)
+  --threshold 0.10        # Lower threshold (stricter)
+
+# Compare different base models
+python scripts/compare_mistral_finetune.py \
+  --base "meta-llama/Llama-2-7b-hf" \
+  --finetuned "meta-llama/Llama-2-7b-chat-hf"
+```
+
+**Command-Line Options:**
+- `--base`: Base model to use as reference (default: Mistral-7B-Instruct)
+- `--finetuned`: Fine-tuned model to test (default: Zephyr-7B)
+- `--num-challenges`: Number of verification challenges (default: 96)
+- `--threshold`: Similarity threshold, lower = stricter (default: 0.15)
+- `--output-dir`: Where to save results (default: experimental_results)
+
+**Note on First Run:**
+The first execution will download both models (~14GB each). Subsequent runs will use cached models and complete in 1-2 minutes.
+
 #### Direct LLM Verification
 
 For custom LLM verification, you can run the following code directly:
