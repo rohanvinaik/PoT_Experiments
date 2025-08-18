@@ -136,6 +136,229 @@ protected_result = defense.comprehensive_defense(
 )
 ```
 
+### 🤖 Language Model Verification (LLM Comparison)
+
+The PoT framework includes specialized verification for large language models (LLMs), allowing you to compare and verify model authenticity through behavioral fingerprinting.
+
+#### Prerequisites
+
+```bash
+# Install required dependencies
+pip install transformers torch
+
+# For Apple Silicon (M1/M2/M3) users, set this environment variable:
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+```
+
+#### Quick Test: Mistral-7B vs GPT-2
+
+Run the pre-configured test that compares Mistral-7B against GPT-2:
+
+```bash
+# Run the standalone LLM verification test
+python scripts/test_llm_verification.py
+
+# Or run as part of the test suite
+bash scripts/run_all.sh  # Includes LLM verification
+```
+
+#### Direct LLM Verification
+
+For custom LLM verification, you can run the following code directly:
+
+```python
+#!/usr/bin/env python3
+import os, time, json, torch, pathlib
+
+# Set environment for MPS compatibility (Apple Silicon)
+os.environ['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
+
+# Activate virtual environment if needed
+# source ~/.venv/bin/activate
+
+# --- Minimal HuggingFace Adapter (MPS-safe) ---
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+class HFAdapterLM:
+    """Lightweight adapter for HuggingFace language models"""
+    def __init__(self, model_name: str, device=None, seed: int = 0):
+        torch.manual_seed(seed)
+        self.tok = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+        self.m = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            torch_dtype=(torch.float16 if torch.backends.mps.is_available() else None),
+            attn_implementation="eager",  # MPS-compatible attention
+        ).eval()
+        self.device = device or ("mps" if torch.backends.mps.is_available() else "cpu")
+        self.m = self.m.to(self.device)
+        if self.tok.pad_token is None:
+            self.tok.pad_token = self.tok.eos_token or self.tok.unk_token
+
+    @torch.no_grad()
+    def generate(self, prompt: str, max_new_tokens: int = 64) -> str:
+        """Generate text from prompt using greedy decoding"""
+        dev = next(self.m.parameters()).device
+        enc = self.tok(prompt, return_tensors="pt")
+        enc = {k: v.to(dev) for k, v in enc.items()}
+        out = self.m.generate(
+            **enc,
+            do_sample=False,            # Deterministic (greedy)
+            max_new_tokens=max_new_tokens,
+            pad_token_id=self.tok.pad_token_id,
+            return_dict_in_generate=True,
+        )
+        return self.tok.decode(out.sequences[0], skip_special_tokens=True)
+
+# --- Import PoT Verifier ---
+from pot.lm.verifier import LMVerifier
+from pot.lm.lm_config import LMVerifierConfig
+
+# --- Configure Models ---
+# Reference model (the "authentic" model we're verifying against)
+REF_MODEL = "mistralai/Mistral-7B-Instruct-v0.3"  # Or any HF model
+# Candidate models to test
+CANDIDATE_POS = REF_MODEL  # Same model, different seed (should ACCEPT)
+CANDIDATE_NEG = "gpt2"     # Different model (should REJECT)
+
+# Load models
+print("Loading reference model...")
+ref = HFAdapterLM(REF_MODEL, seed=1)
+
+print("Loading candidate models...")
+cand_pos = HFAdapterLM(CANDIDATE_POS, device=ref.device, seed=2)
+cand_neg = HFAdapterLM(CANDIDATE_NEG, device=ref.device, seed=3)
+
+# --- Configure Verifier ---
+cfg = LMVerifierConfig(
+    model_name="hf",
+    device=str(ref.device),
+    num_challenges=32,           # Increase for tighter bounds (64/128)
+    verification_method="sequential",  # Or "batch" for fixed-size
+    sprt_alpha=0.001,           # False Accept Rate target
+    sprt_beta=0.01,             # False Reject Rate target  
+    fuzzy_threshold=0.20,       # Similarity threshold
+    difficulty_curve="linear",  # Challenge difficulty progression
+)
+
+# Initialize verifier
+verifier = LMVerifier(reference_model=ref, config=cfg)
+
+# --- Run Verification ---
+def verify_model(candidate, test_name):
+    """Run verification and display results"""
+    print(f"\n{'='*50}")
+    print(f"Testing: {test_name}")
+    print('-'*50)
+    
+    t0 = time.time()
+    result = verifier.verify(candidate, None)
+    elapsed = time.time() - t0
+    
+    # Display results
+    print(f"Decision: {'ACCEPT ✓' if result.get('accepted') else 'REJECT ✗'}")
+    print(f"Statistical: {result.get('decision', 'N/A')}")
+    print(f"P-value: {result.get('p_value', 0):.6f}")
+    print(f"Challenges used: {result.get('n_used', 'N/A')}")
+    print(f"Time: {elapsed:.2f}s")
+    
+    # Save detailed results
+    pathlib.Path("experimental_results").mkdir(exist_ok=True)
+    with open(f"experimental_results/llm_{test_name}.json", "w") as f:
+        json.dump(result, f, indent=2)
+    
+    return result
+
+# Test 1: Same model, different seed (should ACCEPT)
+res1 = verify_model(cand_pos, "self_vs_self")
+
+# Test 2: Different models (should REJECT)  
+res2 = verify_model(cand_neg, "mistral_vs_gpt2")
+
+print(f"\n{'='*50}")
+print("SUMMARY")
+print('-'*50)
+if res1.get('accepted'):
+    print("✅ Test 1 PASSED: Same model correctly accepted")
+else:
+    print("❌ Test 1 FAILED: Same model incorrectly rejected")
+
+if not res2.get('accepted'):
+    print("✅ Test 2 PASSED: Different model correctly rejected")
+else:
+    print("❌ Test 2 FAILED: Different model incorrectly accepted")
+```
+
+#### Advanced Configuration
+
+The `LMVerifierConfig` supports various parameters for fine-tuning verification:
+
+```python
+config = LMVerifierConfig(
+    # Model settings
+    model_name="hf",              # HuggingFace models
+    device="cuda",                # Or "mps" for Apple Silicon, "cpu"
+    
+    # Challenge settings
+    num_challenges=64,            # More challenges = tighter bounds
+    challenge_type="template",    # Or "random", "adversarial"
+    difficulty_curve="exponential", # Or "linear", "constant"
+    
+    # Verification settings
+    verification_method="sequential",  # Or "batch"
+    sprt_alpha=0.001,            # Target False Accept Rate
+    sprt_beta=0.01,              # Target False Reject Rate
+    
+    # Similarity settings
+    fuzzy_threshold=0.15,        # Lower = stricter matching
+    distance_metric="cosine",    # Or "euclidean", "manhattan"
+    
+    # Performance settings
+    max_tokens=128,              # Max generation length
+    batch_size=8,                # For batch verification
+    cache_challenges=True,       # Cache for repeated verifications
+)
+```
+
+#### Supported Models
+
+The LLM verifier works with any HuggingFace-compatible model:
+
+- **Large Models**: Llama-2, Mistral, Falcon, MPT
+- **Small Models**: GPT-2, DistilGPT, BLOOM
+- **Fine-tuned Models**: Any HF model repository
+- **Local Models**: Models loaded from disk
+
+#### Performance Tips
+
+1. **GPU Acceleration**: Use CUDA or MPS for faster inference
+2. **Batch Verification**: Process multiple challenges simultaneously
+3. **Challenge Caching**: Reuse challenges across verifications
+4. **Model Quantization**: Use int8/int4 quantization for large models
+5. **Sequential Testing**: Enable early stopping to reduce queries
+
+#### Troubleshooting
+
+**Out of Memory**: Reduce `batch_size` or use model quantization
+```python
+# Load with 8-bit quantization
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    load_in_8bit=True,  # Or load_in_4bit=True
+    device_map="auto"
+)
+```
+
+**MPS Errors (Apple Silicon)**: Ensure environment variable is set
+```bash
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+```
+
+**Slow Verification**: Reduce `num_challenges` or enable caching
+```python
+config.num_challenges = 16  # Faster but less precise
+config.cache_challenges = True
+```
+
 ## 🔬 Core Components
 
 ### 1. Challenge Generation
