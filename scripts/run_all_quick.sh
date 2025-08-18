@@ -117,6 +117,13 @@ test_module "Coverage Proof" "test -f proofs/coverage_separation.tex && echo OK"
 test_module "Wrapper Proof" "test -f proofs/wrapper_detection.tex && echo OK"
 test_module "Proof Docs" "test -f docs/proofs/README.md && echo OK"
 
+# Run LLM verification test (quick version)
+echo -e "\n${YELLOW}LLM Verification Test:${NC}"
+if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then
+    export PYTORCH_ENABLE_MPS_FALLBACK=1
+fi
+test_module "LLM Verifier (Mistral vs GPT-2)" "timeout 60 python3 scripts/test_llm_verification.py > /dev/null 2>&1"
+
 # Run experimental validation with timeout
 echo -e "\n${YELLOW}Running Experimental Validation:${NC}"
 if timeout 30 python3 scripts/experimental_report.py > /dev/null 2>&1; then

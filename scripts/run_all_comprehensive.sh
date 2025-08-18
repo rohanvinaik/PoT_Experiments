@@ -163,6 +163,19 @@ run_test "TrainingProvenanceAuditor" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTH
 run_test "TokenSpaceNormalizer" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_token_normalizer.py" false
 run_test "ProofOfTraining System" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/proof_of_training.py" false
 
+print_section "LLM Verification Test"
+print_info "Testing LMVerifier with real language models (Mistral-7B vs GPT-2)"
+
+# Set environment for MPS fallback if needed
+if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then
+    export PYTORCH_ENABLE_MPS_FALLBACK=1
+fi
+
+run_test "LLMVerification (Mistral vs GPT-2)" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} scripts/test_llm_verification.py" false
+if [ -f "experimental_results/llm_result_self_vs_self.json" ]; then
+    print_info "LLM verification results saved to experimental_results/llm_result_*.json"
+fi
+
 # ============================================================================
 # PHASE 3: EXPERIMENTAL VALIDATION (E1-E7)
 # ============================================================================

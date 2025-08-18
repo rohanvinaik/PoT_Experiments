@@ -149,6 +149,24 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run LLM verification test (if dependencies available)
+print_header "RUNNING LLM VERIFICATION TEST"
+print_info "Testing LMVerifier with real language models (Mistral-7B vs GPT-2)"
+
+# Check for required environment variables
+if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then
+    export PYTORCH_ENABLE_MPS_FALLBACK=1
+fi
+
+if run_test "LLMVerification" "scripts/test_llm_verification.py"; then
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    print_info "LLM verification results saved to experimental_results/llm_result_*.json"
+else
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "LLM verification failed or skipped (may require model downloads)"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Run integrated system demo
 print_header "RUNNING INTEGRATED SYSTEM DEMO"
 

@@ -89,6 +89,13 @@ quick_test "ProvenanceAuditor Import" "${PYTHON} -c 'from pot.prototypes.trainin
 quick_test "TokenNormalizer Import" "${PYTHON} -c 'from pot.security.token_space_normalizer import TokenSpaceNormalizer; print(\"OK\")'"
 quick_test "ProofOfTraining Import" "${PYTHON} -c 'from pot.security.proof_of_training import ProofOfTraining; print(\"OK\")'"
 
+print_header "LM VERIFIER COMPONENTS"
+
+# Test LM verifier imports
+quick_test "LMVerifier Import" "${PYTHON} -c 'from pot.lm.verifier import LMVerifier; print(\"OK\")'"
+quick_test "LMVerifierConfig Import" "${PYTHON} -c 'from pot.lm.lm_config import LMVerifierConfig; print(\"OK\")'"
+quick_test "LLM Test Script" "test -f scripts/test_llm_verification.py"
+
 print_header "VALIDATION SCRIPTS"
 
 quick_test "Attack Simulator" "test -f scripts/run_attack_simulator.py"
