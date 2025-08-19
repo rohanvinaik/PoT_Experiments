@@ -62,6 +62,10 @@ class DeterministicMockModel:
     def __call__(self, x: Any) -> np.ndarray:
         """Make model callable."""
         return self.forward(x)
+    
+    def num_parameters(self) -> int:
+        """Return mock parameter count for compatibility."""
+        return 100  # Mock value for testing
 
 
 class LinearTestModel:
