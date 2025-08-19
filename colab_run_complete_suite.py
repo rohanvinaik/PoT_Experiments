@@ -254,7 +254,7 @@ def verify_fixes():
     if os.path.exists('scripts/test_llm_verification.py'):
         with open('scripts/test_llm_verification.py', 'r') as f:
             content = f.read()
-        if 'gpt2' in content and 'distilgpt2' in content and 'mistralai/Mistral-7B' not in content:
+        if 'gpt2' in content and 'distilgpt2' in content and 'mistral' not in content.lower():
             print("✅ LLM verification updated to use GPT-2 vs DistilGPT-2 (no tokens required)")
             fixes_status['llm_open_models'] = True
         else:
@@ -335,7 +335,7 @@ print("\n" + "=" * 70)
 print("PHASE 4: SPECIALIZED MODEL TESTS")
 print("=" * 70)
 
-# Run specialized test scripts with updated models
+# Run specialized test scripts with open models
 specialized_tests = [
     ('scripts/test_llm_verification.py', 'LLM Verification (GPT-2 vs DistilGPT-2)'),
     ('scripts/test_gpt2_variants.py', 'GPT-2 Variants Sequential Testing'),

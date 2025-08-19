@@ -165,7 +165,7 @@ run_test "TokenSpaceNormalizer" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} p
 run_test "ProofOfTraining System" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/proof_of_training.py" false
 
 print_section "LLM Verification Test"
-print_info "Testing LMVerifier with real language models (Mistral-7B vs GPT-2)"
+print_info "Testing LMVerifier with real language models (GPT-2 vs DistilGPT-2)"
 
 # Set environment for MPS fallback if needed
 if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then

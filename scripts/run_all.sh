@@ -158,7 +158,7 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
 # Run LLM verification test (if dependencies available)
 print_header "RUNNING LLM VERIFICATION TEST"
-print_info "Testing LMVerifier with real language models (Mistral-7B vs GPT-2)"
+print_info "Testing LMVerifier with real language models (GPT-2 vs DistilGPT-2)"
 
 # Check for required environment variables
 if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then

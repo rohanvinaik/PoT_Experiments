@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-LLM Verification Test - Comparing Mistral-7B and GPT-2
-Tests the LMVerifier module with real language models
+LLM Verification Test - Comparing GPT-2 and DistilGPT-2
+Tests the LMVerifier module with real language models (no tokens required)
 """
 
 import os
