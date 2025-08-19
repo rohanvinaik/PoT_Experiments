@@ -444,8 +444,10 @@ with open(validation_file, 'w') as f:
     f.write(validation_script)
 
 print("\n🚀 Running deterministic validation...")
+env = os.environ.copy()
+env['PYTHONPATH'] = POT_PATH
 result = subprocess.run([sys.executable, validation_file], 
-                       capture_output=True, text=True, cwd=POT_PATH)
+                       capture_output=True, text=True, cwd=POT_PATH, env=env)
 
 print(result.stdout)
 if result.stderr:
@@ -486,9 +488,13 @@ def run_component_test(test_name, test_file):
         return False
     
     try:
+        # Set up environment with proper PYTHONPATH
+        env = os.environ.copy()
+        env['PYTHONPATH'] = POT_PATH
+        
         result = subprocess.run([sys.executable, test_path],
                               capture_output=True, text=True, 
-                              cwd=POT_PATH, timeout=60)
+                              cwd=POT_PATH, timeout=60, env=env)
         
         if result.returncode == 0:
             print(f"  ✅ {test_name} passed")
@@ -712,8 +718,10 @@ with open(stress_file, 'w') as f:
     f.write(stress_test_script)
 
 print("\n🔥 Running stress tests and performance benchmarks...")
+env = os.environ.copy()
+env['PYTHONPATH'] = POT_PATH
 result = subprocess.run([sys.executable, stress_file], 
-                       capture_output=True, text=True, cwd=POT_PATH, timeout=300)
+                       capture_output=True, text=True, cwd=POT_PATH, timeout=300, env=env)
 
 print(result.stdout)
 if result.stderr and "error" in result.stderr.lower():
@@ -811,8 +819,10 @@ with open(llm_file, 'w') as f:
 print("\n🤖 Running LLM verification test...")
 print("  Note: This may download model files on first run")
 
+env = os.environ.copy()
+env['PYTHONPATH'] = POT_PATH
 result = subprocess.run([sys.executable, llm_file], 
-                       capture_output=True, text=True, cwd=POT_PATH, timeout=300)
+                       capture_output=True, text=True, cwd=POT_PATH, timeout=300, env=env)
 
 print(result.stdout)
 if result.stderr and "error" in result.stderr.lower():
