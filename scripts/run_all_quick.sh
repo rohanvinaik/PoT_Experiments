@@ -122,7 +122,7 @@ echo -e "\n${YELLOW}LLM Verification Test:${NC}"
 if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then
     export PYTORCH_ENABLE_MPS_FALLBACK=1
 fi
-test_module "LLM Verifier (Mistral vs GPT-2)" "timeout 60 python3 scripts/test_llm_verification.py > /dev/null 2>&1"
+test_module "LLM Verifier (GPT-2 vs DistilGPT-2)" "timeout 60 python3 scripts/test_llm_verification.py > /dev/null 2>&1"
 
 # Run experimental validation with timeout
 echo -e "\n${YELLOW}Running Experimental Validation:${NC}"

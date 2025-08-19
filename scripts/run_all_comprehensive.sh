@@ -172,7 +172,7 @@ if [ -n "${PYTORCH_ENABLE_MPS_FALLBACK:-}" ]; then
     export PYTORCH_ENABLE_MPS_FALLBACK=1
 fi
 
-run_test "LLMVerification (Mistral vs GPT-2)" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} scripts/test_llm_verification.py" false
+run_test "LLMVerification (GPT-2 vs DistilGPT-2)" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} scripts/test_llm_verification.py" false
 if [ -f "experimental_results/llm_result_self_vs_self.json" ]; then
     print_info "LLM verification results saved to experimental_results/llm_result_*.json"
 fi
