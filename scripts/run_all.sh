@@ -128,6 +128,13 @@ PASSED_TESTS=0
 FAILED_TESTS=0
 
 # Run individual component tests
+if run_test "StatisticalDifference" "pot/core/test_diff_decision.py"; then
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 if run_test "FuzzyHashVerifier" "pot/security/test_fuzzy_verifier.py"; then
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else

@@ -158,6 +158,7 @@ print_section "Attack Module Tests"
 run_test "Attack Functions" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} -c 'from pot.core.attacks import targeted_finetune, wrapper_attack; print(\"OK\")'"
 
 print_section "Security Component Tests"
+run_test "StatisticalDifference" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/core/test_diff_decision.py" false
 run_test "FuzzyHashVerifier" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_fuzzy_verifier.py" false
 run_test "TrainingProvenanceAuditor" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_provenance_auditor.py" false
 run_test "TokenSpaceNormalizer" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' ${PYTHON} pot/security/test_token_normalizer.py" false
