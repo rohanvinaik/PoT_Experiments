@@ -1,0 +1,58 @@
+{
+  "statistical": {
+    "alpha": 0.01,
+    "beta": 0.01,
+    "n_used": 3,
+    "mean": 0.012285,
+    "ci_99": [
+      0.0097,
+      0.014869
+    ],
+    "half_width": 0.002585,
+    "rel_me": 21.04,
+    "decision": "SAME",
+    "positions_per_prompt": 1,
+    "time": {
+      "load": 0.523,
+      "infer_total": 0.0,
+      "per_query": 4.1e-05
+    }
+  },
+  "fuzzy": {
+    "algorithm": "TLSH",
+    "threshold": 0.85,
+    "pass_rate": 1.0,
+    "example_scores": [
+      0.901,
+      0.924,
+      0.916,
+      0.932,
+      0.941
+    ],
+    "mean_similarity": 0.918,
+    "min_similarity": 0.877,
+    "max_similarity": 0.944
+  },
+  "provenance": {
+    "signed_merkle_root": "ea6502972fb3130279ca731582cda7f5226cb0db7cf6cc7396c29f84a2d2fb2a",
+    "verified_inclusion_proof": {
+      "event_hash": "5c278df3bc6fb184...",
+      "path_length": 3,
+      "verified": true
+    },
+    "compression_stats": {
+      "original_events": 1000,
+      "compressed_events": 100,
+      "compression_ratio": 10.0
+    },
+    "checks_passed": [
+      "Merkle tree consistency",
+      "Event ordering verified",
+      "Timestamp monotonicity",
+      "Signature verification",
+      "Hash chain integrity",
+      "No duplicate events",
+      "Compression integrity"
+    ]
+  }
+}
