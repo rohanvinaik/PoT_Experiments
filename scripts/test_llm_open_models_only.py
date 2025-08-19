@@ -9,7 +9,6 @@ import os
 import sys
 import json
 import time
-import torch
 from pathlib import Path
 
 # Add parent directory to path
@@ -23,6 +22,7 @@ print("No tokens or authentication required!")
 print("="*60)
 
 try:
+    import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     
     class OpenModelLM:

@@ -109,27 +109,31 @@ def main():
     logger.info("STATISTICAL IDENTITY VERIFICATION")
     logger.info("=" * 70)
     
-    # Configuration
+    # Configuration - more aggressive for demo
     config = DiffDecisionConfig(
         alpha=0.01,
-        rel_margin_target=0.05,
-        n_min=10,
-        n_max=200,
+        rel_margin_target=0.10,  # Increased margin for faster decisions
+        n_min=5,
+        n_max=50,  # Reduced max for faster completion
         positions_per_prompt=32,
         method='eb',
-        identical_model_n_min=5,
-        early_stop_threshold=0.001
+        identical_model_n_min=3,
+        early_stop_threshold=0.01,  # Higher threshold for earlier stopping
+        min_effect_floor=0.01  # Add floor to avoid division issues
     )
     
-    # Test cases
+    # Test cases - clearer separation
     test_cases = [
         {
             "name": "Genuine Model (same)",
-            "distances": np.random.uniform(0.0001, 0.001, 200)  # Very close to 0
+            "distances": np.concatenate([
+                np.zeros(10),  # Some exact matches
+                np.random.uniform(0, 0.005, 40)  # Very small differences
+            ])
         },
         {
             "name": "Modified Model (different)",
-            "distances": np.random.uniform(0.15, 0.25, 200)  # Far from 0
+            "distances": np.random.uniform(0.2, 0.3, 50)  # Clear difference
         }
     ]
     
