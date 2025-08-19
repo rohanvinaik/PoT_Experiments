@@ -8,15 +8,16 @@
 
 ```python
 # One-click PoT Test Suite for Google Colab
+!rm -rf PoT_Experiments  # Clean any previous clone
 !git clone https://github.com/rohanvinaik/PoT_Experiments.git
 !cd PoT_Experiments && python colab_all_pot_tests.py
 ```
 
-That's it! The notebook will:
-- Clone the repository
-- Install all dependencies
-- Run the complete test suite
-- Generate a comprehensive report
+## That's it! The notebook will:
+##- Clone the repository
+##- Install all dependencies
+##- Run the complete test suite
+##- Generate a comprehensive report
 
 ## Using the Full Notebook
 
