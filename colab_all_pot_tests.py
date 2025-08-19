@@ -37,28 +37,41 @@ import subprocess
 import time
 from datetime import datetime
 
-# Mount Google Drive
-from google.colab import drive
-drive.mount('/content/drive')
+# Detect if running in Colab environment
+IN_COLAB = False
+try:
+    import google.colab
+    IN_COLAB = True
+    # Only mount drive if in interactive Colab environment
+    try:
+        from google.colab import drive
+        drive.mount('/content/drive')
+        print("✅ Google Drive mounted")
+    except:
+        print("📁 Running without Google Drive (using GitHub clone)")
+except ImportError:
+    print("📁 Not in Colab environment - using local paths")
 
-# Option 1: Clone from GitHub (RECOMMENDED)
+# Setup: Clone from GitHub or use existing clone
 print("\n📥 Setting up PoT codebase...")
-print("Choose setup method:")
-print("1. Clone from GitHub (recommended)")
-print("2. Use existing Google Drive folder")
 
-# For automated running, use Option 1 by default
-SETUP_METHOD = 1  # Change to 2 if you have the codebase in Drive
-
-if SETUP_METHOD == 1:
-    # Clone from GitHub
+# Determine path based on environment
+if IN_COLAB or os.path.exists('/content'):
     POT_PATH = '/content/PoT_Experiments'
-    if os.path.exists(POT_PATH):
-        print(f"📁 Using existing clone at {POT_PATH}")
-    else:
+else:
+    # Running locally
+    POT_PATH = os.getcwd()
+    if not POT_PATH.endswith('PoT_Experiments'):
+        POT_PATH = os.path.join(POT_PATH, 'PoT_Experiments')
+
+# Clone if needed
+if os.path.exists(POT_PATH) and os.path.exists(os.path.join(POT_PATH, 'pot')):
+    print(f"📁 Using existing codebase at {POT_PATH}")
+else:
+    if IN_COLAB or os.path.exists('/content'):
         print("📥 Cloning PoT repository from GitHub...")
         result = subprocess.run(
-            ["git", "clone", "https://github.com/rohanvinaik/PoT_Experiments.git", "/content/PoT_Experiments"],
+            ["git", "clone", "https://github.com/rohanvinaik/PoT_Experiments.git", POT_PATH],
             capture_output=True, text=True
         )
         if result.returncode == 0:
@@ -66,48 +79,14 @@ if SETUP_METHOD == 1:
         else:
             print(f"❌ Clone failed: {result.stderr}")
             sys.exit(1)
-    
-    # Change to the PoT directory
-    os.chdir(POT_PATH)
-    sys.path.insert(0, POT_PATH)
-    
-else:
-    # Option 2: Use Google Drive (requires full codebase uploaded)
-    POT_PATH = '/content/drive/MyDrive/PoT_Experiments'  # UPDATE THIS PATH
-    
-    # Verify the path exists and has required structure
-    if not os.path.exists(POT_PATH):
-        print(f"❌ ERROR: PoT codebase not found at {POT_PATH}")
-        print("Please either:")
-        print("1. Set SETUP_METHOD = 1 to clone from GitHub")
-        print("2. Upload the complete PoT codebase to Google Drive")
-        sys.exit(1)
-    
-    # Check for required directories
-    required_dirs = ['pot', 'scripts', 'tests']
-    missing_dirs = [d for d in required_dirs if not os.path.exists(os.path.join(POT_PATH, d))]
-    
-    if missing_dirs:
-        print(f"⚠️ Warning: Missing directories: {missing_dirs}")
-        print("The codebase appears incomplete. Switching to GitHub clone...")
-        
-        # Fallback to GitHub clone
-        POT_PATH = '/content/PoT_Experiments'
-        if not os.path.exists(POT_PATH):
-            print("📥 Cloning PoT repository from GitHub...")
-            result = subprocess.run(
-                ["git", "clone", "https://github.com/rohanvinaik/PoT_Experiments.git", "/content/PoT_Experiments"],
-                capture_output=True, text=True
-            )
-            if result.returncode != 0:
-                print(f"❌ Clone failed: {result.stderr}")
-                sys.exit(1)
-        
-        os.chdir(POT_PATH)
-        sys.path.insert(0, POT_PATH)
     else:
-        os.chdir(POT_PATH)
-        sys.path.insert(0, POT_PATH)
+        print(f"❌ ERROR: PoT codebase not found at {POT_PATH}")
+        print("Please run from within the PoT_Experiments directory")
+        sys.exit(1)
+
+# Change to the PoT directory
+os.chdir(POT_PATH)
+sys.path.insert(0, POT_PATH)
 
 print(f"✅ Working directory: {os.getcwd()}")
 print(f"✅ PoT codebase ready at: {POT_PATH}")
