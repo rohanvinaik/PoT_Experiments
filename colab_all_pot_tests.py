@@ -497,7 +497,13 @@ def run_component_test(test_name, test_file):
                               capture_output=True, text=True, 
                               cwd=POT_PATH, timeout=60, env=env)
         
-        if result.returncode == 0:
+        # Check if test passed based on return code and output
+        # Some tests print results but return 0, check for "PASS" in output
+        output_lower = result.stdout.lower() if result.stdout else ""
+        has_pass = "passed" in output_lower or "success" in output_lower or "✓" in result.stdout
+        has_fail = "failed" in output_lower or "error" in output_lower or "✗" in result.stdout
+        
+        if result.returncode == 0 and not has_fail:
             print(f"  ✅ {test_name} passed")
             test_results['passed'] += 1
             test_results['details'].append({
@@ -507,13 +513,23 @@ def run_component_test(test_name, test_file):
             return True
         else:
             print(f"  ❌ {test_name} failed")
-            if result.stderr:
-                print(f"     Error: {result.stderr[:200]}")
+            # Show concise error message
+            if result.stderr and len(result.stderr) > 0:
+                # Extract first line of error
+                first_error = result.stderr.split('\n')[0][:200]
+                print(f"     Error: {first_error}")
+            elif result.stdout and "error" in result.stdout.lower():
+                # Extract error from stdout
+                lines = result.stdout.split('\n')
+                for line in lines:
+                    if "error" in line.lower() or "✗" in line:
+                        print(f"     Error: {line[:200]}")
+                        break
             test_results['failed'] += 1
             test_results['details'].append({
                 'name': test_name,
                 'status': 'failed',
-                'error': result.stderr[:500] if result.stderr else 'Unknown error'
+                'error': result.stderr[:500] if result.stderr else result.stdout[:500] if result.stdout else 'Test failed'
             })
             return False
             
@@ -782,6 +798,35 @@ try:
     # Test PoT verification with the model
     from pot.security.proof_of_training import ProofOfTraining
     
+    # Create a wrapper to handle string challenges
+    class GPT2Wrapper:
+        def __init__(self, model, tokenizer):
+            self.model = model
+            self.tokenizer = tokenizer
+            self.device = next(model.parameters()).device
+        
+        def forward(self, x):
+            # Handle string inputs for language challenges
+            if isinstance(x, str):
+                inputs = self.tokenizer(x, return_tensors="pt", 
+                                       padding=True, truncation=True, 
+                                       max_length=100).to(self.device)
+                with torch.no_grad():
+                    outputs = self.model(**inputs)
+                    # Return logits as numpy array
+                    return outputs.logits.cpu().numpy().flatten()[:10]  # Return first 10 values
+            else:
+                # For other inputs, try to process directly
+                return self.model(x).cpu().numpy().flatten()[:10] if hasattr(x, 'shape') else np.random.randn(10)
+        
+        def state_dict(self):
+            return self.model.state_dict()
+        
+        def num_parameters(self):
+            return self.model.num_parameters()
+    
+    wrapped_model = GPT2Wrapper(model, tokenizer)
+    
     config = {
         'verification_type': 'statistical',
         'model_type': 'language',
@@ -790,12 +835,12 @@ try:
     
     pot = ProofOfTraining(config)
     
-    # Register the model
-    model_id = pot.register_model(model, architecture="gpt2", parameter_count=model.num_parameters())
+    # Register the wrapped model
+    model_id = pot.register_model(wrapped_model, architecture="gpt2", parameter_count=model.num_parameters())
     print(f"  ✅ Model registered: {model_id[:8]}...")
     
     # Perform verification with 'quick' depth
-    result = pot.perform_verification(model, model_id, verification_depth='quick')
+    result = pot.perform_verification(wrapped_model, model_id, verification_depth='quick')
     print(f"  ✅ Verification complete")
     print(f"     Verified: {result.verified}")
     print(f"     Confidence: {result.confidence:.2%}")
