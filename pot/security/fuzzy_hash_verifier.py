@@ -291,7 +291,7 @@ class FuzzyHashVerifier:
     def __init__(
         self,
         similarity_threshold: float = 0.85,
-        algorithm: HashAlgorithm = HashAlgorithm.SSDEEP,
+        algorithm: HashAlgorithm = HashAlgorithm.TLSH,
         fallback_to_exact: bool = True,
         log_level: int = logging.INFO
     ):

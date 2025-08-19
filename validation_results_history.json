@@ -1,8 +1,8 @@
 {
   "metadata": {
     "created": "2025-08-17T16:41:39.916888",
-    "total_runs": 30,
-    "last_updated": "2025-08-17T16:53:49.628089"
+    "total_runs": 32,
+    "last_updated": "2025-08-19T15:53:28.911704"
   },
   "runs": [
     {
@@ -321,6 +321,36 @@
       }
     },
     {
+      "timestamp": "2025-08-19T15:51:50.620037",
+      "source_file": "reliable_validation_results_20250819_155150.json",
+      "validation_type": "deterministic",
+      "seed": 3201,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001312626732720269,
+        "min_verification_time": 9.195009867350261e-05,
+        "max_verification_time": 0.0001747608184814453,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-19T15:53:28.833943",
+      "source_file": "reliable_validation_results_20250819_155328.json",
+      "validation_type": "deterministic",
+      "seed": 1472,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00012233522203233506,
+        "min_verification_time": 8.996327718098958e-05,
+        "max_verification_time": 0.0001609325408935547,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
       "timestamp": "20250817_151611",
       "source_file": "experimental_results/validation_results_20250817_151611.json",
       "validation_type": "legacy",
@@ -458,11 +488,11 @@
   ],
   "statistics": {
     "deterministic": {
-      "total_runs": 21,
+      "total_runs": 23,
       "avg_success_rate": 1.0,
       "success_rate_std": 0.0,
-      "avg_verification_time": 0.00015394019071387235,
-      "verification_time_std": 2.490758184060106e-05,
+      "avg_verification_time": 0.00015158008262155137,
+      "verification_time_std": 2.503886431025309e-05,
       "avg_confidence": 1.0,
       "min_verification_time": 0.00012167294820149739,
       "max_verification_time": 0.00023033883836534288,
@@ -475,9 +505,9 @@
       "recent_10_success_rate": 0.6666666666666666
     },
     "overall": {
-      "total_runs": 30,
-      "avg_success_rate": 0.9,
-      "avg_verification_time": 0.00015394019071387235,
+      "total_runs": 32,
+      "avg_success_rate": 0.90625,
+      "avg_verification_time": 0.00015158008262155137,
       "date_range": {
         "earliest": "2025-08-17T15:54:06.118903",
         "latest": "20250817_164155"

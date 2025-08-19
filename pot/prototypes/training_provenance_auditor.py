@@ -628,17 +628,23 @@ class MerkleTree:
     def verify_proof(self, event_hash: str, proof: List[Tuple[str, str]], 
                     root_hash: str) -> bool:
         """Verify a Merkle proof"""
-        current_hash = event_hash
+        # The event_hash is a hex string, but we need to start with the 
+        # same hash that the leaf node has, which is the hash of the hex string
+        current_hash_bytes = hashlib.sha256(event_hash.encode()).digest()
         
         for sibling_hash, position in proof:
-            if position == 'right':
-                combined = current_hash + sibling_hash
-            else:
-                combined = sibling_hash + current_hash
+            sibling_hash_bytes = bytes.fromhex(sibling_hash)
             
-            current_hash = hashlib.sha256(combined.encode()).hexdigest()
+            if position == 'right':
+                combined_bytes = current_hash_bytes + sibling_hash_bytes
+            else:
+                combined_bytes = sibling_hash_bytes + current_hash_bytes
+            
+            current_hash_bytes = hashlib.sha256(combined_bytes).digest()
         
-        return current_hash == root_hash
+        # Convert back to hex for comparison
+        current_hash_hex = current_hash_bytes.hex()
+        return current_hash_hex == root_hash
 
 
 class ZeroKnowledgeProof:

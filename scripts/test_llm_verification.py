@@ -47,7 +47,7 @@ class HFAdapterLM:
 
 def main():
     print("=== LLM VERIFICATION TEST ===")
-    print("Testing LMVerifier with Mistral-7B vs GPT-2")
+    print("Testing LMVerifier with GPT-2 vs DistilGPT-2")
     print()
     
     # Check if transformers is available
@@ -70,25 +70,24 @@ def main():
             print(f"❌ Could not import LMVerifier: {e}")
             return 1
     
-    # --- models ---
-    REF = "mistralai/Mistral-7B-Instruct-v0.3"
-    NEG = "gpt2"  # tiny, fast negative control
+    # --- models (open, no gating) ---
+    REF = "gpt2"  # Reference: GPT-2 (124M params)
+    NEG = "distilgpt2"  # Candidate: DistilGPT-2 (82M params, distilled version)
     
     print(f"Loading reference model: {REF}")
     try:
         ref = HFAdapterLM(REF, seed=1)
         print(f"✓ Reference model loaded on device: {ref.device}")
     except Exception as e:
-        print(f"⚠️  Could not load Mistral model: {e}")
-        print("   This test requires downloading large models. Skipping.")
-        return 0
+        print(f"❌ Could not load reference model {REF}: {e}")
+        return 1
     
     print(f"Loading candidate models...")
     cand_pos = HFAdapterLM(REF, device=ref.device, seed=2)
     print(f"✓ Positive candidate (same model, different seed) loaded")
     
     cand_neg = HFAdapterLM(NEG, device=ref.device, seed=3)
-    print(f"✓ Negative candidate (GPT-2) loaded")
+    print(f"✓ Negative candidate (DistilGPT-2) loaded")
     print()
     
     # --- verifier config ---
@@ -143,14 +142,14 @@ def main():
     print("TEST 1: Self vs Self (same model, different seed)")
     print("Expected: ACCEPT / H0 (models are the same)")
     print("-" * 50)
-    res1 = run_case(cand_pos, "self_vs_self")
+    res1 = run_case(cand_pos, "gpt2_vs_self")
     
     print()
     print("=" * 50)
-    print("TEST 2: Mistral vs GPT-2 (different models)")
+    print("TEST 2: GPT-2 vs DistilGPT-2 (different models)")
     print("Expected: REJECT / H1 (models are different)")
     print("-" * 50)
-    res2 = run_case(cand_neg, "mistral_vs_gpt2")
+    res2 = run_case(cand_neg, "gpt2_vs_distilgpt2")
     
     print()
     print("=" * 50)
@@ -162,14 +161,14 @@ def main():
     test2_passed = res2.get("accepted", False) == False or res2.get("decision") == "H1"
     
     if test1_passed:
-        print("✅ Test 1 PASSED: Self vs Self correctly accepted")
+        print("✅ Test 1 PASSED: GPT-2 vs Self correctly accepted")
     else:
-        print("❌ Test 1 FAILED: Self vs Self should have been accepted")
+        print("❌ Test 1 FAILED: GPT-2 vs Self should have been accepted")
     
     if test2_passed:
-        print("✅ Test 2 PASSED: Mistral vs GPT-2 correctly rejected")
+        print("✅ Test 2 PASSED: GPT-2 vs DistilGPT-2 correctly rejected")
     else:
-        print("❌ Test 2 FAILED: Mistral vs GPT-2 should have been rejected")
+        print("❌ Test 2 FAILED: GPT-2 vs DistilGPT-2 should have been rejected")
     
     print()
     if test1_passed and test2_passed:

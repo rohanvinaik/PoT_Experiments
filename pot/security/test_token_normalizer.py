@@ -570,11 +570,25 @@ class TestEdgeCases(unittest.TestCase):
         """Test handling of unicode in token strings"""
         # Create tokenizer with unicode
         mock_tokenizer = Mock()
-        mock_tokenizer.get_vocab.return_value = {
+        vocab = {
             '世界': 1000,
             '🌍': 1001,
             'café': 1002
         }
+        mock_tokenizer.get_vocab.return_value = vocab
+        mock_tokenizer.special_tokens_map = {}  # Empty dict instead of Mock
+        
+        # Add encode/decode methods
+        def mock_encode(text, add_special_tokens=False):
+            # Simple split-based encoding for unicode test
+            return [vocab.get(char, 999) for char in text.split()]
+        
+        def mock_decode(token_ids, skip_special_tokens=False):
+            inverse_vocab = {v: k for k, v in vocab.items()}
+            return ' '.join([inverse_vocab.get(tid, '[UNK]') for tid in token_ids])
+        
+        mock_tokenizer.encode = mock_encode
+        mock_tokenizer.decode = mock_decode
         
         normalizer = TokenSpaceNormalizer(mock_tokenizer)
         
@@ -607,6 +621,32 @@ class TestIntegration(unittest.TestCase):
             'cls_token': '[CLS]',
             'sep_token': '[SEP]'
         }
+        
+        # Add encode/decode methods
+        def mock_encode(text, add_special_tokens=True):
+            words = text.split()
+            tokens = []
+            if add_special_tokens:
+                tokens.append(vocab['[CLS]'])
+            for word in words:
+                tokens.append(vocab.get(word, 999))  # Use 999 as UNK
+            if add_special_tokens:
+                tokens.append(vocab['[SEP]'])
+            return tokens
+        
+        def mock_decode(token_ids, skip_special_tokens=False):
+            inverse_vocab = {v: k for k, v in vocab.items()}
+            words = []
+            for token_id in token_ids:
+                if token_id in inverse_vocab:
+                    token = inverse_vocab[token_id]
+                    if skip_special_tokens and token in ['[CLS]', '[SEP]']:
+                        continue
+                    words.append(token)
+            return ' '.join(words)
+        
+        mock_tokenizer.encode = mock_encode
+        mock_tokenizer.decode = mock_decode
         
         # Create components
         normalizer = TokenSpaceNormalizer(mock_tokenizer, mode='canonical')

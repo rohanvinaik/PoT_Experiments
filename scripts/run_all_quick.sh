@@ -88,7 +88,7 @@ test_module() {
 echo -e "${YELLOW}Core Modules:${NC}"
 test_module "Challenge" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.challenge import generate_challenges'"
 test_module "Stats" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.stats import far_frr'"
-test_module "Logging" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.logging import StructuredLogger'"
+test_module "Logging" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.structured_logging import StructuredLogger'"
 test_module "Governance" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.governance import ChallengeGovernance'"
 test_module "Attacks" "PYTHONPATH='${PWD}:${PYTHONPATH:-}' python3 -c 'from pot.core.attacks import targeted_finetune'"
 
