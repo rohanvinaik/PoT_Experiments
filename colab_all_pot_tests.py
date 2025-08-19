@@ -243,8 +243,8 @@ def run_deterministic_validation():
     models = []
     model_ids = []
     for i in range(3):
-        model = DeterministicMockModel(seed=i, output_dim=100)
-        model_id = pot.register_model(model, f"det_model_{i}", training_steps=1000)
+        model = DeterministicMockModel(model_id=f"det_model_{i}", seed=i)
+        model_id = pot.register_model(model, f"det_model_{i}")
         models.append(model)
         model_ids.append(model_id)
     
@@ -790,7 +790,7 @@ try:
     pot = ProofOfTraining(config)
     
     # Register the model
-    model_id = pot.register_model(model, "gpt2", training_steps=10000)
+    model_id = pot.register_model(model, architecture="gpt2", parameter_count=model.num_parameters())
     print(f"  ✅ Model registered: {model_id[:8]}...")
     
     # Perform verification
