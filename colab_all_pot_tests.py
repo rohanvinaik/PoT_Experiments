@@ -4,10 +4,22 @@ COMPREHENSIVE POT (Proof of Training) TEST SUITE FOR GOOGLE COLAB
 This notebook runs the COMPLETE test suite from the run_all family of scripts.
 Includes all validation tests, benchmarks, and comprehensive system verification.
 
+SETUP OPTIONS:
+-------------
+Option 1 (RECOMMENDED - Default): 
+   - Automatically clones from GitHub repository
+   - No manual upload needed
+   - Always gets latest version
+   
+Option 2 (Manual):
+   - Use if you have the complete codebase in Google Drive
+   - Requires uploading entire PoT_Experiments folder to Drive
+   - Set SETUP_METHOD = 2 and update POT_PATH
+
 Usage:
-1. Upload your PoT codebase to Google Drive
-2. Run this entire notebook in Google Colab
-3. The notebook will mount your drive, set up the environment, and run all tests
+1. Run this entire notebook in Google Colab
+2. The notebook will automatically clone from GitHub and run all tests
+3. Results will be saved to colab_test_results/ directory
 """
 
 # ============================================================================
@@ -29,22 +41,84 @@ from datetime import datetime
 from google.colab import drive
 drive.mount('/content/drive')
 
-# Set the path to your PoT codebase on Google Drive
-# IMPORTANT: Update this path to match where you uploaded your PoT codebase
-POT_PATH = '/content/drive/MyDrive/PoT_Experiments'  # UPDATE THIS PATH
+# Option 1: Clone from GitHub (RECOMMENDED)
+print("\n📥 Setting up PoT codebase...")
+print("Choose setup method:")
+print("1. Clone from GitHub (recommended)")
+print("2. Use existing Google Drive folder")
 
-# Verify the path exists
-if not os.path.exists(POT_PATH):
-    print(f"❌ ERROR: PoT codebase not found at {POT_PATH}")
-    print("Please update POT_PATH to match your Google Drive location")
-    sys.exit(1)
+# For automated running, use Option 1 by default
+SETUP_METHOD = 1  # Change to 2 if you have the codebase in Drive
 
-# Change to the PoT directory
-os.chdir(POT_PATH)
-sys.path.insert(0, POT_PATH)
+if SETUP_METHOD == 1:
+    # Clone from GitHub
+    POT_PATH = '/content/PoT_Experiments'
+    if os.path.exists(POT_PATH):
+        print(f"📁 Using existing clone at {POT_PATH}")
+    else:
+        print("📥 Cloning PoT repository from GitHub...")
+        result = subprocess.run(
+            ["git", "clone", "https://github.com/rohanvinaik/PoT_Experiments.git", "/content/PoT_Experiments"],
+            capture_output=True, text=True
+        )
+        if result.returncode == 0:
+            print("✅ Repository cloned successfully")
+        else:
+            print(f"❌ Clone failed: {result.stderr}")
+            sys.exit(1)
+    
+    # Change to the PoT directory
+    os.chdir(POT_PATH)
+    sys.path.insert(0, POT_PATH)
+    
+else:
+    # Option 2: Use Google Drive (requires full codebase uploaded)
+    POT_PATH = '/content/drive/MyDrive/PoT_Experiments'  # UPDATE THIS PATH
+    
+    # Verify the path exists and has required structure
+    if not os.path.exists(POT_PATH):
+        print(f"❌ ERROR: PoT codebase not found at {POT_PATH}")
+        print("Please either:")
+        print("1. Set SETUP_METHOD = 1 to clone from GitHub")
+        print("2. Upload the complete PoT codebase to Google Drive")
+        sys.exit(1)
+    
+    # Check for required directories
+    required_dirs = ['pot', 'scripts', 'tests']
+    missing_dirs = [d for d in required_dirs if not os.path.exists(os.path.join(POT_PATH, d))]
+    
+    if missing_dirs:
+        print(f"⚠️ Warning: Missing directories: {missing_dirs}")
+        print("The codebase appears incomplete. Switching to GitHub clone...")
+        
+        # Fallback to GitHub clone
+        POT_PATH = '/content/PoT_Experiments'
+        if not os.path.exists(POT_PATH):
+            print("📥 Cloning PoT repository from GitHub...")
+            result = subprocess.run(
+                ["git", "clone", "https://github.com/rohanvinaik/PoT_Experiments.git", "/content/PoT_Experiments"],
+                capture_output=True, text=True
+            )
+            if result.returncode != 0:
+                print(f"❌ Clone failed: {result.stderr}")
+                sys.exit(1)
+        
+        os.chdir(POT_PATH)
+        sys.path.insert(0, POT_PATH)
+    else:
+        os.chdir(POT_PATH)
+        sys.path.insert(0, POT_PATH)
 
 print(f"✅ Working directory: {os.getcwd()}")
-print(f"✅ PoT codebase found at: {POT_PATH}")
+print(f"✅ PoT codebase ready at: {POT_PATH}")
+
+# Verify structure
+print("\n🔍 Verifying codebase structure...")
+for dir_name in ['pot', 'scripts', 'tests', 'examples']:
+    if os.path.exists(os.path.join(POT_PATH, dir_name)):
+        print(f"  ✅ {dir_name}/ directory found")
+    else:
+        print(f"  ⚠️ {dir_name}/ directory missing")
 
 # ============================================================================
 # PHASE 1: INSTALL DEPENDENCIES
@@ -118,23 +192,12 @@ if device.type == "cuda":
 # PHASE 2: ENVIRONMENT VALIDATION
 # ============================================================================
 
-print("\n🔍 Validating environment and PoT structure...\n")
-
-# Check for key directories
-required_dirs = ['pot', 'scripts', 'tests', 'examples']
-for dir_name in required_dirs:
-    dir_path = os.path.join(POT_PATH, dir_name)
-    if os.path.exists(dir_path):
-        print(f"  ✅ Found {dir_name}/ directory")
-    else:
-        print(f"  ❌ Missing {dir_name}/ directory")
+print("\n🔍 Checking for key scripts...")
 
 # Check for key scripts
 key_scripts = [
     'scripts/run_all.sh',
     'scripts/run_all_comprehensive.sh',
-    'scripts/run_standard_validation.sh',
-    'scripts/run_reliable_validation.sh',
 ]
 
 for script in key_scripts:
@@ -142,7 +205,7 @@ for script in key_scripts:
     if os.path.exists(script_path):
         print(f"  ✅ Found {script}")
     else:
-        print(f"  ⚠️ Missing {script}")
+        print(f"  ⚠️ Missing {script} (optional)")
 
 # Create results directory
 RESULTS_DIR = os.path.join(POT_PATH, "colab_test_results")
