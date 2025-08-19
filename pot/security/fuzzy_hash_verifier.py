@@ -40,10 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 class HashAlgorithm(Enum):
-    """Supported fuzzy hash algorithms"""
-    SSDEEP = "ssdeep"
-    TLSH = "tlsh"
-    SHA256 = "sha256"  # Fallback exact matching
+    """Supported hash algorithms"""
+    SSDEEP = "ssdeep"  # True fuzzy hashing
+    TLSH = "tlsh"      # True fuzzy hashing (locality sensitive)
+    SHA256 = "sha256"  # Exact hash (not fuzzy)
 
 
 @dataclass
@@ -383,7 +383,9 @@ class FuzzyHashVerifier:
         fuzzy_hash = hasher.generate_hash(model_output)
         
         elapsed = time.time() - start_time
-        self.logger.debug(f"Generated {hasher.__class__.__name__} hash in {elapsed:.4f}s")
+        # Properly label the hash type
+        hash_type = "exact hash" if self.algorithm == HashAlgorithm.SHA256 else "fuzzy hash"
+        self.logger.debug(f"Generated {hasher.__class__.__name__} {hash_type} in {elapsed:.4f}s")
         
         return fuzzy_hash
     
