@@ -138,18 +138,22 @@ def main():
         
         return res
     
-    print("=" * 50)
-    print("TEST 1: Self vs Self (same model, different seed)")
-    print("Expected: ACCEPT / H0 (models are the same)")
-    print("-" * 50)
-    res1 = run_case(cand_pos, "gpt2_vs_self")
+    print("=" * 60)
+    print("TEST 1: GPT-2 vs GPT-2 (same model, different seed)")
+    print("Reference: GPT-2 (124M params, seed=1)")
+    print("Candidate: GPT-2 (124M params, seed=2)")
+    print("Expected: ACCEPT / H0 (should identify as SAME model)")
+    print("-" * 60)
+    res1 = run_case(cand_pos, "gpt2_vs_gpt2_same")
     
     print()
-    print("=" * 50)
+    print("=" * 60)
     print("TEST 2: GPT-2 vs DistilGPT-2 (different models)")
-    print("Expected: REJECT / H1 (models are different)")
-    print("-" * 50)
-    res2 = run_case(cand_neg, "gpt2_vs_distilgpt2")
+    print("Reference: GPT-2 (124M params)")
+    print("Candidate: DistilGPT-2 (82M params, distilled)")
+    print("Expected: REJECT / H1 (should identify as DIFFERENT models)")
+    print("-" * 60)
+    res2 = run_case(cand_neg, "gpt2_vs_distilgpt2_different")
     
     print()
     print("=" * 50)

@@ -349,6 +349,27 @@ class FuzzyHashVerifier:
         
         return hashers
     
+    def compute_hash(self, data: bytes) -> str:
+        """Compute hash of data using the configured algorithm."""
+        hasher = self.hashers.get(self.algorithm)
+        
+        if hasher is None:
+            # Fallback to SHA256 if requested algorithm not available
+            hasher = self.hashers[HashAlgorithm.SHA256]
+            self.logger.warning(f"{self.algorithm.value} not available, using SHA256")
+        
+        return hasher.generate_hash(data)
+    
+    def compute_similarity(self, hash1: str, hash2: str) -> float:
+        """Compute similarity between two hashes."""
+        hasher = self.hashers.get(self.algorithm)
+        
+        if hasher is None:
+            # Fallback to SHA256 if requested algorithm not available
+            hasher = self.hashers[HashAlgorithm.SHA256]
+        
+        return hasher.compare(hash1, hash2)
+    
     def get_hasher(self, algorithm: Optional[HashAlgorithm] = None) -> FuzzyHasher:
         """Get hasher for specified algorithm or fallback"""
         if algorithm is None:
