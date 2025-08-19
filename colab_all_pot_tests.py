@@ -248,24 +248,23 @@ def run_deterministic_validation():
         models.append(model)
         model_ids.append(model_id)
     
-    # Verify models (simplified - no depth parameter)
+    # Verify models with proper depth parameter
     verification_results = []
     for model, model_id in zip(models, model_ids):
-        # Run verification multiple times to simulate different depths
-        for i, depth_name in enumerate(['quick', 'standard', 'comprehensive']):
+        for depth in ['quick', 'standard', 'comprehensive']:
             start = time.time()
-            result = pot.perform_verification(model, model_id)
+            result = pot.perform_verification(model, model_id, verification_depth=depth)
             duration = time.time() - start
             
             verification_results.append({
                 'model_id': model_id,
-                'depth': depth_name,
+                'depth': depth,
                 'verified': result.verified,
                 'confidence': float(result.confidence),
                 'duration': duration
             })
             
-            print(f"  Model {model_id[:8]} ({depth_name}): verified={result.verified}, "
+            print(f"  Model {model_id[:8]} ({depth}): verified={result.verified}, "
                   f"confidence={result.confidence:.2%}, time={duration:.6f}s")
     
     results['tests'].append({
@@ -380,7 +379,7 @@ def run_deterministic_validation():
     print("\\n5️⃣ Testing Batch Processing...")
     
     start = time.time()
-    batch_results = pot.batch_verify(models, model_ids)
+    batch_results = pot.batch_verify(models, model_ids, 'quick')
     batch_time = time.time() - start
     
     batch_summary = {
@@ -608,7 +607,7 @@ def stress_test_batch_verification():
         
         # Batch verify
         start = time.time()
-        results = pot.batch_verify(models, model_ids)
+        results = pot.batch_verify(models, model_ids, 'quick')
         batch_time = time.time() - start
         
         verified = sum(1 for r in results if r.verified)
@@ -794,8 +793,8 @@ try:
     model_id = pot.register_model(model, architecture="gpt2", parameter_count=model.num_parameters())
     print(f"  ✅ Model registered: {model_id[:8]}...")
     
-    # Perform verification (no depth parameter)
-    result = pot.perform_verification(model, model_id)
+    # Perform verification with 'quick' depth
+    result = pot.perform_verification(model, model_id, verification_depth='quick')
     print(f"  ✅ Verification complete")
     print(f"     Verified: {result.verified}")
     print(f"     Confidence: {result.confidence:.2%}")
