@@ -1,0 +1,34 @@
+COPY AND PASTE THIS INTO A NEW GOOGLE COLAB CELL:
+
+import os
+import subprocess
+
+# Start fresh
+os.chdir('/content')
+subprocess.run(['rm', '-rf', 'PoT_Experiments'], check=False)
+
+# Clone
+subprocess.run(['git', 'clone', 'https://github.com/rohanvinaik/PoT_Experiments.git'])
+
+# Run tests
+os.chdir('/content/PoT_Experiments')
+subprocess.run(['pip', 'install', '-q', 'torch', 'transformers', 'numpy', 'scipy', 'scikit-learn'])
+
+# Run the actual tests from your codebase
+print("=" * 70)
+print("RUNNING POT FRAMEWORK TESTS")
+print("=" * 70)
+
+scripts = [
+    'scripts/run_statistical_verification.py',
+    'scripts/test_llm_verification.py',
+    'scripts/run_fuzzy_verification.py',
+    'scripts/run_provenance_verification.py',
+    'scripts/experimental_report_clean.py'
+]
+
+for script in scripts:
+    print(f"\nRunning {script}...")
+    subprocess.run(['python', script])
+
+print("\n✅ DONE - Check experimental_results/ for outputs")
