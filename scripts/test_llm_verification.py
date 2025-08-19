@@ -58,14 +58,12 @@ def main():
         print("   Install with: pip install transformers")
         return 0
     
-    # --- import PoT verifier & config (two possible module paths) ---
+    # --- import PoT verifier (two possible module paths) ---
     try:
         from pot.lm.verifier import LMVerifier
-        from pot.lm.lm_config import LMVerifierConfig
     except Exception:
         try:
             from pot.core.verifier import LMVerifier
-            from pot.core.lm_config import LMVerifierConfig
         except Exception as e:
             print(f"❌ Could not import LMVerifier: {e}")
             return 1
@@ -90,53 +88,53 @@ def main():
     print(f"✓ Negative candidate (DistilGPT-2) loaded")
     print()
     
-    # --- verifier config ---
-    cfg = LMVerifierConfig(
-        model_name="hf",
-        device=str(ref.device),          # convert to string
-        num_challenges=32,               # raise to 64/128 for tighter stats
-        verification_method="sequential",
-        sprt_alpha=0.001,               # FAR target
-        sprt_beta=0.01,                 # FRR target
-        fuzzy_threshold=0.20,
-        difficulty_curve="linear",
-    )
-    
+    # --- verifier setup ---
     print("Initializing LMVerifier...")
-    verifier = LMVerifier(reference_model=ref, config=cfg)
-    print(f"✓ Verifier initialized with {cfg.num_challenges} challenges")
+    verifier = LMVerifier(
+        reference_model=ref, 
+        delta=0.01,  # 99% confidence
+        use_sequential=True  # Enable sequential testing
+    )
+    print(f"✓ Verifier initialized")
     print()
     
     def run_case(cand, tag):
         print(f"Running verification: {tag}")
         t0 = time.time()
         
-        # Use verify_enhanced if available, otherwise verify
-        if hasattr(verifier, "verify_enhanced"):
-            res = verifier.verify_enhanced(cand, None)
-        else:
-            res = verifier.verify(cand, None)
+        # Generate challenges
+        from pot.core.challenge import generate_challenges
+        challenges = generate_challenges(n_challenges=32)
         
-        res["elapsed_sec"] = time.time() - t0
+        # Run verification
+        res = verifier.verify(
+            model=cand,
+            challenges=challenges,
+            tolerance=0.5,  # Distance threshold
+            method='fuzzy'  # Use fuzzy hashing
+        )
         
-        result_summary = {
+        elapsed = time.time() - t0
+        
+        # Extract results from LMVerificationResult object
+        result_data = {
             "case": tag,
-            "accepted": res.get("accepted"),
-            "decision": res.get("decision"),
-            "p_value": res.get("p_value"),
-            "threshold": res.get("threshold"),
-            "n_used": res.get("n_used"),
-            "elapsed_sec": round(res["elapsed_sec"], 2),
+            "accepted": res.accepted,
+            "distance": res.distance,
+            "confidence_radius": res.confidence_radius,
+            "n_challenges": res.n_challenges,
+            "fuzzy_similarity": res.fuzzy_similarity,
+            "elapsed_sec": round(elapsed, 2),
         }
         
-        print(json.dumps(result_summary, indent=2))
+        print(json.dumps(result_data, indent=2))
         
         # Save detailed results
         pathlib.Path("experimental_results").mkdir(exist_ok=True)
         with open(f"experimental_results/llm_result_{tag}.json", "w") as f:
-            json.dump(res, f, indent=2)
+            json.dump(result_data, f, indent=2)
         
-        return res
+        return result_data
     
     print("=" * 60)
     print("TEST 1: GPT-2 vs GPT-2 (same model, different seed)")
@@ -161,8 +159,8 @@ def main():
     print("-" * 50)
     
     # Check results
-    test1_passed = res1.get("accepted", False) == True or res1.get("decision") == "H0"
-    test2_passed = res2.get("accepted", False) == False or res2.get("decision") == "H1"
+    test1_passed = res1.get("accepted", False) == True
+    test2_passed = res2.get("accepted", False) == False
     
     if test1_passed:
         print("✅ Test 1 PASSED: GPT-2 vs Self correctly accepted")
