@@ -324,11 +324,7 @@ print(f"Calibrated δ*: {thresholds['delta_star']:.4f}")
 | **📈 Comprehensive Test Suite** | ✅ Production Readiness | Error handling, fallbacks, compatibility |
 | **📊 Evidence Dashboard** | ✅ Live Metrics System | Real-time performance monitoring |
 
-## 📊 Live Performance Dashboard
-
-*Auto-updated from validation runs - Last Updated: 2025-08-20*
-
-# 📊 ZK-PoT Comprehensive Performance Dashboard
+## 📊 ZK-PoT Comprehensive Performance Dashboard
 
 **Live Performance Metrics & Validation Evidence**
 
