@@ -343,13 +343,29 @@ class LoRAZKProver:
     def _statement_to_public_inputs(self, stmt: LoRAStepStatement) -> Dict[str, Any]:
         return {
             "base_weights_root": self._bytes_to_hex(stmt.base_weights_root),
+            "adapter_a_root_before": self._bytes_to_hex(stmt.adapter_a_root_before),
+            "adapter_b_root_before": self._bytes_to_hex(stmt.adapter_b_root_before),
             "adapter_a_root_after": self._bytes_to_hex(stmt.adapter_a_root_after),
+            "adapter_b_root_after": self._bytes_to_hex(stmt.adapter_b_root_after),
+            "batch_root": self._bytes_to_hex(stmt.batch_root),
+            "hparams_hash": self._bytes_to_hex(stmt.hparams_hash),
             "rank": stmt.rank,
+            "alpha": stmt.alpha,
+            "step_number": stmt.step_number,
+            "epoch": stmt.epoch,
         }
 
     def _witness_to_rust_format(self, witness: LoRAStepWitness) -> Dict[str, Any]:
         return {
             "adapter_a_before": witness.adapter_a_before,
+            "adapter_b_before": witness.adapter_b_before,
+            "adapter_a_after": witness.adapter_a_after,
+            "adapter_b_after": witness.adapter_b_after,
+            "adapter_a_gradients": witness.adapter_a_gradients,
+            "adapter_b_gradients": witness.adapter_b_gradients,
+            "batch_inputs": witness.batch_inputs,
+            "batch_targets": witness.batch_targets,
+            "learning_rate": witness.learning_rate,
         }
 
     def _bytes_to_hex(self, data: bytes) -> str:
