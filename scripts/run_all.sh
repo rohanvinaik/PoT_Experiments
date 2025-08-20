@@ -830,8 +830,29 @@ if ${PYTHON} scripts/test_fuzzy_hash_fixed.py > "${RESULTS_DIR}/fuzzy_hash_fixed
     print_success "Fuzzy hash verification tests passed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
-    # Extract available algorithms
-    FUZZY_ALGO_SUMMARY=$(python3 -c "
+    print_info "✅ TLSH/ssdeep preference implemented"
+else
+    print_error "Fuzzy hash verification tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
+# Test token space normalizer
+print_header "RUNNING TOKEN SPACE NORMALIZER TESTS"
+print_info "Testing Mock-safe type handling and Mapping/Iterable abstraction"
+
+if ${PYTHON} scripts/test_token_normalizer_fixed.py > "${RESULTS_DIR}/token_normalizer_${TIMESTAMP}.log" 2>&1; then
+    print_success "Token space normalizer tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    print_info "✅ Mock-safe type handling working"
+    print_info "✅ Mapping/Iterable abstraction functional"
+else
+    print_error "Token space normalizer tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
+# Extract available algorithms
+FUZZY_ALGO_SUMMARY=$(python3 -c "
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath('.'))))
 try:

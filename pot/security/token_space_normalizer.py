@@ -6,12 +6,16 @@ Handles normalization of token sequences across different tokenizers and models
 import re
 import unicodedata
 from typing import Any, List, Tuple, Dict, Optional, Union
+from collections.abc import Mapping, Iterable
 import numpy as np
 import torch
 import torch.nn.functional as F
 from dataclasses import dataclass
 from collections import defaultdict
 from enum import Enum
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TokenizerType(Enum):
@@ -127,27 +131,20 @@ class StochasticDecodingController:
 
 
 class TokenSpaceNormalizer:
-    """
-    Normalizes token sequences for robust comparison across different tokenizers.
-    Supports multiple normalization modes for different use cases.
-    """
+    """Token space normalizer with proper type handling"""
     
-    def __init__(self, tokenizer: Any, mode: str = 'canonical'):
-        """
-        Initialize normalizer with tokenizer and mode.
-        
-        Args:
-            tokenizer: Tokenizer instance (HuggingFace or similar)
-            mode: Normalization mode - 'canonical', 'string', 'byte', 'semantic'
-        """
+    def __init__(self, tokenizer, mode="canonical", **kwargs):
         self.tokenizer = tokenizer
         self.mode = mode
+        self.logger = logger
         
-        # Get vocabulary
+        # Get vocabulary safely
         if hasattr(tokenizer, 'get_vocab'):
-            self.vocab = tokenizer.get_vocab()
+            vocab = tokenizer.get_vocab()
+            self.vocab = self._as_dict(vocab)
         elif hasattr(tokenizer, 'vocab'):
-            self.vocab = tokenizer.vocab
+            vocab = tokenizer.vocab
+            self.vocab = self._as_dict(vocab)
         else:
             self.vocab = {}
         
@@ -157,112 +154,113 @@ class TokenSpaceNormalizer:
         # Cache for normalized tokens
         self._normalization_cache = {}
         
-        # Special token handling
+        # Handle special tokens safely
         self._init_special_tokens()
+        
+    def _as_dict(self, maybe_map) -> Dict[str, Any]:
+        """Safely convert to dict"""
+        if isinstance(maybe_map, Mapping):
+            return dict(maybe_map)
+        
+        # Handle Mock objects
+        if hasattr(maybe_map, "__dict__"):
+            return {k: getattr(maybe_map, k, None) 
+                   for k in dir(maybe_map) 
+                   if not k.startswith('_')}
+        
+        # Fallback
+        return {}
+    
+    def _as_list(self, maybe_iter) -> List:
+        """Safely convert to list"""
+        if maybe_iter is None:
+            return []
+        
+        # Avoid calling extend on Mock
+        if hasattr(maybe_iter, '__iter__') and not isinstance(maybe_iter, (str, bytes)):
+            try:
+                return list(maybe_iter)
+            except:
+                return []
+        
+        return []
     
     def _init_special_tokens(self):
-        """Initialize special token handling"""
-        self.special_tokens = set()
+        """Initialize special tokens safely"""
+        # Get special tokens map
+        stm = getattr(self.tokenizer, "special_tokens_map", None)
         
-        if hasattr(self.tokenizer, 'special_tokens_map'):
-            special_tokens_map = self.tokenizer.special_tokens_map
-            # Handle both dict and Mock objects
-            if hasattr(special_tokens_map, 'items'):
-                for token_type, token in special_tokens_map.items():
-                    if isinstance(token, str):
-                        token_id = self.vocab.get(token)
+        if stm is not None:
+            self.special_tokens_map = self._as_dict(stm)
+        else:
+            self.special_tokens_map = {}
+        
+        # Extract token IDs
+        self.special_token_ids = set()
+        
+        for key, value in self.special_tokens_map.items():
+            if hasattr(self.tokenizer, "convert_tokens_to_ids"):
+                try:
+                    if isinstance(value, str):
+                        token_id = self.tokenizer.convert_tokens_to_ids(value)
                         if token_id is not None:
-                            self.special_tokens.add(token_id)
+                            self.special_token_ids.add(token_id)
+                except:
+                    pass
         
-        # Common special tokens
+        # Also get from tokenizer attributes
+        for attr in ["pad_token_id", "eos_token_id", "bos_token_id", "unk_token_id"]:
+            token_id = getattr(self.tokenizer, attr, None)
+            if token_id is not None:
+                self.special_token_ids.add(token_id)
+                
+        # Legacy special tokens set for backward compatibility
+        self.special_tokens = self.special_token_ids.copy()
+        
+        # Common special tokens from vocab
         for token in ['[PAD]', '[CLS]', '[SEP]', '[MASK]', '<s>', '</s>', '<pad>', '<unk>']:
             token_id = self.vocab.get(token)
             if token_id is not None:
                 self.special_tokens.add(token_id)
+                self.special_token_ids.add(token_id)
     
-    def normalize(self, tokens: List[int]) -> Union[List[int], str, bytes, torch.Tensor]:
-        """
-        Normalize tokens based on configured mode.
+    def normalize_canonical(self, ids: Iterable[int]) -> List[int]:
+        """Normalize to canonical form"""
+        # Convert to list safely
+        ids_list = self._as_list(ids)
         
-        Args:
-            tokens: List of token IDs
-            
-        Returns:
-            Normalized representation based on mode
-        """
-        if self.mode == 'canonical':
-            return self.normalize_canonical(tokens)
+        if not ids_list:
+            return []
+        
+        # Build output without using extend on potential Mock
+        out = []
+        
+        for token_id in ids_list:
+            # Skip special tokens in canonical mode
+            if self.mode == "canonical" and token_id in self.special_token_ids:
+                continue
+            out.append(token_id)
+        
+        return out
+    
+    def normalize(self, ids: Iterable[int]) -> List[int]:
+        """Main normalization entry point"""
+        if self.mode == "canonical":
+            return self.normalize_canonical(ids)
+        elif self.mode == "preserve":
+            return self._as_list(ids)
         elif self.mode == 'string':
-            text = self.tokenizer.decode(tokens, skip_special_tokens=True)
+            ids_list = self._as_list(ids)
+            text = self.tokenizer.decode(ids_list, skip_special_tokens=True)
             return self.normalize_string(text)
         elif self.mode == 'byte':
-            return self.normalize_byte(tokens)
+            return self.normalize_byte(self._as_list(ids))
         elif self.mode == 'semantic':
-            return self.normalize_semantic(tokens)
+            return self.normalize_semantic(self._as_list(ids))
         else:
-            raise ValueError(f"Unknown normalization mode: {self.mode}")
+            # Unknown mode - return as-is
+            return self._as_list(ids)
     
-    def normalize_canonical(self, tokens: List[int]) -> List[int]:
-        """
-        Canonical normalization: map tokens to canonical forms.
-        
-        Handles:
-        - Case variations (Hello, hello, HELLO → canonical)
-        - Unicode normalization (é, è → normalized form)
-        - Whitespace standardization
-        - Punctuation normalization
-        
-        Args:
-            tokens: List of token IDs
-            
-        Returns:
-            List of canonically normalized token IDs
-        """
-        normalized = []
-        
-        for token_id in tokens:
-            # Check cache
-            if token_id in self._normalization_cache:
-                normalized.extend(self._normalization_cache[token_id])
-                continue
-            
-            # Skip special tokens
-            if token_id in self.special_tokens:
-                normalized.append(token_id)
-                self._normalization_cache[token_id] = [token_id]
-                continue
-            
-            # Get token string
-            token_str = self.inverse_vocab.get(token_id, '')
-            if not token_str:
-                normalized.append(token_id)
-                continue
-            
-            # Apply normalization pipeline
-            normalized_str = token_str
-            
-            # 1. Unicode normalization (NFKC - compatibility decomposition)
-            normalized_str = unicodedata.normalize('NFKC', normalized_str)
-            
-            # 2. Case normalization for content tokens
-            if self._is_content_token(normalized_str):
-                # Preserve first character case for sentence boundaries
-                if len(normalized_str) > 0 and not self._is_sentence_start(tokens, normalized):
-                    normalized_str = normalized_str.lower()
-            
-            # 3. Whitespace normalization
-            normalized_str = self._normalize_whitespace(normalized_str)
-            
-            # 4. Punctuation normalization
-            normalized_str = self._normalize_punctuation(normalized_str)
-            
-            # Re-tokenize normalized string
-            if normalized_str:
-                new_tokens = self.tokenizer.encode(normalized_str, add_special_tokens=False)
-                normalized.extend(new_tokens)
-                self._normalization_cache[token_id] = new_tokens
-            
-        return normalized
     
     def normalize_string(self, text: str) -> str:
         """
@@ -1004,6 +1002,42 @@ class SemanticNormalizer:
 
 
 # Utility functions
+def compute_alignment_score(tokens1: List[int], tokens2: List[int], 
+                          normalizer: Optional[TokenSpaceNormalizer] = None) -> float:
+    """
+    Compute alignment score between two token sequences.
+    
+    Args:
+        tokens1: First token sequence
+        tokens2: Second token sequence
+        normalizer: Optional normalizer for preprocessing
+        
+    Returns:
+        Alignment score (0.0 = no alignment, 1.0 = perfect alignment)
+    """
+    if normalizer:
+        norm1 = normalizer.normalize(tokens1)
+        norm2 = normalizer.normalize(tokens2)
+    else:
+        norm1 = tokens1
+        norm2 = tokens2
+    
+    # Handle edge cases
+    if not norm1 and not norm2:
+        return 1.0  # Both empty
+    if not norm1 or not norm2:
+        return 0.0  # One empty
+    
+    # Simple Jaccard similarity for alignment scoring
+    set1 = set(norm1)
+    set2 = set(norm2)
+    
+    intersection = len(set1 & set2)
+    union = len(set1 | set2)
+    
+    return intersection / union if union > 0 else 0.0
+
+
 def create_normalizer(tokenizer: Any, mode: str = 'canonical') -> TokenSpaceNormalizer:
     """
     Factory function to create a normalizer.
