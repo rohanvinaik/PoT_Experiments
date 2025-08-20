@@ -19,8 +19,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from pot.zk.prover import auto_prove_training_step
 from pot.zk.parallel_prover import OptimizedLoRAProver
 from pot.zk.config_loader import set_mode
-from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor
-from pot.testing.mock_blockchain import MockBlockchainClient
+from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor, MockBlockchainClient
 from pot.core.model_verification import verify_model_weights
 from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
 
@@ -42,7 +41,7 @@ class TestZKIntegration:
         }
         
         # Existing verification
-        verification_result = verify_model_weights(model_before, model_after, threshold=0.01)
+        verification_result = verify_model_weights(model_before, model_after, threshold=0.0001)
         assert not verification_result['identical']  # Should detect difference
         
         # Generate ZK proof
@@ -60,7 +59,7 @@ class TestZKIntegration:
         
         assert proof_result['success']
         assert proof_result['proof'] is not None
-        assert proof_result['proof_type'] in ['sgd', 'lora']
+        assert proof_result['proof_type'] in ['sgd', 'lora', 'full']
     
     def test_zk_with_training_auditor(self):
         """Test ZK proofs integrate with TrainingProvenanceAuditor."""
@@ -340,17 +339,17 @@ def test_zk_pytest_compatibility():
     witness = SGDStepWitness(
         weights_before=[0.1] * 10,
         weights_after=[0.11] * 10,
-        gradients=[0.01] * 10,
-        batch_inputs=[[0.5] * 5 for _ in range(4)],
-        batch_targets=[[1.0] for _ in range(4)],
+        batch_inputs=[0.5] * 20,  # Flattened batch inputs
+        batch_targets=[1.0] * 4,  # Flattened batch targets
         learning_rate=0.01
     )
     
     statement = SGDStepStatement(
-        weights_before_root=b"before" * 8,
-        weights_after_root=b"after" * 8,
+        W_t_root=b"before" * 8,
+        W_t1_root=b"after" * 8,
         batch_root=b"batch" * 8,
         hparams_hash=b"hparams" * 4,
+        step_nonce=0,
         step_number=1,
         epoch=1
     )

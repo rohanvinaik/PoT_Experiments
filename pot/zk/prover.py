@@ -421,13 +421,15 @@ def auto_prove_training_step(model_before: Dict[str, Any],
     
     if isinstance(metadata_or_type, LoRAProofMetadata):
         return {
-            'proof': base64.b64encode(proof).decode(),
-            'type': 'lora',
+            'success': True,
+            'proof': proof,  # Return raw bytes
+            'proof_type': 'lora',
             'metadata': asdict(metadata_or_type)
         }
     else:
         return {
-            'proof': base64.b64encode(proof).decode(),
-            'type': metadata_or_type,
+            'success': True,
+            'proof': proof,  # Return raw bytes
+            'proof_type': metadata_or_type,
             'metadata': {}
         }

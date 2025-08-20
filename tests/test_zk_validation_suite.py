@@ -59,17 +59,17 @@ class TestZKValidationSuite:
         witness = SGDStepWitness(
             weights_before=weights_before.tolist(),
             weights_after=weights_after.tolist(),
-            gradients=gradients.tolist(),
-            batch_inputs=[[0.5] * 10 for _ in range(32)],
-            batch_targets=[[1.0] for _ in range(32)],
+            batch_inputs=[0.5] * 320,  # Flattened batch inputs
+            batch_targets=[1.0] * 32,  # Flattened batch targets
             learning_rate=learning_rate
         )
         
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
+            step_nonce=0,
             step_number=1,
             epoch=1
         )
@@ -83,7 +83,7 @@ class TestZKValidationSuite:
         assert isinstance(proof, bytes)
         
         # 4. Store on blockchain
-        from pot.testing.mock_blockchain import MockBlockchainClient
+        from pot.prototypes.training_provenance_auditor import MockBlockchainClient
         blockchain = MockBlockchainClient()
         tx_hash = blockchain.store_commitment(proof)
         
@@ -155,17 +155,17 @@ class TestZKValidationSuite:
             witness = SGDStepWitness(
                 weights_before=[0.1] * 50,
                 weights_after=[0.101] * 50,
-                gradients=[0.001] * 50,
-                batch_inputs=[[0.5] * 10 for _ in range(32)],
-                batch_targets=[[1.0] for _ in range(32)],
+                batch_inputs=[0.5] * 320,  # Flattened batch inputs
+                batch_targets=[1.0] * 32,  # Flattened batch targets
                 learning_rate=0.01
             )
             
             statement = SGDStepStatement(
-                weights_before_root=f"before_{i}".encode() * 4,
-                weights_after_root=f"after_{i}".encode() * 4,
+                W_t_root=f"before_{i}".encode() * 4,
+                W_t1_root=f"after_{i}".encode() * 4,
                 batch_root=f"batch_{i}".encode() * 4,
                 hparams_hash=b"hparams" * 4,
+                step_nonce=0,
                 step_number=i,
                 epoch=1
             )
@@ -375,17 +375,17 @@ class TestZKValidationSuite:
             witness = SGDStepWitness(
                 weights_before=[0.1] * 50,
                 weights_after=[0.101] * 50,
-                gradients=[0.001] * 50,
-                batch_inputs=[[0.5] * 10 for _ in range(32)],
-                batch_targets=[[1.0] for _ in range(32)],
+                batch_inputs=[0.5] * 320,  # Flattened batch inputs
+                batch_targets=[1.0] * 32,  # Flattened batch targets
                 learning_rate=0.01
             )
             
             statement = SGDStepStatement(
-                weights_before_root=f"before_{i}".encode() * 4,
-                weights_after_root=f"after_{i}".encode() * 4,
+                W_t_root=f"before_{i}".encode() * 4,
+                W_t1_root=f"after_{i}".encode() * 4,
                 batch_root=f"batch_{i}".encode() * 4,
                 hparams_hash=b"hparams" * 4,
+                step_nonce=0,
                 step_number=i,
                 epoch=1
             )

@@ -1,0 +1,19 @@
+{
+  "model_id": "debug",
+  "epoch": 0,
+  "step_number": 0,
+  "proof_hash": "f2274c9aee999d1bdc01524ab3793b79b53c57990aa8f52731fcf7efc19f4624",
+  "proof_data": "6d6f636b5f70726f6f665f35363931643931353337353537393966",
+  "timestamp": "2025-08-20T12:25:52.619966+00:00",
+  "verification_status": true,
+  "blockchain_tx": "0x0000000000000000000000000000000000000000000000000000000000000001",
+  "statement": {
+    "W_t_root": "b71e0a2ab3fe63697f56de2a18810fb286010c593b55732c88f6f0840f0c048f",
+    "batch_root": "c8c9dec959ed344e58683c2432d1a6460484b0ebf54afe8f5c44462511324a05",
+    "hparams_hash": "7f9ccd1737c9d7a5d0de8128304b2843804656f950b049355295a80ef0fb092f",
+    "W_t1_root": "391010c691e1718470eb2b0ff30fe694f2b92d1909fdef4abb45365f4319551a",
+    "step_nonce": 0,
+    "step_number": 1,
+    "epoch": 0
+  }
+}
