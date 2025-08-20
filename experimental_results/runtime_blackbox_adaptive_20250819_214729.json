@@ -1,0 +1,179 @@
+{
+  "validation_type": "runtime_blackbox_statistical_identity_adaptive",
+  "timestamp": "2025-08-19T21:47:29.957599",
+  "test_cases": 2,
+  "results": [
+    {
+      "timestamp": "2025-08-19T21:46:56.851126",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "gpt2"
+      },
+      "framework": {
+        "mode": "adaptive",
+        "alpha": 0.025000000000000022,
+        "beta": 0.025000000000000022,
+        "confidence": 0.95,
+        "gamma": 0.02,
+        "delta_star": 0.08,
+        "epsilon_diff": 0.25,
+        "n_min": 10,
+        "n_max": 200,
+        "adaptive_enabled": true
+      },
+      "test_parameters": {
+        "positions_per_prompt": 32,
+        "challenge_families": [
+          "style",
+          "knowledge",
+          "completion",
+          "reasoning"
+        ],
+        "prompts_planned": 40,
+        "prompts_used": 40,
+        "metric_used": "cross_entropy"
+      },
+      "statistical_results": {
+        "decision": "UNDECIDED",
+        "rule_fired": "Neither SAME nor DIFFERENT criteria met at n=40 (adaptive thresholds: \u03b3=0.020, \u03b4*=0.080)",
+        "n_used": 40,
+        "mean_diff": 0.0,
+        "ci_99": [
+          -0.3370789718979908,
+          0.3370789718979908
+        ],
+        "half_width": 0.3370789718979908,
+        "effect_size": 0.0,
+        "relative_me": 337078.9718979908,
+        "adaptive_thresholds": {
+          "gamma": 0.02,
+          "delta_star": 0.08
+        }
+      },
+      "adaptive_diagnostics": {
+        "current_batch_size": 6,
+        "batch_size_history": [
+          6,
+          6,
+          6,
+          6,
+          6,
+          6,
+          6
+        ],
+        "convergence_rate": 0.2750643305422657,
+        "strategy_switches": [],
+        "mean_stability": null,
+        "ci_improvement": null,
+        "suggested_adjustments": {
+          "increase_k": true,
+          "use_variance_reduction": true
+        }
+      },
+      "timing": {
+        "t_load_a": 1.310330867767334,
+        "t_load_b": 0.7136459350585938,
+        "t_infer_total": 35.5075159072876,
+        "t_per_query": 0.8876878976821899,
+        "t_total": 35.510910987854004,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch"
+        }
+      },
+      "audit": {
+        "merkle_root": "279d011d308c144be069d1c266566c35af08249e2a26fed4972573fc6ab9cf2f",
+        "sample_entries": [
+          "prompt_0:The capital of France is\u2192 the capital of the ...\u2192diff:0.000000",
+          "prompt_1:To make a sandwich, you need\u2192 to make sure that t...\u2192diff:0.000000",
+          "prompt_2:The sky is blue because\u2192 of the sun.\n\nThe sk...\u2192diff:0.000000"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-08-19T21:47:29.957341",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "distilgpt2"
+      },
+      "framework": {
+        "mode": "audit_grade",
+        "alpha": 0.0050000000000000044,
+        "beta": 0.0050000000000000044,
+        "confidence": 0.99,
+        "gamma": 0.01,
+        "delta_star": 0.1,
+        "epsilon_diff": 0.1,
+        "n_min": 30,
+        "n_max": 400,
+        "adaptive_enabled": true
+      },
+      "test_parameters": {
+        "positions_per_prompt": 32,
+        "challenge_families": [
+          "style",
+          "knowledge",
+          "completion",
+          "reasoning"
+        ],
+        "prompts_planned": 40,
+        "prompts_used": 40,
+        "metric_used": "cross_entropy"
+      },
+      "statistical_results": {
+        "decision": "UNDECIDED",
+        "rule_fired": "Neither SAME nor DIFFERENT criteria met at n=40 (adaptive thresholds: \u03b3=0.015, \u03b4*=0.150)",
+        "n_used": 40,
+        "mean_diff": -11.485157012939453,
+        "ci_99": [
+          -17.600960031099223,
+          -5.369353994779683
+        ],
+        "half_width": 6.11580301815977,
+        "effect_size": 11.485157012939453,
+        "relative_me": 0.5324962480939146,
+        "adaptive_thresholds": {
+          "gamma": 0.015,
+          "delta_star": 0.15000000000000002
+        }
+      },
+      "adaptive_diagnostics": {
+        "current_batch_size": 8,
+        "batch_size_history": [
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "convergence_rate": 0.24188166876541034,
+        "strategy_switches": [],
+        "mean_stability": null,
+        "ci_improvement": null,
+        "suggested_adjustments": {
+          "increase_k": true,
+          "use_variance_reduction": true
+        }
+      },
+      "timing": {
+        "t_load_a": 0.6580979824066162,
+        "t_load_b": 0.5091300010681152,
+        "t_infer_total": 31.93184757232666,
+        "t_per_query": 0.7982961893081665,
+        "t_total": 31.934066772460938,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch"
+        }
+      },
+      "audit": {
+        "merkle_root": "13ee1243bbc2d85015473725af949da10e8c6523d5b284146e9430151fe95a4f",
+        "sample_entries": [
+          "prompt_0:The capital of France is\u2192 the capital of the ...\u2192diff:-2.255074",
+          "prompt_1:To make a sandwich, you need\u2192 to make sure that t...\u2192diff:-5.169411",
+          "prompt_2:The sky is blue because\u2192 of the sun.\n\nThe sk...\u2192diff:-20.373173"
+        ]
+      }
+    }
+  ]
+}

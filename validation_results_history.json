@@ -1,8 +1,8 @@
 {
   "metadata": {
     "created": "2025-08-17T16:41:39.916888",
-    "total_runs": 34,
-    "last_updated": "2025-08-19T20:46:30.490768"
+    "total_runs": 36,
+    "last_updated": "2025-08-19T21:45:14.500970"
   },
   "runs": [
     {
@@ -381,6 +381,21 @@
       }
     },
     {
+      "timestamp": "2025-08-19T21:45:14.414407",
+      "source_file": "reliable_validation_results_20250819_214514.json",
+      "validation_type": "deterministic",
+      "seed": 6488,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001247458987765842,
+        "min_verification_time": 9.338061014811198e-05,
+        "max_verification_time": 0.00016307830810546875,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
       "timestamp": "20250817_151611",
       "source_file": "experimental_results/validation_results_20250817_151611.json",
       "validation_type": "legacy",
@@ -514,33 +529,48 @@
         "avg_confidence": null,
         "verification_count": 5
       }
+    },
+    {
+      "timestamp": "20250819_204626",
+      "source_file": "experimental_results/validation_results_20250819_204626.json",
+      "validation_type": "legacy",
+      "seed": "random",
+      "model_count": 5,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": null,
+        "min_verification_time": null,
+        "max_verification_time": null,
+        "avg_confidence": null,
+        "verification_count": 5
+      }
     }
   ],
   "statistics": {
     "deterministic": {
-      "total_runs": 25,
+      "total_runs": 26,
       "avg_success_rate": 1.0,
       "success_rate_std": 0.0,
-      "avg_verification_time": 0.00015015072292751737,
-      "verification_time_std": 2.4583521340553168e-05,
+      "avg_verification_time": 0.00014917361430632762,
+      "verification_time_std": 2.4596723630172002e-05,
       "avg_confidence": 1.0,
       "min_verification_time": 0.00012167294820149739,
       "max_verification_time": 0.00023033883836534288,
       "recent_10_success_rate": 1.0
     },
     "legacy": {
-      "total_runs": 9,
-      "avg_success_rate": 0.6666666666666666,
-      "success_rate_std": 0.5,
-      "recent_10_success_rate": 0.6666666666666666
+      "total_runs": 10,
+      "avg_success_rate": 0.7,
+      "success_rate_std": 0.48304589153964794,
+      "recent_10_success_rate": 0.7
     },
     "overall": {
-      "total_runs": 34,
-      "avg_success_rate": 0.9117647058823529,
-      "avg_verification_time": 0.00015015072292751737,
+      "total_runs": 36,
+      "avg_success_rate": 0.9166666666666666,
+      "avg_verification_time": 0.00014917361430632762,
       "date_range": {
         "earliest": "2025-08-17T15:54:06.118903",
-        "latest": "20250817_164155"
+        "latest": "20250819_204626"
       }
     }
   }

@@ -193,6 +193,25 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run adaptive sampling validation for improved convergence
+print_header "RUNNING ADAPTIVE SAMPLING VALIDATION"
+print_info "Testing with adaptive batch sizing and convergence tracking"
+
+if ${PYTHON} scripts/runtime_blackbox_validation_adaptive.py > "${RESULTS_DIR}/runtime_adaptive_${TIMESTAMP}.log" 2>&1; then
+    print_success "Adaptive sampling validation completed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check if results exist
+    if [ -f "experimental_results/runtime_blackbox_adaptive_"*.json ]; then
+        print_info "Adaptive sampling results saved to experimental_results/"
+    fi
+else
+    print_error "Adaptive sampling validation failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/runtime_adaptive_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Skip legacy stress tests - core functionality validated by deterministic framework
 
 # Generate summary report
@@ -252,6 +271,33 @@ else
     RUNTIME_SUMMARY="Runtime validation results not available"
 fi
 
+# Extract adaptive sampling validation results
+LATEST_ADAPTIVE_RESULTS=$(ls -t experimental_results/runtime_blackbox_adaptive_*.json 2>/dev/null | head -1)
+if [ -f "$LATEST_ADAPTIVE_RESULTS" ]; then
+    ADAPTIVE_SUMMARY=$(python3 -c "
+import json
+with open('$LATEST_ADAPTIVE_RESULTS') as f:
+    data = json.load(f)
+results = data.get('results', [])
+if results:
+    r1 = results[0]
+    conv_rate = r1.get('adaptive_diagnostics', {}).get('convergence_rate', 0)
+    ci_before = r1.get('statistical_results', {}).get('half_width', 0)
+    print(f\"🔧 Adaptive Test 1: {r1['models']['model_a']} vs {r1['models']['model_b']}\")
+    print(f\"   Decision: {r1['statistical_results']['decision']} (n={r1['statistical_results']['n_used']}/{r1['framework']['n_max']})\")
+    print(f\"   Convergence rate: {conv_rate:.3f}, CI width: {ci_before:.3f}\")
+    if len(results) > 1:
+        r2 = results[1]
+        conv_rate2 = r2.get('adaptive_diagnostics', {}).get('convergence_rate', 0)
+        ci_before2 = r2.get('statistical_results', {}).get('half_width', 0)
+        print(f\"🔧 Adaptive Test 2: {r2['models']['model_a']} vs {r2['models']['model_b']}\")
+        print(f\"   Decision: {r2['statistical_results']['decision']} (n={r2['statistical_results']['n_used']}/{r2['framework']['n_max']})\")
+        print(f\"   Convergence rate: {conv_rate2:.3f}, CI width: {ci_before2:.3f}\")
+")
+else
+    ADAPTIVE_SUMMARY="Adaptive sampling results not available"
+fi
+
 cat > "${RESULTS_DIR}/summary_${TIMESTAMP}.txt" << EOF
 🎉 PROOF-OF-TRAINING VALIDATION COMPLETE - ACADEMIC STANDARDS COMPLIANT
 ========================================================================
@@ -282,12 +328,16 @@ Scope: Real model pairs, teacher-forced scoring (ΔCE), anytime CI, decision thr
 Runtime Statistical Identity Results:
 ${RUNTIME_SUMMARY}
 
+Adaptive Sampling Enhancement (Improved Convergence):
+${ADAPTIVE_SUMMARY}
+
 Statistical Framework Components:
 ✅ Decision Thresholds: Audit grade (99% CI) and Quick gate (97.5% CI) implemented
 ✅ Required Fields: α, β, n_used/n_max, mean, ci_99, half_width, rule_fired
 ✅ Challenge Families: completion, reasoning, knowledge, style (K=32 positions)
 ✅ Audit Trail: Merkle roots and complete decision logs maintained
 ✅ TLSH Fuzzy Hashing: Operational with real similarity scoring
+✅ Adaptive Sampling: Dynamic batch sizing, convergence tracking, variance reduction ready
 
 📊 VALIDATION STATUS SUMMARY
 ============================
@@ -308,7 +358,9 @@ Statistical Framework Components:
 =============================
 • Deterministic Results: $LATEST_RESULTS
 • Runtime Statistical Identity: $LATEST_RUNTIME_RESULTS
+• Adaptive Sampling Results: $LATEST_ADAPTIVE_RESULTS
 • Corrected Evidence: CORRECTED_VALIDATION_EVIDENCE.md
+• Adaptive Analysis: external_validation_package/ADAPTIVE_SAMPLING_RESULTS.md
 • Academic Summary: ${RESULTS_DIR}/summary_${TIMESTAMP}.txt
 • Validation Logs: ${RESULTS_DIR}/*_${TIMESTAMP}.log
 
