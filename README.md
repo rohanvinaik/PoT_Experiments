@@ -78,6 +78,24 @@ bash scripts/run_standard_validation.sh
 bash scripts/run_all_quick.sh
 ```
 
+### Environment Variables
+
+The scripts honor several environment variables that let you customize execution:
+
+| Variable | Description | Default |
+|---------|-------------|---------|
+| `PYTHON` | Python interpreter to use | `python3` |
+| `RESULTS_DIR` | Where validation logs and artifacts are stored | `experimental_results` |
+| `PYTHONPATH` | Additional paths for Python imports | Repository root |
+| `ZK_MODE` | Zero-knowledge proof mode (`dev`, `benchmark`, `production`) | unset |
+
+Example:
+
+```bash
+export ZK_MODE=production
+bash scripts/run_standard_validation.sh
+```
+
 ### Validate Paper Claims
 
 ```bash
