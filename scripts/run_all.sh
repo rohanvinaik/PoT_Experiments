@@ -822,6 +822,87 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run runtime PoI verification
+print_header "RUNNING RUNTIME POI VERIFICATION"
+print_info "Testing runtime verification with fallback and timing"
+
+# Create output directory
+mkdir -p experimental_results
+
+# Run both quick and audit modes
+RUNTIME_PASSED=0
+RUNTIME_TOTAL=0
+
+# Quick mode test
+if ${PYTHON} scripts/run_poi_runtime.py --mode quick --output experimental_results/poi_runtime_quick.json > "${RESULTS_DIR}/poi_runtime_quick_${TIMESTAMP}.log" 2>&1; then
+    print_success "Runtime PoI verification (quick mode) passed"
+    RUNTIME_PASSED=$((RUNTIME_PASSED + 1))
+    
+    # Extract timing summary for quick mode
+    QUICK_TIMING=$(python3 -c "
+import json
+try:
+    with open('experimental_results/poi_runtime_quick.json') as f:
+        data = json.load(f)
+        if 'results' in data and data['results']:
+            for r in data['results']:
+                decision = r.get('decision', 'UNDECIDED')
+                t_per_query = r.get('t_per_query', 0) * 1000  # Convert to ms
+                n_used = r.get('n_used', 0)
+                pair = f\"{r.get('ref', 'unknown')} vs {r.get('cand', 'unknown')}\"
+                print(f'⚡ {pair}: {decision} (n={n_used}, {t_per_query:.1f}ms/query)')
+except:
+    pass
+" 2>/dev/null)
+    if [ -n "$QUICK_TIMING" ]; then
+        print_info "$QUICK_TIMING"
+    fi
+else
+    print_error "Runtime PoI verification (quick mode) failed"
+    print_info "Check ${RESULTS_DIR}/poi_runtime_quick_${TIMESTAMP}.log for details"
+fi
+RUNTIME_TOTAL=$((RUNTIME_TOTAL + 1))
+
+# Audit mode test
+if ${PYTHON} scripts/run_poi_runtime.py --mode audit --output experimental_results/poi_runtime_audit.json > "${RESULTS_DIR}/poi_runtime_audit_${TIMESTAMP}.log" 2>&1; then
+    print_success "Runtime PoI verification (audit mode) passed"
+    RUNTIME_PASSED=$((RUNTIME_PASSED + 1))
+    
+    # Extract timing summary for audit mode
+    AUDIT_TIMING=$(python3 -c "
+import json
+try:
+    with open('experimental_results/poi_runtime_audit.json') as f:
+        data = json.load(f)
+        if 'results' in data and data['results']:
+            for r in data['results']:
+                decision = r.get('decision', 'UNDECIDED')
+                t_per_query = r.get('t_per_query', 0) * 1000  # Convert to ms
+                n_used = r.get('n_used', 0)
+                pair = f\"{r.get('ref', 'unknown')} vs {r.get('cand', 'unknown')}\"
+                print(f'🎯 {pair}: {decision} (n={n_used}, {t_per_query:.1f}ms/query)')
+except:
+    pass
+" 2>/dev/null)
+    if [ -n "$AUDIT_TIMING" ]; then
+        print_info "$AUDIT_TIMING"
+    fi
+else
+    print_error "Runtime PoI verification (audit mode) failed"
+    print_info "Check ${RESULTS_DIR}/poi_runtime_audit_${TIMESTAMP}.log for details"
+fi
+RUNTIME_TOTAL=$((RUNTIME_TOTAL + 1))
+
+# Update test counts
+if [ "$RUNTIME_PASSED" -eq "$RUNTIME_TOTAL" ]; then
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    print_success "All runtime verification modes passed"
+else
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_error "Some runtime verification modes failed"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then
     echo ""
