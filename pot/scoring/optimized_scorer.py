@@ -386,7 +386,10 @@ class FastScorer:
             truncation=True,
             max_length=128  # Short for speed
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
+        # Get model device
+        model_device = next(ref_model.parameters()).device
+        inputs = {k: v.to(model_device) for k, v in inputs.items()}
         
         prompt_len = len(tokenizer.encode(prompt, add_special_tokens=False))
         

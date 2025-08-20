@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-08-19T22:11:59.271653",
+  "description": "Calibrated thresholds for GPT-2 family models",
+  "quick_gate": {
+    "gamma": 0.0,
+    "delta_star": 0.32000000000000006,
+    "eta": 0.5,
+    "epsilon_diff": 0.25,
+    "n_min": 20,
+    "n_max": 150,
+    "confidence": 0.975
+  },
+  "audit_grade": {
+    "gamma": 0.0,
+    "delta_star": 0.4,
+    "eta": 0.5,
+    "epsilon_diff": 0.0,
+    "n_min": 20,
+    "n_max": 100,
+    "confidence": 0.99
+  },
+  "calibration_source": {
+    "quick": "experimental_results/calibration/quick_calibration_20250819_221159.json",
+    "full": "experimental_results/calibration/full_calibration_20250819_221159.json"
+  }
+}

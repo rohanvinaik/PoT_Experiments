@@ -1,0 +1,73 @@
+{
+  "timestamp": "2025-08-19 22:11:59",
+  "config": {
+    "n_samples_same": 30,
+    "n_samples_different": 30,
+    "positions_per_prompt": 32,
+    "confidence_level": 0.99
+  },
+  "same_model": {
+    "n_models": 1,
+    "n_total_samples": 0,
+    "mean": 0.0,
+    "std": 0.0,
+    "median": 0.0,
+    "p95": 0.0,
+    "p99": 0.0,
+    "max": 0.0
+  },
+  "different_model": {
+    "n_pairs": 1,
+    "n_total_samples": 0,
+    "mean": 1.0,
+    "std": 0.0,
+    "median": 1.0,
+    "p5": 1.0,
+    "p10": 1.0,
+    "p25": 1.0,
+    "min": 1.0
+  },
+  "separation": {
+    "overlap_region": [
+      0.0,
+      1.0
+    ],
+    "separation_gap": 1.0,
+    "separation_ratio": Infinity
+  },
+  "optimal_thresholds": {
+    "gamma": 0.0,
+    "delta_star": 0.4,
+    "eta": 0.5,
+    "epsilon_diff": 0.0,
+    "epsilon_same": 0.0,
+    "expected_fp_rate": 0.010000000000000009,
+    "expected_fn_rate": 0.1,
+    "confidence_level": 0.99
+  },
+  "detailed_results": {
+    "same_model": null,
+    "different_pairs": null
+  },
+  "recommendations": {
+    "assessment": "excellent_separation",
+    "mode": "quick_gate",
+    "n_min": 20,
+    "n_max": 100,
+    "positions_per_prompt": 32,
+    "expected_samples_same": 30,
+    "expected_samples_different": 25,
+    "confidence": 0.975,
+    "use_thresholds": {
+      "gamma": 0.0,
+      "delta_star": 0.4,
+      "eta": 0.5,
+      "epsilon_diff": 0.0,
+      "epsilon_same": 0.0,
+      "expected_fp_rate": 0.010000000000000009,
+      "expected_fn_rate": 0.1,
+      "confidence_level": 0.99
+    },
+    "notes": "Models show clear separation - quick decisions possible"
+  }
+}
