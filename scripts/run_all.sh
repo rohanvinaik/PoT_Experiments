@@ -556,6 +556,25 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run enhanced verifier tests
+print_header "RUNNING ENHANCED VERIFIER TESTS"
+print_info "Testing main verifier with mode support and enhanced decision rules"
+
+if ${PYTHON} scripts/test_enhanced_verifier.py > "${RESULTS_DIR}/enhanced_verifier_${TIMESTAMP}.log" 2>&1; then
+    print_success "Enhanced verifier tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check if results exist
+    if [ -f "experimental_results/verifier_test_"*.json ]; then
+        print_info "Verifier test results saved to experimental_results/"
+    fi
+else
+    print_error "Enhanced verifier tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/enhanced_verifier_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Run stress tests
 print_header "RUNNING STRESS TESTS"
 
