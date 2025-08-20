@@ -7,10 +7,270 @@ model outputs on the same prompts.
 
 import numpy as np
 import torch
-from typing import Any, Optional, Literal
+import torch.nn.functional as F
+from typing import Any, Optional, Literal, Tuple, Union
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+class CorrectedDifferenceScorer:
+    """
+    Difference scorer with proper orientation:
+    - Larger scores indicate MORE different models
+    - Scores are always non-negative
+    - Handles numerical stability properly
+    """
+    
+    def __init__(self, epsilon: float = 1e-10):
+        """
+        Initialize the scorer.
+        
+        Args:
+            epsilon: Small value for numerical stability
+        """
+        self.epsilon = epsilon
+    
+    def delta_ce_abs(
+        self,
+        logits_a: torch.Tensor,
+        logits_b: torch.Tensor,
+        temperature: float = 1.0
+    ) -> float:
+        """
+        Compute absolute cross-entropy difference.
+        
+        CE(p_a, p_b) - CE(p_a, p_a) = CE(p_a, p_b) - H(p_a)
+        
+        This measures how much MORE uncertain p_a becomes when using p_b's predictions.
+        Larger values = more different models.
+        
+        Args:
+            logits_a: Logits from model A [batch_size, seq_len, vocab_size]
+            logits_b: Logits from model B [batch_size, seq_len, vocab_size]
+            temperature: Temperature for softmax (default 1.0)
+            
+        Returns:
+            Non-negative difference score (larger = more different)
+        """
+        # Apply temperature scaling
+        logits_a = logits_a / temperature
+        logits_b = logits_b / temperature
+        
+        # Convert to probabilities with stability
+        probs_a = F.softmax(logits_a, dim=-1)
+        probs_b = F.softmax(logits_b, dim=-1)
+        
+        # Add epsilon for numerical stability
+        probs_a = probs_a + self.epsilon
+        probs_b = probs_b + self.epsilon
+        
+        # Renormalize after adding epsilon
+        probs_a = probs_a / probs_a.sum(dim=-1, keepdim=True)
+        probs_b = probs_b / probs_b.sum(dim=-1, keepdim=True)
+        
+        # Compute cross-entropy: CE(p_a, p_b) = -sum(p_a * log(p_b))
+        ce_ab = -torch.sum(probs_a * torch.log(probs_b), dim=-1)
+        
+        # Compute entropy: H(p_a) = -sum(p_a * log(p_a))
+        h_a = -torch.sum(probs_a * torch.log(probs_a), dim=-1)
+        
+        # Difference: CE(p_a, p_b) - H(p_a)
+        # This is always >= 0 (by Gibbs' inequality)
+        diff = ce_ab - h_a
+        
+        # Take mean over batch and sequence
+        score = diff.mean().item()
+        
+        # Ensure non-negative (should already be, but for safety)
+        return max(0.0, score)
+    
+    def symmetric_kl(
+        self,
+        logits_a: torch.Tensor,
+        logits_b: torch.Tensor,
+        temperature: float = 1.0
+    ) -> float:
+        """
+        Compute symmetric KL divergence (Jeffreys divergence).
+        
+        J(p_a, p_b) = KL(p_a || p_b) + KL(p_b || p_a)
+        
+        This is symmetric and always non-negative.
+        Larger values = more different models.
+        
+        Args:
+            logits_a: Logits from model A [batch_size, seq_len, vocab_size]
+            logits_b: Logits from model B [batch_size, seq_len, vocab_size]
+            temperature: Temperature for softmax (default 1.0)
+            
+        Returns:
+            Non-negative symmetric KL divergence (larger = more different)
+        """
+        # Apply temperature scaling
+        logits_a = logits_a / temperature
+        logits_b = logits_b / temperature
+        
+        # Convert to log probabilities for stability
+        log_probs_a = F.log_softmax(logits_a, dim=-1)
+        log_probs_b = F.log_softmax(logits_b, dim=-1)
+        
+        # Convert to probabilities
+        probs_a = torch.exp(log_probs_a)
+        probs_b = torch.exp(log_probs_b)
+        
+        # KL(p_a || p_b) = sum(p_a * (log(p_a) - log(p_b)))
+        kl_ab = torch.sum(probs_a * (log_probs_a - log_probs_b), dim=-1)
+        
+        # KL(p_b || p_a) = sum(p_b * (log(p_b) - log(p_a)))
+        kl_ba = torch.sum(probs_b * (log_probs_b - log_probs_a), dim=-1)
+        
+        # Symmetric KL = KL(p_a || p_b) + KL(p_b || p_a)
+        symmetric = kl_ab + kl_ba
+        
+        # Take mean over batch and sequence
+        score = symmetric.mean().item()
+        
+        # Ensure non-negative (should already be, but for safety)
+        return max(0.0, score)
+    
+    def compute_with_positions(
+        self,
+        model_a,
+        model_b,
+        input_ids: torch.Tensor,
+        attention_mask: Optional[torch.Tensor] = None,
+        positions: Optional[torch.Tensor] = None,
+        method: str = "delta_ce_abs",
+        temperature: float = 1.0
+    ) -> Tuple[float, dict]:
+        """
+        Compute difference score for specific positions.
+        
+        Args:
+            model_a: First model
+            model_b: Second model
+            input_ids: Input token IDs
+            attention_mask: Attention mask (optional)
+            positions: Positions to score (optional, defaults to all)
+            method: Scoring method ("delta_ce_abs" or "symmetric_kl")
+            temperature: Temperature for softmax
+            
+        Returns:
+            (score, metadata) where score is non-negative difference
+        """
+        # Get model outputs
+        with torch.no_grad():
+            outputs_a = model_a(input_ids, attention_mask=attention_mask)
+            outputs_b = model_b(input_ids, attention_mask=attention_mask)
+        
+        logits_a = outputs_a.logits
+        logits_b = outputs_b.logits
+        
+        # If positions specified, extract only those
+        if positions is not None:
+            batch_size = logits_a.shape[0]
+            selected_a = []
+            selected_b = []
+            
+            for b in range(batch_size):
+                for pos in positions[b]:
+                    if pos < logits_a.shape[1]:
+                        selected_a.append(logits_a[b, pos:pos+1, :])
+                        selected_b.append(logits_b[b, pos:pos+1, :])
+            
+            if selected_a:
+                logits_a = torch.cat(selected_a, dim=0).unsqueeze(0)
+                logits_b = torch.cat(selected_b, dim=0).unsqueeze(0)
+            else:
+                # No valid positions, return 0 difference
+                return 0.0, {"n_positions": 0, "method": method}
+        
+        # Compute score based on method
+        if method == "delta_ce_abs":
+            score = self.delta_ce_abs(logits_a, logits_b, temperature)
+        elif method == "symmetric_kl":
+            score = self.symmetric_kl(logits_a, logits_b, temperature)
+        else:
+            raise ValueError(f"Unknown method: {method}")
+        
+        # Prepare metadata
+        metadata = {
+            "method": method,
+            "temperature": temperature,
+            "n_positions": positions.numel() if positions is not None else logits_a.shape[1],
+            "score_interpretation": "larger values = more different models"
+        }
+        
+        return score, metadata
+    
+    def score_batch(
+        self,
+        model_a,
+        model_b,
+        prompts: list,
+        tokenizer,
+        max_length: int = 512,
+        method: str = "delta_ce_abs",
+        temperature: float = 1.0,
+        k: int = 32
+    ) -> list:
+        """
+        Score a batch of prompts.
+        
+        Args:
+            model_a: First model
+            model_b: Second model
+            prompts: List of text prompts
+            tokenizer: Tokenizer for encoding
+            max_length: Maximum sequence length
+            method: Scoring method
+            temperature: Temperature for softmax
+            k: Number of positions to sample per prompt
+            
+        Returns:
+            List of scores (all non-negative, larger = more different)
+        """
+        scores = []
+        
+        for prompt in prompts:
+            # Tokenize
+            inputs = tokenizer(
+                prompt,
+                return_tensors="pt",
+                max_length=max_length,
+                truncation=True,
+                padding=True
+            )
+            
+            input_ids = inputs["input_ids"]
+            attention_mask = inputs.get("attention_mask", None)
+            
+            # Sample positions
+            seq_len = input_ids.shape[1]
+            if seq_len > k:
+                positions = torch.randperm(seq_len)[:k].unsqueeze(0)
+            else:
+                positions = torch.arange(seq_len).unsqueeze(0)
+            
+            # Move to device
+            device = next(model_a.parameters()).device
+            input_ids = input_ids.to(device)
+            if attention_mask is not None:
+                attention_mask = attention_mask.to(device)
+            positions = positions.to(device)
+            
+            # Compute score
+            score, _ = self.compute_with_positions(
+                model_a, model_b,
+                input_ids, attention_mask,
+                positions, method, temperature
+            )
+            
+            scores.append(score)
+        
+        return scores
+
 
 class DifferenceScorer:
     """Score differences between model outputs"""
