@@ -1,5 +1,31 @@
 # CRITICAL INSTRUCTIONS FOR CLAUDE - READ FIRST
 
+## ENHANCED DIFF DECISION FRAMEWORK
+
+The codebase now includes an enhanced statistical difference testing framework with separate SAME/DIFFERENT decision rules. When working with model verification:
+
+1. **USE THE ENHANCED FRAMEWORK** - Located in `pot/core/diff_decision.py`:
+   - `EnhancedSequentialTester` - Separate SAME/DIFFERENT decision logic
+   - `TestingMode.QUICK_GATE` - Fast initial checks (97.5% confidence, n_max=120)
+   - `TestingMode.AUDIT_GRADE` - High precision (99% confidence, n_max=400)
+
+2. **DECISION RULES**:
+   - **SAME**: CI within [-γ, +γ] AND half_width ≤ η·γ
+   - **DIFFERENT**: Effect size ≥ δ* AND RME ≤ ε_diff
+   - **UNDECIDED**: Provides specific diagnostics and suggestions
+
+3. **INTEGRATION POINTS**:
+   - `scripts/test_enhanced_diff_decision.py` - Comprehensive test suite
+   - `scripts/test_enhanced_diff_integration.py` - Integration tests
+   - `scripts/experimental_report_clean.py` - Includes enhanced results
+   - All `run_all*.sh` scripts include enhanced framework tests
+
+4. **KEY FEATURES**:
+   - Auto-calibration using percentile data
+   - Effective sample size calculation (n * K)
+   - Enhanced diagnostics for troubleshooting
+   - Backward compatible with original framework
+
 ## NEVER CREATE MOCK TESTS
 
 When the user asks for Google Colab code or any test runners:
