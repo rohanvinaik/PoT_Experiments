@@ -374,49 +374,44 @@ class FastScorer:
               cand_model: Any,
               prompt: str,
               tokenizer: Any) -> float:
-        """Fast single prompt scoring"""
+        """Fast single prompt scoring - compares model outputs directly"""
         
-        # Simple suffix
-        full_text = prompt + " The answer is"
-        
-        # Tokenize
-        inputs = tokenizer(
-            full_text,
-            return_tensors="pt",
-            truncation=True,
-            max_length=128  # Short for speed
-        )
-        
-        # Get model device
+        # Tokenize prompt
+        inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
         model_device = next(ref_model.parameters()).device
         inputs = {k: v.to(model_device) for k, v in inputs.items()}
         
-        prompt_len = len(tokenizer.encode(prompt, add_special_tokens=False))
+        # For scoring, we'll compare the logits at each position
+        # No need for artificial continuations
         
         with torch.no_grad():
             # Get logits
             ref_out = ref_model(**inputs)
             cand_out = cand_model(**inputs)
             
-            # Score only K positions after prompt
+            # Compare logits at each position in the prompt
             scores = []
             seq_len = inputs["input_ids"].shape[1]
             
-            for i in range(prompt_len, min(prompt_len + self.k, seq_len - 1)):
-                target = inputs["input_ids"][0, i + 1]
+            # Score all positions except the last (no next token for it)
+            for i in range(min(self.k, seq_len - 1)):
+                # Get top-k logits for efficiency
+                ref_topk, ref_idx = torch.topk(ref_out.logits[0, i], min(self.top_k, ref_out.logits.shape[-1]))
+                cand_topk, cand_idx = torch.topk(cand_out.logits[0, i], min(self.top_k, cand_out.logits.shape[-1]))
                 
-                # Top-k approximation
-                ref_topk, ref_idx = torch.topk(ref_out.logits[0, i], self.top_k)
+                # Convert to probabilities
+                ref_probs = F.softmax(ref_topk, dim=-1)
+                cand_probs = F.softmax(cand_topk, dim=-1)
                 
-                if target in ref_idx:
-                    idx = (ref_idx == target).nonzero(as_tuple=True)[0][0]
-                    cand_subset = cand_out.logits[0, i][ref_idx]
-                    
-                    ref_lp = F.log_softmax(ref_topk, dim=-1)[idx]
-                    cand_lp = F.log_softmax(cand_subset, dim=-1)[idx]
-                    
-                    scores.append(abs((-cand_lp + ref_lp).item()))
-                else:
-                    scores.append(0.5)  # Penalty
+                # Compute KL divergence approximation on top-k
+                # For identical models, this should be 0
+                kl = 0.0
+                for j in range(len(ref_idx)):
+                    if ref_idx[j] in cand_idx:
+                        cand_j = (cand_idx == ref_idx[j]).nonzero(as_tuple=True)[0]
+                        if len(cand_j) > 0:
+                            kl += ref_probs[j] * (ref_probs[j].log() - cand_probs[cand_j[0]].log())
+                
+                scores.append(float(kl.abs().item()))
             
             return float(np.mean(scores)) if scores else 0.0
