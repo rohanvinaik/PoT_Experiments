@@ -1,0 +1,96 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "quick_gate",
+  "timestamp": "2025-08-20 19:44:06 UTC",
+  "config": {
+    "mode": "quick_gate",
+    "confidence": 0.975,
+    "gamma": 0.002,
+    "delta_star": 0.15,
+    "epsilon_diff": 0.2,
+    "eta": 0.5,
+    "n_min": 12,
+    "n_max": 15,
+    "K": 32,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "UNDECIDED",
+    "reason": "Reached n_max without meeting decision criteria",
+    "n_used": 16,
+    "n_eff": 512,
+    "mean": 0.050671903231865704,
+    "variance": 0.0007869738381372472,
+    "std_dev": 0.028053053989490113,
+    "ci": [
+      0.0411500511075887,
+      0.06019375535614271
+    ],
+    "half_width": 0.009521852124277001,
+    "gamma": 0.002,
+    "delta_star": 0.15,
+    "rme": null,
+    "direction": null
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.0506719032318657,
+      "std": 0.027162252727888185,
+      "min": -0.01080158847190276,
+      "max": 0.10738313814077621,
+      "percentiles": {
+        "p5": 0.014170998896110945,
+        "p25": 0.03643623806044967,
+        "p50": 0.04981354463576576,
+        "p75": 0.05855073153829289,
+        "p95": 0.09513591230867355
+      }
+    },
+    "clipped": {
+      "mean": 0.051347002511359624,
+      "std": 0.025722032168879815,
+      "min": 0.0,
+      "max": 0.10738313814077621
+    }
+  },
+  "timing": {
+    "total_time_sec": 0.000264833215624094,
+    "avg_score_time_sec": 9.089417289942503e-07,
+    "total_score_time_sec": 1.4543067663908005e-05,
+    "avg_batch_time_sec": 4.321901360526681e-05,
+    "scores_per_second": 60415.38242208449
+  },
+  "diagnostics": {
+    "same_check": {
+      "ci_within_band": false,
+      "precision_met": false,
+      "needed_half_width": 0.001
+    },
+    "different_check": {
+      "effect_size_met": false,
+      "rme": 0.18791187062200293,
+      "rme_target": 0.2
+    }
+  },
+  "suggestions": [
+    "Increase K to 64 positions per prompt",
+    "Ensure score clipping range is appropriate",
+    "Effect size too small - may be near-clones or need different score metric",
+    "Consider switching score method (delta_ce \u2192 symmetric_kl)",
+    "Add more diverse challenge types",
+    "Check if models are loading correctly"
+  ],
+  "interpretation": "Unable to make a definitive decision with current data after 16 samples. CI extends outside equivalence band \u00b10.002000. Effect size 0.050672 below threshold 0.150000. Consider: (1) increasing samples to ~14, (2) using K=64 positions, (3) checking model loading, or (4) trying a different scoring metric.",
+  "next_steps": [
+    "Increase K to 64 positions per prompt",
+    "Ensure score clipping range is appropriate",
+    "Effect size too small - may be near-clones or need different score metric",
+    "Consider switching score method (delta_ce \u2192 symmetric_kl)",
+    "Add more diverse challenge types"
+  ]
+}

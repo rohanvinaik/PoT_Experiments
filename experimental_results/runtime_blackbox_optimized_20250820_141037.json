@@ -1,0 +1,151 @@
+{
+  "validation_type": "runtime_blackbox_optimized",
+  "timestamp": "2025-08-20T14:10:31.262760",
+  "test_cases": 2,
+  "results": [
+    {
+      "timestamp": "2025-08-20T14:10:35.509851",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "gpt2"
+      },
+      "framework": {
+        "mode": "QUICK_GATE",
+        "alpha": 0.025000000000000022,
+        "beta": 0.025000000000000022,
+        "confidence": 0.975,
+        "gamma": 0.015,
+        "delta_star": 0.1,
+        "epsilon_diff": 0.2,
+        "n_min": 12,
+        "n_max": 120
+      },
+      "optimization": {
+        "config_preset": "fastest",
+        "use_top_k": true,
+        "top_k": 50,
+        "batch_size": 16,
+        "positions_per_prompt": 16,
+        "max_length": 128,
+        "use_amp": true,
+        "cached_embeddings": 0
+      },
+      "test_parameters": {
+        "positions_per_prompt": 16,
+        "challenge_families": [
+          "completion",
+          "style",
+          "reasoning",
+          "knowledge"
+        ],
+        "prompts_planned": 40,
+        "prompts_used": 40,
+        "metric_used": "optimized_delta_ce"
+      },
+      "statistical_results": {
+        "decision": "SAME",
+        "rule_fired": "CI within [-0.015, +0.015] and half_width <= 0.0075",
+        "n_used": 40,
+        "mean_diff": 0.0,
+        "ci_99": [
+          0.0,
+          0.0
+        ],
+        "half_width": 0.0,
+        "effect_size": 0.0,
+        "relative_me": Infinity
+      },
+      "timing": {
+        "t_load_a": 1.5352799892425537,
+        "t_load_b": 0.30789709091186523,
+        "t_infer_total": 1.0784220695495605,
+        "t_per_query": 0.026960551738739014,
+        "speedup": 37.09122905534319,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch+optimized"
+        }
+      },
+      "audit": {
+        "merkle_root": "5632bcc4a4f9c06f1369494ef4f89d28e204647d2e6553193295fde49954e1a7",
+        "sample_entries": [
+          "prompt_0:The sky is blue because\u21920.000000",
+          "prompt_1:Dear Sir or Madam,\u21920.000000",
+          "prompt_2:If it rains, the ground gets\u21920.000000"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-08-20T14:10:37.819044",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "distilgpt2"
+      },
+      "framework": {
+        "mode": "AUDIT_GRADE",
+        "alpha": 0.010000000000000009,
+        "beta": 0.010000000000000009,
+        "confidence": 0.99,
+        "gamma": 0.01,
+        "delta_star": 0.1,
+        "epsilon_diff": 0.1,
+        "n_min": 30,
+        "n_max": 400
+      },
+      "optimization": {
+        "config_preset": "balanced",
+        "use_top_k": true,
+        "top_k": 100,
+        "batch_size": 8,
+        "positions_per_prompt": 32,
+        "max_length": 256,
+        "use_amp": true,
+        "cached_embeddings": 0
+      },
+      "test_parameters": {
+        "positions_per_prompt": 32,
+        "challenge_families": [
+          "completion",
+          "style",
+          "reasoning",
+          "knowledge"
+        ],
+        "prompts_planned": 40,
+        "prompts_used": 40,
+        "metric_used": "optimized_delta_ce"
+      },
+      "statistical_results": {
+        "decision": "UNDECIDED",
+        "rule_fired": "Neither SAME nor DIFFERENT criteria met at n=40",
+        "n_used": 40,
+        "mean_diff": 0.6972112461924556,
+        "ci_99": [
+          0.20165229264398835,
+          0.2722957747826932
+        ],
+        "half_width": 0.03532174106935241,
+        "effect_size": 0.23697403371334075,
+        "relative_me": 0.14905321277553935
+      },
+      "timing": {
+        "t_load_a": 0.5672073364257812,
+        "t_load_b": 0.2164757251739502,
+        "t_infer_total": 1.158397912979126,
+        "t_per_query": 0.02895994782447815,
+        "speedup": 34.53044895180227,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch+optimized"
+        }
+      },
+      "audit": {
+        "merkle_root": "000610eff1d66a471c1d930a0afdbb643a857a4e73ae412d93d85ef976bcb4f9",
+        "sample_entries": [
+          "prompt_0:The sky is blue because\u21920.072832",
+          "prompt_1:Dear Sir or Madam,\u21920.300000",
+          "prompt_2:If it rains, the ground gets\u21920.199869"
+        ]
+      }
+    }
+  ]
+}

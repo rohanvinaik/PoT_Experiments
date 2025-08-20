@@ -12,9 +12,9 @@
     "excludes_zero": false,
     "decision": "UNDECIDED",
     "time": {
-      "load": 1.435,
-      "infer_total": 0.706,
-      "per_query": 0.070566
+      "load": 1.312,
+      "infer_total": 0.725,
+      "per_query": 0.072477
     },
     "positions_per_prompt": 32,
     "alpha": 0.01,
@@ -34,9 +34,9 @@
     "excludes_zero": true,
     "decision": "DIFFERENT",
     "time": {
-      "load": 0.712,
-      "infer_total": 0.569,
-      "per_query": 0.056882
+      "load": 0.669,
+      "infer_total": 0.677,
+      "per_query": 0.06766
     },
     "positions_per_prompt": 32,
     "alpha": 0.01,

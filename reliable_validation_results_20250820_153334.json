@@ -1,0 +1,147 @@
+{
+  "validation_run": {
+    "timestamp": "2025-08-20T15:33:34.643639",
+    "config": {
+      "model_type": "deterministic",
+      "model_seed": 7280,
+      "model_count": 3,
+      "verification_types": [
+        "fuzzy"
+      ],
+      "verification_depths": [
+        "quick",
+        "standard"
+      ],
+      "challenge_dimensions": [
+        100,
+        500
+      ],
+      "challenge_count": 2,
+      "performance_iterations": 2,
+      "max_history_size": 50,
+      "generate_reports": true,
+      "save_detailed_logs": false
+    },
+    "tests": [
+      {
+        "test_name": "reliable_verification",
+        "timestamp": "2025-08-20T15:33:34.643648",
+        "config": {
+          "model_type": "deterministic",
+          "model_seed": 7280,
+          "model_count": 3,
+          "verification_types": [
+            "fuzzy"
+          ],
+          "verification_depths": [
+            "quick",
+            "standard"
+          ],
+          "challenge_dimensions": [
+            100,
+            500
+          ],
+          "challenge_count": 2,
+          "performance_iterations": 2,
+          "max_history_size": 50,
+          "generate_reports": true,
+          "save_detailed_logs": false
+        },
+        "results": [
+          {
+            "verification_type": "fuzzy",
+            "model_id": "f5ad39caea721594",
+            "depths": [
+              {
+                "depth": "quick",
+                "verified": true,
+                "confidence": 1.0,
+                "challenges_passed": 1,
+                "challenges_total": 1,
+                "duration": 0.0001780986785888672
+              },
+              {
+                "depth": "standard",
+                "verified": true,
+                "confidence": 1.0,
+                "challenges_passed": 2,
+                "challenges_total": 2,
+                "duration": 0.00020194053649902344
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "test_name": "performance_benchmark",
+        "timestamp": "2025-08-20T15:33:34.645098",
+        "config": {
+          "model_type": "deterministic",
+          "model_seed": 7280,
+          "model_count": 3,
+          "verification_types": [
+            "fuzzy"
+          ],
+          "verification_depths": [
+            "quick",
+            "standard"
+          ],
+          "challenge_dimensions": [
+            100,
+            500
+          ],
+          "challenge_count": 2,
+          "performance_iterations": 2,
+          "max_history_size": 50,
+          "generate_reports": true,
+          "save_detailed_logs": false
+        },
+        "results": [
+          {
+            "test_type": "batch_verification",
+            "model_count": 3,
+            "registration_time": 0.0004639625549316406,
+            "verification_time": 0.0005669593811035156,
+            "verified_count": 3,
+            "success_rate": 1.0
+          }
+        ]
+      },
+      {
+        "test_name": "challenge_effectiveness",
+        "timestamp": "2025-08-20T15:33:34.646228",
+        "config": {
+          "model_type": "deterministic",
+          "model_seed": 7280,
+          "model_count": 3,
+          "verification_types": [
+            "fuzzy"
+          ],
+          "verification_depths": [
+            "quick",
+            "standard"
+          ],
+          "challenge_dimensions": [
+            100,
+            500
+          ],
+          "challenge_count": 2,
+          "performance_iterations": 2,
+          "max_history_size": 50,
+          "generate_reports": true,
+          "save_detailed_logs": false
+        },
+        "results": [
+          {
+            "dimension": 100,
+            "error": "generate_challenges() takes 1 positional argument but 3 were given"
+          },
+          {
+            "dimension": 500,
+            "error": "generate_challenges() takes 1 positional argument but 3 were given"
+          }
+        ]
+      }
+    ]
+  }
+}

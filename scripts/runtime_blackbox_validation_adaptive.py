@@ -35,6 +35,7 @@ from pot.core.adaptive_sampling import (
     ConvergenceMetrics,
     VarianceReductionStrategy
 )
+from pot.core.evidence_logger import log_runtime_validation
 
 # Set environment for compatibility
 os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
@@ -749,11 +750,31 @@ def main():
             
             results.append(result)
             
+            # Log to evidence system
+            log_runtime_validation({
+                'statistical_results': result.get('statistical_results'),
+                'timing': result.get('timing'),
+                'models': result.get('models', {}),
+                'success': True,
+                'test_type': f"adaptive_{test_case['name']}"
+            })
+            
         except Exception as e:
             print(f"❌ Test failed: {e}")
             import traceback
             traceback.print_exc()
-            results.append({"error": str(e), "test_case": test_case})
+            error_result = {"error": str(e), "test_case": test_case}
+            results.append(error_result)
+            
+            # Log failed test
+            log_runtime_validation({
+                'statistical_results': None,
+                'timing': None,
+                'models': {test_case['model_a'], test_case['model_b']},
+                'success': False,
+                'error_message': str(e),
+                'test_type': f"adaptive_{test_case['name']}"
+            })
     
     # Save results
     output_dir = pathlib.Path("experimental_results")

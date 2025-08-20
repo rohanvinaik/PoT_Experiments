@@ -1,8 +1,8 @@
 {
   "metadata": {
     "created": "2025-08-17T16:41:39.916888",
-    "total_runs": 42,
-    "last_updated": "2025-08-20T12:33:40.659211"
+    "total_runs": 49,
+    "last_updated": "2025-08-20T15:48:20.289189"
   },
   "runs": [
     {
@@ -486,6 +486,111 @@
       }
     },
     {
+      "timestamp": "2025-08-20T15:05:35.718857",
+      "source_file": "reliable_validation_results_20250820_150535.json",
+      "validation_type": "deterministic",
+      "seed": 3541,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00014636251661512587,
+        "min_verification_time": 9.83874003092448e-05,
+        "max_verification_time": 0.00018978118896484375,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:33:34.643639",
+      "source_file": "reliable_validation_results_20250820_153334.json",
+      "validation_type": "deterministic",
+      "seed": 7280,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00018967522515190972,
+        "min_verification_time": 0.0001780986785888672,
+        "max_verification_time": 0.00020194053649902344,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:35:40.568162",
+      "source_file": "reliable_validation_results_20250820_153540.json",
+      "validation_type": "deterministic",
+      "seed": 9454,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00013650788201226128,
+        "min_verification_time": 9.671847025553386e-05,
+        "max_verification_time": 0.00017786026000976562,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:37:43.381931",
+      "source_file": "reliable_validation_results_20250820_153743.json",
+      "validation_type": "deterministic",
+      "seed": 7473,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00014167361789279513,
+        "min_verification_time": 0.00010840098063151042,
+        "max_verification_time": 0.00017976760864257812,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:43:59.578617",
+      "source_file": "reliable_validation_results_20250820_154359.json",
+      "validation_type": "deterministic",
+      "seed": 2289,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.0001392364501953125,
+        "min_verification_time": 9.965896606445312e-05,
+        "max_verification_time": 0.00017786026000976562,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:46:09.358551",
+      "source_file": "reliable_validation_results_20250820_154609.json",
+      "validation_type": "deterministic",
+      "seed": 6371,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.00013248125712076822,
+        "min_verification_time": 9.131431579589844e-05,
+        "max_verification_time": 0.00017189979553222656,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
+      "timestamp": "2025-08-20T15:48:20.145416",
+      "source_file": "reliable_validation_results_20250820_154820.json",
+      "validation_type": "deterministic",
+      "seed": 2048,
+      "model_count": 3,
+      "metrics": {
+        "success_rate": 1.0,
+        "avg_verification_time": 0.000137276119656033,
+        "min_verification_time": 9.497006734212239e-05,
+        "max_verification_time": 0.00017690658569335938,
+        "avg_confidence": 1.0,
+        "verification_count": 3
+      }
+    },
+    {
       "timestamp": "20250817_151611",
       "source_file": "experimental_results/validation_results_20250817_151611.json",
       "validation_type": "legacy",
@@ -638,11 +743,11 @@
   ],
   "statistics": {
     "deterministic": {
-      "total_runs": 32,
+      "total_runs": 39,
       "avg_success_rate": 1.0,
       "success_rate_std": 0.0,
-      "avg_verification_time": 0.00014575653605990938,
-      "verification_time_std": 2.3734642525004874e-05,
+      "avg_verification_time": 0.0001458313390400335,
+      "verification_time_std": 2.2818045147229218e-05,
       "avg_confidence": 1.0,
       "min_verification_time": 0.00012167294820149739,
       "max_verification_time": 0.00023033883836534288,
@@ -655,9 +760,9 @@
       "recent_10_success_rate": 0.7
     },
     "overall": {
-      "total_runs": 42,
-      "avg_success_rate": 0.9285714285714286,
-      "avg_verification_time": 0.00014575653605990938,
+      "total_runs": 49,
+      "avg_success_rate": 0.9387755102040817,
+      "avg_verification_time": 0.0001458313390400335,
       "date_range": {
         "earliest": "2025-08-17T15:54:06.118903",
         "latest": "20250819_204626"

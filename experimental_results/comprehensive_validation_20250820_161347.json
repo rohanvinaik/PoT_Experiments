@@ -1,0 +1,111 @@
+{
+  "validation_type": "comprehensive_zk_pot_validation",
+  "timestamp": "2025-08-20T16:13:47.650745",
+  "overall_success": true,
+  "successful_suites": 5,
+  "total_suites": 5,
+  "total_runtime": 33.607627630233765,
+  "test_results": {
+    "environment_verification": {
+      "test_type": "environment_verification",
+      "success": true,
+      "components": {
+        "torch": true,
+        "transformers": true,
+        "numpy": true,
+        "scipy": true,
+        "sklearn": true,
+        "hashlib": true,
+        "json": true,
+        "pathlib": true
+      },
+      "hardware": {
+        "device": "mps",
+        "gpu_available": true
+      }
+    },
+    "zk_system_verification": {
+      "test_type": "zk_system_verification",
+      "success": true,
+      "binaries": {
+        "prove_sgd_stdin": true,
+        "prove_lora_stdin": true,
+        "verify_sgd_stdin": true,
+        "verify_lora_stdin": true
+      },
+      "zk_proofs": [
+        {
+          "proof_generated": true,
+          "proof_type": "sgd",
+          "proof_size_bytes": 924,
+          "generation_time": 0.45,
+          "verification_result": true
+        }
+      ]
+    },
+    "enhanced_statistical_tests": {
+      "test_type": "enhanced_statistical_tests",
+      "success": true,
+      "tests": [
+        {
+          "test_name": "enhanced_diff_quick",
+          "success": true,
+          "return_code": 2,
+          "decision": "UNDECIDED"
+        }
+      ]
+    },
+    "interface_compliance_tests": {
+      "test_type": "interface_compliance_tests",
+      "success": true,
+      "interface_tests": {
+        "total_tests": 28,
+        "passed_tests": 28,
+        "failed_tests": 0,
+        "test_names": [
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestTrainingProvenanceAuditorInterface",
+          "TestInterfaceIntegration",
+          "TestInterfaceIntegration"
+        ],
+        "failure_details": {},
+        "compliance_rate": 1.0
+      }
+    },
+    "runtime_validation": {
+      "test_type": "runtime_validation",
+      "success": true,
+      "validation_runs": [
+        {
+          "test_name": "adaptive_runtime_validation",
+          "success": true,
+          "used_local_models": true
+        }
+      ]
+    }
+  }
+}

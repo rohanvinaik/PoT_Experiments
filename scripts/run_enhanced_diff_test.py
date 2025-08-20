@@ -24,6 +24,7 @@ from pot.core.diff_verifier import EnhancedDifferenceVerifier
 from pot.core.calibration import ModelCalibrator, load_calibration
 from pot.challenges.kdf_prompts import make_prompt_generator
 from pot.scoring.diff_scorer import DifferenceScorer, MockScorer
+from pot.core.evidence_logger import log_enhanced_diff_test
 
 def setup_logging(verbose: bool):
     """Configure logging"""
@@ -270,6 +271,31 @@ def run_verification(args, scorer, prompt_gen, logger):
         f.write(f"Time: {elapsed:.2f}s\n")
     
     print(f"\nResults saved to: {output_dir}")
+    
+    # Log to evidence system
+    log_enhanced_diff_test({
+        'statistical_results': {
+            'decision': report['results']['decision'],
+            'confidence': config.confidence,
+            'n_used': report['results']['n_used'],
+            'mean_diff': report['results']['mean'],
+            'ci_lower': report['results']['ci'][0],
+            'ci_upper': report['results']['ci'][1],
+            'half_width': report['results']['half_width'],
+            'effect_size': abs(report['results']['mean']),
+            'rule_fired': f"{report['results']['decision']} criteria met"
+        },
+        'timing': {
+            'total_time': elapsed,
+            'scores_per_second': report['timing']['scores_per_second']
+        },
+        'models': {
+            'ref_model': args.ref_model or 'mock_ref',
+            'cand_model': args.cand_model or 'mock_cand'
+        },
+        'success': True,
+        'test_type': f"enhanced_diff_{config.mode.value}"
+    })
     
     # Return appropriate exit code
     if report['results']['decision'] == "SAME":

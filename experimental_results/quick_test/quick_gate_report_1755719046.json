@@ -1,0 +1,77 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "quick_gate",
+  "timestamp": "2025-08-20 19:44:06 UTC",
+  "config": {
+    "mode": "quick_gate",
+    "confidence": 0.975,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.2,
+    "eta": 0.5,
+    "n_min": 12,
+    "n_max": 120,
+    "K": 32,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "DIFFERENT",
+    "reason": "Effect size 0.131606 \u2265 \u03b4* 0.1 and RME 0.099 \u2264 0.2",
+    "n_used": 12,
+    "n_eff": 384,
+    "mean": 0.11979665995711238,
+    "variance": 0.00013919514546397886,
+    "std_dev": 0.011798099230976949,
+    "ci": [
+      0.10798777602182898,
+      0.13160554389239576
+    ],
+    "half_width": 0.011808883935283395,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "rme": 0.0985744004842123,
+    "direction": "higher"
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.11979665995711238,
+      "std": 0.011295820023736532,
+      "min": 0.10166346312363256,
+      "max": 0.1473690024653151,
+      "percentiles": {
+        "p5": 0.1033008168842608,
+        "p25": 0.11546828790712715,
+        "p50": 0.11987569642384382,
+        "p75": 0.12324736354362353,
+        "p95": 0.13752852028058482
+      }
+    },
+    "clipped": {
+      "mean": 0.11979665995711238,
+      "std": 0.011295820023736532,
+      "min": 0.10166346312363256,
+      "max": 0.1473690024653151
+    }
+  },
+  "timing": {
+    "total_time_sec": 0.00024279183708131313,
+    "avg_score_time_sec": 9.515400355060896e-07,
+    "total_score_time_sec": 1.1418480426073074e-05,
+    "avg_batch_time_sec": 4.6124604220191635e-05,
+    "scores_per_second": 49425.05540654192
+  },
+  "diagnostics": {},
+  "suggestions": [],
+  "interpretation": "Models are statistically different (higher). The mean difference 0.119797 has effect size exceeding the threshold 0.100000 with sufficient precision (RME=0.099 \u2264 0.200). This indicates a material behavioral difference.",
+  "next_steps": [
+    "Investigate source of behavioral difference",
+    "Run secondary verification methods (fuzzy hash, provenance)",
+    "Check for unauthorized modifications or attacks",
+    "Do not use models interchangeably without analysis"
+  ]
+}
