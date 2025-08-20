@@ -1,0 +1,51 @@
+{
+  "reference_size": 50257,
+  "candidate_size": 32768,
+  "overlap_analysis": {
+    "total_reference": 50257,
+    "total_candidate": 32768,
+    "shared_tokens": 32768,
+    "unique_to_reference": 17489,
+    "unique_to_candidate": 0,
+    "overlap_ratio": 0.6520086754084008,
+    "jaccard_similarity": 0.6520086754084008,
+    "core_vocabulary_overlap": 1.0,
+    "extended_vocabulary_overlap": 0.5655662369277393,
+    "special_token_overlap": 1.0
+  },
+  "token_categories": {
+    "total_analyzed": 17489,
+    "category_distribution": {},
+    "special_token_changes": 10,
+    "domain_specific_changes": 3497,
+    "subword_changes": 8744
+  },
+  "architectural_impact": {
+    "embedding_layer_change": "severe",
+    "output_layer_change": "severe",
+    "core_transformer_affected": true,
+    "parameter_difference_ratio": 0.24421003636363636,
+    "functional_impact": "significant",
+    "embedding_params_changed": 13431552,
+    "output_params_changed": 13431552,
+    "total_params_changed": 26863104,
+    "requires_retraining": true,
+    "backward_compatible": false,
+    "can_share_weights": false
+  },
+  "recommendations": [
+    "Limited vocabulary overlap suggests different model families. Consider semantic verification methods instead of token-level comparison.",
+    "Detected 10 special token changes. This may affect model behavior significantly.",
+    "Large number of domain-specific token changes detected. Models may be specialized for different domains.",
+    "Vocabulary changes require model retraining for optimal performance.",
+    "Models are not backward compatible due to vocabulary changes.",
+    "Core vocabulary (first 10K tokens) has high overlap. Focus verification on core vocabulary for best results."
+  ],
+  "vocabulary_family": "gpt",
+  "is_extension": false,
+  "is_reduction": false,
+  "is_adaptation": false,
+  "can_verify": true,
+  "verification_strategy": "adaptive_major",
+  "confidence_adjustment": 0.7
+}

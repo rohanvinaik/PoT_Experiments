@@ -1,0 +1,8 @@
+Vocabulary Metrics
+============================================================
+Metric                            Reference    Candidate
+------------------------------------------------------------
+Vocabulary Size (K)                   50.26        32.77
+Overlap Ratio                          0.65         0.65
+Core Overlap                           0.80         0.80
+Parameter Diff                         0.02         0.02

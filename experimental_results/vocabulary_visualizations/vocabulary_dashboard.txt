@@ -1,0 +1,43 @@
+================================================================================
+VOCABULARY ANALYSIS DASHBOARD
+================================================================================
+
+📊 OVERVIEW
+----------------------------------------
+Reference Size: 50,257 tokens
+Candidate Size: 50,300 tokens
+
+🔄 OVERLAP ANALYSIS
+----------------------------------------
+Shared Tokens: 50,257
+Overlap Ratio: 99.9%
+Core Vocabulary Overlap: 100.0%
+
+📝 TOKEN CATEGORIES
+----------------------------------------
+
+🏗️ ARCHITECTURAL IMPACT
+----------------------------------------
+Parameter Change: 0.06%
+Functional Impact: negligible
+Backward Compatible: False
+
+💡 RECOMMENDATIONS
+----------------------------------------
+1. Models appear to be same base with vocabulary extension. Consider
+   using adaptive verification with focus on shared tokens.
+2. Detected 10 special token changes. This may affect model behavior
+   significantly.
+3. Vocabulary changes require model retraining for optimal performance.
+4. Models are not backward compatible due to vocabulary changes.
+5. Core transformer weights can potentially be shared between models.
+6. Core vocabulary (first 10K tokens) has high overlap. Focus
+   verification on core vocabulary for best results.
+
+✅ VERIFICATION COMPATIBILITY
+----------------------------------------
+Can Verify: True
+Strategy: standard
+Confidence Adjustment: 1.00x
+
+================================================================================

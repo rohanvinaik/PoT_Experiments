@@ -1,0 +1,51 @@
+{
+  "reference_size": 50257,
+  "candidate_size": 50300,
+  "overlap_analysis": {
+    "total_reference": 50257,
+    "total_candidate": 50300,
+    "shared_tokens": 50257,
+    "unique_to_reference": 0,
+    "unique_to_candidate": 43,
+    "overlap_ratio": 0.999145129224652,
+    "jaccard_similarity": 0.999145129224652,
+    "core_vocabulary_overlap": 1.0,
+    "extended_vocabulary_overlap": 0.9989330024813896,
+    "special_token_overlap": 1.0
+  },
+  "token_categories": {
+    "total_analyzed": 43,
+    "category_distribution": {},
+    "special_token_changes": 10,
+    "domain_specific_changes": 8,
+    "subword_changes": 21
+  },
+  "architectural_impact": {
+    "embedding_layer_change": "negligible",
+    "output_layer_change": "negligible",
+    "core_transformer_affected": true,
+    "parameter_difference_ratio": 0.0006004363636363636,
+    "functional_impact": "negligible",
+    "embedding_params_changed": 33024,
+    "output_params_changed": 33024,
+    "total_params_changed": 66048,
+    "requires_retraining": true,
+    "backward_compatible": false,
+    "can_share_weights": true
+  },
+  "recommendations": [
+    "Models appear to be same base with vocabulary extension. Consider using adaptive verification with focus on shared tokens.",
+    "Detected 10 special token changes. This may affect model behavior significantly.",
+    "Vocabulary changes require model retraining for optimal performance.",
+    "Models are not backward compatible due to vocabulary changes.",
+    "Core transformer weights can potentially be shared between models.",
+    "Core vocabulary (first 10K tokens) has high overlap. Focus verification on core vocabulary for best results."
+  ],
+  "vocabulary_family": "gpt",
+  "is_extension": true,
+  "is_reduction": false,
+  "is_adaptation": true,
+  "can_verify": true,
+  "verification_strategy": "standard",
+  "confidence_adjustment": 1.0
+}
