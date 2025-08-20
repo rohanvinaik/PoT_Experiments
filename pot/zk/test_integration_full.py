@@ -298,8 +298,8 @@ class TestEndToEndIntegration:
             from pot.zk.zk_types import SGDStepStatement, SGDStepWitness
             
             statement = SGDStepStatement(
-                weights_before_root=f"before_{i}".encode() * 4,
-                weights_after_root=f"after_{i}".encode() * 4,
+                W_t_root=f"before_{i}".encode() * 4,
+                W_t1_root=f"after_{i}".encode() * 4,
                 batch_root=f"batch_{i}".encode() * 4,
                 hparams_hash=b"hparams" * 4,
                 step_number=i,

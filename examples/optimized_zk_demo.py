@@ -160,8 +160,8 @@ def demonstrate_parallel_proving():
     tasks = []
     for i in range(10):
         statement = SGDStepStatement(
-            weights_before_root=f"before_{i}".encode() * 4,
-            weights_after_root=f"after_{i}".encode() * 4,
+            W_t_root=f"before_{i}".encode() * 4,
+            W_t1_root=f"after_{i}".encode() * 4,
             batch_root=f"batch_{i}".encode() * 4,
             hparams_hash=b"hparams" * 4,
             step_number=i,
@@ -276,8 +276,8 @@ def demonstrate_streaming_prover():
     
     for i in range(20):
         statement = SGDStepStatement(
-            weights_before_root=f"before_{i}".encode() * 4,
-            weights_after_root=f"after_{i}".encode() * 4,
+            W_t_root=f"before_{i}".encode() * 4,
+            W_t1_root=f"after_{i}".encode() * 4,
             batch_root=f"batch_{i}".encode() * 4,
             hparams_hash=b"hparams" * 4,
             step_number=i,
