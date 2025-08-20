@@ -20,45 +20,44 @@ try:
     from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, HashAlgorithm
     
     # Test data
-    reference = "The quick brown fox jumps over the lazy dog"
-    similar = "The quick brown fox jumps over the lazy dogs"
-    different = "Hello world, this is a completely different text"
+    reference = "The quick brown fox jumps over the lazy dog for fuzzy hash testing with sufficient length for TLSH"
+    similar = "The quick brown fox jumps over the lazy dogs for fuzzy hash testing with sufficient length for TLSH"
+    different = "Hello world, this is a completely different text used for testing fuzzy hash algorithms with enough data"
     
     results = {}
     
+    # Create single verifier instance
+    verifier = FuzzyHashVerifier()
+    
     # Test each algorithm
-    for algo in [HashAlgorithm.SHA256, HashAlgorithm.TLSH, HashAlgorithm.SSDEEP]:
-        print(f"\nTesting {algo.value}:")
+    for algo in ["tlsh", "ssdeep", "sha256"]:
+        print(f"\nTesting {algo}:")
         
         try:
-            verifier = FuzzyHashVerifier(algorithm=algo)
-            
-            # Compute hashes
-            ref_hash = verifier.compute_hash(reference.encode())
-            sim_hash = verifier.compute_hash(similar.encode())
-            diff_hash = verifier.compute_hash(different.encode())
+            # Generate hashes with specific algorithm
+            ref_hash = verifier.generate_fuzzy_hash(reference.encode(), algorithm=algo)
+            sim_hash = verifier.generate_fuzzy_hash(similar.encode(), algorithm=algo)
+            diff_hash = verifier.generate_fuzzy_hash(different.encode(), algorithm=algo)
             
             # Compute similarities
-            sim_score = verifier.compute_similarity(ref_hash, sim_hash)
-            diff_score = verifier.compute_similarity(ref_hash, diff_hash)
+            sim_score = verifier.compare(ref_hash, sim_hash)
+            diff_score = verifier.compare(ref_hash, diff_hash)
             
-            if algo == HashAlgorithm.SHA256:
-                print(f"  Type: exact hash (not fuzzy)")
-            else:
-                print(f"  Type: fuzzy hash")
-            
+            print(f"  Algorithm: {ref_hash['algorithm']}")
+            print(f"  Is fuzzy: {ref_hash['is_fuzzy']}")
             print(f"  Similar text score: {sim_score:.3f}")
             print(f"  Different text score: {diff_score:.3f}")
             
-            results[algo.value] = {
+            results[algo] = {
+                "algorithm_label": ref_hash['algorithm'],
+                "is_fuzzy": ref_hash['is_fuzzy'],
                 "similar_score": sim_score,
-                "different_score": diff_score,
-                "is_fuzzy": algo != HashAlgorithm.SHA256
+                "different_score": diff_score
             }
             
-        except ImportError:
-            print(f"  ⚠️ {algo.value} library not available")
-            results[algo.value] = {"error": "library not available"}
+        except Exception as e:
+            print(f"  ⚠️ {algo} failed: {e}")
+            results[algo] = {"error": str(e)}
     
     # Save results
     Path("experimental_results").mkdir(exist_ok=True)

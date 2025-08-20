@@ -1,0 +1,55 @@
+{
+  "timestamp": "20250820_003415",
+  "mode": "QUICK_GATE",
+  "device": "mps",
+  "results": [
+    {
+      "ref": "gpt2",
+      "cand": "gpt2",
+      "mode": "QUICK_GATE",
+      "alpha": 0.010000000000000009,
+      "beta": 0.010000000000000009,
+      "gamma": 0.00102,
+      "delta_star": 0.03832000000000001,
+      "n_used": 30,
+      "decision": "SAME",
+      "rule": "identical_early_stop",
+      "ci_99": [
+        0.0,
+        0.0
+      ],
+      "half_width": 0.0,
+      "mean": 0.0,
+      "rme": 0.0,
+      "K": 64,
+      "t_load": 2.1979141235351562,
+      "t_infer_total": 2.0025665760040283,
+      "t_per_query": 0.06675221920013427,
+      "hardware": "mps"
+    },
+    {
+      "ref": "gpt2",
+      "cand": "distilgpt2",
+      "mode": "QUICK_GATE",
+      "alpha": 0.010000000000000009,
+      "beta": 0.010000000000000009,
+      "gamma": 0.00102,
+      "delta_star": 0.03832000000000001,
+      "n_used": 200,
+      "decision": "DIFFERENT",
+      "rule": "min_effect_forced",
+      "ci_99": [
+        0.08279423350718734,
+        0.3648264921245265
+      ],
+      "half_width": 0.14101612930866958,
+      "mean": 0.22381036281585692,
+      "rme": 0.6300697051489638,
+      "K": 64,
+      "t_load": 1.1526060104370117,
+      "t_infer_total": 7.7110302448272705,
+      "t_per_query": 0.03855515122413635,
+      "hardware": "mps"
+    }
+  ]
+}
