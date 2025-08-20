@@ -418,6 +418,41 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run revalidation with all fixes applied
+print_header "RUNNING REVALIDATION WITH ALL FIXES"
+print_info "Using calibrated thresholds and corrected scorer"
+
+if ${PYTHON} scripts/revalidate_with_fixes.py > "${RESULTS_DIR}/revalidation_fixed_${TIMESTAMP}.log" 2>&1; then
+    print_success "Revalidation with fixes completed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check results
+    LATEST_FIXED=$(ls -t experimental_results/revalidation_fixed/revalidation_fixed_*.json 2>/dev/null | head -1)
+    if [ -f "$LATEST_FIXED" ]; then
+        FIXED_SUMMARY=$(python3 -c "
+import json
+with open('$LATEST_FIXED') as f:
+    data = json.load(f)
+    if data['overall_passed']:
+        print('✅ ALL TESTS PASSED WITH CALIBRATED THRESHOLDS')
+    else:
+        print('⚠️ Some tests did not pass')
+    results = data['test_results']
+    for test, result in results.items():
+        status = '✅' if result['passed'] else '❌'
+        print(f'   {status} {test}: {result[\"decision\"]} (mean={result[\"mean\"]:.6f})')
+" 2>/dev/null)
+        if [ -n "$FIXED_SUMMARY" ]; then
+            print_info "$FIXED_SUMMARY"
+        fi
+    fi
+else
+    print_error "Revalidation with fixes failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/revalidation_fixed_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Skip legacy stress tests - core functionality validated by deterministic framework
 
 # Generate summary report
