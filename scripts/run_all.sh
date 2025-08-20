@@ -73,7 +73,20 @@ check_dependencies() {
     
     ${PYTHON} -c "import numpy" 2>/dev/null && print_success "NumPy installed" || print_error "NumPy not found"
     ${PYTHON} -c "import pytest" 2>/dev/null && print_success "PyTest installed" || print_error "PyTest not found"
-    
+    ${PYTHON} -c "import yaml" 2>/dev/null && print_success "PyYAML installed" || {
+        print_error "PyYAML not found"
+        print_info "Install with: pip install pyyaml"
+    }
+
+    command -v rustc >/dev/null 2>&1 && print_success "rustc installed" || {
+        print_error "rustc not found"
+        print_info "Install Rust toolchain: https://www.rust-lang.org/tools/install"
+    }
+    command -v cargo >/dev/null 2>&1 && print_success "cargo installed" || {
+        print_error "cargo not found"
+        print_info "Install Rust toolchain: https://www.rust-lang.org/tools/install"
+    }
+
     # Check optional dependencies
     ${PYTHON} -c "import torch" 2>/dev/null && print_success "PyTorch installed" || print_info "PyTorch not found (optional)"
     ${PYTHON} -c "import transformers" 2>/dev/null && print_success "Transformers installed" || print_info "Transformers not found (optional)"
