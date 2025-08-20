@@ -132,10 +132,11 @@ class TestZKValidationSuite:
         # 3. Generate proof
         prover = LoRAZKProver()
         proof, metadata = prover.prove_lora_step(statement, witness)
-        
+
         # 4. Verify properties
         assert proof is not None
-        assert metadata['compression_ratio'] > 10
+        assert proof.startswith(b"lora_proof_")
+        assert metadata.compression_ratio > 10
         
         # 5. Test optimized prover
         optimized = OptimizedLoRAProver()

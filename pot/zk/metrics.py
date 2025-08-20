@@ -9,7 +9,7 @@ import time
 import json
 import logging
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from collections import deque, defaultdict

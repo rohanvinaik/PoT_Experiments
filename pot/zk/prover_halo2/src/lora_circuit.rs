@@ -2,7 +2,7 @@ use halo2_proofs::{
     arithmetic::Field,
     circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{
-        Advice, Circuit, Column, ConstraintSystem, Error, Fixed, Instance, Selector,
+        Advice, Circuit, Column, ConstraintSystem, Error, Expression, Fixed, Instance, Selector,
     },
     poly::Rotation,
 };
@@ -152,7 +152,7 @@ impl<F: Field + PrimeField> Circuit<F> for LoRACircuit<F> {
             // Check that values are within reasonable range
             // This is simplified - real implementation would use lookup tables
             vec![
-                s * val.clone() * (val.clone() - F::from(1u64)),
+                s * val.clone() * (val - Expression::Constant(F::from(1u64))),
             ]
         });
         
