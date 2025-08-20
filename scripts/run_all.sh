@@ -767,6 +767,61 @@ fi
 echo -e "${GREEN}📊 Academic Summary: ${RESULTS_DIR}/summary_${TIMESTAMP}.txt${NC}"
 echo -e "${GREEN}📦 External Package: external_validation_package/CORRECTED_README.md${NC}"
 
+# Run teacher-forced scoring tests
+print_header "RUNNING TEACHER-FORCED SCORING TESTS"
+print_info "Testing fixed teacher-forced scoring with non-negative outputs"
+
+if ${PYTHON} scripts/test_teacher_forced_scoring.py > "${RESULTS_DIR}/teacher_forced_scoring_${TIMESTAMP}.log" 2>&1; then
+    print_success "Teacher-forced scoring tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    print_info "✅ Non-negative scores guaranteed"
+    print_info "✅ Proper position averaging implemented"
+    print_info "✅ Score clipping for EB CI stability"
+else
+    print_error "Teacher-forced scoring tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/teacher_forced_scoring_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+# Run LLM teacher-forced verification
+print_header "RUNNING LLM TEACHER-FORCED VERIFICATION"
+print_info "Testing updated TeacherForcedScorer with real models"
+
+if ${PYTHON} scripts/run_llm_teacher_forced.py > "${RESULTS_DIR}/llm_teacher_forced_${TIMESTAMP}.log" 2>&1; then
+    print_success "LLM teacher-forced verification passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check for results file
+    if [ -f "experimental_results/llm_teacher_forced_results.json" ]; then
+        print_info "Verification results saved to experimental_results/"
+        
+        # Extract decision summary
+        LLM_TF_SUMMARY=$(python3 -c "
+import json
+try:
+    with open('experimental_results/llm_teacher_forced_results.json') as f:
+        data = json.load(f)
+        passed_count = sum(1 for r in data.values() if r.get('test_passed', False))
+        total_count = len(data)
+        if passed_count == total_count:
+            print(f'✅ All {total_count} model pairs correctly classified')
+        else:
+            print(f'⚠️ {passed_count}/{total_count} model pairs correctly classified')
+except:
+    pass
+" 2>/dev/null)
+        if [ -n "$LLM_TF_SUMMARY" ]; then
+            print_info "$LLM_TF_SUMMARY"
+        fi
+    fi
+else
+    print_error "LLM teacher-forced verification failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/llm_teacher_forced_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then
     echo ""

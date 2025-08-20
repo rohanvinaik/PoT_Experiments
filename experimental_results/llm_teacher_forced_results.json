@@ -1,0 +1,46 @@
+{
+  "GPT-2 vs Self": {
+    "mean": 0.0,
+    "std": 0.0,
+    "n": 10,
+    "ci_99": [
+      0.0,
+      0.0
+    ],
+    "half_width": 0.0,
+    "rel_precision": 0,
+    "excludes_zero": false,
+    "decision": "UNDECIDED",
+    "time": {
+      "load": 1.435,
+      "infer_total": 0.706,
+      "per_query": 0.070566
+    },
+    "positions_per_prompt": 32,
+    "alpha": 0.01,
+    "beta": 0.01,
+    "test_passed": true
+  },
+  "GPT-2 vs DistilGPT-2": {
+    "mean": 0.243588,
+    "std": 0.118422,
+    "n": 10,
+    "ci_99": [
+      0.147121,
+      0.340056
+    ],
+    "half_width": 0.096467,
+    "rel_precision": 39.6,
+    "excludes_zero": true,
+    "decision": "DIFFERENT",
+    "time": {
+      "load": 0.712,
+      "infer_total": 0.569,
+      "per_query": 0.056882
+    },
+    "positions_per_prompt": 32,
+    "alpha": 0.01,
+    "beta": 0.01,
+    "test_passed": true
+  }
+}

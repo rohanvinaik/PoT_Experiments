@@ -2,25 +2,26 @@
 
 from .teacher_forced import (
     TeacherForcedScorer,
-    FastTeacherForcedScorer,
+    OptimizedTeacherForcedScorer,
+    FastScorer,
     ScoringConfig,
     ScoringResult,
     create_teacher_forced_challenges
 )
 
-from .optimized_scorer import (
-    OptimizedScoringConfig,
-    OptimizedTeacherForcedScorer,
-    FastScorer
-)
+# Import from other scoring modules if they exist
+try:
+    from .optimized_scorer import (
+        OptimizedScoringConfig,
+    )
+except ImportError:
+    pass
 
 __all__ = [
     'TeacherForcedScorer',
-    'FastTeacherForcedScorer', 
+    'OptimizedTeacherForcedScorer',
+    'FastScorer',
     'ScoringConfig',
     'ScoringResult',
-    'create_teacher_forced_challenges',
-    'OptimizedScoringConfig',
-    'OptimizedTeacherForcedScorer',
-    'FastScorer'
+    'create_teacher_forced_challenges'
 ]

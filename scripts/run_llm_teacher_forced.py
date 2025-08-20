@@ -30,7 +30,7 @@ def compute_teacher_forced_scores(
     metric: str = "symmetric_kl"
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """
-    Compute teacher-forced scoring between two models.
+    Compute teacher-forced scoring between two models using the new TeacherForcedScorer.
     
     Args:
         model1: Reference model
@@ -38,53 +38,27 @@ def compute_teacher_forced_scores(
         tokenizer: Shared tokenizer
         prompts: List of prompts
         k_positions: Number of positions to evaluate per prompt
-        metric: "ce" for cross-entropy, "symmetric_kl" for symmetric KL
+        metric: "delta_ce" for cross-entropy, "symmetric_kl" for symmetric KL
     
     Returns:
         scores: Array of divergence scores
         stats: Statistics including CI and relative precision
     """
-    scores = []
+    from pot.scoring.teacher_forced import TeacherForcedScorer, ScoringConfig
     
-    for prompt in prompts:
-        # Tokenize
-        inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
-        input_ids = inputs['input_ids']
-        
-        # Ensure we have at least k_positions
-        if input_ids.shape[1] < k_positions + 1:
-            # Pad or generate more tokens
-            continue
-        
-        with torch.no_grad():
-            # Get logits from both models
-            logits1 = model1(**inputs).logits
-            logits2 = model2(**inputs).logits
-            
-            # Sample K positions (excluding first token)
-            positions = np.random.choice(
-                range(1, min(logits1.shape[1], k_positions + 1)), 
-                size=min(k_positions, logits1.shape[1] - 1),
-                replace=False
-            )
-            
-            for pos in positions:
-                # Get distributions at position
-                p1 = torch.softmax(logits1[0, pos], dim=-1)
-                p2 = torch.softmax(logits2[0, pos], dim=-1)
-                
-                # Compute divergence
-                if metric == "symmetric_kl":
-                    # D_KL(p1||p2) + D_KL(p2||p1)
-                    kl_12 = torch.sum(p1 * (torch.log(p1 + 1e-10) - torch.log(p2 + 1e-10)))
-                    kl_21 = torch.sum(p2 * (torch.log(p2 + 1e-10) - torch.log(p1 + 1e-10)))
-                    score = (kl_12 + kl_21).item() / 2
-                else:  # cross-entropy
-                    # -sum(p1 * log(p2))
-                    score = -torch.sum(p1 * torch.log(p2 + 1e-10)).item()
-                
-                scores.append(score)
+    # Create scorer with new implementation
+    method = "delta_ce" if metric == "ce" else metric
+    config = ScoringConfig(
+        method=method,
+        num_positions=k_positions,
+        score_clip=(0.0, 1.0),  # Allow full range
+        temperature=1.0
+    )
     
+    scorer = TeacherForcedScorer(config)
+    
+    # Use batch scoring for efficiency - returns list of scores
+    scores = scorer.score_batch(model1, model2, prompts, tokenizer)
     scores = np.array(scores)
     
     # Calculate statistics
@@ -110,7 +84,7 @@ def compute_teacher_forced_scores(
         "ci_99": [round(ci_lower, 6), round(ci_upper, 6)],
         "half_width": round(half_width, 6),
         "rel_precision": round(rel_precision, 2),
-        "excludes_zero": excludes_zero,
+        "excludes_zero": bool(excludes_zero),  # Convert to native bool
         "decision": "DIFFERENT" if excludes_zero else "UNDECIDED"
     }
     
