@@ -22,9 +22,9 @@ A comprehensive, production-ready framework for verifying the authenticity and i
 - **False Rejection Rate**: < 1%
 - **Query Efficiency**: 2-3 average queries with sequential testing
 - **Detection Rate**: 100% against all tested attack vectors
-- **Validation Success**: 100.0% (±0.0%) (23 runs) deterministic framework
+- **Validation Success**: 100.0% (±0.0%) (25 runs) deterministic framework
 - **Legacy Validation**: 95.5% (21/22 experiments with random models)
-- **Performance**: >6,250x specification (measured: 0.000152s avg)
+- **Performance**: >6,250x specification (measured: 0.000150s avg)
 
 ## 🏗️ Architecture
 
@@ -480,8 +480,8 @@ Our comprehensive experimental validation demonstrates that **all core paper cla
 
 | Paper Claim | Specification | Measured Result | Validation Status |
 |-------------|---------------|-----------------|-------------------|
-| **Fast Verification** | <1 second | **0.000152s** (152μs)| ✅ **6,597x faster**|
-| **High Accuracy** | >95% success | **100.0% success** (23 runs)| ✅ **+5.0% margin**|
+| **Fast Verification** | <1 second | **0.000150s** (150μs)| ✅ **6,660x faster**|
+| **High Accuracy** | >95% success | **100.0% success** (25 runs)| ✅ **+5.0% margin**|
 | **Attack Detection** | Robust defense | **100% detection** | ✅ **Perfect security** |
 | **Memory Efficiency** | <10MB usage | **<10MB confirmed** | ✅ **Within spec** |
 | **Production Throughput** | High performance | **>11,000/sec** | ✅ **Enterprise ready** |
@@ -600,6 +600,19 @@ Based on rolling analysis of all validation runs:
 - **Recent Performance:** 100.0% success in last 10 runs
 
 *Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-19T15:53:28.911704*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 34
+- **Deterministic Framework:** 100.0% success rate (25 runs)
+- **Average Verification Time:** 0.000150s (±0.000025s)
+- **Performance Consistency:** 16.4% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-19T20:46:30.490768*
 
 ### 🎯 How to Validate Results Yourself
 
