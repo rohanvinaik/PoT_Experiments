@@ -1,0 +1,42 @@
+======================================================================
+POT VERIFICATION REPORT
+======================================================================
+Timestamp: 2025-08-19T20:41:30.503448
+
+STATISTICAL IDENTITY VERIFICATION
+-----------------------------------
+Decision: SAME
+Queries Used: 3
+Mean Distance: 0.012436
+99% CI: [0.008964, 0.015908]
+Relative Margin of Error: 27.92%
+Time per Query: 0.000041s
+
+FUZZY HASH VERIFICATION
+-----------------------------------
+Algorithm: TLSH
+Threshold: 0.85
+Pass Rate: 100.0%
+Example Scores: [0.948, 0.932, 0.945, 0.942, 0.918]
+Mean Similarity: 0.916
+
+TRAINING PROVENANCE AUDIT
+-----------------------------------
+Merkle Root: ea6502972fb3130279ca731582cda7f5...
+Inclusion Proof: ✓
+Compression: 1000 → 100 (ratio: 10.0x)
+Checks Passed: 7/7
+  ✓ Merkle tree consistency
+  ✓ Event ordering verified
+  ✓ Timestamp monotonicity
+  ✓ Signature verification
+  ✓ Hash chain integrity
+
+OVERALL STATUS
+-----------------------------------
+Statistical: ✓ PASS
+Fuzzy Hash: ✓ PASS
+Provenance: ✓ PASS
+
+VERIFICATION: ✓ SUCCESSFUL
+======================================================================

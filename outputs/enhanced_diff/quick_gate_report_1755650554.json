@@ -1,0 +1,77 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "quick_gate",
+  "timestamp": "2025-08-20 00:42:34 UTC",
+  "config": {
+    "mode": "quick_gate",
+    "confidence": 0.975,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.2,
+    "eta": 0.5,
+    "n_min": 12,
+    "n_max": 120,
+    "K": 32,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "SAME",
+    "reason": "CI [-0.003705, 0.009851] within \u00b10.015 and half_width 0.006778 \u2264 0.007500",
+    "n_used": 20,
+    "n_eff": 640,
+    "mean": 0.003073207430612111,
+    "variance": 9.005058524910471e-07,
+    "std_dev": 0.000948949868270736,
+    "ci": [
+      -0.003704559871612509,
+      0.00985097473283673
+    ],
+    "half_width": 0.00677776730222462,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "rme": null,
+    "direction": null
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.0030732074306121107,
+      "std": 0.0009249219209568418,
+      "min": 0.0016664032375392304,
+      "max": 0.005236853436967714,
+      "percentiles": {
+        "p5": 0.0016782099277959095,
+        "p25": 0.0026370893577549806,
+        "p50": 0.0030080910496895546,
+        "p75": 0.003526574759535729,
+        "p95": 0.004705909527965468
+      }
+    },
+    "clipped": {
+      "mean": 0.0030732074306121107,
+      "std": 0.0009249219209568418,
+      "min": 0.0016664032375392304,
+      "max": 0.005236853436967714
+    }
+  },
+  "timing": {
+    "total_time_sec": 0.013081124983727932,
+    "avg_score_time_sec": 1.6583246178925037e-06,
+    "total_score_time_sec": 3.3166492357850075e-05,
+    "avg_batch_time_sec": 0.002588991681113839,
+    "scores_per_second": 1528.9204884808223
+  },
+  "diagnostics": {},
+  "suggestions": [],
+  "interpretation": "Models are statistically equivalent. The mean difference 0.003073 with 98% CI [-0.003705, 0.009851] is entirely within the equivalence band \u00b10.015000, and precision requirement (half_width \u2264 0.007500) is met. This indicates no material difference in behavior.",
+  "next_steps": [
+    "Models verified as equivalent within tolerance",
+    "Consider tightening \u03b3 if stricter equivalence needed",
+    "May proceed with model deployment/replacement",
+    "Document equivalence for audit trail"
+  ]
+}

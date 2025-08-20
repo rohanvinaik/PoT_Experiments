@@ -588,6 +588,19 @@ Based on rolling analysis of all validation runs:
 
 *Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-19T15:53:28.911704*
 
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 32
+- **Deterministic Framework:** 100.0% success rate (23 runs)
+- **Average Verification Time:** 0.000152s (±0.000025s)
+- **Performance Consistency:** 16.5% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-19T15:53:28.911704*
+
 ### 🎯 How to Validate Results Yourself
 
 **Step 1: Run Quick Validation (30 seconds)**
