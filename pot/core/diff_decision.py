@@ -178,6 +178,11 @@ class EnhancedSequentialTester:
         clipped_mean = np.mean(self.clipped_scores)
         clipped_var = np.var(self.clipped_scores, ddof=1)
         
+        # Special case: zero variance (identical models)
+        if clipped_var < 1e-10 and abs(clipped_mean) < 1e-10:
+            # Return tight CI around 0
+            return ((0.0, 0.0), 0.0)
+        
         # EB bound calculation
         alpha = self.config.alpha
         log_term = math.log(3.0 / alpha)
@@ -202,6 +207,11 @@ class EnhancedSequentialTester:
         """T-distribution CI with effective sample size"""
         if self.n < 2:
             return ((-float("inf"), float("inf")), float("inf"))
+        
+        # Special case: zero variance (identical models)
+        if self.variance < 1e-10 and abs(self.mean) < 1e-10:
+            # Return tight CI around 0
+            return ((0.0, 0.0), 0.0)
         
         # Effective sample size
         n_eff = self.n * self.config.positions_per_prompt
