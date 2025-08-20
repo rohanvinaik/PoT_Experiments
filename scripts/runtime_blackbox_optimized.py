@@ -311,8 +311,8 @@ def run_optimized_test(test_case: Dict) -> Dict:
         },
         "framework": {
             "mode": mode_str,
-            "alpha": tester.config.alpha,
-            "beta": tester.config.beta,
+            "alpha": tester.config.alpha if hasattr(tester.config, 'alpha') else (1 - tester.config.confidence) / 2,
+            "beta": tester.config.alpha if hasattr(tester.config, 'alpha') else (1 - tester.config.confidence) / 2,
             "confidence": tester.config.confidence,
             "gamma": tester.config.gamma,
             "delta_star": tester.config.delta_star,

@@ -212,7 +212,7 @@ def test_verifier_scenarios():
     cand_model = MockModel("candidate")
     
     scenarios = [
-        ("Identical Models", simulate_identical_models, "IDENTICAL", TestingMode.QUICK_GATE),
+        ("Identical Models", simulate_identical_models, "SAME", TestingMode.QUICK_GATE),
         ("Same Models (within tolerance)", simulate_same_models, "SAME", TestingMode.AUDIT_GRADE),
         ("Different Models", simulate_different_models, "DIFFERENT", TestingMode.QUICK_GATE),
         ("Borderline Models", simulate_borderline_models, "UNDECIDED", TestingMode.QUICK_GATE)

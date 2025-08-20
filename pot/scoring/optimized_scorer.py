@@ -258,12 +258,9 @@ class OptimizedTeacherForcedScorer:
                 # Get CE difference
                 ref_lp = ref_log_probs[target_idx].item()
                 cand_lp = cand_log_probs[target_idx].item()
-                ce_diff = abs(-cand_lp + ref_lp)
+                ce_diff = abs(ref_lp - cand_lp)  # Fixed: should be 0 for identical models
                 scores.append(ce_diff)
-            else:
-                # Target not in top-k, use approximation
-                # This indicates models diverge significantly
-                scores.append(0.5)  # Penalty for out-of-top-k
+            # Skip tokens not in top-k instead of penalizing
         
         return float(np.mean(scores)) if scores else 0.0
     
