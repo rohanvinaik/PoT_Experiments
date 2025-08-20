@@ -262,6 +262,14 @@ class VocabularyAwareSequentialTester(EnhancedSequentialTester):
         # Adjust decision based on vocabulary analysis
         if self.adjust_confidence_for_vocabulary and self.vocab_overlap_ratio < 1.0:
             result = self._adjust_for_vocabulary_mismatch(result)
+        else:
+            # Set vocabulary status for perfect overlap cases
+            if result.status == "SAME":
+                result.vocabulary_status = VocabularyDecisionStatus.SAME
+            elif result.status == "DIFFERENT":
+                result.vocabulary_status = VocabularyDecisionStatus.DIFFERENT
+            elif result.status == "UNDECIDED":
+                result.vocabulary_status = VocabularyDecisionStatus.UNDECIDED
         
         # Adjust confidence based on vocabulary overlap
         result.confidence *= self.confidence_adjustment_factor

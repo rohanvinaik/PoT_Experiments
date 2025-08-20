@@ -334,7 +334,7 @@ class TestVocabularyHandling(unittest.TestCase):
         
         # Create base and pruned models
         base_model = self.model_factory.create_base_model()
-        pruned_model = self.model_factory.create_pruned_model()
+        pruned_model = self.model_factory.create_pruned_model(original_vocab=50257, pruned_size=49000)
         
         # Analyze vocabularies
         report = self.analyzer.analyze_models(base_model, pruned_model)
