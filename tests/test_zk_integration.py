@@ -416,8 +416,8 @@ def test_zk_pytest_compatibility():
     )
     
     statement = SGDStepStatement(
-        weights_before_root=b"before" * 8,
-        weights_after_root=b"after" * 8,
+        W_t_root=b"before" * 8,
+        W_t1_root=b"after" * 8,
         batch_root=b"batch" * 8,
         hparams_hash=b"hparams" * 4,
         step_number=1,
