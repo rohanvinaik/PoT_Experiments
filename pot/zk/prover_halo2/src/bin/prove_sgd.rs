@@ -1,5 +1,5 @@
 use clap::{Arg, Command};
-use pot_zk_prover::{
+use prover_halo2::{
     circuit::{SGDCircuitParams, SGDPublicInputs, utils},
     create_witness_from_json, generate_setup, proof_to_json, prove_sgd_step,
     ProverError, ProvingSystemParams,

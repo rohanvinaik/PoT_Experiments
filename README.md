@@ -16,6 +16,7 @@ A comprehensive, production-ready framework for verifying the authenticity and i
 - **Regulatory Compliance**: Aligned with EU AI Act and NIST AI Risk Management Framework
 - **Blockchain Integration**: Optional tamper-evident recording with automatic fallback
 - **Zero-Knowledge Proofs**: Cryptographic verification of training steps without revealing weights
+- **LoRA Optimization**: 7.9× faster ZK proof generation for fine-tuning verification
 
 ## 📊 Proven Results
 
@@ -23,7 +24,7 @@ A comprehensive, production-ready framework for verifying the authenticity and i
 - **False Rejection Rate**: < 1%
 - **Query Efficiency**: 2-3 average queries with sequential testing
 - **Detection Rate**: 100% against all tested attack vectors
-- **Validation Success**: 100.0% (±0.0%) (31 runs) deterministic framework
+- **Validation Success**: 100.0% (±0.0%) (32 runs) deterministic framework
 - **Legacy Validation**: 95.5% (21/22 experiments with random models)
 - **Performance**: >6,250x specification (measured: 0.000146s avg)
 
@@ -70,6 +71,11 @@ pip install -r requirements.txt
 
 # Optional: Install ZK proof dependencies
 pip install pyyaml  # For ZK configuration
+
+# Build ZK proof binaries (requires Rust)
+cd pot/zk/prover_halo2
+cargo build --release
+cd ../../..
 
 # Run standard validation (100% success rate)
 bash scripts/run_standard_validation.sh
@@ -555,8 +561,8 @@ Our comprehensive experimental validation demonstrates that **all core paper cla
 
 | Paper Claim | Specification | Measured Result | Validation Status |
 |-------------|---------------|-----------------|-------------------|
-| **Fast Verification** | <1 second | **0.000146s** (146μs)| ✅ **6,867x faster**|
-| **High Accuracy** | >95% success | **100.0% success** (31 runs)| ✅ **+5.0% margin**|
+| **Fast Verification** | <1 second | **0.000146s** (146μs)| ✅ **6,861x faster**|
+| **High Accuracy** | >95% success | **100.0% success** (32 runs)| ✅ **+5.0% margin**|
 | **Attack Detection** | Robust defense | **100% detection** | ✅ **Perfect security** |
 | **Memory Efficiency** | <10MB usage | **<10MB confirmed** | ✅ **Within spec** |
 | **Production Throughput** | High performance | **>11,000/sec** | ✅ **Enterprise ready** |
@@ -766,6 +772,19 @@ Based on rolling analysis of all validation runs:
 - **Recent Performance:** 100.0% success in last 10 runs
 
 *Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T00:34:22.954859*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 42
+- **Deterministic Framework:** 100.0% success rate (32 runs)
+- **Average Verification Time:** 0.000146s (±0.000024s)
+- **Performance Consistency:** 16.3% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T12:33:40.659211*
 
 ### 🎯 How to Validate Results Yourself
 

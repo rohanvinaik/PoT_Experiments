@@ -1,0 +1,36 @@
+
+Enhanced Difference Verification Summary
+========================================
+Mode: quick_gate
+Decision: UNDECIDED
+Reason: Reached n_max without meeting decision criteria
+
+Configuration:
+--------------
+Confidence: 98%
+γ (SAME band): 0.002000
+δ* (DIFFERENT threshold): 0.150000
+ε_diff (RME target): 0.200
+
+Results:
+--------
+Samples used: 16 (effective: 512)
+Mean difference: 0.050672
+Standard deviation: 0.028053
+CI: [0.041150, 0.060194]
+Half-width: 0.009522
+
+Performance:
+------------
+Total time: 0.00s
+Scores per second: 58456.5
+
+Interpretation:
+---------------
+Unable to make a definitive decision with current data after 16 samples. CI extends outside equivalence band ±0.002000. Effect size 0.050672 below threshold 0.150000. Consider: (1) increasing samples to ~14, (2) using K=64 positions, (3) checking model loading, or (4) trying a different scoring metric.
+
+Next Steps:
+-----------
+• Increase K to 64 positions per prompt
+• Ensure score clipping range is appropriate
+• Effect size too small - may be near-clones or need different score metric

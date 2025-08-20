@@ -1,0 +1,129 @@
+{
+  "validation_type": "runtime_blackbox_statistical_identity",
+  "timestamp": "2025-08-20T13:49:55.351401",
+  "test_cases": 2,
+  "results": [
+    {
+      "timestamp": "2025-08-20T13:49:27.503958",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "gpt2"
+      },
+      "framework": {
+        "mode": "quick_gate",
+        "alpha": 0.012500000000000011,
+        "beta": 0.012500000000000011,
+        "confidence": 0.975,
+        "gamma": 0.015,
+        "delta_star": 0.1,
+        "epsilon_diff": 0.2,
+        "n_min": 12,
+        "n_max": 120
+      },
+      "test_parameters": {
+        "positions_per_prompt": 32,
+        "challenge_families": [
+          "reasoning",
+          "style",
+          "knowledge",
+          "completion"
+        ],
+        "prompts_planned": 30,
+        "prompts_used": 30
+      },
+      "statistical_results": {
+        "decision": "UNDECIDED",
+        "rule_fired": "Neither SAME nor DIFFERENT criteria met at n=30",
+        "n_used": 30,
+        "mean_diff": 0.0,
+        "ci_99": [
+          -0.5250179808862578,
+          0.5250179808862578
+        ],
+        "half_width": 0.5250179808862578,
+        "effect_size": 0.0,
+        "relative_me": 525017.9808862578
+      },
+      "timing": {
+        "t_load_a": 2.599731206893921,
+        "t_load_b": 1.181924819946289,
+        "t_infer_total": 28.18736696243286,
+        "t_per_query": 0.939578898747762,
+        "t_total": 28.194485902786255,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch"
+        }
+      },
+      "audit": {
+        "merkle_root": "e74452f8c4499e3eed267ca6c39f248711d9bb80728a87acb055fcd47461bef4",
+        "sample_entries": [
+          "prompt_0:The capital of France is\u2192 the capital of the ...\u2192ce_diff:0.000000",
+          "prompt_1:To make a sandwich, you need\u2192 to make sure that t...\u2192ce_diff:0.000000",
+          "prompt_2:The sky is blue because\u2192 of the sun.\n\nThe sk...\u2192ce_diff:0.000000"
+        ]
+      }
+    },
+    {
+      "timestamp": "2025-08-20T13:49:55.351029",
+      "models": {
+        "model_a": "gpt2",
+        "model_b": "distilgpt2"
+      },
+      "framework": {
+        "mode": "audit_grade",
+        "alpha": 0.0050000000000000044,
+        "beta": 0.0050000000000000044,
+        "confidence": 0.99,
+        "gamma": 0.01,
+        "delta_star": 0.1,
+        "epsilon_diff": 0.1,
+        "n_min": 30,
+        "n_max": 400
+      },
+      "test_parameters": {
+        "positions_per_prompt": 32,
+        "challenge_families": [
+          "reasoning",
+          "style",
+          "knowledge",
+          "completion"
+        ],
+        "prompts_planned": 32,
+        "prompts_used": 32
+      },
+      "statistical_results": {
+        "decision": "UNDECIDED",
+        "rule_fired": "Neither SAME nor DIFFERENT criteria met at n=32",
+        "n_used": 32,
+        "mean_diff": -11.247371315956116,
+        "ci_99": [
+          -18.34045584669375,
+          -4.154286785218482
+        ],
+        "half_width": 7.093084530737634,
+        "effect_size": 11.247371315956116,
+        "relative_me": 0.6306437594600446
+      },
+      "timing": {
+        "t_load_a": 0.8018629550933838,
+        "t_load_b": 0.9965591430664062,
+        "t_infer_total": 26.042182683944702,
+        "t_per_query": 0.8138182088732719,
+        "t_total": 26.043203830718994,
+        "hardware": {
+          "device": "mps",
+          "backend": "transformers+torch"
+        }
+      },
+      "audit": {
+        "merkle_root": "c9b42b345c2cf4168d8e0978bd9080987ff078a64083b0328b40e97505492bca",
+        "sample_entries": [
+          "prompt_0:The capital of France is\u2192 the capital of the ...\u2192ce_diff:-2.255074",
+          "prompt_1:To make a sandwich, you need\u2192 to make sure that t...\u2192ce_diff:-5.169411",
+          "prompt_2:The sky is blue because\u2192 of the sun.\n\nThe sk...\u2192ce_diff:-20.373173"
+        ]
+      }
+    }
+  ]
+}

@@ -4,6 +4,7 @@ Test improved ZK error handling with real scenarios.
 """
 
 import sys
+import os
 import logging
 import numpy as np
 from pathlib import Path
@@ -19,6 +20,7 @@ from pot.zk.exceptions import (
 )
 from pot.zk.auto_prover import auto_prove_training_step
 from pot.zk.auditor_integration import create_zk_integration
+from pot.zk.metrics import get_zk_metrics_collector
 
 
 def test_successful_proof_generation():
@@ -201,6 +203,16 @@ def main():
     print("TESTING IMPROVED ZK ERROR HANDLING")
     print("=" * 60)
     
+    # Initialize metrics collection if environment variable is set
+    metrics_file = os.environ.get('ZK_METRICS_FILE')
+    if metrics_file:
+        print(f"📊 Metrics will be collected to: {metrics_file}")
+        # Initialize the collector
+        collector = get_zk_metrics_collector()
+    else:
+        print("📊 Metrics collection not configured (no ZK_METRICS_FILE env var)")
+        collector = None
+    
     tests = [
         ("Successful Proof Generation", test_successful_proof_generation),
         ("Invalid Model States", test_invalid_model_states), 
@@ -233,6 +245,23 @@ def main():
     
     print(f"\nResults: {passed}/{total} tests passed")
     
+    # Save metrics if collector was initialized
+    if collector and metrics_file:
+        try:
+            collector.save_report(metrics_file)
+            print(f"📊 Metrics saved to: {metrics_file}")
+            
+            # Display brief metrics summary
+            report = collector.generate_report()
+            summary = report.get('summary', {})
+            print(f"📈 Session Summary:")
+            print(f"   - Total Proofs: {summary.get('total_proofs', 0)}")
+            print(f"   - Success Rate: {summary.get('overall_success_rate', 1.0):.1%}")
+            if summary.get('compression_ratio'):
+                print(f"   - Compression Ratio: {summary['compression_ratio']:.1f}x")
+        except Exception as e:
+            print(f"⚠️  Failed to save metrics: {e}")
+    
     if passed == total:
         print("\n🎉 All error handling tests passed!")
         print("\nKey improvements implemented:")
@@ -242,6 +271,7 @@ def main():
         print("- ✅ Configurable failure handling (fail-fast vs continue)")
         print("- ✅ Integration layer for training auditors")
         print("- ✅ Comprehensive error logging and statistics")
+        print("- ✅ Comprehensive metrics collection and performance monitoring")
         print("- ✅ No more hardcoded b'full_sgd_proof' fallbacks!")
         return 0
     else:

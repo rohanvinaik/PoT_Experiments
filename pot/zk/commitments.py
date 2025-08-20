@@ -11,23 +11,14 @@ from typing import List, Dict, Optional, Tuple, Union, Any
 from dataclasses import dataclass
 import numpy as np
 
-# Import existing Merkle functions
-try:
-    from ..prototypes.training_provenance_auditor import (
-        MerkleNode,
-        build_merkle_tree,
-        compute_merkle_root
-    )
-except ImportError:
-    # Fallback imports for testing
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from prototypes.training_provenance_auditor import (
-        MerkleNode,
-        build_merkle_tree,
-        compute_merkle_root
-    )
+# Import from interfaces to avoid circular dependency
+from ..core.interfaces import (
+    MerkleNode,
+    IMerkleTree,
+    ICommitment,
+    BasicMerkleTree,
+    create_merkle_tree
+)
 
 
 # Import the real Poseidon implementation

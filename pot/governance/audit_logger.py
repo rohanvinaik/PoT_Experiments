@@ -706,9 +706,66 @@ class AuditLogger:
     
     def _track_access_pattern(self, accessor: str, data_id: str):
         """Track access patterns for anomaly detection"""
-        # This would integrate with the anomaly detector
-        # to build patterns and detect unusual access
-        pass
+        # Build access pattern for anomaly detection
+        pattern_key = f"{accessor}:{data_id}"
+        current_time = datetime.now()
+        
+        # Store in anomaly detector's internal state
+        if not hasattr(self.anomaly_detector, 'access_patterns'):
+            self.anomaly_detector.access_patterns = defaultdict(list)
+        
+        # Track access time and frequency
+        self.anomaly_detector.access_patterns[pattern_key].append(current_time)
+        
+        # Keep only recent accesses (last 30 days)
+        cutoff_time = current_time - timedelta(days=30)
+        self.anomaly_detector.access_patterns[pattern_key] = [
+            t for t in self.anomaly_detector.access_patterns[pattern_key]
+            if t > cutoff_time
+        ]
+        
+        # Check for anomalies
+        access_times = self.anomaly_detector.access_patterns[pattern_key]
+        if len(access_times) > 1:
+            # Calculate access frequency
+            time_diffs = [(access_times[i] - access_times[i-1]).total_seconds() 
+                          for i in range(1, len(access_times))]
+            
+            if time_diffs:
+                avg_interval = np.mean(time_diffs) if time_diffs else float('inf')
+                std_interval = np.std(time_diffs) if len(time_diffs) > 1 else 0
+                
+                # Detect rapid successive access (potential data scraping)
+                if len(access_times) > 10 and avg_interval < 1.0:  # More than 10 accesses with <1s interval
+                    self.log_security_event(
+                        event_type='rapid_access_detected',
+                        actor=accessor,
+                        details={
+                            'data_id': data_id,
+                            'access_count': len(access_times),
+                            'avg_interval': avg_interval,
+                            'pattern': 'potential_data_scraping'
+                        }
+                    )
+                
+                # Detect unusual access patterns (e.g., access at unusual times)
+                hour_distribution = Counter(t.hour for t in access_times)
+                if len(hour_distribution) > 5:  # Enough data to analyze
+                    common_hours = set(h for h, count in hour_distribution.most_common(3))
+                    current_hour = current_time.hour
+                    
+                    # Flag if accessing at unusual hour for this user
+                    if current_hour not in common_hours and hour_distribution[current_hour] < 2:
+                        self.log_security_event(
+                            event_type='unusual_access_time',
+                            actor=accessor,
+                            details={
+                                'data_id': data_id,
+                                'access_hour': current_hour,
+                                'common_hours': list(common_hours),
+                                'pattern': 'temporal_anomaly'
+                            }
+                        )
     
     def _send_security_alert(self, entry: LogEntry):
         """Send immediate security alert"""

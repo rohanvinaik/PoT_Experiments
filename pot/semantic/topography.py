@@ -18,8 +18,12 @@ from abc import ABC, abstractmethod
 
 # Import existing semantic types
 from .types import ConceptVector, SemanticDistance
-from .library import ConceptLibrary
-from .utils import normalize_embeddings, compute_embedding_statistics
+# Import from base to avoid circular dependency
+from .base import (
+    IConceptLibrary,
+    normalize_embeddings,
+    compute_embedding_statistics
+)
 
 logger = logging.getLogger(__name__)
 

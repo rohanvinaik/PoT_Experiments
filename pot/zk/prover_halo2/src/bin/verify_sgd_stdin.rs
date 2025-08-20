@@ -1,5 +1,5 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use pot_zk_prover::{
+use prover_halo2::{
     circuit::{SGDCircuitParams, SGDPublicInputs},
     generate_setup, verify_sgd_step, ProvingSystemParams, SerializableProof,
 };
@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         proof: proof_bytes,
         public_inputs: request.public_inputs,
         circuit_params,
-        metadata: pot_zk_prover::ProofMetadata {
+        metadata: prover_halo2::ProofMetadata {
             proving_time_ms: 0,
             circuit_size: 64,
             public_input_count: 7,

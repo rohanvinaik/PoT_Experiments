@@ -18,23 +18,13 @@ from .spec import (
 )
 from .commitments import DualCommitment, MerkleCommitment, PoseidonHasher
 
-# Import existing infrastructure
-try:
-    from ..prototypes.training_provenance_auditor import (
-        TrainingProvenanceAuditor,
-        TrainingEvent,
-        EventType
-    )
-except ImportError:
-    # Fallback for testing
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from prototypes.training_provenance_auditor import (
-        TrainingProvenanceAuditor,
-        TrainingEvent,
-        EventType
-    )
+# Import from interfaces to avoid circular dependency
+from ..core.interfaces import (
+    EventType,
+    TrainingEvent,
+    IProvenanceAuditor,
+    create_merkle_tree
+)
 
 
 def extract_sgd_witness(

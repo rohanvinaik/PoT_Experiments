@@ -31,27 +31,21 @@ from functools import wraps
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Import shared interfaces
+from ..core.interfaces import (
+    EventType as BaseEventType,
+    ProofType as BaseProofType,
+    MerkleNode as BaseMerkleNode,
+    IMerkleTree,
+    IProvenanceAuditor,
+    BasicMerkleTree,
+    create_merkle_tree,
+    TrainingEvent as BaseTrainingEvent
+)
 
-class EventType(Enum):
-    """Types of training events"""
-    TRAINING_START = "training_start"
-    EPOCH_START = "epoch_start"
-    EPOCH_END = "epoch_end"
-    CHECKPOINT_SAVE = "checkpoint_save"
-    VALIDATION = "validation"
-    EARLY_STOPPING = "early_stopping"
-    TRAINING_END = "training_end"
-    HYPERPARAMETER_CHANGE = "hyperparameter_change"
-    ERROR = "error"
-    CUSTOM = "custom"
-
-
-class ProofType(Enum):
-    """Types of cryptographic proofs"""
-    MERKLE = "merkle"
-    ZERO_KNOWLEDGE = "zero_knowledge"
-    SIGNATURE = "signature"
-    TIMESTAMP = "timestamp"
+# Use the base enums
+EventType = BaseEventType
+ProofType = BaseProofType
 
 
 class ChainType(Enum):
@@ -270,8 +264,9 @@ class TrainingEvent:
         }
 
 
-class MerkleNode:
-    """Node in a Merkle tree for cryptographic provenance tracking."""
+# Use the base MerkleNode and extend it with additional functionality
+class MerkleNode(BaseMerkleNode):
+    """Extended Merkle node with SHA256 hashing for provenance tracking."""
     
     def __init__(self, data: Optional[bytes] = None, 
                  left: Optional['MerkleNode'] = None,
@@ -284,12 +279,16 @@ class MerkleNode:
             left: Left child node (None for leaf nodes)
             right: Right child node (None for leaf nodes)
         """
-        self.data = data
-        self.left = left
-        self.right = right
-        self.hash = self._compute_hash()
+        # Compute hash first
+        hash_str = self._compute_hash(data, left, right)
+        # Initialize base class with hash string
+        super().__init__(hash=hash_str, data=data, left=left, right=right)
+        # Store hash as bytes for backward compatibility
+        self.hash = bytes.fromhex(hash_str) if hash_str else b''
     
-    def _compute_hash(self) -> bytes:
+    def _compute_hash(self, data: Optional[bytes], 
+                     left: Optional['MerkleNode'], 
+                     right: Optional['MerkleNode']) -> str:
         """
         Compute SHA256 hash for this node.
         
@@ -297,20 +296,22 @@ class MerkleNode:
         For internal nodes: hash the concatenation of child hashes
         
         Returns:
-            SHA256 hash as bytes
+            SHA256 hash as hex string
         """
-        if self.data is not None:
+        if data is not None:
             # Leaf node: hash the data
-            if isinstance(self.data, str):
-                data_bytes = self.data.encode('utf-8')
-            elif isinstance(self.data, bytes):
-                data_bytes = self.data
+            if isinstance(data, str):
+                data_bytes = data.encode('utf-8')
+            elif isinstance(data, bytes):
+                data_bytes = data
             else:
-                data_bytes = str(self.data).encode('utf-8')
-            return hashlib.sha256(data_bytes).digest()
-        elif self.left and self.right:
+                data_bytes = str(data).encode('utf-8')
+            return hashlib.sha256(data_bytes).hexdigest()
+        elif left and right:
             # Internal node: hash concatenated child hashes
-            return hashlib.sha256(self.left.hash + self.right.hash).digest()
+            left_hash = left.hash if isinstance(left.hash, bytes) else bytes.fromhex(left.hash)
+            right_hash = right.hash if isinstance(right.hash, bytes) else bytes.fromhex(right.hash)
+            return hashlib.sha256(left_hash + right_hash).hexdigest()
         else:
             # Empty node
             return b''
@@ -1472,17 +1473,18 @@ class MockBlockchainClient:
         return stored and stored['hash'] == hash_value
 
 
-class TrainingProvenanceAuditor:
+class TrainingProvenanceAuditor(IProvenanceAuditor):
     """
     Main class for training provenance auditing and verification
     
     Provides comprehensive tracking of training events with cryptographic
     proofs and blockchain integration.
+    Implements the IProvenanceAuditor interface for compatibility with ZK modules.
     """
     
     def __init__(self, model_id: str, blockchain_client: Optional[BlockchainClient] = None,
                  compression_enabled: bool = True, max_history_size: int = 10000,
-                 hash_function: str = "sha256"):
+                 hash_function: str = "sha256", fail_on_zk_error: bool = False):
         """
         Initialize TrainingProvenanceAuditor
         
@@ -1492,12 +1494,14 @@ class TrainingProvenanceAuditor:
             compression_enabled: Whether to compress large histories
             max_history_size: Maximum number of events to keep in memory
             hash_function: Hash function to use ("sha256" or "poseidon")
+            fail_on_zk_error: Whether to raise exceptions on ZK witness failures
         """
         self.model_id = model_id
         self.blockchain_client = blockchain_client or MockBlockchainClient()
         self.compression_enabled = compression_enabled
         self.max_history_size = max_history_size
         self.hash_function = hash_function
+        self.fail_on_zk_error = fail_on_zk_error
         
         # Set up hash function
         if hash_function == "poseidon":
@@ -2082,175 +2086,709 @@ class TrainingProvenanceAuditor:
         
         return stats
     
-    def generate_zk_witness(self, 
-                           weights_before: Dict[str, Any],
-                           weights_after: Dict[str, Any],
-                           batch_data: Dict[str, Any],
-                           hyperparameters: Dict[str, Any],
-                           step_info: Dict[str, Any],
-                           proof_type: str = "sgd_step") -> Dict[str, Any]:
+    def generate_zk_witness(self, training_step_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
-        Generate ZK witness data for training step verification
+        Generate ZK witness data for training step verification with comprehensive validation.
         
-        This method extracts witness data that can be used to generate
-        zero-knowledge proofs of correct training step execution.
+        This method automatically detects model type (SGD vs LoRA), extracts witness data,
+        and generates dual commitments (SHA-256 + Poseidon) for ZK proof compatibility.
         
         Args:
-            weights_before: Model weights before training step
-            weights_after: Model weights after training step  
-            batch_data: Training batch (inputs, targets, gradients, etc.)
-            hyperparameters: Training hyperparameters
-            step_info: Step metadata (epoch, step_number, nonce, etc.)
-            proof_type: Type of ZK proof ("sgd_step" or "lora_step")
-            
+            training_step_data: Complete training step information containing:
+                - weights_before: Model weights before training step
+                - weights_after: Model weights after training step  
+                - batch_data: Training batch (inputs, targets, gradients, etc.)
+                - hyperparameters: Training hyperparameters
+                - step_info: Step metadata (epoch, step_number, etc.)
+                
         Returns:
-            Dictionary containing ZK witness data and dual commitments
+            Dictionary containing ZK witness data and dual commitments, or None on failure
         """
+        from datetime import datetime, timezone
+        import numpy as np
+        
         try:
-            # Import ZK module functions
-            from ..zk.witness import extract_sgd_witness, extract_lora_witness, build_zk_statement
-            from ..zk.commitments import DualCommitment
-            from ..zk.spec import ZKProofType, CommitmentScheme
+            # Import ZK modules with proper error handling
+            from ..zk.witness import extract_sgd_witness, extract_lora_witness
+            from ..zk.lora_builder import LoRAWitnessBuilder
+            from ..zk.poseidon import PoseidonMerkleTree
             
-            logger.info(f"Generating ZK witness for {proof_type} step {step_info.get('step_number', 'unknown')}")
+            logger.info("Starting ZK witness generation with automatic model type detection")
             
-            # Create dual commitment scheme for compatibility
-            dual_committer = DualCommitment()
+            # Extract data from training_step_data
+            weights_before = training_step_data.get('weights_before', {})
+            weights_after = training_step_data.get('weights_after', {})
+            batch_data = training_step_data.get('batch_data', {})
+            hyperparameters = training_step_data.get('hyperparameters', {})
+            step_info = training_step_data.get('step_info', {})
             
-            # Extract witness based on proof type
-            if proof_type == "sgd_step":
-                # Extract required data from inputs
-                model_weights_before = weights_before.get("weights", {})
-                model_weights_after = weights_after.get("weights", {})
-                batch_inputs = batch_data.get("inputs", np.array([]))
-                batch_targets = batch_data.get("targets", np.array([]))
-                gradients = batch_data.get("gradients", {})
-                loss_value = batch_data.get("loss", 0.0)
-                
-                # Generate SGD witness
-                witness = extract_sgd_witness(
-                    model_weights_before=model_weights_before,
-                    model_weights_after=model_weights_after,
-                    batch_inputs=batch_inputs,
-                    batch_targets=batch_targets,
-                    hyperparameters=hyperparameters,
-                    gradients=gradients,
-                    loss_value=loss_value,
-                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
+            # Validate required data
+            validation_result = self._validate_training_step_data(training_step_data)
+            if not validation_result['valid']:
+                logger.error(f"Training step data validation failed: {validation_result['errors']}")
+                if self.fail_on_zk_error:
+                    raise ValueError(f"Invalid training step data: {validation_result['errors']}")
+                return None
+            
+            # Detect model type using improved detection
+            is_lora = self._detect_lora_model(weights_before, weights_after)
+            model_type = "lora" if is_lora else "sgd"
+            
+            logger.info(f"Detected model type: {model_type}")
+            
+            # Extract witness based on detected model type
+            if is_lora:
+                witness = self._extract_lora_witness_safe(
+                    weights_before, weights_after, batch_data, hyperparameters
                 )
-                
-                # Build ZK statement
-                statement = build_zk_statement(
-                    weights_before=model_weights_before,
-                    weights_after=model_weights_after,
-                    batch_inputs=batch_inputs,
-                    batch_targets=batch_targets,
-                    hyperparameters=hyperparameters,
-                    step_info=step_info,
-                    proof_type=ZKProofType.SGD_STEP,
-                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
-                )
-                
-            elif proof_type == "lora_step":
-                # Extract LoRA-specific data
-                base_weights = weights_before.get("base_weights", {})
-                lora_A_before = weights_before.get("lora_A", {})
-                lora_B_before = weights_before.get("lora_B", {})
-                lora_A_after = weights_after.get("lora_A", {})
-                lora_B_after = weights_after.get("lora_B", {})
-                batch_inputs = batch_data.get("inputs", np.array([]))
-                batch_targets = batch_data.get("targets", np.array([]))
-                gradients_A = batch_data.get("gradients_A", {})
-                gradients_B = batch_data.get("gradients_B", {})
-                loss_value = batch_data.get("loss", 0.0)
-                
-                # Generate LoRA witness
-                witness = extract_lora_witness(
-                    base_weights=base_weights,
-                    lora_A_before=lora_A_before,
-                    lora_B_before=lora_B_before,
-                    lora_A_after=lora_A_after,
-                    lora_B_after=lora_B_after,
-                    batch_inputs=batch_inputs,
-                    batch_targets=batch_targets,
-                    lora_hyperparameters=hyperparameters,
-                    gradients_A=gradients_A,
-                    gradients_B=gradients_B,
-                    loss_value=loss_value,
-                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
-                )
-                
-                # Build LoRA statement
-                statement = build_zk_statement(
-                    weights_before={"base": base_weights, "lora_A": lora_A_before, "lora_B": lora_B_before},
-                    weights_after={"base": base_weights, "lora_A": lora_A_after, "lora_B": lora_B_after},
-                    batch_inputs=batch_inputs,
-                    batch_targets=batch_targets,
-                    hyperparameters=hyperparameters,
-                    step_info=step_info,
-                    proof_type=ZKProofType.LORA_STEP,
-                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
-                )
-                
+                statement = self._build_lora_statement(witness, step_info)
+                proof_type = "lora_step"
             else:
-                raise ValueError(f"Unsupported proof type: {proof_type}")
+                witness = self._extract_sgd_witness_safe(
+                    weights_before, weights_after, batch_data, hyperparameters
+                )
+                statement = self._build_sgd_statement(witness, step_info)
+                proof_type = "sgd_step"
             
-            # Create ZK witness record for audit trail
+            # Generate dual commitments (SHA-256 + Poseidon)
+            dual_commitments = self._generate_dual_commitments(witness)
+            
+            # Create comprehensive witness record
             witness_record = {
-                "witness_id": f"{self.model_id}_{proof_type}_{step_info.get('step_number', 0)}",
-                "proof_type": proof_type,
-                "statement": statement.to_dict() if hasattr(statement, 'to_dict') else str(statement),
-                "witness_metadata": {
-                    "step_number": step_info.get("step_number", 0),
-                    "epoch": step_info.get("epoch", 0),
-                    "timestamp": step_info.get("timestamp", datetime.now(timezone.utc).isoformat()),
-                    "model_id": self.model_id,
-                    "witness_size_bytes": len(str(witness)),
-                    "commitment_scheme": CommitmentScheme.DUAL_COMMITMENT.value
+                'witness_id': f"{self.model_id}_{proof_type}_{step_info.get('step_number', 0)}",
+                'model_type': model_type,
+                'proof_type': proof_type,
+                'witness': witness,
+                'statement': statement,
+                'sha256_root': dual_commitments['sha256_root'],
+                'poseidon_root': dual_commitments['poseidon_root'],
+                'witness_metadata': {
+                    'step_number': step_info.get('step_number', 0),
+                    'epoch': step_info.get('epoch', 0),
+                    'timestamp': datetime.now(timezone.utc).isoformat(),
+                    'model_id': self.model_id,
+                    'witness_size_bytes': len(str(witness)),
+                    'tensor_shapes': self._extract_tensor_shapes(witness),
+                    'commitment_scheme': 'dual'
                 },
-                "dual_commitments": {
-                    "supports_sha256": True,
-                    "supports_poseidon": True,
-                    "zk_compatible": True
-                },
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "auditor_version": self.metadata.get("version", "1.0.0")
+                'validation': validation_result,
+                'dual_commitments': dual_commitments,
+                'generated_at': datetime.now(timezone.utc).isoformat(),
+                'auditor_version': self.metadata.get('version', '1.0.0')
             }
             
-            # Log ZK witness generation event
+            # Store witness record
+            if not hasattr(self, 'witness_records'):
+                self.witness_records = []
+            self.witness_records.append(witness_record)
+            
+            # Log witness generation event
             self.log_training_event(
-                epoch=step_info.get("epoch", 0),
-                metrics={"witness_generated": True, "proof_type": proof_type},
+                epoch=step_info.get('epoch', 0),
+                metrics={'witness_generated': True, 'model_type': model_type},
                 event_type=EventType.CUSTOM,
                 metadata={
-                    "zk_witness_id": witness_record["witness_id"],
-                    "commitment_scheme": "dual",
-                    "zk_compatible": True
+                    'zk_witness_id': witness_record['witness_id'],
+                    'commitment_scheme': 'dual',
+                    'poseidon_available': dual_commitments['poseidon_available'],
+                    'sha256_fallback': dual_commitments.get('sha256_fallback', False)
                 }
             )
             
             logger.info(f"Successfully generated ZK witness: {witness_record['witness_id']}")
             
-            return {
-                "witness": witness,
-                "statement": statement,
-                "witness_record": witness_record,
-                "compatibility": {
-                    "existing_merkle": True,
-                    "zk_friendly": True,
-                    "dual_commitment": True
-                }
-            }
+            return witness_record
             
         except ImportError as e:
-            logger.error(f"ZK module not available: {e}")
-            # Return mock witness for compatibility
-            return self._generate_mock_zk_witness(weights_before, weights_after, batch_data, step_info, proof_type)
+            logger.error(f"ZK modules not available: {e}")
+            return self._generate_sha256_only_witness(training_step_data)
         
         except Exception as e:
             logger.error(f"Failed to generate ZK witness: {e}")
+            if self.fail_on_zk_error:
+                raise
+            return None
+    
+    def _validate_training_step_data(self, training_step_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate training step data for ZK witness generation.
+        
+        Returns:
+            Dictionary with validation results and error messages
+        """
+        errors = []
+        warnings = []
+        
+        # Check required top-level keys
+        required_keys = ['weights_before', 'weights_after', 'batch_data', 'hyperparameters', 'step_info']
+        for key in required_keys:
+            if key not in training_step_data:
+                errors.append(f"Missing required key: {key}")
+        
+        if errors:
+            return {'valid': False, 'errors': errors, 'warnings': warnings}
+        
+        weights_before = training_step_data['weights_before']
+        weights_after = training_step_data['weights_after']
+        batch_data = training_step_data['batch_data']
+        hyperparameters = training_step_data['hyperparameters']
+        
+        # Validate weights structure
+        if not isinstance(weights_before, dict) or not weights_before:
+            errors.append("weights_before must be non-empty dictionary")
+        if not isinstance(weights_after, dict) or not weights_after:
+            errors.append("weights_after must be non-empty dictionary")
+        
+        # Check weight tensor dimensions
+        if weights_before and weights_after:
+            try:
+                self._validate_tensor_dimensions(weights_before, weights_after)
+            except ValueError as e:
+                errors.append(f"Tensor dimension mismatch: {e}")
+        
+        # Validate batch data
+        if not isinstance(batch_data, dict):
+            errors.append("batch_data must be dictionary")
+        else:
+            # Check for required batch components
+            if 'inputs' not in batch_data:
+                warnings.append("Missing batch inputs - may affect witness quality")
+            if 'targets' not in batch_data:
+                warnings.append("Missing batch targets - may affect witness quality")
+        
+        # Validate hyperparameters
+        if not isinstance(hyperparameters, dict):
+            errors.append("hyperparameters must be dictionary")
+        else:
+            if 'learning_rate' not in hyperparameters:
+                warnings.append("Missing learning_rate in hyperparameters")
+        
+        return {
+            'valid': len(errors) == 0,
+            'errors': errors,
+            'warnings': warnings,
+            'tensor_count': len(weights_before) if isinstance(weights_before, dict) else 0,
+            'validated_at': datetime.now(timezone.utc).isoformat()
+        }
+    
+    def _validate_tensor_dimensions(self, weights_before: Dict[str, Any], weights_after: Dict[str, Any]) -> None:
+        """Validate that tensor dimensions match between before/after weights."""
+        import numpy as np
+        
+        # Check that all keys match
+        if set(weights_before.keys()) != set(weights_after.keys()):
+            missing_before = set(weights_after.keys()) - set(weights_before.keys())
+            missing_after = set(weights_before.keys()) - set(weights_after.keys())
+            if missing_before:
+                raise ValueError(f"Keys missing in weights_before: {missing_before}")
+            if missing_after:
+                raise ValueError(f"Keys missing in weights_after: {missing_after}")
+        
+        # Check tensor shapes
+        for key in weights_before.keys():
+            tensor_before = weights_before[key]
+            tensor_after = weights_after[key]
+            
+            if hasattr(tensor_before, 'shape') and hasattr(tensor_after, 'shape'):
+                if tensor_before.shape != tensor_after.shape:
+                    raise ValueError(f"Shape mismatch for {key}: {tensor_before.shape} vs {tensor_after.shape}")
+            elif isinstance(tensor_before, (list, tuple)) and isinstance(tensor_after, (list, tuple)):
+                if len(tensor_before) != len(tensor_after):
+                    raise ValueError(f"Length mismatch for {key}: {len(tensor_before)} vs {len(tensor_after)}")
+    
+    def _detect_lora_model(self, weights_before: Dict[str, Any], weights_after: Dict[str, Any]) -> bool:
+        """
+        Detect if the model uses LoRA fine-tuning by examining weight structures.
+        
+        Returns:
+            True if LoRA model detected, False for standard SGD
+        """
+        try:
+            from ..zk.lora_builder import LoRAWitnessBuilder
+            
+            # Use LoRA builder's detection logic
+            builder = LoRAWitnessBuilder()
+            return builder.detect_lora_training(weights_before) and builder.detect_lora_training(weights_after)
+            
+        except ImportError:
+            logger.warning("LoRA builder not available, using fallback detection")
+            return self._fallback_lora_detection(weights_before, weights_after)
+    
+    def _fallback_lora_detection(self, weights_before: Dict[str, Any], weights_after: Dict[str, Any]) -> bool:
+        """Fallback LoRA detection when ZK modules unavailable."""
+        # Look for LoRA-specific key patterns
+        lora_patterns = ['lora_A', 'lora_B', 'lora_a', 'lora_b', 'adapter_A', 'adapter_B']
+        
+        all_keys = set(weights_before.keys()) | set(weights_after.keys())
+        
+        # Check for LoRA key patterns
+        has_lora_keys = any(
+            any(pattern in key.lower() for pattern in lora_patterns)
+            for key in all_keys
+        )
+        
+        if has_lora_keys:
+            logger.info("Detected LoRA model based on key patterns")
+            return True
+        
+        # Check for parameter efficiency (LoRA typically has much fewer trainable parameters)
+        try:
+            import numpy as np
+            
+            total_params_before = sum(
+                np.prod(tensor.shape) if hasattr(tensor, 'shape') else len(tensor) if isinstance(tensor, (list, tuple)) else 1
+                for tensor in weights_before.values()
+            )
+            
+            # Check if any tensors changed (indicating training)
+            changed_tensors = 0
+            for key in weights_before.keys():
+                if key in weights_after:
+                    before_val = weights_before[key]
+                    after_val = weights_after[key]
+                    
+                    if hasattr(before_val, 'shape') and hasattr(after_val, 'shape'):
+                        if not np.allclose(before_val, after_val, rtol=1e-6):
+                            changed_tensors += 1
+            
+            # If very few tensors changed relative to total, likely LoRA
+            if changed_tensors > 0 and changed_tensors < len(weights_before) * 0.1:
+                logger.info("Detected likely LoRA model based on parameter change patterns")
+                return True
+                
+        except Exception as e:
+            logger.debug(f"Parameter analysis failed: {e}")
+        
+        return False
+    
+    def _extract_sgd_witness_safe(self, weights_before: Dict[str, Any], weights_after: Dict[str, Any], 
+                                 batch_data: Dict[str, Any], hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Safely extract SGD witness with comprehensive error handling."""
+        try:
+            from ..zk.witness import extract_sgd_witness
+            import numpy as np
+            
+            # Prepare data for witness extraction
+            model_weights_before = {}
+            model_weights_after = {}
+            
+            # Convert tensors to numpy arrays if needed
+            for key, tensor in weights_before.items():
+                if hasattr(tensor, 'detach'):  # PyTorch tensor
+                    model_weights_before[key] = tensor.detach().cpu().numpy()
+                elif isinstance(tensor, np.ndarray):
+                    model_weights_before[key] = tensor
+                else:
+                    model_weights_before[key] = np.array(tensor)
+            
+            for key, tensor in weights_after.items():
+                if hasattr(tensor, 'detach'):  # PyTorch tensor
+                    model_weights_after[key] = tensor.detach().cpu().numpy()
+                elif isinstance(tensor, np.ndarray):
+                    model_weights_after[key] = tensor
+                else:
+                    model_weights_after[key] = np.array(tensor)
+            
+            # Extract batch components
+            batch_inputs = batch_data.get('inputs', np.array([]))
+            batch_targets = batch_data.get('targets', np.array([]))
+            gradients = batch_data.get('gradients', {})
+            loss_value = batch_data.get('loss', 0.0)
+            
+            if isinstance(batch_inputs, list):
+                batch_inputs = np.array(batch_inputs)
+            if isinstance(batch_targets, list):
+                batch_targets = np.array(batch_targets)
+            
+            # Call witness extraction
+            witness = extract_sgd_witness(
+                model_weights_before=model_weights_before,
+                model_weights_after=model_weights_after,
+                batch_inputs=batch_inputs,
+                batch_targets=batch_targets,
+                hyperparameters=hyperparameters,
+                gradients=gradients,
+                loss_value=loss_value
+            )
+            
+            logger.debug("Successfully extracted SGD witness")
+            return witness
+            
+        except Exception as e:
+            logger.error(f"SGD witness extraction failed: {e}")
             raise
     
+    def _extract_lora_witness_safe(self, weights_before: Dict[str, Any], weights_after: Dict[str, Any],
+                                  batch_data: Dict[str, Any], hyperparameters: Dict[str, Any]) -> Dict[str, Any]:
+        """Safely extract LoRA witness with comprehensive error handling."""
+        try:
+            from ..zk.lora_builder import LoRAWitnessBuilder
+            import numpy as np
+            
+            builder = LoRAWitnessBuilder()
+            
+            # Extract LoRA adapters
+            adapters_before = builder.extract_lora_adapters(weights_before)
+            adapters_after = builder.extract_lora_adapters(weights_after)
+            
+            if not adapters_before or not adapters_after:
+                raise ValueError("Failed to extract LoRA adapters from model weights")
+            
+            # Build LoRA witness using the builder with learning rate
+            learning_rate = hyperparameters.get('learning_rate', 0.001)
+            witness = builder.build_lora_witness(
+                adapters_before=adapters_before,
+                adapters_after=adapters_after,
+                batch_data=batch_data,
+                learning_rate=learning_rate
+            )
+            
+            logger.debug("Successfully extracted LoRA witness")
+            return witness
+            
+        except Exception as e:
+            logger.error(f"LoRA witness extraction failed: {e}")
+            raise
+    
+    def _build_sgd_statement(self, witness: Dict[str, Any], step_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Build ZK statement for SGD proof."""
+        return {
+            'proof_type': 'sgd_step',
+            'step_number': step_info.get('step_number', 0),
+            'epoch': step_info.get('epoch', 0),
+            'witness_hash': hash(str(witness)),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'statement_version': '1.0'
+        }
+    
+    def _build_lora_statement(self, witness: Dict[str, Any], step_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Build ZK statement for LoRA proof."""
+        return {
+            'proof_type': 'lora_step',
+            'step_number': step_info.get('step_number', 0),
+            'epoch': step_info.get('epoch', 0),
+            'witness_hash': hash(str(witness)),
+            'rank': witness.get('rank', 'unknown'),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'statement_version': '1.0'
+        }
+    
+    def _generate_dual_commitments(self, witness: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate dual commitments (SHA-256 + Poseidon) for witness data.
+        
+        Returns:
+            Dictionary containing both commitment roots and availability info
+        """
+        import hashlib
+        import json
+        
+        # Convert witness to dict if it's a dataclass
+        if hasattr(witness, '__dataclass_fields__'):
+            witness_dict = asdict(witness)
+        else:
+            witness_dict = witness
+            
+        # Generate SHA-256 commitment (always available)
+        witness_str = json.dumps(witness_dict, sort_keys=True, default=str)
+        sha256_root = hashlib.sha256(witness_str.encode()).hexdigest()
+        
+        poseidon_available = False
+        poseidon_root = None
+        sha256_fallback = False
+        
+        # Try to generate Poseidon commitment
+        try:
+            from ..zk.poseidon import PoseidonMerkleTree
+            
+            # Create Poseidon Merkle tree
+            poseidon_tree = PoseidonMerkleTree()
+            
+            # Convert witness to field elements for Poseidon
+            witness_elements = self._witness_to_field_elements(witness)
+            poseidon_root = poseidon_tree.compute_root(witness_elements)
+            poseidon_available = True
+            
+            logger.debug("Successfully generated Poseidon commitment")
+            
+        except ImportError:
+            logger.warning("Poseidon commitment unavailable - using SHA-256 only")
+            sha256_fallback = True
+        except Exception as e:
+            logger.warning(f"Poseidon commitment failed: {e} - falling back to SHA-256")
+            sha256_fallback = True
+        
+        return {
+            'sha256_root': sha256_root,
+            'poseidon_root': poseidon_root,
+            'poseidon_available': poseidon_available,
+            'sha256_fallback': sha256_fallback,
+            'supports_zk': poseidon_available,
+            'commitment_scheme': 'dual' if poseidon_available else 'sha256_only'
+        }
+    
+    def _witness_to_field_elements(self, witness: Dict[str, Any]) -> List[int]:
+        """Convert witness data to field elements for Poseidon hashing."""
+        elements = []
+        
+        import numpy as np
+        
+        # Convert witness to dict if it's a dataclass
+        if hasattr(witness, '__dataclass_fields__'):
+            witness_dict = asdict(witness)
+        else:
+            witness_dict = witness
+            
+        for key, value in witness_dict.items():
+            if isinstance(value, (int, float)):
+                # Convert to field element (mod prime)
+                elements.append(int(abs(value) * 1000) % (2**251 - 1))  # BLS12-381 scalar field
+            elif isinstance(value, np.ndarray):
+                # Flatten and convert array elements
+                flat_values = value.flatten()[:100]  # Limit size for efficiency
+                for v in flat_values:
+                    elements.append(int(abs(float(v)) * 1000) % (2**251 - 1))
+            elif isinstance(value, (list, tuple)):
+                # Convert list elements
+                for i, v in enumerate(value[:50]):  # Limit size
+                    if isinstance(v, (int, float)):
+                        elements.append(int(abs(v) * 1000) % (2**251 - 1))
+            elif isinstance(value, str):
+                # Hash string to field element
+                import hashlib
+                hash_int = int(hashlib.sha256(value.encode()).hexdigest(), 16)
+                elements.append(hash_int % (2**251 - 1))
+        
+        # Ensure we have at least one element
+        if not elements:
+            elements = [42]  # Default value
+        
+        return elements
+    
+    def _extract_tensor_shapes(self, witness: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract tensor shape information from witness data."""
+        shapes = {}
+        
+        # Convert witness to dict if it's a dataclass
+        if hasattr(witness, '__dataclass_fields__'):
+            witness_dict = asdict(witness)
+        else:
+            witness_dict = witness
+            
+        for key, value in witness_dict.items():
+            if hasattr(value, 'shape'):
+                shapes[key] = list(value.shape)
+            elif isinstance(value, (list, tuple)):
+                shapes[key] = [len(value)]
+            elif isinstance(value, dict):
+                shapes[key] = f"dict_{len(value)}_keys"
+            else:
+                shapes[key] = "scalar"
+        
+        return shapes
+    
+    def _generate_sha256_only_witness(self, training_step_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate witness record with SHA-256 commitment only (fallback mode).
+        
+        This is used when ZK modules are unavailable but we still want to maintain
+        audit trail compatibility.
+        """
+        import hashlib
+        import json
+        
+        logger.warning("Generating SHA-256-only witness (ZK modules unavailable)")
+        
+        step_info = training_step_data.get('step_info', {})
+        weights_before = training_step_data.get('weights_before', {})
+        weights_after = training_step_data.get('weights_after', {})
+        
+        # Create simplified witness
+        witness = {
+            'weights_before_hash': hashlib.sha256(str(weights_before).encode()).hexdigest()[:16],
+            'weights_after_hash': hashlib.sha256(str(weights_after).encode()).hexdigest()[:16],
+            'step_number': step_info.get('step_number', 0),
+            'epoch': step_info.get('epoch', 0),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
+            'fallback_mode': True
+        }
+        
+        # Generate SHA-256 root
+        witness_str = json.dumps(witness, sort_keys=True)
+        sha256_root = hashlib.sha256(witness_str.encode()).hexdigest()
+        
+        witness_record = {
+            'witness_id': f"{self.model_id}_fallback_{step_info.get('step_number', 0)}",
+            'model_type': 'unknown',
+            'proof_type': 'sha256_only',
+            'witness': witness,
+            'statement': {'fallback_mode': True, 'limited_functionality': True},
+            'sha256_root': sha256_root,
+            'poseidon_root': None,
+            'witness_metadata': {
+                'step_number': step_info.get('step_number', 0),
+                'epoch': step_info.get('epoch', 0),
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'model_id': self.model_id,
+                'witness_size_bytes': len(str(witness)),
+                'commitment_scheme': 'sha256_only',
+                'fallback_mode': True
+            },
+            'dual_commitments': {
+                'sha256_root': sha256_root,
+                'poseidon_root': None,
+                'poseidon_available': False,
+                'sha256_fallback': True,
+                'supports_zk': False,
+                'commitment_scheme': 'sha256_only'
+            },
+            'generated_at': datetime.now(timezone.utc).isoformat(),
+            'auditor_version': self.metadata.get('version', '1.0.0')
+        }
+        
+        logger.info(f"Generated SHA-256-only witness: {witness_record['witness_id']}")
+        return witness_record
+
+    def get_witness_records(self, limit: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve stored witness records with optional limit.
+        
+        Args:
+            limit: Maximum number of records to return (None for all)
+            
+        Returns:
+            List of witness records, most recent first
+        """
+        if not hasattr(self, 'witness_records'):
+            return []
+        
+        records = sorted(
+            self.witness_records, 
+            key=lambda x: x['generated_at'], 
+            reverse=True
+        )
+        
+        if limit:
+            records = records[:limit]
+        
+        return records
+    
+    def get_witness_record_by_id(self, witness_id: str) -> Optional[Dict[str, Any]]:
+        """Get a specific witness record by ID."""
+        if not hasattr(self, 'witness_records'):
+            return None
+        
+        for record in self.witness_records:
+            if record.get('witness_id') == witness_id:
+                return record
+        
+        return None
+    
+    def get_witness_statistics(self) -> Dict[str, Any]:
+        """Get statistics about generated witness records."""
+        if not hasattr(self, 'witness_records'):
+            return {
+                'total_witnesses': 0,
+                'sgd_witnesses': 0,
+                'lora_witnesses': 0,
+                'poseidon_available_count': 0,
+                'fallback_count': 0
+            }
+        
+        stats = {
+            'total_witnesses': len(self.witness_records),
+            'sgd_witnesses': 0,
+            'lora_witnesses': 0,
+            'poseidon_available_count': 0,
+            'fallback_count': 0,
+            'sha256_only_count': 0,
+            'dual_commitment_count': 0
+        }
+        
+        for record in self.witness_records:
+            model_type = record.get('model_type', 'unknown')
+            if model_type == 'sgd':
+                stats['sgd_witnesses'] += 1
+            elif model_type == 'lora':
+                stats['lora_witnesses'] += 1
+                
+            dual_commitments = record.get('dual_commitments', {})
+            if dual_commitments.get('poseidon_available', False):
+                stats['poseidon_available_count'] += 1
+            if dual_commitments.get('sha256_fallback', False):
+                stats['fallback_count'] += 1
+            if dual_commitments.get('commitment_scheme') == 'sha256_only':
+                stats['sha256_only_count'] += 1
+            elif dual_commitments.get('commitment_scheme') == 'dual':
+                stats['dual_commitment_count'] += 1
+        
+        return stats
+    
+    def validate_witness_merkle_paths(self, witness_id: str) -> Dict[str, Any]:
+        """
+        Validate Merkle paths for a specific witness record.
+        
+        Args:
+            witness_id: ID of witness record to validate
+            
+        Returns:
+            Validation results including path verification status
+        """
+        record = self.get_witness_record_by_id(witness_id)
+        if not record:
+            return {'valid': False, 'error': 'Witness record not found'}
+        
+        results = {
+            'witness_id': witness_id,
+            'sha256_valid': False,
+            'poseidon_valid': False,
+            'validation_timestamp': datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Validate SHA-256 commitment
+        try:
+            import hashlib
+            import json
+            
+            witness = record.get('witness', {})
+            witness_str = json.dumps(witness, sort_keys=True, default=str)
+            expected_sha256 = hashlib.sha256(witness_str.encode()).hexdigest()
+            actual_sha256 = record.get('sha256_root')
+            
+            results['sha256_valid'] = (expected_sha256 == actual_sha256)
+            results['sha256_expected'] = expected_sha256
+            results['sha256_actual'] = actual_sha256
+            
+        except Exception as e:
+            results['sha256_error'] = str(e)
+        
+        # Validate Poseidon commitment if available
+        dual_commitments = record.get('dual_commitments', {})
+        if dual_commitments.get('poseidon_available', False):
+            try:
+                from ..zk.poseidon import PoseidonMerkleTree
+                
+                poseidon_tree = PoseidonMerkleTree()
+                witness_elements = self._witness_to_field_elements(record.get('witness', {}))
+                expected_poseidon = poseidon_tree.compute_root(witness_elements)
+                actual_poseidon = record.get('poseidon_root')
+                
+                results['poseidon_valid'] = (expected_poseidon == actual_poseidon)
+                results['poseidon_expected'] = expected_poseidon
+                results['poseidon_actual'] = actual_poseidon
+                
+            except ImportError:
+                results['poseidon_error'] = 'Poseidon module not available'
+            except Exception as e:
+                results['poseidon_error'] = str(e)
+        
+        results['overall_valid'] = results['sha256_valid'] and (
+            not dual_commitments.get('poseidon_available', False) or 
+            results.get('poseidon_valid', False)
+        )
+        
+        return results
+
     def add_dual_commitment_support(self) -> None:
         """
         Add support for dual commitment schemes (SHA-256 + Poseidon)

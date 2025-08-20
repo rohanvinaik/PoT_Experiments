@@ -34,14 +34,10 @@ try:
     pot = ProofOfTraining(config)
     print("✓ PoT system initialized")
     
-    # Create mock model
-    class MockModel:
-        def forward(self, x):
-            return np.random.randn(10)
-        def state_dict(self):
-            return {'layer': 'weights'}
+    # Use shared mock model from testing base
+    from pot.testing.base import SimpleForwardModel
     
-    model = MockModel()
+    model = SimpleForwardModel()
     
     # Register model
     model_id = pot.register_model(model, "test_model", 1000)

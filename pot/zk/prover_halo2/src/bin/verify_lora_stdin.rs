@@ -2,7 +2,6 @@ use std::io::{self, Read};
 use std::process;
 use serde::{Deserialize, Serialize};
 use halo2_proofs::{
-    pasta::{Fp, EqAffine},
     plonk::{verify_proof, VerifyingKey},
     poly::ipa::{
         commitment::{ParamsIPA, IPACommitmentScheme},
@@ -12,6 +11,7 @@ use halo2_proofs::{
     transcript::{Blake2bRead, Challenge255},
     SerdeFormat,
 };
+use pasta_curves::{pallas::{Scalar as Fp, Affine as EqAffine}};
 use ff::PrimeField;
 
 #[derive(Deserialize)]

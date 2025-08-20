@@ -2120,15 +2120,10 @@ if __name__ == "__main__":
     pot_system = ProofOfTraining(config)
     print(f"\n✓ System initialized with config: {config}")
     
-    # Mock model
-    class MockModel:
-        def forward(self, x):
-            return np.random.randn(10)
-        
-        def state_dict(self):
-            return {'layer1': 'weights', 'layer2': 'weights'}
+    # Use shared mock model from testing base
+    from pot.testing.base import StatefulMockModel
     
-    model = MockModel()
+    model = StatefulMockModel()
     
     # Register model
     print("\n" + "=" * 70)

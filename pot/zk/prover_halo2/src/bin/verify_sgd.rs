@@ -1,5 +1,5 @@
 use clap::{Arg, Command};
-use pot_zk_prover::{
+use prover_halo2::{
     generate_setup, proof_from_json, verify_sgd_step, ProverError, ProvingSystemParams,
 };
 use std::fs;

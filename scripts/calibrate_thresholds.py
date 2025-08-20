@@ -176,11 +176,8 @@ if __name__ == "__main__":
     print("🧪 TESTING CALIBRATED THRESHOLDS")
     print("=" * 60)
     
-    # Import test function
-    try:
-        from scripts.test_calibrated_thresholds import test_with_calibration
-        print("\nTesting calibrated thresholds with real models...")
-        test_with_calibration(config)
-    except ImportError:
-        print("\nTo test calibrated thresholds, run:")
-        print("python scripts/test_calibrated_thresholds.py")
+    # Don't import test function directly to avoid circular dependency
+    print("\nTo test calibrated thresholds, run:")
+    print("python scripts/test_calibrated_thresholds.py")
+    print("\nThe test script will load the calibrated thresholds from:")
+    print(f"  {config.output_file}")

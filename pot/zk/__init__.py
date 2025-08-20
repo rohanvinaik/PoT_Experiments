@@ -31,6 +31,18 @@ from .witness import (
     build_zk_statement
 )
 
+from .auto_prover import (
+    prove_sgd_step,
+    verify_sgd_step,
+    prove_lora_step,
+    verify_lora_step,
+)
+
+from .metrics import (
+    ZKMetricsCollector,
+    get_zk_metrics_collector,
+)
+
 __all__ = [
     # Statement and Witness Classes
     'SGDStepStatement',
@@ -39,6 +51,12 @@ __all__ = [
     'LoRAStepWitness',
     'ZKProofType',
     'CommitmentScheme',
+    
+    # Proving and Verification
+    'prove_sgd_step',
+    'verify_sgd_step',
+    'prove_lora_step',
+    'verify_lora_step',
     
     # Commitment Functions
     'PoseidonHasher',
@@ -52,7 +70,11 @@ __all__ = [
     'extract_lora_witness',
     'extract_weight_openings',
     'extract_batch_openings',
-    'build_zk_statement'
+    'build_zk_statement',
+    
+    # Metrics
+    'ZKMetricsCollector',
+    'get_zk_metrics_collector',
 ]
 
 __version__ = "1.0.0"

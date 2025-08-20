@@ -1,5 +1,59 @@
 # CRITICAL INSTRUCTIONS FOR CLAUDE - READ FIRST
 
+## CODEBASE STRUCTURE AND ARCHITECTURE
+
+This is the **Proof-of-Training (PoT)** framework - a comprehensive system for cryptographic verification of neural network training integrity. The codebase implements both black-box behavioral verification and zero-knowledge proof generation.
+
+### Directory Structure
+```
+PoT_Experiments/
+├── pot/                        # Core framework implementation
+│   ├── core/                  # Statistical verification & challenges
+│   ├── security/              # Cryptographic protocols
+│   ├── zk/                    # Zero-knowledge proof system
+│   │   ├── prover_halo2/      # Rust ZK circuits (Halo2)
+│   │   ├── auto_prover.py     # Main proving interface
+│   │   ├── metrics.py         # Performance tracking
+│   │   ├── diagnostic.py      # System health checks
+│   │   └── monitoring.py      # Alert system
+│   ├── lm/                    # Language model verification
+│   ├── vision/                # Vision model verification
+│   └── prototypes/            # Training provenance auditor
+├── scripts/                   # Test runners and utilities
+│   ├── run_all.sh            # Main validation pipeline
+│   ├── run_zk_validation.py  # ZK system validation
+│   └── benchmark_*.py        # Performance benchmarks
+├── configs/                   # YAML configurations
+│   └── zk_config.yaml        # ZK system configuration
+├── experimental_results/      # Test outputs and reports
+├── examples/                  # Usage examples
+└── tests/                     # Unit and integration tests
+```
+
+### Key Components
+
+1. **Statistical Verification** (`pot/core/`)
+   - Challenge generation with KDF
+   - Sequential testing with Empirical-Bernstein bounds
+   - Enhanced diff decision framework
+
+2. **Zero-Knowledge Proofs** (`pot/zk/`)
+   - SGD training step proofs
+   - LoRA fine-tuning proofs (7.9× faster)
+   - Proof aggregation and compression
+   - Dual commitment schemes (SHA-256 + Poseidon)
+
+3. **Security Features** (`pot/security/`)
+   - Fuzzy hashing (TLSH, SSDEEP)
+   - Merkle tree provenance
+   - Tamper detection
+
+4. **Monitoring & Health** (`pot/zk/monitoring.py`, `diagnostic.py`)
+   - Real-time metrics collection
+   - System health scoring
+   - Alert management
+   - Performance regression detection
+
 ## ENHANCED DIFF DECISION FRAMEWORK
 
 The codebase now includes an enhanced statistical difference testing framework with separate SAME/DIFFERENT decision rules. When working with model verification:
@@ -75,6 +129,44 @@ When creating Colab runners:
 3. Run the ACTUAL scripts from `scripts/` directory
 4. DO NOT create new test logic - use what exists in the codebase
 5. The tests should take 2-5 minutes total, not seconds
+
+## MAIN VALIDATION PIPELINE
+
+The primary validation pipeline is `scripts/run_all.sh` which:
+
+1. **Checks Dependencies** - Python packages, system requirements
+2. **Builds ZK Binaries** - Compiles Rust provers if needed (`--rebuild-zk` flag)
+3. **Runs Core Tests**:
+   - Deterministic validation (100% success rate expected)
+   - Statistical identity verification
+   - Enhanced diff decision tests
+   - Fuzzy hash testing
+   - ZK proof validation (can skip with `--skip-zk`)
+4. **Generates Reports**:
+   - JSON results in `experimental_results/`
+   - Performance metrics
+   - Health scores
+   - Success rates
+
+### Running Tests
+
+```bash
+# Full validation
+bash scripts/run_all.sh
+
+# Skip ZK tests (faster)
+bash scripts/run_all.sh --skip-zk
+
+# Rebuild ZK binaries
+bash scripts/run_all.sh --rebuild-zk
+```
+
+### Expected Results
+
+- **Deterministic Tests**: 100% success rate
+- **Statistical Tests**: >95% success rate
+- **ZK Tests**: Health score >70/100
+- **Performance**: <1 second for most verifications
 
 ## REMEMBER
 

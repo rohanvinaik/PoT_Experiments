@@ -1,0 +1,92 @@
+{
+  "monitoring": {
+    "enabled": true,
+    "check_interval_seconds": 300,
+    "health_check_port": 8080,
+    "metrics_retention_hours": 168,
+    "alert_retention_days": 30
+  },
+  "thresholds": {
+    "health_score_critical": 50,
+    "health_score_warning": 70,
+    "proof_success_rate_warning": 90,
+    "verification_success_rate_critical": 95,
+    "cpu_usage_warning": 85,
+    "memory_usage_warning": 85,
+    "disk_usage_warning": 85,
+    "proof_time_degradation_percent": 100
+  },
+  "notifications": {
+    "email": {
+      "enabled": false,
+      "smtp_host": "",
+      "smtp_port": 587,
+      "from_address": "",
+      "to_addresses": [],
+      "username": "",
+      "password": ""
+    },
+    "slack": {
+      "enabled": false,
+      "webhook_url": "",
+      "channel": "#zk-monitoring",
+      "mention_users": []
+    },
+    "webhook": {
+      "enabled": false,
+      "url": "",
+      "timeout_seconds": 30,
+      "retry_count": 3
+    },
+    "file_logging": {
+      "enabled": true,
+      "log_file": "pot/zk/alerts.log",
+      "max_size_mb": 10,
+      "backup_count": 5
+    }
+  },
+  "custom_rules": [
+    {
+      "name": "proof_queue_backlog",
+      "description": "Proof generation queue is backing up",
+      "condition": "proof_queue_size > 10",
+      "severity": "warning",
+      "threshold_count": 3,
+      "cooldown_minutes": 120,
+      "enabled": true
+    },
+    {
+      "name": "rust_binary_crash",
+      "description": "Rust ZK binary crashed or returned error",
+      "condition": "binary_crash_count > 0",
+      "severity": "critical", 
+      "threshold_count": 1,
+      "cooldown_minutes": 15,
+      "enabled": true
+    }
+  ],
+  "rule_overrides": {
+    "health_score_warning": {
+      "threshold_count": 2,
+      "cooldown_minutes": 30
+    },
+    "binary_missing": {
+      "cooldown_minutes": 15
+    }
+  },
+  "environment_specific": {
+    "development": {
+      "health_score_warning": 60,
+      "notification_cooldown_multiplier": 2.0
+    },
+    "staging": {
+      "health_score_warning": 65,
+      "enable_all_notifications": false
+    },
+    "production": {
+      "health_score_critical": 70,
+      "proof_success_rate_warning": 95,
+      "enable_all_notifications": true
+    }
+  }
+}

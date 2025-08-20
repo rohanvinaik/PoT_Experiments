@@ -1,0 +1,13 @@
+{
+  "timestamp": 1755707348.130614,
+  "zk_available": false,
+  "tests": [],
+  "metrics": {},
+  "summary": {
+    "status": "skipped",
+    "reason": "ZK modules not available",
+    "tests_passed": 0,
+    "tests_failed": 0,
+    "tests_total": 0
+  }
+}

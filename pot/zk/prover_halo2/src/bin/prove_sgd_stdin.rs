@@ -1,5 +1,5 @@
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
-use pot_zk_prover::{
+use prover_halo2::{
     circuit::{SGDCircuitParams, SGDPublicInputs, utils},
     create_witness_from_json, generate_setup, prove_sgd_step,
     ProvingSystemParams,

@@ -8,10 +8,13 @@ from typing import Dict, List, Tuple, Any, Optional
 from dataclasses import dataclass
 from pathlib import Path
 
-# Import existing PoT Merkle tree implementation
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-from pot.prototypes.training_provenance_auditor import MerkleNode, MerkleTree
+# Import from interfaces to avoid circular dependency
+from ..core.interfaces import (
+    MerkleNode,
+    IMerkleTree,
+    BasicMerkleTree,
+    create_merkle_tree
+)
 
 
 @dataclass

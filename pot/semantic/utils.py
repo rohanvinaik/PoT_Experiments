@@ -17,7 +17,9 @@ import logging
 import warnings
 
 from .types import ConceptVector, SemanticLibrary, MatchingConfig, SemanticDistance
-from .library import ConceptLibrary
+# Import interface to avoid circular dependency
+from .base import IConceptLibrary
+# Import concrete class only when needed (lazy import)
 
 logger = logging.getLogger(__name__)
 

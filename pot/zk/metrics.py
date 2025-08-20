@@ -477,3 +477,271 @@ def record_proof_verification(proof_type: str,
     )
     
     monitor.metrics_collector.record_verification(metric)
+
+
+# Enhanced ZKMetricsCollector class for comprehensive metrics collection
+class ZKMetricsCollector:
+    """
+    Enhanced metrics collector specifically designed for ZK proof system.
+    Provides regression detection, performance analysis, and comprehensive reporting.
+    """
+    
+    def __init__(self):
+        self.metrics = {
+            'sgd_proofs': [],
+            'lora_proofs': [],
+            'verification_times': [],
+            'proof_sizes': [],
+            'circuit_constraints': {},
+            'errors': defaultdict(int),
+            'session_info': {
+                'start_time': datetime.now().isoformat(),
+                'total_operations': 0
+            }
+        }
+        
+        # Performance thresholds for regression detection
+        self.performance_thresholds = {
+            'sgd_proof_max_ms': 5000,
+            'lora_proof_max_ms': 2000,
+            'verification_max_ms': 500,
+            'max_failure_rate': 0.05
+        }
+        
+        self._lock = threading.Lock()
+    
+    def record_proof_generation(self, proof_type, duration, proof_size, success, **metadata):
+        """Record detailed proof generation metrics."""
+        with self._lock:
+            proof_data = {
+                'timestamp': time.time(),
+                'proof_type': proof_type,
+                'duration_ms': duration,
+                'proof_size_bytes': proof_size,
+                'success': success,
+                'metadata': metadata
+            }
+            
+            if proof_type == 'sgd':
+                self.metrics['sgd_proofs'].append(proof_data)
+            elif proof_type == 'lora':
+                self.metrics['lora_proofs'].append(proof_data)
+            
+            if not success and 'error_type' in metadata:
+                self.metrics['errors'][metadata['error_type']] += 1
+            
+            self.metrics['session_info']['total_operations'] += 1
+    
+    def record_verification(self, proof_type, duration, success):
+        """Record proof verification metrics."""
+        with self._lock:
+            verification_data = {
+                'timestamp': time.time(),
+                'proof_type': proof_type,
+                'duration_ms': duration,
+                'success': success
+            }
+            
+            self.metrics['verification_times'].append(verification_data)
+            self.metrics['session_info']['total_operations'] += 1
+    
+    def record_circuit_constraints(self, circuit_type, constraint_count, witness_size):
+        """Record circuit constraint metrics."""
+        with self._lock:
+            self.metrics['circuit_constraints'][circuit_type] = {
+                'constraint_count': constraint_count,
+                'witness_size': witness_size,
+                'timestamp': time.time()
+            }
+    
+    def get_performance_stats(self, proof_type):
+        """Get performance statistics for a proof type."""
+        with self._lock:
+            proofs = self.metrics.get(f'{proof_type}_proofs', [])
+            successful_proofs = [p for p in proofs if p['success']]
+            
+            if not successful_proofs:
+                return {'count': 0}
+            
+            durations = [p['duration_ms'] for p in successful_proofs]
+            sizes = [p['proof_size_bytes'] for p in successful_proofs]
+            
+            return {
+                'count': len(successful_proofs),
+                'avg_duration_ms': np.mean(durations),
+                'median_duration_ms': np.median(durations),
+                'p95_duration_ms': np.percentile(durations, 95),
+                'avg_size_bytes': np.mean(sizes),
+                'success_rate': len(successful_proofs) / len(proofs) if proofs else 1.0
+            }
+    
+    def detect_performance_regressions(self, baseline=None):
+        """Detect performance regressions compared to baseline."""
+        warnings = []
+        
+        sgd_stats = self.get_performance_stats('sgd')
+        lora_stats = self.get_performance_stats('lora')
+        
+        # Check against absolute thresholds
+        if sgd_stats.get('avg_duration_ms', 0) > self.performance_thresholds['sgd_proof_max_ms']:
+            warnings.append(f"SGD proof generation too slow: {sgd_stats['avg_duration_ms']:.1f}ms")
+        
+        if lora_stats.get('avg_duration_ms', 0) > self.performance_thresholds['lora_proof_max_ms']:
+            warnings.append(f"LoRA proof generation too slow: {lora_stats['avg_duration_ms']:.1f}ms")
+        
+        # Check success rates
+        overall_success = self._calculate_overall_success_rate()
+        if overall_success < (1.0 - self.performance_thresholds['max_failure_rate']):
+            warnings.append(f"High failure rate: {(1.0-overall_success)*100:.1f}%")
+        
+        return warnings
+    
+    def generate_report(self) -> dict:
+        """Generate comprehensive metrics report."""
+        with self._lock:
+            sgd_stats = self.get_performance_stats('sgd')
+            lora_stats = self.get_performance_stats('lora')
+            
+            # Calculate compression ratio
+            compression_ratio = None
+            if sgd_stats.get('avg_size_bytes') and lora_stats.get('avg_size_bytes'):
+                compression_ratio = sgd_stats['avg_size_bytes'] / lora_stats['avg_size_bytes']
+            
+            return {
+                'timestamp': datetime.now().isoformat(),
+                'session_info': self.metrics['session_info'],
+                'summary': {
+                    'total_proofs': len(self.metrics['sgd_proofs']) + len(self.metrics['lora_proofs']),
+                    'total_verifications': len(self.metrics['verification_times']),
+                    'overall_success_rate': self._calculate_overall_success_rate(),
+                    'compression_ratio': compression_ratio
+                },
+                'performance': {
+                    'sgd_stats': sgd_stats,
+                    'lora_stats': lora_stats,
+                    'verification_stats': self._get_verification_stats()
+                },
+                'circuit_constraints': self.metrics['circuit_constraints'],
+                'errors': dict(self.metrics['errors']),
+                'performance_warnings': self.detect_performance_regressions()
+            }
+    
+    def save_report(self, filepath):
+        """Save metrics report to JSON file."""
+        report = self.generate_report()
+        Path(filepath).parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(filepath, 'w') as f:
+            json.dump(report, f, indent=2, default=str)
+    
+    def _calculate_overall_success_rate(self):
+        """Calculate overall success rate."""
+        all_proofs = self.metrics['sgd_proofs'] + self.metrics['lora_proofs']
+        if not all_proofs:
+            return 1.0
+        successful = sum(1 for p in all_proofs if p['success'])
+        return successful / len(all_proofs)
+    
+    def _get_verification_stats(self):
+        """Get verification statistics."""
+        verifications = self.metrics['verification_times']
+        successful_verifications = [v for v in verifications if v['success']]
+        
+        if not successful_verifications:
+            return {'count': 0}
+        
+        durations = [v['duration_ms'] for v in successful_verifications]
+        
+        return {
+            'count': len(successful_verifications),
+            'avg_duration_ms': np.mean(durations),
+            'success_rate': len(successful_verifications) / len(verifications) if verifications else 1.0
+        }
+
+
+# Global ZK metrics collector
+_zk_metrics_collector = None
+
+def get_zk_metrics_collector():
+    """Get or create global ZK metrics collector."""
+    global _zk_metrics_collector
+    if _zk_metrics_collector is None:
+        _zk_metrics_collector = ZKMetricsCollector()
+    return _zk_metrics_collector
+
+
+# Decorators for automatic metrics collection
+def track_proof_generation(proof_type):
+    """Decorator to automatically track proof generation metrics."""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            collector = get_zk_metrics_collector()
+            start_time = time.time()
+            
+            try:
+                result = func(*args, **kwargs)
+                duration = (time.time() - start_time) * 1000  # Convert to ms
+                
+                # Extract proof size from result
+                proof_size = 0
+                if isinstance(result, dict) and 'proof' in result:
+                    proof_data = result['proof']
+                    if isinstance(proof_data, (bytes, str)):
+                        proof_size = len(proof_data)
+                
+                collector.record_proof_generation(
+                    proof_type=proof_type,
+                    duration=duration,
+                    proof_size=proof_size,
+                    success=True,
+                    function=func.__name__
+                )
+                
+                return result
+                
+            except Exception as e:
+                duration = (time.time() - start_time) * 1000
+                collector.record_proof_generation(
+                    proof_type=proof_type,
+                    duration=duration,
+                    proof_size=0,
+                    success=False,
+                    error_type=type(e).__name__,
+                    function=func.__name__
+                )
+                raise
+        
+        return wrapper
+    return decorator
+
+
+def track_verification(proof_type):
+    """Decorator to automatically track verification metrics."""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            collector = get_zk_metrics_collector()
+            start_time = time.time()
+            
+            try:
+                result = func(*args, **kwargs)
+                duration = (time.time() - start_time) * 1000
+                
+                collector.record_verification(
+                    proof_type=proof_type,
+                    duration=duration,
+                    success=True
+                )
+                
+                return result
+                
+            except Exception as e:
+                duration = (time.time() - start_time) * 1000
+                collector.record_verification(
+                    proof_type=proof_type,
+                    duration=duration,
+                    success=False
+                )
+                raise
+        
+        return wrapper
+    return decorator

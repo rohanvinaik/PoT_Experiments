@@ -1,332 +1,101 @@
-# ZK Proof System Configuration
-# This file defines deployment modes for different environments
+# Zero-Knowledge Proof System Configuration
 
-# Development Mode - Quick iteration with small circuits
-development:
-  # Circuit configuration
-  circuit:
-    max_constraints: 10000
-    optimization_level: 0  # No optimization for faster compilation
-    debug_mode: true
-    witness_generation_checks: true
-    
-  # Proof generation
-  prover:
-    num_workers: 2
-    use_processes: false
-    batch_size: 4
-    max_proof_time_ms: 30000  # 30 seconds timeout
-    
-  # Caching
-  cache:
-    enable_memory_cache: true
-    memory_cache_size_mb: 50
-    enable_disk_cache: false
-    cache_ttl_seconds: 300  # 5 minutes
-    
-  # Aggregation
-  aggregation:
-    enable: false
-    max_batch_size: 4
-    
-  # Monitoring
-  monitoring:
-    enable: true
-    log_level: DEBUG
-    metrics_interval_seconds: 5
-    persist_metrics: false
-    
-  # LoRA specific
-  lora:
-    supported_ranks: [4, 8]
-    precompute_circuits: false
-    alpha_scaling: true
-    
-  # Resource limits
-  resources:
-    max_memory_gb: 2
-    max_cpu_percent: 50
-    timeout_minutes: 5
+# ZK System Mode
+zk_mode: production  # Options: development, staging, production
 
-# Production Mode - Optimized for performance
-production:
-  # Circuit configuration
-  circuit:
-    max_constraints: 1000000
-    optimization_level: 3  # Maximum optimization
-    debug_mode: false
-    witness_generation_checks: false
-    custom_gates: true
-    lookup_tables: true
-    
-  # Proof generation
-  prover:
-    num_workers: -1  # Use all available cores
-    use_processes: true  # Process pool for better parallelism
-    batch_size: 32
-    max_proof_time_ms: 5000  # 5 seconds target
-    prefetch_witnesses: true
-    
-  # Caching
-  cache:
-    enable_memory_cache: true
-    memory_cache_size_mb: 500
-    enable_disk_cache: true
-    disk_cache_path: "/var/cache/zk_proofs"
-    disk_cache_size_gb: 10
-    cache_ttl_seconds: 3600  # 1 hour
-    persistent_cache: true
-    compression: true
-    
-  # Aggregation
-  aggregation:
-    enable: true
-    max_batch_size: 64
-    recursive_depth: 3
-    parallel_aggregation: true
-    
-  # Monitoring
-  monitoring:
-    enable: true
-    log_level: WARNING
-    metrics_interval_seconds: 60
-    persist_metrics: true
-    metrics_path: "/var/log/zk_metrics"
-    alert_thresholds:
-      proof_time_ms: 10000
-      verification_time_ms: 1000
-      failure_rate: 0.01
-      cpu_percent: 90
-      memory_gb: 8
-    
-  # LoRA specific
-  lora:
-    supported_ranks: [4, 8, 16, 32, 64]
-    precompute_circuits: true
-    alpha_scaling: true
-    adaptive_rank: true
-    compression_enabled: true
-    
-  # Resource limits
-  resources:
-    max_memory_gb: 16
-    max_cpu_percent: 80
-    timeout_minutes: 30
-    queue_size: 1000
-    
-  # Network settings
-  network:
-    enable_grpc: true
-    grpc_port: 50051
-    max_connections: 100
-    keepalive_seconds: 30
+# Circuit Parameters
+circuit:
+  max_constraints: 1000000
+  optimization_level: 2
+  debug_mode: false
+  enabled_circuits:
+    - sgd
+    - lora
+    - aggregated
 
-# Benchmarking Mode - For performance testing
-benchmarking:
-  # Circuit configuration
-  circuit:
-    max_constraints: 500000
-    optimization_level: 2
-    debug_mode: false
-    witness_generation_checks: false
-    profile_constraints: true
-    
-  # Proof generation
-  prover:
-    num_workers: -1  # Use all cores
-    use_processes: false  # Threads for consistent timing
-    batch_size: 16
-    max_proof_time_ms: 10000
-    warmup_iterations: 10
-    
-  # Caching
-  cache:
-    enable_memory_cache: false  # Disable for accurate timing
-    enable_disk_cache: false
-    
-  # Aggregation
-  aggregation:
-    enable: true
-    max_batch_size: 32
-    measure_aggregation_overhead: true
-    
-  # Monitoring
-  monitoring:
-    enable: true
-    log_level: INFO
-    metrics_interval_seconds: 1
-    persist_metrics: true
-    metrics_path: "./benchmark_results"
-    detailed_timing: true
-    capture_flamegraphs: true
-    
-  # LoRA specific
-  lora:
-    supported_ranks: [4, 8, 16, 32, 64, 128]
-    precompute_circuits: true
-    benchmark_all_ranks: true
-    measure_memory_usage: true
-    
-  # Benchmark settings
-  benchmark:
-    iterations: 100
-    warmup_iterations: 10
-    test_sizes: [1, 10, 100, 1000]
-    measure_proof_size: true
-    measure_verification_time: true
-    generate_report: true
-    report_format: "json"
-    
-  # Resource limits
-  resources:
-    max_memory_gb: 32
-    max_cpu_percent: 100
-    timeout_minutes: 60
+# Proof Generation
+prover:
+  num_workers: -1  # Use all CPU cores
+  batch_size: 32
+  timeout_ms: 30000
+  max_retries: 3
+  retry_delay_ms: 1000
+  memory_limit_mb: 2048
 
-# Cloud deployment settings
-cloud:
-  # AWS specific
-  aws:
-    instance_type: "c5.4xlarge"  # 16 vCPU, 32 GB RAM
-    enable_nitro_enclaves: true
-    s3_cache_bucket: "zk-proof-cache"
-    cloudwatch_metrics: true
-    
-  # GCP specific
-  gcp:
-    machine_type: "n2-standard-16"
-    enable_confidential_compute: true
-    gcs_cache_bucket: "zk-proof-cache"
-    stackdriver_metrics: true
-    
-  # Azure specific
-  azure:
-    vm_size: "Standard_F16s_v2"
-    enable_sgx: true
-    blob_cache_container: "zk-proof-cache"
-    app_insights_metrics: true
-    
-  # Kubernetes deployment
-  kubernetes:
-    replicas: 3
-    cpu_request: "4"
-    cpu_limit: "16"
-    memory_request: "8Gi"
-    memory_limit: "32Gi"
-    persistent_volume_size: "100Gi"
-    horizontal_autoscaling:
-      enabled: true
-      min_replicas: 2
-      max_replicas: 10
-      target_cpu_utilization: 70
-      target_memory_utilization: 80
+# LoRA Configuration
+lora:
+  max_rank: 128
+  default_rank: 16
+  default_alpha: 32.0
+  optimized_ranks: [4, 8, 16, 32, 64]
+  min_compression_ratio: 10.0
 
-# Hardware-specific optimizations
-hardware_optimizations:
-  # Intel processors
-  intel:
-    enable_avx2: true
-    enable_avx512: true
-    numa_aware: true
-    
-  # AMD processors
-  amd:
-    enable_avx2: true
-    numa_aware: true
-    
-  # Apple Silicon
-  apple_silicon:
-    enable_neon: true
-    use_metal_compute: true
-    
-  # GPU acceleration (experimental)
-  gpu:
-    enable: false
-    backend: "cuda"  # cuda, rocm, metal
-    device_id: 0
-    batch_size: 128
+# Proof Verification
+verifier:
+  batch_verification: true
+  max_batch_size: 64
+  timeout_ms: 5000
+  cache_verified: true
 
-# Security settings
+# Caching
+cache:
+  enabled: true
+  memory_cache_size_mb: 500
+  disk_cache_size_gb: 10
+  cache_dir: ~/.pot/zk_cache
+  ttl_seconds: 3600
+  warm_cache: true
+
+# Monitoring
+monitoring:
+  enabled: true
+  collection_interval: 60
+  export_to_file: true
+  metrics_file: experimental_results/zk_metrics.json
+  regression_detection:
+    enabled: true
+    baseline_window: 100
+    threshold_percent: 20
+
+# Fallback Behavior
+fallback:
+  enabled: true
+  triggers:
+    - binary_not_found
+    - proof_timeout
+    - memory_exceeded
+    - repeated_failures
+  failure_threshold: 3
+  log_fallbacks: true
+
+# Security Settings
 security:
-  # Side-channel protection
-  constant_time_operations: true
-  memory_sanitization: true
-  secure_random_source: "/dev/urandom"
-  
-  # Audit logging
-  audit_log:
-    enable: true
-    log_path: "/var/log/zk_audit"
-    log_rotation: "daily"
-    retention_days: 90
-    
-  # Access control
-  authentication:
-    enable: false
-    method: "jwt"  # jwt, api_key, mtls
-    
-  # Rate limiting
-  rate_limiting:
-    enable: true
-    requests_per_minute: 100
-    burst_size: 20
+  field_size: 255
+  soundness_error: 128
+  hash_function: poseidon
+  commitment_scheme: ipa
+  extra_checks: true
 
-# Feature flags
-features:
-  # Experimental features
-  experimental:
-    recursive_snarks: false
-    plonky2_backend: false
-    gpu_acceleration: false
-    distributed_proving: false
-    
-  # Beta features
-  beta:
-    adaptive_batching: true
-    smart_caching: true
-    proof_compression: true
-    
-  # Stable features
-  stable:
-    lora_support: true
-    proof_aggregation: true
-    parallel_proving: true
-    poseidon_hash: true
+# Environment Overrides
+environments:
+  development:
+    circuit:
+      max_constraints: 10000
+      debug_mode: true
+    prover:
+      num_workers: 2
+      batch_size: 4
+  production:
+    circuit:
+      max_constraints: 1000000
+      optimization_level: 3
+    prover:
+      num_workers: -1
+      batch_size: 32
 
-# Environment-specific overrides
-overrides:
-  # Override by environment variable
-  env_vars:
-    - name: "ZK_NUM_WORKERS"
-      path: "$.prover.num_workers"
-    - name: "ZK_CACHE_SIZE"
-      path: "$.cache.memory_cache_size_mb"
-    - name: "ZK_LOG_LEVEL"
-      path: "$.monitoring.log_level"
-    
-  # Override by command line
-  cli_args:
-    - flag: "--workers"
-      path: "$.prover.num_workers"
-    - flag: "--batch-size"
-      path: "$.prover.batch_size"
-    - flag: "--mode"
-      path: "$.mode"
-
-# Default mode selection
-default_mode: "development"
-
-# Mode selection rules
-mode_selection:
-  auto_detect: true
-  detection_rules:
-    - condition: "env.NODE_ENV == 'production'"
-      mode: "production"
-    - condition: "env.BENCHMARK == 'true'"
-      mode: "benchmarking"
-    - condition: "env.CI == 'true'"
-      mode: "development"
-    - condition: "hostname.contains('prod')"
-      mode: "production"
-    - condition: "hostname.contains('dev')"
-      mode: "development"
+# Performance Targets
+performance_targets:
+  sgd_proof_target_ms: 500
+  lora_proof_target_ms: 100
+  verification_target_ms: 10
+  alert_on_miss: true

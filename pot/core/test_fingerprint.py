@@ -26,6 +26,9 @@ from unittest.mock import Mock, patch
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Import base test class
+from pot.testing.base import BaseTestCase
 from pot.core.fingerprint import (
     FingerprintConfig,
     FingerprintResult,
@@ -171,11 +174,12 @@ class MockModelWithNaN:
 # Test Cases
 # ============================================================================
 
-class TestFingerprintDeterminism(unittest.TestCase):
+class TestFingerprintDeterminism(BaseTestCase):
     """Test determinism of fingerprinting"""
     
     def setUp(self):
         """Set up test fixtures"""
+        super().setUp()  # Call parent setUp
         self.vision_model = MockVisionModel(seed=42)
         self.lm_model = MockLanguageModel(seed=42)
         self.challenges_vision = [torch.randn(3, 224, 224) for _ in range(5)]

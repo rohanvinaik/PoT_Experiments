@@ -2,7 +2,6 @@ use std::io::{self, Read};
 use std::process;
 use serde::{Deserialize, Serialize};
 use halo2_proofs::{
-    pasta::{Fp, EqAffine},
     plonk::{create_proof, keygen_pk, keygen_vk},
     poly::ipa::{
         commitment::{IPACommitmentScheme, ParamsIPA},
@@ -11,6 +10,7 @@ use halo2_proofs::{
     transcript::{Blake2bWrite, Challenge255},
     SerdeFormat,
 };
+use pasta_curves::{pallas::{Scalar as Fp, Affine as EqAffine}};
 use prover_halo2::{lora_circuit::{LoRACircuit, LoRAWitness}, fixed_point::FixedPoint};
 use rand::rngs::OsRng;
 use ff::{Field, PrimeField};

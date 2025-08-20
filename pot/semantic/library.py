@@ -785,12 +785,13 @@ class ConceptLibrary:
         )
         
         if need_compute:
-            from .topography import TopographicalProjector
+            # Lazy import to avoid circular dependency
+            from . import topography
             
             # Create projector if not exists
             if not hasattr(self, '_topographical_projector'):
                 config = {'default_method': method}
-                self._topographical_projector = TopographicalProjector(config)
+                self._topographical_projector = topography.TopographicalProjector(config)
             
             # Set method
             self._topographical_projector.config['default_method'] = method

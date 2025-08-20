@@ -71,14 +71,10 @@ def experiment_verification_types():
         try:
             pot = ProofOfTraining(config)
             
-            # Mock model
-            class MockModel:
-                def forward(self, x):
-                    return np.random.randn(10)
-                def state_dict(self):
-                    return {'layer': 'weights'}
+            # Use shared mock model from testing base
+            from pot.testing.base import SimpleForwardModel
             
-            model = MockModel()
+            model = SimpleForwardModel()
             model_id = pot.register_model(model, "test_arch", 1000)
             
             # Test different depths

@@ -12,6 +12,7 @@ pub mod circuit;
 pub mod fixed_point;
 pub mod poseidon;
 pub mod lora_circuit;
+pub mod lora_circuit_optimized;
 
 use circuit::{SGDCircuit, SGDCircuitParams, SGDPublicInputs, SGDWitness};
 

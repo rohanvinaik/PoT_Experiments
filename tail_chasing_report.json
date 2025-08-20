@@ -1,0 +1,1842 @@
+{
+  "project": "/Users/rohanvinaik/PoT_Experiments",
+  "timestamp": "/Users/rohanvinaik/PoT_Experiments",
+  "summary": {
+    "total_files": 446,
+    "total_issues": 128,
+    "by_severity": {
+      "high": 110,
+      "medium": 18,
+      "low": 0
+    },
+    "by_type": {
+      "phantom_functions": 18,
+      "duplicate_implementations": 79,
+      "circular_dependencies": 11,
+      "context_thrashing": 20
+    }
+  },
+  "issues": [
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/analyze_tailchasing.py",
+      "line": 177,
+      "name": "_detect_unused_imports",
+      "severity": "medium",
+      "message": "Stub function '_detect_unused_imports' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/defenses.py",
+      "line": 65,
+      "name": "verify",
+      "severity": "medium",
+      "message": "Stub function 'verify' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/defenses.py",
+      "line": 70,
+      "name": "compute_confidence",
+      "severity": "medium",
+      "message": "Stub function 'compute_confidence' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/security/blockchain_client.py",
+      "line": 62,
+      "name": "store_hash",
+      "severity": "medium",
+      "message": "Stub function 'store_hash' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/security/blockchain_client.py",
+      "line": 89,
+      "name": "retrieve_hash",
+      "severity": "medium",
+      "message": "Stub function 'retrieve_hash' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/security/blockchain_client.py",
+      "line": 110,
+      "name": "verify_hash",
+      "severity": "medium",
+      "message": "Stub function 'verify_hash' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/lm/cli.py",
+      "line": 26,
+      "name": "cli",
+      "severity": "medium",
+      "message": "Stub function 'cli' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/challenge_generator.py",
+      "line": 152,
+      "name": "generate_challenge",
+      "severity": "medium",
+      "message": "Stub function 'generate_challenge' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/challenge_generator.py",
+      "line": 168,
+      "name": "verify_response",
+      "severity": "medium",
+      "message": "Stub function 'verify_response' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "line": 192,
+      "name": "transform",
+      "severity": "medium",
+      "message": "Stub function 'transform' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "line": 257,
+      "name": "transform",
+      "severity": "medium",
+      "message": "Stub function 'transform' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "line": 197,
+      "name": "fit_transform",
+      "severity": "medium",
+      "message": "Stub function 'fit_transform' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "line": 187,
+      "name": "fit",
+      "severity": "medium",
+      "message": "Stub function 'fit' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/audit_logger.py",
+      "line": 707,
+      "name": "_track_access_pattern",
+      "severity": "medium",
+      "message": "Stub function '_track_access_pattern' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py",
+      "line": 412,
+      "name": "policy",
+      "severity": "medium",
+      "message": "Stub function 'policy' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py",
+      "line": 576,
+      "name": "risk",
+      "severity": "medium",
+      "message": "Stub function 'risk' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py",
+      "line": 749,
+      "name": "validate",
+      "severity": "medium",
+      "message": "Stub function 'validate' never implemented"
+    },
+    {
+      "type": "phantom_function",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py",
+      "line": 871,
+      "name": "batch",
+      "severity": "medium",
+      "message": "Stub function 'batch' never implemented"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/colab_complete_pot_test.py",
+          "name": "generate",
+          "line": 236
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_llm_open_models_only.py",
+          "name": "generate",
+          "line": 44
+        }
+      ],
+      "message": "Found 2 duplicate implementations of generate(self,prompt,max_new_tokens)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/colab_run_complete_suite_fixed.py",
+          "name": "save_to_drive",
+          "line": 84
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/colab_run_complete_suite_with_drive.py",
+          "name": "save_to_drive",
+          "line": 82
+        }
+      ],
+      "message": "Found 2 duplicate implementations of save_to_drive(src_path,dest_name)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/runtime_blackbox_validation.py",
+          "name": "__init__",
+          "line": 47
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/runtime_blackbox_validation_adaptive.py",
+          "name": "__init__",
+          "line": 62
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,model_name,device,seed)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "stress_test_batch_verification",
+          "line": 15
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "stress_test_batch_verification",
+          "line": 15
+        }
+      ],
+      "message": "Found 2 duplicate implementations of stress_test_batch_verification()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "stress_test_large_challenges",
+          "line": 69
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "stress_test_large_challenges",
+          "line": 69
+        }
+      ],
+      "message": "Found 2 duplicate implementations of stress_test_large_challenges()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "stress_test_provenance_history",
+          "line": 97
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "stress_test_provenance_history",
+          "line": 97
+        }
+      ],
+      "message": "Found 2 duplicate implementations of stress_test_provenance_history()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "__init__",
+          "line": 29
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "__init__",
+          "line": 29
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,seed)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "forward",
+          "line": 31
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "forward",
+          "line": 31
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "forward",
+          "line": 76
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/security/proof_of_training.py",
+          "name": "forward",
+          "line": 2125
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/verify_installation.py",
+          "name": "forward",
+          "line": 39
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "forward",
+          "line": 76
+        }
+      ],
+      "message": "Found 4 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_attacks/test_integration.py",
+          "name": "forward",
+          "line": 51
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_attacks/test_defenses.py",
+          "name": "forward",
+          "line": 44
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/examples/model_comparison.py",
+          "name": "forward",
+          "line": 68
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_vision_benchmark.py",
+          "name": "forward",
+          "line": 51
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/governance_demo.py",
+          "name": "forward",
+          "line": 50
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/complete_zk_training.py",
+          "name": "forward",
+          "line": 40
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/example_config_usage.py",
+          "name": "forward",
+          "line": 280
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_attack_defense_integration.py",
+          "name": "forward",
+          "line": 33
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_expected_ranges.py",
+          "name": "forward",
+          "line": 34
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_integrated_verification.py",
+          "name": "forward",
+          "line": 37
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "forward",
+          "line": 528
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "forward",
+          "line": 388
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "forward",
+          "line": 553
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "forward",
+          "line": 413
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "forward",
+          "line": 598
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "forward",
+          "line": 459
+        }
+      ],
+      "message": "Found 2 duplicate implementations of forward(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/stress_test.py",
+          "name": "state_dict",
+          "line": 34
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/stress_test.py",
+          "name": "state_dict",
+          "line": 34
+        }
+      ],
+      "message": "Found 2 duplicate implementations of state_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "state_dict",
+          "line": 78
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/verify_installation.py",
+          "name": "state_dict",
+          "line": 41
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "state_dict",
+          "line": 78
+        }
+      ],
+      "message": "Found 3 duplicate implementations of state_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_expected_ranges.py",
+          "name": "state_dict",
+          "line": 45
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_integrated_verification.py",
+          "name": "state_dict",
+          "line": 48
+        }
+      ],
+      "message": "Found 2 duplicate implementations of state_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "run_experiments",
+          "line": 29
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "run_experiments",
+          "line": 29
+        }
+      ],
+      "message": "Found 2 duplicate implementations of run_experiments()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "experiment_verification_types",
+          "line": 58
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "experiment_verification_types",
+          "line": 58
+        }
+      ],
+      "message": "Found 2 duplicate implementations of experiment_verification_types()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "experiment_security_levels",
+          "line": 107
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "experiment_security_levels",
+          "line": 107
+        }
+      ],
+      "message": "Found 2 duplicate implementations of experiment_security_levels()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "experiment_model_types",
+          "line": 144
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "experiment_model_types",
+          "line": 144
+        }
+      ],
+      "message": "Found 2 duplicate implementations of experiment_model_types()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "experiment_challenge_effectiveness",
+          "line": 178
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "experiment_challenge_effectiveness",
+          "line": 178
+        }
+      ],
+      "message": "Found 2 duplicate implementations of experiment_challenge_effectiveness()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "experiment_performance",
+          "line": 211
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "experiment_performance",
+          "line": 211
+        }
+      ],
+      "message": "Found 2 duplicate implementations of experiment_performance()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/experimental_results/validation_experiment.py",
+          "name": "convert_numpy_types",
+          "line": 270
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/test_results/experimental/experimental_results/validation_experiment.py",
+          "name": "convert_numpy_types",
+          "line": 270
+        }
+      ],
+      "message": "Found 2 duplicate implementations of convert_numpy_types(obj)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_semantic/test_integration.py",
+          "name": "__init__",
+          "line": 32
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/semantic_verification/integration_example.py",
+          "name": "__init__",
+          "line": 29
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/example_config_usage.py",
+          "name": "__init__",
+          "line": 277
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_attack_defense_integration.py",
+          "name": "__init__",
+          "line": 29
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "__init__",
+          "line": 520
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "__init__",
+          "line": 380
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "__init__",
+          "line": 577
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "__init__",
+          "line": 437
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_attacks/test_integration.py",
+          "name": "setUp",
+          "line": 259
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_attacks/test_attack_suite.py",
+          "name": "setUp",
+          "line": 559
+        }
+      ],
+      "message": "Found 2 duplicate implementations of setUp(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_enhanced_diff.py",
+          "name": "mock_prompt_gen",
+          "line": 587
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_enhanced_diff.py",
+          "name": "mock_prompt_gen",
+          "line": 628
+        }
+      ],
+      "message": "Found 2 duplicate implementations of mock_prompt_gen()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_verifier_integration.py",
+          "name": "encode",
+          "line": 92
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_lm_fingerprint_integration.py",
+          "name": "encode",
+          "line": 35
+        }
+      ],
+      "message": "Found 2 duplicate implementations of encode(self,text,add_special_tokens)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_attacks/test_attack_suite.py",
+          "name": "run_tests",
+          "line": 724
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/zk/test_poseidon.py",
+          "name": "run_tests",
+          "line": 365
+        }
+      ],
+      "message": "Found 2 duplicate implementations of run_tests()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/test_advanced_sequential.py",
+          "name": "test_stream",
+          "line": 93
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/test_advanced_sequential.py",
+          "name": "test_stream",
+          "line": 235
+        }
+      ],
+      "message": "Found 2 duplicate implementations of test_stream()"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/lm/lm_config.py",
+          "name": "to_dict",
+          "line": 67
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/vision_config.py",
+          "name": "to_dict",
+          "line": 159
+        }
+      ],
+      "message": "Found 2 duplicate implementations of to_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/reproducible_runner.py",
+          "name": "to_dict",
+          "line": 81
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/reproducible_runner.py",
+          "name": "to_dict",
+          "line": 101
+        }
+      ],
+      "message": "Found 2 duplicate implementations of to_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/nist_ai_rmf_compliance.py",
+          "name": "to_dict",
+          "line": 89
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/governance/nist_ai_rmf_compliance.py",
+          "name": "to_dict",
+          "line": 124
+        }
+      ],
+      "message": "Found 2 duplicate implementations of to_dict(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+          "name": "__init__",
+          "line": 205
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+          "name": "__init__",
+          "line": 284
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,config)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/scoring/teacher_forced.py",
+          "name": "__init__",
+          "line": 21
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/scoring/teacher_forced.py",
+          "name": "__init__",
+          "line": 122
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,config)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/zk/prover.py",
+          "name": "_statement_to_public_inputs",
+          "line": 120
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/zk/verifier.py",
+          "name": "_statement_to_public_inputs",
+          "line": 101
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _statement_to_public_inputs(self,stmt)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/testing/test_models.py",
+          "name": "__call__",
+          "line": 62
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/testing/test_models.py",
+          "name": "__call__",
+          "line": 135
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __call__(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/cost_tracker.py",
+          "name": "__enter__",
+          "line": 573
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py",
+          "name": "__enter__",
+          "line": 1439
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __enter__(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py",
+          "name": "__exit__",
+          "line": 1308
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py",
+          "name": "__exit__",
+          "line": 1443
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __exit__(self,exc_type,exc_val,exc_tb)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/fixed_sequential.py",
+          "name": "variance",
+          "line": 39
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/diff_decision.py",
+          "name": "variance",
+          "line": 163
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/diff_decision.py",
+          "name": "variance",
+          "line": 462
+        }
+      ],
+      "message": "Found 3 duplicate implementations of variance(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/fixed_sequential.py",
+          "name": "std_dev",
+          "line": 46
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/diff_decision.py",
+          "name": "std_dev",
+          "line": 170
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/diff_decision.py",
+          "name": "std_dev",
+          "line": 469
+        }
+      ],
+      "message": "Found 3 duplicate implementations of std_dev(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/diff_decision.py",
+          "name": "__init__",
+          "line": 1072
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_enhanced_diff_decision.py",
+          "name": "__init__",
+          "line": 208
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,name)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/challenge_generator.py",
+          "name": "_tokenize_text",
+          "line": 726
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/experiments/challenge_generator.py",
+          "name": "_tokenize_text",
+          "line": 1059
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _tokenize_text(self,text,parameters)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/challengers.py",
+          "name": "__init__",
+          "line": 24
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/challengers.py",
+          "name": "__init__",
+          "line": 254
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/challengers.py",
+          "name": "__init__",
+          "line": 625
+        }
+      ],
+      "message": "Found 3 duplicate implementations of __init__(self,device)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/probes.py",
+          "name": "hook",
+          "line": 382
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "hook",
+          "line": 1611
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "hook",
+          "line": 615
+        }
+      ],
+      "message": "Found 3 duplicate implementations of hook(module,input,output)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_generate_sine_grating",
+          "line": 292
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_generate_sine_grating",
+          "line": 1687
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _generate_sine_grating(self,size,frequency,orientation,phase,contrast)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_batch_verification",
+          "line": 1400
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_batch_verification",
+          "line": 1994
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _batch_verification(self,num_challenges,threshold,challenge_types)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_evaluate_challenge_response",
+          "line": 1467
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_evaluate_challenge_response",
+          "line": 2061
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _evaluate_challenge_response(self,output,challenge_type)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_load_model",
+          "line": 1385
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_load_model",
+          "line": 1979
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _load_model(self,model)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_get_reference_statistics",
+          "line": 1532
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "_get_reference_statistics",
+          "line": 2126
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _get_reference_statistics(self,challenge_type)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "fade",
+          "line": 328
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "fade",
+          "line": 1730
+        }
+      ],
+      "message": "Found 2 duplicate implementations of fade(t)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "hook_fn",
+          "line": 1610
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+          "name": "hook_fn",
+          "line": 614
+        }
+      ],
+      "message": "Found 2 duplicate implementations of hook_fn(name)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/examples/model_comparison.py",
+          "name": "__init__",
+          "line": 62
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_vision_benchmark.py",
+          "name": "__init__",
+          "line": 45
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,channels)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/testing/test_models.py",
+          "name": "predict",
+          "line": 50
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/testing/test_models.py",
+          "name": "predict",
+          "line": 121
+        }
+      ],
+      "message": "Found 2 duplicate implementations of predict(self,x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/train/attack_integration.py",
+          "name": "__init__",
+          "line": 289
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/pot/train/attack_integration.py",
+          "name": "__init__",
+          "line": 328
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,monitor)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/fingerprinting_demo.py",
+          "name": "create_wrapper",
+          "line": 269
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/fingerprinting_demo.py",
+          "name": "create_wrapper",
+          "line": 358
+        }
+      ],
+      "message": "Found 2 duplicate implementations of create_wrapper(model)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/fingerprinting_demo.py",
+          "name": "wrapper",
+          "line": 270
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/fingerprinting_demo.py",
+          "name": "wrapper",
+          "line": 359
+        }
+      ],
+      "message": "Found 2 duplicate implementations of wrapper(x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_expected_ranges.py",
+          "name": "__init__",
+          "line": 29
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/examples/test_integrated_verification.py",
+          "name": "__init__",
+          "line": 32
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,output_value,latency)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_enhanced_diff_decision.py",
+          "name": "print_header",
+          "line": 33
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_calibration_system.py",
+          "name": "print_header",
+          "line": 34
+        }
+      ],
+      "message": "Found 2 duplicate implementations of print_header(text)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_enhanced_diff_decision.py",
+          "name": "print_section",
+          "line": 39
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_calibration_system.py",
+          "name": "print_section",
+          "line": 40
+        }
+      ],
+      "message": "Found 2 duplicate implementations of print_section(text)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_enhanced_diff_decision.py",
+          "name": "print_result",
+          "line": 43
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/test_calibration_system.py",
+          "name": "print_result",
+          "line": 44
+        }
+      ],
+      "message": "Found 2 duplicate implementations of print_result(label,value,color)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "__init__",
+          "line": 115
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "__init__",
+          "line": 73
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,dimension)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "_create_simple_wrapper",
+          "line": 514
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "_create_simple_wrapper",
+          "line": 374
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _create_simple_wrapper(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "_create_adaptive_wrapper",
+          "line": 533
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "_create_adaptive_wrapper",
+          "line": 393
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _create_adaptive_wrapper(self,base_model)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "_create_sophisticated_wrapper",
+          "line": 571
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "_create_sophisticated_wrapper",
+          "line": 431
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _create_sophisticated_wrapper(self)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "_save_results",
+          "line": 834
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "_save_results",
+          "line": 733
+        }
+      ],
+      "message": "Found 2 duplicate implementations of _save_results(self,results)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "__init__",
+          "line": 539
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "__init__",
+          "line": 399
+        }
+      ],
+      "message": "Found 2 duplicate implementations of __init__(self,base)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator_fixed.py",
+          "name": "adapt",
+          "line": 560
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_attack_simulator.py",
+          "name": "adapt",
+          "line": 420
+        }
+      ],
+      "message": "Found 2 duplicate implementations of adapt(self,challenge,target_response)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_full_experimental_protocol.py",
+          "name": "run_command",
+          "line": 18
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/run_corrected_experimental_protocol.py",
+          "name": "run_command",
+          "line": 18
+        }
+      ],
+      "message": "Found 2 duplicate implementations of run_command(cmd,description,timeout)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/runtime_blackbox_validation.py",
+          "name": "merkle_hash",
+          "line": 25
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/runtime_blackbox_validation_adaptive.py",
+          "name": "merkle_hash",
+          "line": 39
+        }
+      ],
+      "message": "Found 2 duplicate implementations of merkle_hash(data_list)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/experimental_report_fixed.py",
+          "name": "print_section",
+          "line": 50
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/experimental_report_final.py",
+          "name": "print_section",
+          "line": 57
+        }
+      ],
+      "message": "Found 2 duplicate implementations of print_section(self,title,emoji)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/comprehensive_validation.py",
+          "name": "dummy_model",
+          "line": 446
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/experimental_report.py",
+          "name": "dummy_model",
+          "line": 533
+        }
+      ],
+      "message": "Found 2 duplicate implementations of dummy_model(x)"
+    },
+    {
+      "type": "duplicate_implementation",
+      "severity": "high",
+      "functions": [
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/archived_mistral_tests/test_mistral_vs_zephyr.py",
+          "name": "generate",
+          "line": 35
+        },
+        {
+          "file": "/Users/rohanvinaik/PoT_Experiments/archived_mistral_tests/run_mistral_zephyr.py",
+          "name": "generate",
+          "line": 24
+        }
+      ],
+      "message": "Found 2 duplicate implementations of generate(prompt,max_new_tokens)"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/zk/witness.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py"
+      ],
+      "message": "Circular dependency between witness.py and training_provenance_auditor.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/zk/builder.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py"
+      ],
+      "message": "Circular dependency between builder.py and training_provenance_auditor.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/zk/commitments.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py"
+      ],
+      "message": "Circular dependency between commitments.py and training_provenance_auditor.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/zk/prover.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/zk/auto_prover.py"
+      ],
+      "message": "Circular dependency between prover.py and auto_prover.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/lm/cli.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/vision/cli.py"
+      ],
+      "message": "Circular dependency between cli.py and cli.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/lm/cli.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py"
+      ],
+      "message": "Circular dependency between cli.py and cli.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/lm/attacks.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/vision/attacks.py"
+      ],
+      "message": "Circular dependency between attacks.py and attacks.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/vision/cli.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/governance/cli.py"
+      ],
+      "message": "Circular dependency between cli.py and cli.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/semantic/library.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py"
+      ],
+      "message": "Circular dependency between library.py and topography.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/pot/semantic/library.py",
+        "/Users/rohanvinaik/PoT_Experiments/pot/semantic/utils.py"
+      ],
+      "message": "Circular dependency between library.py and utils.py"
+    },
+    {
+      "type": "circular_dependency",
+      "severity": "high",
+      "files": [
+        "/Users/rohanvinaik/PoT_Experiments/scripts/calibrate_thresholds.py",
+        "/Users/rohanvinaik/PoT_Experiments/scripts/test_calibrated_thresholds.py"
+      ],
+      "message": "Circular dependency between calibrate_thresholds.py and test_calibrated_thresholds.py"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/attacks.py",
+      "lines": [
+        182,
+        710
+      ],
+      "message": "Function 'forward' reimplemented after 528 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/attack_suites.py",
+      "lines": [
+        969,
+        1486
+      ],
+      "message": "Function '__init__' reimplemented after 517 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_reproducibility.py",
+      "lines": [
+        122,
+        690
+      ],
+      "message": "Function 'setUp' reimplemented after 568 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/tests/test_reproducibility.py",
+      "lines": [
+        127,
+        694
+      ],
+      "message": "Function 'tearDown' reimplemented after 567 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/core/defenses.py",
+      "lines": [
+        819,
+        1437
+      ],
+      "message": "Function '__init__' reimplemented after 618 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py",
+      "lines": [
+        726,
+        1316
+      ],
+      "message": "Function '__init__' reimplemented after 590 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/security/token_space_normalizer.py",
+      "lines": [
+        316,
+        836
+      ],
+      "message": "Function 'normalize_semantic' reimplemented after 520 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        1370,
+        2244
+      ],
+      "message": "Function '_default_config' reimplemented after 874 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        615,
+        1611
+      ],
+      "message": "Function 'hook' reimplemented after 996 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        292,
+        1687
+      ],
+      "message": "Function '_generate_sine_grating' reimplemented after 1395 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        319,
+        1721
+      ],
+      "message": "Function '_generate_perlin_noise' reimplemented after 1402 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        1400,
+        1994
+      ],
+      "message": "Function '_batch_verification' reimplemented after 594 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        1467,
+        2061
+      ],
+      "message": "Function '_evaluate_challenge_response' reimplemented after 594 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        1385,
+        1979
+      ],
+      "message": "Function '_load_model' reimplemented after 594 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        1532,
+        2126
+      ],
+      "message": "Function '_get_reference_statistics' reimplemented after 594 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        328,
+        1730
+      ],
+      "message": "Function 'fade' reimplemented after 1402 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/vision/verifier.py",
+      "lines": [
+        614,
+        1610
+      ],
+      "message": "Function 'hook_fn' reimplemented after 996 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/prototypes/training_provenance_auditor.py",
+      "lines": [
+        790,
+        1327
+      ],
+      "message": "Function 'connect' reimplemented after 537 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "lines": [
+        678,
+        1599
+      ],
+      "message": "Function 'load' reimplemented after 921 lines"
+    },
+    {
+      "type": "context_window_thrashing",
+      "severity": "high",
+      "file": "/Users/rohanvinaik/PoT_Experiments/pot/semantic/topography.py",
+      "lines": [
+        664,
+        1574
+      ],
+      "message": "Function 'save' reimplemented after 910 lines"
+    }
+  ]
+}

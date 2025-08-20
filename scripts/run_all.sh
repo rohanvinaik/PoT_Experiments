@@ -22,6 +22,41 @@ RESULTS_DIR="experimental_results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${RESULTS_DIR}/run_all_${TIMESTAMP}.log"
 
+# Parse command line arguments
+REBUILD_ZK=false
+SKIP_ZK=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --rebuild-zk)
+            REBUILD_ZK=true
+            shift
+            ;;
+        --skip-zk)
+            SKIP_ZK=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  --rebuild-zk    Force rebuild of ZK prover binaries"
+            echo "  --skip-zk       Skip ZK system checks and tests"
+            echo "  --help, -h      Show this help message"
+            echo ""
+            echo "Environment Variables:"
+            echo "  PYTHON          Python executable (default: python3)"
+            echo ""
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Ensure repository root on PYTHONPATH for direct script execution
 export PYTHONPATH="${PYTHONPATH:-$(pwd)}"
 
@@ -46,6 +81,279 @@ print_info() {
 
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
+
+# ZK Binary Build Management
+#==============================================================================
+
+# Function to check if Rust toolchain is available
+check_rust_toolchain() {
+    print_info "Checking Rust toolchain..."
+    
+    if ! command -v cargo &> /dev/null; then
+        print_error "Cargo not found. Please install Rust toolchain from https://rustup.rs/"
+        return 1
+    fi
+    
+    # Check minimum Rust version (1.70.0 for Halo2)
+    local rust_version=$(rustc --version | cut -d' ' -f2)
+    local min_version="1.70.0"
+    
+    if ! python3 -c "
+import sys
+from packaging import version
+if version.parse('$rust_version') < version.parse('$min_version'):
+    sys.exit(1)
+" 2>/dev/null; then
+        print_error "Rust version $rust_version is too old. Need at least $min_version"
+        print_info "Run: rustup update"
+        return 1
+    fi
+    
+    print_success "Rust toolchain OK (version $rust_version)"
+    return 0
+}
+
+# Function to get file modification time
+get_file_mtime() {
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        stat -f "%m" "$1" 2>/dev/null || echo "0"
+    else
+        stat -c "%Y" "$1" 2>/dev/null || echo "0"
+    fi
+}
+
+# Function to check if binary needs rebuilding
+needs_rebuild() {
+    local binary_path="$1"
+    local source_dir="$2"
+    
+    # If binary doesn't exist, needs rebuild
+    if [ ! -f "$binary_path" ]; then
+        return 0
+    fi
+    
+    # Get binary modification time
+    local binary_mtime=$(get_file_mtime "$binary_path")
+    
+    # Check if any source files are newer than binary
+    local newest_source_mtime=0
+    while IFS= read -r -d '' file; do
+        local file_mtime=$(get_file_mtime "$file")
+        if [ "$file_mtime" -gt "$newest_source_mtime" ]; then
+            newest_source_mtime="$file_mtime"
+        fi
+    done < <(find "$source_dir" -type f \( -name "*.rs" -o -name "*.toml" \) -print0 2>/dev/null)
+    
+    # If source is newer, needs rebuild
+    [ "$newest_source_mtime" -gt "$binary_mtime" ]
+}
+
+# Function to clean build artifacts
+clean_zk_build() {
+    local prover_dir="$1"
+    print_info "Cleaning ZK build artifacts..."
+    
+    if [ -d "$prover_dir/target" ]; then
+        # Archive old binaries if they exist
+        if ls "$prover_dir/target/release/"*stdin 2>/dev/null; then
+            local archive_dir="$prover_dir/target/archive_$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$archive_dir"
+            mv "$prover_dir/target/release/"*stdin "$archive_dir/" 2>/dev/null || true
+            print_info "Archived old binaries to $archive_dir"
+        fi
+        
+        # Clean build directory
+        (cd "$prover_dir" && cargo clean) || true
+    fi
+    
+    print_success "Build artifacts cleaned"
+}
+
+# Function to verify binary functionality
+verify_binary() {
+    local binary_path="$1"
+    local binary_name="$2"
+    
+    # Basic execution test
+    if ! "$binary_path" --help &>/dev/null; then
+        # Try without --help for binaries that don't support it
+        if ! timeout 5 "$binary_path" < /dev/null &>/dev/null; then
+            print_error "$binary_name failed basic execution test"
+            return 1
+        fi
+    fi
+    
+    return 0
+}
+
+# Main function to check and build ZK binaries
+check_and_build_zk_binaries() {
+    print_header "ZK PROVER BINARY CHECKS"
+    
+    local prover_dir="pot/zk/prover_halo2"
+    local required_binaries=("prove_sgd_stdin" "prove_lora_stdin" "verify_sgd_stdin" "verify_lora_stdin")
+    local force_rebuild="${1:-false}"
+    
+    # Check if prover directory exists
+    if [ ! -d "$prover_dir" ]; then
+        print_error "ZK prover directory not found: $prover_dir"
+        return 1
+    fi
+    
+    # Check Rust toolchain
+    if ! check_rust_toolchain; then
+        return 1
+    fi
+    
+    # Handle force rebuild
+    if [ "$force_rebuild" = "true" ]; then
+        print_info "Force rebuild requested"
+        clean_zk_build "$prover_dir"
+    fi
+    
+    # Check and build each binary
+    local build_needed=false
+    local build_profile="release"
+    
+    for binary in "${required_binaries[@]}"; do
+        local binary_path="$prover_dir/target/$build_profile/$binary"
+        
+        print_info "Checking binary: $binary"
+        
+        if needs_rebuild "$binary_path" "$prover_dir/src"; then
+            print_info "Binary $binary needs rebuilding"
+            build_needed=true
+        elif [ ! -x "$binary_path" ]; then
+            print_info "Binary $binary not executable, rebuilding"
+            build_needed=true
+        else
+            print_success "Binary $binary is up to date"
+        fi
+    done
+    
+    # Build all binaries if any need rebuilding
+    if [ "$build_needed" = "true" ]; then
+        print_info "Building ZK prover binaries..."
+        
+        # Set build environment
+        export RUSTFLAGS="-C target-cpu=native"
+        
+        # Build all binaries in parallel
+        local build_start=$(date +%s)
+        
+        if (cd "$prover_dir" && cargo build --$build_profile --bins); then
+            local build_time=$(($(date +%s) - build_start))
+            print_success "All binaries built successfully in ${build_time}s"
+        else
+            print_error "Failed to build ZK binaries"
+            print_info "Try: scripts/run_all.sh --rebuild-zk"
+            return 1
+        fi
+    fi
+    
+    # Verify all binaries are present and functional
+    print_info "Verifying binary functionality..."
+    local verification_failed=false
+    
+    for binary in "${required_binaries[@]}"; do
+        local binary_path="$prover_dir/target/$build_profile/$binary"
+        
+        if [ ! -f "$binary_path" ]; then
+            print_error "Binary $binary not found after build"
+            verification_failed=true
+            continue
+        fi
+        
+        if [ ! -x "$binary_path" ]; then
+            print_error "Binary $binary is not executable"
+            chmod +x "$binary_path" 2>/dev/null || true
+            verification_failed=true
+            continue
+        fi
+        
+        # Test binary functionality
+        if verify_binary "$binary_path" "$binary"; then
+            print_success "Binary $binary verified"
+        else
+            print_error "Binary $binary failed verification"
+            verification_failed=true
+        fi
+    done
+    
+    if [ "$verification_failed" = "true" ]; then
+        print_error "Some binaries failed verification"
+        return 1
+    fi
+    
+    # Store build metadata
+    local metadata_file="$prover_dir/target/.build_metadata"
+    cat > "$metadata_file" << EOF
+BUILD_TIME=$(date -Iseconds)
+RUST_VERSION=$(rustc --version)
+CARGO_VERSION=$(cargo --version)
+BUILD_PROFILE=$build_profile
+COMMIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+EOF
+    
+    print_success "All ZK prover binaries ready"
+    return 0
+}
+
+# Function to run ZK-specific pre-flight checks
+run_zk_preflight_checks() {
+    print_header "ZK SYSTEM PRE-FLIGHT CHECKS"
+    
+    # Check Python ZK modules can be imported
+    print_info "Checking ZK Python modules..."
+    
+    local zk_modules=(
+        "pot.zk.exceptions"
+        "pot.zk.auto_prover" 
+        "pot.zk.prover"
+        "pot.zk.lora_builder"
+        "pot.zk.auditor_integration"
+    )
+    
+    for module in "${zk_modules[@]}"; do
+        if python3 -c "import $module" 2>/dev/null; then
+            print_success "Module $module OK"
+        else
+            print_error "Failed to import $module"
+            return 1
+        fi
+    done
+    
+    # Check ZK configuration
+    if [ -f "configs/zk_config.yaml" ]; then
+        print_success "ZK configuration found"
+    else
+        print_info "ZK configuration not found (optional)"
+    fi
+    
+    # Test basic ZK functionality
+    print_info "Testing basic ZK functionality..."
+    if python3 -c "
+from pot.zk.auto_prover import AutoProver
+from pot.zk.exceptions import ProverNotFoundError
+import numpy as np
+
+try:
+    prover = AutoProver()
+    model = {'weights': np.random.randn(8, 8)}
+    model_type = prover.detect_model_type(model, model)
+    print(f'Model type detection: {model_type}')
+except Exception as e:
+    print(f'ZK test failed: {e}')
+    exit(1)
+"; then
+        print_success "Basic ZK functionality OK"
+    else
+        print_error "Basic ZK functionality failed"
+        return 1
+    fi
+    
+    return 0
+}
 
 # Start logging (commented out - was causing issues)
 # exec 2>&1 | tee -a "${LOG_FILE}"
@@ -83,6 +391,32 @@ check_dependencies() {
 
 check_python
 check_dependencies
+
+# Run ZK system checks if not skipped
+if [ "$SKIP_ZK" = false ]; then
+    print_info "Running ZK system checks..."
+    
+    # Check and build ZK binaries
+    if check_and_build_zk_binaries "$REBUILD_ZK"; then
+        print_success "ZK prover binaries ready"
+    else
+        print_error "ZK binary checks failed"
+        print_info "You can skip ZK tests with: $0 --skip-zk"
+        print_info "Or force rebuild with: $0 --rebuild-zk"
+        exit 1
+    fi
+    
+    # Run ZK pre-flight checks
+    if run_zk_preflight_checks; then
+        print_success "ZK system pre-flight checks passed"
+    else
+        print_error "ZK pre-flight checks failed"
+        print_info "You can skip ZK tests with: $0 --skip-zk"
+        exit 1
+    fi
+else
+    print_info "Skipping ZK system checks (--skip-zk specified)"
+fi
 
 # Run deterministic validation first as the standard method
 print_header "RUNNING STANDARD DETERMINISTIC VALIDATION"
@@ -244,7 +578,7 @@ if ${PYTHON} scripts/calibrate_thresholds.py > "${RESULTS_DIR}/threshold_calibra
         print_info "Calibrated thresholds saved to experimental_results/calibration/"
     fi
 else
-    print_warning "Threshold calibration had issues but continuing"
+    print_info "Threshold calibration had issues but continuing"
     print_info "Check ${RESULTS_DIR}/threshold_calibration_${TIMESTAMP}.log for details"
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
@@ -380,7 +714,7 @@ if ${PYTHON} scripts/apply_validation_fixes.py > "${RESULTS_DIR}/validation_fixe
         print_info "Fix configuration saved to experimental_results/fixes/"
     fi
 else
-    print_warning "Validation fixes had issues but continuing"
+    print_info "Validation fixes had issues but continuing"
     print_info "Check ${RESULTS_DIR}/validation_fixes_${TIMESTAMP}.log for details"
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
@@ -677,6 +1011,7 @@ Full Re-validation with Tuned Parameters:
 ${REVAL_SUMMARY}
 
 Statistical Framework Components:
+$([ "$SKIP_ZK" = false ] && echo "✅ Zero-Knowledge Proofs: Halo2 circuits with SGD and LoRA support" || echo "⚪ Zero-Knowledge Proofs: Skipped")
 ✅ Decision Thresholds: Audit grade (99% CI) and Quick gate (97.5% CI) implemented
 ✅ Required Fields: α, β, n_used/n_max, mean, ci_99, half_width, rule_fired
 ✅ Challenge Families: completion, reasoning, knowledge, style (K=32 positions)
@@ -706,6 +1041,9 @@ Statistical Framework Components:
 
 📁 GENERATED EVIDENCE PACKAGE
 =============================
+$([ "$SKIP_ZK" = false ] && echo "• ZK Test Results: ${RESULTS_DIR}/zk_system_tests_${TIMESTAMP}.log")
+$([ "$SKIP_ZK" = false ] && [ -f "${RESULTS_DIR}/zk_metrics_${TIMESTAMP}.json" ] && echo "• ZK Performance Metrics: ${RESULTS_DIR}/zk_metrics_${TIMESTAMP}.json")
+$([ "$SKIP_ZK" = false ] && [ -f "${RESULTS_DIR}/zk_metrics_summary_${TIMESTAMP}.txt" ] && echo "• ZK Metrics Summary: ${RESULTS_DIR}/zk_metrics_summary_${TIMESTAMP}.txt")
 • Deterministic Results: $LATEST_RESULTS
 • Runtime Statistical Identity: $LATEST_RUNTIME_RESULTS
 • Adaptive Sampling Results: $LATEST_ADAPTIVE_RESULTS
@@ -923,6 +1261,68 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run ZK system tests if enabled
+if [ "$SKIP_ZK" = false ]; then
+    print_header "RUNNING ZK PROOF SYSTEM VALIDATION"
+    print_info "Testing Zero-Knowledge proof generation and verification"
+    
+    # Define output file for ZK validation
+    ZK_VALIDATION_FILE="${RESULTS_DIR}/zk_validation_${TIMESTAMP}.json"
+    
+    # Run comprehensive ZK validation
+    if ZK_VALIDATION_OUTPUT="${ZK_VALIDATION_FILE}" PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} scripts/run_zk_validation.py > "${RESULTS_DIR}/zk_validation_${TIMESTAMP}.log" 2>&1; then
+        print_success "ZK validation completed"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+        
+        # Extract and display results
+        if [ -f "${ZK_VALIDATION_FILE}" ]; then
+            ZK_SUMMARY=$(python3 -c "
+import json
+try:
+    with open('${ZK_VALIDATION_FILE}') as f:
+        data = json.load(f)
+    summary = data.get('summary', {})
+    metrics = data.get('metrics', {})
+    
+    tests_passed = summary.get('tests_passed', 0)
+    tests_total = summary.get('tests_total', 0)
+    success_rate = summary.get('success_rate', 0)
+    
+    perf = metrics.get('performance', {})
+    health = metrics.get('health', {})
+    
+    print(f'Tests: {tests_passed}/{tests_total} ({success_rate:.1f}%)')
+    
+    if perf:
+        speedup = perf.get('speedup', 0)
+        if speedup > 0:
+            print(f'LoRA Speedup: {speedup:.2f}x')
+    
+    if health:
+        score = health.get('score', 0)
+        print(f'Health: {score}/100')
+        
+except Exception as e:
+    print(f'Results parsing failed: {e}')
+" 2>/dev/null)
+            
+            if [ -n "$ZK_SUMMARY" ]; then
+                print_info "ZK Results: $ZK_SUMMARY"
+            fi
+        else
+            print_info "No ZK validation file generated"
+        fi
+        
+    else
+        print_error "ZK validation failed"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+        print_info "Check ${RESULTS_DIR}/zk_validation_${TIMESTAMP}.log for details"
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+else
+    print_info "Skipping ZK system tests (--skip-zk specified)"
+fi
+
 # Run runtime PoI verification
 print_header "RUNNING RUNTIME POI VERIFICATION"
 print_info "Testing runtime verification with fallback and timing"
@@ -1003,6 +1403,71 @@ else
     print_error "Some runtime verification modes failed"
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+# Run ZK system health check and monitoring validation
+if [ "$SKIP_ZK" != true ]; then
+    print_header "RUNNING ZK SYSTEM HEALTH VALIDATION"
+    
+    # Test ZK binary verification
+    if bash scripts/verify_zk_binaries.sh > "${RESULTS_DIR}/zk_binary_verification_${TIMESTAMP}.log" 2>&1; then
+        print_success "ZK binary verification completed"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    else
+        print_error "ZK binary verification failed"
+        print_info "Check ${RESULTS_DIR}/zk_binary_verification_${TIMESTAMP}.log for details"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    # Test ZK system diagnostics
+    if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} -m pot.zk.diagnostic --format json --output "${RESULTS_DIR}/zk_diagnostics_${TIMESTAMP}.json" > "${RESULTS_DIR}/zk_diagnostics_${TIMESTAMP}.log" 2>&1; then
+        print_success "ZK system diagnostics completed"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+        
+        # Extract health score from diagnostic results
+        HEALTH_SCORE=$(python3 -c "
+import json
+try:
+    with open('${RESULTS_DIR}/zk_diagnostics_${TIMESTAMP}.json', 'r') as f:
+        data = json.load(f)
+        print(f\"Health Score: {data.get('health_score', 0):.1f}/100\")
+except:
+    print('Health Score: Unknown')
+" 2>/dev/null)
+        if [ -n "$HEALTH_SCORE" ]; then
+            print_info "$HEALTH_SCORE"
+        fi
+    else
+        print_error "ZK system diagnostics failed"
+        print_info "Check ${RESULTS_DIR}/zk_diagnostics_${TIMESTAMP}.log for details"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    # Generate and save version information
+    if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} -m pot.zk.version_info info --format json --output "${RESULTS_DIR}/zk_version_info_${TIMESTAMP}.json" > "${RESULTS_DIR}/zk_version_${TIMESTAMP}.log" 2>&1; then
+        print_success "ZK version information generated"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    else
+        print_error "ZK version information generation failed"
+        print_info "Check ${RESULTS_DIR}/zk_version_${TIMESTAMP}.log for details"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    
+    # Test monitoring system (quick validation)
+    if PYTHONPATH="${PWD}:${PYTHONPATH:-}" ${PYTHON} -m pot.zk.monitoring status > "${RESULTS_DIR}/zk_monitoring_status_${TIMESTAMP}.json" 2>&1; then
+        print_success "ZK monitoring system validated"
+        PASSED_TESTS=$((PASSED_TESTS + 1))
+    else
+        print_error "ZK monitoring system validation failed"
+        print_info "Check ${RESULTS_DIR}/zk_monitoring_status_${TIMESTAMP}.json for details"
+        FAILED_TESTS=$((FAILED_TESTS + 1))
+    fi
+    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+else
+    print_info "Skipping ZK health validation (--skip-zk specified)"
+fi
 
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then

@@ -14,6 +14,7 @@ from .exceptions import (
 )
 from .prover import SGDZKProver, LoRAZKProver, LoRAConfig
 from .lora_builder import LoRAWitnessBuilder
+from .metrics import get_zk_metrics_collector, track_proof_generation
 
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,7 @@ class AutoProver:
             last_error=last_error
         )
     
+    @track_proof_generation("sgd")
     def prove_sgd_step(self, 
                       model_before: Dict[str, Any],
                       model_after: Dict[str, Any], 
@@ -148,7 +150,7 @@ class AutoProver:
                       step_number: int = 0,
                       epoch: int = 0) -> Dict[str, Any]:
         """
-        Generate SGD proof with error handling.
+        Generate SGD proof with error handling and metrics collection.
         
         Returns:
             Dictionary with proof results
@@ -158,6 +160,9 @@ class AutoProver:
             ProofGenerationError: If proof generation fails
             WitnessBuilderError: If witness construction fails
         """
+        collector = get_zk_metrics_collector()
+        start_time = time.time()
+        
         try:
             # This would call the actual SGD prover
             # For now, we'll create a more realistic mock that can fail
@@ -176,6 +181,18 @@ class AutoProver:
             
             # Create mock proof with validation
             proof_data = f"sgd_proof_step_{step_number}_epoch_{epoch}".encode()
+            generation_time_ms = (time.time() - start_time) * 1000
+            
+            # Record detailed metrics
+            collector.record_proof_generation(
+                proof_type='sgd',
+                duration=generation_time_ms,
+                proof_size=len(proof_data),
+                success=True,
+                step_number=step_number,
+                epoch=epoch,
+                learning_rate=learning_rate
+            )
             
             return {
                 'success': True,
@@ -186,16 +203,30 @@ class AutoProver:
                     'epoch': epoch,
                     'learning_rate': learning_rate,
                     'proof_size_bytes': len(proof_data),
-                    'generation_time_ms': 100  # Mock timing
+                    'generation_time_ms': generation_time_ms
                 }
             }
             
         except Exception as e:
+            # Record failed proof generation
+            generation_time_ms = (time.time() - start_time) * 1000
+            collector.record_proof_generation(
+                proof_type='sgd',
+                duration=generation_time_ms,
+                proof_size=0,
+                success=False,
+                error_type=type(e).__name__,
+                step_number=step_number,
+                epoch=epoch,
+                learning_rate=learning_rate
+            )
+            
             if isinstance(e, (ProverNotFoundError, ProofGenerationError, WitnessBuilderError)):
                 raise
             else:
                 raise ProofGenerationError(f"SGD proof generation failed: {e}", binary_name="prove_sgd_stdin")
     
+    @track_proof_generation("lora")
     def prove_lora_step(self,
                        model_before: Dict[str, Any],
                        model_after: Dict[str, Any],
@@ -204,7 +235,7 @@ class AutoProver:
                        step_number: int = 0,
                        epoch: int = 0) -> Dict[str, Any]:
         """
-        Generate LoRA proof with error handling.
+        Generate LoRA proof with error handling and metrics collection.
         
         Returns:
             Dictionary with proof results
@@ -214,6 +245,9 @@ class AutoProver:
             ProofGenerationError: If proof generation fails
             WitnessBuilderError: If witness construction fails
         """
+        collector = get_zk_metrics_collector()
+        start_time = time.time()
+        
         try:
             # Extract LoRA adapters
             adapters_before = self.witness_builder.extract_lora_adapters(model_before)
@@ -236,6 +270,20 @@ class AutoProver:
             
             # Create mock proof
             proof_data = f"lora_proof_step_{step_number}_epoch_{epoch}_r{self.lora_config.rank if self.lora_config else 16}".encode()
+            generation_time_ms = (time.time() - start_time) * 1000
+            
+            # Record detailed metrics
+            collector.record_proof_generation(
+                proof_type='lora',
+                duration=generation_time_ms,
+                proof_size=len(proof_data),
+                success=True,
+                step_number=step_number,
+                epoch=epoch,
+                learning_rate=learning_rate,
+                compression_ratio=compression_ratio,
+                rank=self.lora_config.rank if self.lora_config else 16
+            )
             
             return {
                 'success': True,
@@ -248,11 +296,24 @@ class AutoProver:
                     'compression_ratio': compression_ratio,
                     'rank': self.lora_config.rank if self.lora_config else 16,
                     'proof_size_bytes': len(proof_data),
-                    'generation_time_ms': 50  # LoRA should be faster
+                    'generation_time_ms': generation_time_ms
                 }
             }
             
         except Exception as e:
+            # Record failed proof generation
+            generation_time_ms = (time.time() - start_time) * 1000
+            collector.record_proof_generation(
+                proof_type='lora',
+                duration=generation_time_ms,
+                proof_size=0,
+                success=False,
+                error_type=type(e).__name__,
+                step_number=step_number,
+                epoch=epoch,
+                learning_rate=learning_rate
+            )
+            
             if isinstance(e, (ProverNotFoundError, ProofGenerationError, WitnessBuilderError)):
                 raise
             else:

@@ -20,6 +20,7 @@ hex = "0.4"
 thiserror = "1.0"
 clap = "4.0"
 base64 = "0.22"
+flate2 = "1.0"
 
 [lib]
 name = "prover_halo2"

@@ -1,0 +1,7 @@
+{
+  "witness_id": "blockchain_test_sgd_step_1",
+  "sha256_root": "11e152efbb95e99312fd549a383a1db17cd1b08aeaba574a036405c343ce21d2",
+  "poseidon_root": null,
+  "timestamp": "2025-08-20T15:47:07.120337+00:00",
+  "model_id": "blockchain_test"
+}

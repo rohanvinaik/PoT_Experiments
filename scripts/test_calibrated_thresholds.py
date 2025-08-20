@@ -269,10 +269,11 @@ if __name__ == "__main__":
     # Run calibration first if needed
     calib_dir = Path("experimental_results/calibration")
     if not calib_dir.exists() or not list(calib_dir.glob("recommended_config_*.json")):
-        print("No calibration found. Running calibration first...")
-        from calibrate_thresholds import main as calibrate_main
-        config = calibrate_main()
-        print("\n" + "=" * 60)
+        print("No calibration found. Please run calibration first:")
+        print("  python scripts/calibrate_thresholds.py")
+        print("\nExiting...")
+        import sys
+        sys.exit(1)
     else:
         config = None
     
