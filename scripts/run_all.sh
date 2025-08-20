@@ -851,6 +851,21 @@ else
     FAILED_TESTS=$((FAILED_TESTS + 1))
 fi
 
+# Test challenge generator
+print_header "RUNNING CHALLENGE GENERATOR TESTS"
+print_info "Testing unified API signature and deterministic generation"
+
+if ${PYTHON} scripts/test_challenge_generator_fixed.py > "${RESULTS_DIR}/challenge_generator_${TIMESTAMP}.log" 2>&1; then
+    print_success "Challenge generator tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    print_info "✅ Unified API signature implemented"
+    print_info "✅ Deterministic generation working"
+else
+    print_error "Challenge generator tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
 # Extract available algorithms
 FUZZY_ALGO_SUMMARY=$(python3 -c "
 import sys, os
