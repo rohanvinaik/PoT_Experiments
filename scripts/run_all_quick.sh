@@ -27,7 +27,38 @@ else
     DETERMINISTIC_SUCCESS=false
 fi
 
-echo -e "${YELLOW}=== RUNNING LEGACY VALIDATION TESTS ===${NC}"
+echo -e "${GREEN}=== TESTING ENHANCED DIFF DECISION FRAMEWORK ===${NC}"
+echo -e "${YELLOW}Quick test of enhanced statistical difference testing...${NC}\n"
+
+# Quick test of enhanced diff decision framework
+python3 -c "
+import sys
+sys.path.insert(0, '.')
+try:
+    from pot.core.diff_decision import TestingMode, DiffDecisionConfig, EnhancedSequentialTester
+    import numpy as np
+    
+    # Quick test
+    config = DiffDecisionConfig(mode=TestingMode.QUICK_GATE)
+    tester = EnhancedSequentialTester(config)
+    
+    # Add some test data
+    np.random.seed(42)
+    for _ in range(20):
+        tester.update(np.random.normal(0.05, 0.01))
+    
+    # Check it works
+    should_stop, info = tester.should_stop()
+    if info:
+        print(f'✅ Enhanced diff decision working - Mode: {config.mode.value}, Decision: {info.get(\"decision\", \"pending\")}')
+    else:
+        print('✅ Enhanced diff decision framework operational')
+except Exception as e:
+    print(f'❌ Enhanced diff decision error: {e}')
+    sys.exit(1)
+" || true
+
+echo -e "\n${YELLOW}=== RUNNING LEGACY VALIDATION TESTS ===${NC}"
 echo -e "${YELLOW}Note: These may show inconsistent results due to random models${NC}\n"
 
 # Detect optional dependencies

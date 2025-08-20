@@ -518,6 +518,25 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run enhanced diff decision tests
+print_header "RUNNING ENHANCED DIFF DECISION TESTS"
+print_info "Testing enhanced statistical difference framework with SAME/DIFFERENT rules"
+
+if ${PYTHON} scripts/test_enhanced_diff_decision.py > "${RESULTS_DIR}/enhanced_diff_decision_${TIMESTAMP}.log" 2>&1; then
+    print_success "Enhanced diff decision tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check if results file exists and display summary
+    if [ -f "experimental_results/enhanced_diff_decision_test_"*.json ]; then
+        print_info "Test results saved to experimental_results/"
+    fi
+else
+    print_error "Enhanced diff decision tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/enhanced_diff_decision_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Run stress tests
 print_header "RUNNING STRESS TESTS"
 

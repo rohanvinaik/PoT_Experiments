@@ -90,6 +90,79 @@ class CleanExperimentRunner:
         
         return formatted
     
+    def run_enhanced_diff_decision(self) -> Dict[str, Any]:
+        """Run enhanced diff decision verification test."""
+        from pot.core.diff_decision import (
+            TestingMode, 
+            DiffDecisionConfig, 
+            EnhancedSequentialTester
+        )
+        
+        print("\n📈 Enhanced Diff Decision Verification")
+        print("-" * 40)
+        
+        # Test both modes
+        modes_results = {}
+        
+        for mode in [TestingMode.QUICK_GATE, TestingMode.AUDIT_GRADE]:
+            print(f"\nTesting {mode.value} mode:")
+            
+            config = DiffDecisionConfig(mode=mode)
+            tester = EnhancedSequentialTester(config)
+            
+            # Simulate scoring data
+            np.random.seed(42)
+            n_samples = config.n_min + 10
+            
+            start_time = time.time()
+            for _ in range(n_samples):
+                score = np.random.normal(0.005, 0.002)  # Small differences
+                tester.update(score)
+            
+            # Check decision
+            should_stop, info = tester.should_stop()
+            elapsed = time.time() - start_time
+            
+            result = {
+                'mode': mode.value,
+                'config': {
+                    'confidence': config.confidence,
+                    'gamma': config.gamma,
+                    'delta_star': config.delta_star,
+                    'epsilon_diff': config.epsilon_diff,
+                    'n_min': config.n_min,
+                    'n_max': config.n_max,
+                    'K': config.positions_per_prompt
+                },
+                'n_used': tester.n,
+                'mean': tester.mean,
+                'decision': info['decision'] if info else 'PENDING',
+                'ci': tester.compute_ci()[0] if tester.n > 1 else (0, 0),
+                'time': elapsed,
+                'diagnostics': info.get('diagnostics', {}) if info else {}
+            }
+            
+            modes_results[mode.value] = result
+            
+            # Print results
+            print(f"  Decision: {result['decision']}")
+            print(f"  Confidence: {result['config']['confidence']}")
+            print(f"  Samples used: {result['n_used']}")
+            print(f"  Mean difference: {result['mean']:.6f}")
+            if result['ci'] != (0, 0):
+                print(f"  CI: [{result['ci'][0]:.6f}, {result['ci'][1]:.6f}]")
+        
+        return {
+            'enhanced_diff_decision': modes_results,
+            'framework': 'EnhancedSequentialTester',
+            'features': [
+                'Separate SAME/DIFFERENT rules',
+                'Quick Gate and Audit Grade modes',
+                'Enhanced diagnostics',
+                'Auto-calibration support'
+            ]
+        }
+    
     def run_fuzzy_verification(self) -> Dict[str, Any]:
         """Run fuzzy hash verification test."""
         print("\n🔐 Fuzzy Hash Verification")
@@ -236,6 +309,7 @@ class CleanExperimentRunner:
         
         # Run core experiments
         stat_result = self.run_statistical_verification()
+        enhanced_result = self.run_enhanced_diff_decision()
         fuzzy_result = self.run_fuzzy_verification()
         prov_result = self.run_provenance_audit()
         
