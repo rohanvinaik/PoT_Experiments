@@ -303,67 +303,147 @@ print(f"Calibrated δ*: {thresholds['delta_star']:.4f}")
 12. **Integration Tests** - End-to-end functionality
 13. **Comprehensive Test Suite** - 28/28 interface tests passed
 
-### Performance Metrics (Live Data)
+## 📊 Live Performance Dashboard
 
-**Latest Validation Run Results:**
-```json
-{
-  "statistical_results": {
-    "confidence": 0.99,
-    "n_used": 32,
-    "mean_diff": -11.247371,
-    "effect_size": 11.247371,
-    "decision": "UNDECIDED"
-  },
-  "timing": {
-    "t_load_a": 0.284,
-    "t_load_b": 0.437, 
-    "t_per_query": 0.799,
-    "hardware": "mps"
-  },
-  "audit": {
-    "merkle_root": "c9b42b345c2cf4168d8e0978bd9080987ff078a6...",
-    "provenance_verified": true
-  }
-}
-```
+*Auto-updated from validation runs - Last Updated: 2025-08-20*
 
-### ZK System Evidence
+# 📊 ZK-PoT Comprehensive Performance Dashboard
 
-**Operational ZK Infrastructure:**
-- ✅ **4 ZK Binaries Compiled** - prove/verify for SGD and LoRA
-- ✅ **Automatic Training Detection** - SGD vs LoRA classification  
-- ✅ **Halo2 Integration** - Production-ready ZK framework
-- ✅ **924-byte Proof Sizes** - Practical for deployment
-- ✅ **CLI Interface** - Full Clap integration with help system
+**Live Performance Metrics & Validation Evidence**
 
-## 📈 Live Performance Metrics
+*Last Updated: 2025-08-20 16:30:29 UTC*
+*Auto-generated from 21 validation runs*
 
-*Auto-updated from latest validation runs:*
+---
 
-- **Total Validation Runs**: 14
-- **Overall Success Rate**: 100.0% (14/14)
-- **ZK Pipeline Success Rate**: 14.3% (2 runs with ZK)
-- **Interface Compliance Runs**: 2 tests
-- **Average Query Time**: 0.866s
-- **Performance Range**: 0.734s - 1.094s
-- **Performance Stability**: 12.1% coefficient of variation
-- **Statistical Tests Completed**: 8
-- **Decisive Outcome Rate**: 37.5% (3/8)
-- **Average Confidence Level**: 96.5%
-- **Average Samples per Test**: 19.6
+## 📈 Summary "At a Glance" Dashboard
 
-*Last Updated: 2025-08-20*
+| Metric | Result |
+|--------|--------|
+| **Decisive Outcome Rate** | 38.5% |
+| **Per-Query Time** | 0.849s |
+| **Query Time Range** | 0.734s - 1.094s |
+| **Overall Success Rate** | 100.0% |
+| **Avg Proof Size** | 807 bytes |
+| **Proof Gen Time** | 0.387s |
+| **Proof Verify Rate** | 100.0% |
+| **Avg Confidence** | 96.4% |
+| **Total Validation Runs** | 21 |
 
-### 📊 Recent Performance Trends
+---
 
-- **Performance Trend**: ⬆️ Slight increase (8.1% slower) (last 8 runs)
+## 🔬 Statistical / Experimental Metrics
 
-### 🎯 Quality Metrics
+### **Sample Size & Queries**
+- **Total Tests Completed**: 13
+- **Average Samples per Test**: 20.4
+- **Median Samples per Test**: 19.0
 
-- **System Reliability**: 🟢 Excellent (100.0% success rate)
+### **Error Rates & Detection**
+- **SAME Detection Rate**: 23.1% (3 tests)
+- **DIFFERENT Detection Rate**: 15.4% (2 tests)
+- **Undecided Rate**: 61.5% (8 tests)
+
+### **Decision Thresholds & Effect Size**
+- **Average Confidence Level**: 96.4%
+- **Confidence Range**: 95.0% - 99.0%
+- **Average Effect Size**: 2.274
+- **Median Effect Size**: 0.025
+
+---
+
+## ⚡ Performance / Runtime Metrics
+
+### **Per-Run Timing**
+- **Average Per-Query Time**: 0.849s
+- **Median Per-Query Time**: 0.852s
+- **Query Time Range**: 0.734s - 1.094s
+- **Performance Stability**: ±0.090s (CV: 10.6%)
+- **Average Total Runtime**: 18.42s
+
+### **Throughput & Efficiency**
+- **Queries per Second (QPS)**: 1.2
+- **Total Validation Runs**: 21
+- **Processing Efficiency**: 100.0% success rate
+
+### **Resource Usage**
+- **UNKNOWN**: 26936.761160714286 MB avg memory
+
+---
+
+## 🔐 Cryptographic / Provenance Metrics
+
+### **Proof Artifacts**
+- **Total Proofs Generated**: 5
+- **Average Proof Size**: 807 bytes
+- **Proof Size Range**: 632 - 924 bytes
+- **Proof Types**:
+  - sgd: 3 proofs
+  - lora: 2 proofs
+
+### **Proof System Performance**
+- **Average Generation Time**: 0.387s
+- **Median Generation Time**: 0.450s
+- **Verification Success Rate**: 100.0%
+
+### **Integrity Guarantees**
+- **Hash Functions**: SHA256, TLSH (fuzzy hashing)
+- **HMAC Verification**: Active
+- **Merkle Tree Integrity**: Verified
+- **Collision Resistance**: Standard cryptographic assumptions
+- **Cryptographic Verification Rate**: 100.0%
+
+---
+
+## 🧪 Experimental Setup Metadata
+
+### **Models & Testing**
+- **Models Tested**: Halo2System, TrainingProvenanceAuditor, distilgpt2, gpt2, gpt2-medium
+- **Test Types**: 3 different validation types
+- **Recent Runs**: 7 total validation runs
+
+### **Hardware & Environment**
+- **Hardware Acceleration**: unknown
+- **Software Stack**: PyTorch, Transformers, NumPy, SciPy
+- **ZK Framework**: Halo2 (Rust-based)
+- **Platform**: Darwin (macOS)
+
+---
+
+## 📋 Recent Validation History
+
+| Timestamp | Type | Success | Decision | Timing | Hardware |
+|-----------|------|---------|----------|--------|----------|
+| 16:27:11 | enhanced_dif... | ✅ | SAME | 0.85s | MPS |
+| 16:27:11 | enhanced_dif... | ✅ | DIFFERENT | 0.73s | MPS |
+| 16:27:11 | zk_integrati... | ✅ | N/A | N/A | N/A |
+| 16:27:11 | interface_co... | ✅ | N/A | N/A | N/A |
+| 16:27:11 | enhanced_dif... | ✅ | UNDECIDED | 0.89s | MPS |
+| 16:27:11 | enhanced_dif... | ✅ | UNDECIDED | 0.84s | MPS |
+| 16:27:11 | enhanced_dif... | ✅ | UNDECIDED | 0.79s | MPS |
+
+---
+
+## 🔬 Advanced Analytics
+
+### **Performance Trends**
+- ⬇️ **Improving**: 8.5% faster (last 10 runs)
+
+### **Quality Metrics**
+- **System Reliability**: 🟢 **Excellent** (100.0% success rate)
 - **ZK Pipeline Health**: 14.3% of runs include ZK proofs
 - **Interface Compliance**: 14.3% of runs include interface tests
+
+### **Error Analysis**
+✅ **No errors in recent runs**
+
+---
+
+*Dashboard automatically updated from `experimental_results/validation_history.jsonl`*
+*All metrics calculated from actual validation run data*
+*Comprehensive coverage: Statistical, Performance, Cryptographic, and Experimental dimensions*
+
+
 
 ## 🧪 Testing & Validation
 
