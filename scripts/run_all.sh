@@ -1004,6 +1004,34 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run ZK validation and integration tests
+print_header "RUNNING ZERO-KNOWLEDGE TESTS"
+ZK_PASSED=0
+ZK_TOTAL=2
+
+if pytest tests/test_zk_validation_suite.py > "${RESULTS_DIR}/zk_validation_suite_${TIMESTAMP}.log" 2>&1; then
+    print_success "ZK validation suite passed"
+    ZK_PASSED=$((ZK_PASSED + 1))
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    print_error "ZK validation suite failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+if pytest tests/test_zk_integration.py > "${RESULTS_DIR}/zk_integration_${TIMESTAMP}.log" 2>&1; then
+    print_success "ZK integration tests passed"
+    ZK_PASSED=$((ZK_PASSED + 1))
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    print_error "ZK integration tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+echo "ZK Tests: ${ZK_PASSED}/${ZK_TOTAL} passed" >> "${RESULTS_DIR}/summary_${TIMESTAMP}.txt"
+print_info "ZK Tests: ${ZK_PASSED}/${ZK_TOTAL} passed"
+
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then
     echo ""
