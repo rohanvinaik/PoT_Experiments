@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-08-20T00:15:22.088571",
+  "results": [
+    {
+      "test": "gpt2 vs gpt2",
+      "expected": "SAME",
+      "decision": "SAME",
+      "passed": true,
+      "mean": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "half_width": 0.0,
+      "rme": null,
+      "rule": "identical_early_stop",
+      "n_used": 30,
+      "config": {
+        "gamma": 0.0010170000000000001,
+        "delta_star": 0.038319500000000006,
+        "epsilon_diff": 0.1,
+        "k": 128
+      }
+    },
+    {
+      "test": "gpt2 vs distilgpt2",
+      "expected": "DIFFERENT",
+      "decision": "UNDECIDED",
+      "passed": false,
+      "mean": 0.6403616681694985,
+      "ci": [
+        0.5716664239334449,
+        0.709056912405552
+      ],
+      "half_width": 0.06869524423605357,
+      "rme": null,
+      "rule": null,
+      "n_used": 400,
+      "config": {
+        "gamma": 0.0010170000000000001,
+        "delta_star": 0.038319500000000006,
+        "epsilon_diff": 0.1,
+        "k": 128
+      }
+    }
+  ],
+  "all_passed": false,
+  "summary": {
+    "same_model_mean": 0.0,
+    "different_model_mean": 0.6403616681694985,
+    "separation": 0.6403616681694985
+  }
+}
