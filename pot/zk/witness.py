@@ -9,13 +9,14 @@ import numpy as np
 import hashlib
 import json
 from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import asdict
 
-from .spec import (
-    SGDStepStatement, SGDStepWitness,
-    LoRAStepStatement, LoRAStepWitness,
-    ZKProofType, CommitmentScheme
+from .zk_types import (
+    SGDStepStatement,
+    SGDStepWitness,
+    LoRAStepStatement,
+    LoRAStepWitness,
 )
+from .spec import ZKProofType, CommitmentScheme
 from .commitments import DualCommitment, MerkleCommitment, PoseidonHasher
 
 # Import existing infrastructure
@@ -45,75 +46,29 @@ def extract_sgd_witness(
     hyperparameters: Dict[str, Any],
     gradients: Dict[str, np.ndarray],
     loss_value: float,
-    commitment_scheme: CommitmentScheme = CommitmentScheme.DUAL_COMMITMENT
+    commitment_scheme: CommitmentScheme = CommitmentScheme.DUAL_COMMITMENT,
 ) -> SGDStepWitness:
+    """Extract witness data for an SGD training step.
+
+    This simplified witness flattens tensors into lists so it matches the
+    lightweight dataclasses defined in :mod:`zk_types`.
     """
-    Extract witness data for SGD training step ZK proof
-    
-    Args:
-        model_weights_before: Weights before SGD step
-        model_weights_after: Weights after SGD step
-        batch_inputs: Training batch input data
-        batch_targets: Training batch target data
-        hyperparameters: SGD hyperparameters (lr, momentum, etc.)
-        gradients: Computed gradients for each weight
-        loss_value: Loss value on the batch
-        commitment_scheme: Commitment scheme to use
-        
-    Returns:
-        SGDStepWitness containing all private data for proof
-    """
-    # Create commitment scheme
-    if commitment_scheme == CommitmentScheme.DUAL_COMMITMENT:
-        committer = DualCommitment()
-    elif commitment_scheme == CommitmentScheme.POSEIDON_MERKLE:
-        committer = MerkleCommitment("poseidon")
-    else:
-        committer = MerkleCommitment("sha256")
-    
-    # Generate weight openings (Merkle proofs)
-    weight_openings = {}
-    weight_randomness = {}
-    
-    for layer_name, weight_tensor in model_weights_before.items():
-        # Generate Merkle proof for this weight tensor
-        openings = committer.generate_proof(weight_tensor, 0) if hasattr(committer, 'generate_proof') else []
-        weight_openings[layer_name] = openings
-        
-        # Generate randomness for commitment (if needed)
-        weight_randomness[layer_name] = hashlib.sha256(
-            f"weight_randomness_{layer_name}".encode()
-        ).digest()
-    
-    # Generate batch commitment openings
-    if hasattr(committer, 'commit_batch'):
-        batch_result = committer.commit_batch(batch_inputs, batch_targets)
-        if isinstance(batch_result, dict):
-            # DualCommitment returns dict
-            batch_data = batch_result
-        else:
-            # MerkleCommitment returns tuple
-            _, batch_data = batch_result
-        batch_openings = ["batch_proof_element"] # Mock opening
-    else:
-        batch_openings = []
-    
-    batch_randomness = hashlib.sha256(b"batch_randomness").digest()
-    
+
+    def _flatten_dict(tensors: Dict[str, np.ndarray]) -> List[float]:
+        return [float(x) for arr in tensors.values() for x in arr.flatten()]
+
+    weights_before = _flatten_dict(model_weights_before)
+    weights_after = _flatten_dict(model_weights_after)
+    batch_in = batch_inputs.flatten().tolist()
+    batch_tgt = batch_targets.flatten().tolist()
+
     return SGDStepWitness(
-        weight_values=model_weights_before,
-        weight_openings=weight_openings,
-        batch_inputs=batch_inputs,
-        batch_targets=batch_targets,
-        batch_openings=batch_openings,
+        weights_before=weights_before,
+        weights_after=weights_after,
+        batch_inputs=batch_in,
+        batch_targets=batch_tgt,
         learning_rate=hyperparameters.get("learning_rate", 0.01),
-        momentum=hyperparameters.get("momentum"),
-        weight_decay=hyperparameters.get("weight_decay"),
-        gradients=gradients,
         loss_value=loss_value,
-        updated_weights=model_weights_after,
-        weight_randomness=weight_randomness,
-        batch_randomness=batch_randomness
     )
 
 
@@ -151,86 +106,30 @@ def extract_lora_witness(
     Returns:
         LoRAStepWitness containing all private data for proof
     """
-    # Create commitment scheme
-    if commitment_scheme == CommitmentScheme.DUAL_COMMITMENT:
-        committer = DualCommitment()
-    elif commitment_scheme == CommitmentScheme.POSEIDON_MERKLE:
-        committer = MerkleCommitment("poseidon")
-    else:
-        committer = MerkleCommitment("sha256")
-    
-    # Generate openings for all weight matrices
-    base_weight_openings = {}
-    lora_A_openings = {}
-    lora_B_openings = {}
-    
-    # Generate randomness
-    base_randomness = {}
-    lora_randomness = {}
-    
-    for layer_name, weight_tensor in base_weights.items():
-        if hasattr(committer, 'generate_proof'):
-            base_weight_openings[layer_name] = committer.generate_proof(weight_tensor, 0)
-        else:
-            base_weight_openings[layer_name] = []
-        
-        base_randomness[layer_name] = hashlib.sha256(
-            f"base_randomness_{layer_name}".encode()
-        ).digest()
-    
-    for layer_name, A_tensor in lora_A_before.items():
-        if hasattr(committer, 'generate_proof'):
-            lora_A_openings[layer_name] = committer.generate_proof(A_tensor, 0)
-        else:
-            lora_A_openings[layer_name] = []
-    
-    for layer_name, B_tensor in lora_B_before.items():
-        if hasattr(committer, 'generate_proof'):
-            lora_B_openings[layer_name] = committer.generate_proof(B_tensor, 0)
-        else:
-            lora_B_openings[layer_name] = []
-        
-        lora_randomness[layer_name] = hashlib.sha256(
-            f"lora_randomness_{layer_name}".encode()
-        ).digest()
-    
-    # Generate batch openings
-    if hasattr(committer, 'commit_batch'):
-        batch_result = committer.commit_batch(batch_inputs, batch_targets)
-        if isinstance(batch_result, dict):
-            # DualCommitment returns dict
-            batch_data = batch_result
-        else:
-            # MerkleCommitment returns tuple
-            _, batch_data = batch_result
-        batch_openings = ["lora_batch_proof"]
-    else:
-        batch_openings = []
-    
-    batch_randomness = hashlib.sha256(b"lora_batch_randomness").digest()
-    
+
+    def _flatten_dict(tensors: Dict[str, np.ndarray]) -> List[float]:
+        return [float(x) for arr in tensors.values() for x in arr.flatten()]
+
+    adapter_a_before = _flatten_dict(lora_A_before)
+    adapter_b_before = _flatten_dict(lora_B_before)
+    adapter_a_after = _flatten_dict(lora_A_after)
+    adapter_b_after = _flatten_dict(lora_B_after)
+    grad_a = _flatten_dict(gradients_A)
+    grad_b = _flatten_dict(gradients_B)
+    batch_in = batch_inputs.flatten().tolist()
+    batch_tgt = batch_targets.flatten().tolist()
+
     return LoRAStepWitness(
-        base_weights=base_weights,
-        base_weight_openings=base_weight_openings,
-        lora_A_matrices=lora_A_before,
-        lora_B_matrices=lora_B_before,
-        lora_A_openings=lora_A_openings,
-        lora_B_openings=lora_B_openings,
-        batch_inputs=batch_inputs,
-        batch_targets=batch_targets,
-        batch_openings=batch_openings,
-        rank=lora_hyperparameters.get("rank", 8),
-        alpha=lora_hyperparameters.get("alpha", 16.0),
+        adapter_a_before=adapter_a_before,
+        adapter_b_before=adapter_b_before,
+        adapter_a_after=adapter_a_after,
+        adapter_b_after=adapter_b_after,
+        adapter_a_gradients=grad_a,
+        adapter_b_gradients=grad_b,
+        batch_inputs=batch_in,
+        batch_targets=batch_tgt,
         learning_rate=lora_hyperparameters.get("learning_rate", 0.001),
-        dropout_rate=lora_hyperparameters.get("dropout_rate", 0.1),
-        gradients_A=gradients_A,
-        gradients_B=gradients_B,
         loss_value=loss_value,
-        updated_A_matrices=lora_A_after,
-        updated_B_matrices=lora_B_after,
-        base_randomness=base_randomness,
-        lora_randomness=lora_randomness,
-        batch_randomness=batch_randomness
     )
 
 
@@ -309,7 +208,7 @@ def build_zk_statement(
     hyperparameters: Dict[str, Any],
     step_info: Dict[str, Any],
     proof_type: ZKProofType = ZKProofType.SGD_STEP,
-    commitment_scheme: CommitmentScheme = CommitmentScheme.POSEIDON_MERKLE
+    commitment_scheme: CommitmentScheme = CommitmentScheme.POSEIDON_MERKLE,
 ) -> Union[SGDStepStatement, LoRAStepStatement]:
     """
     Build ZK statement for training step
@@ -406,8 +305,6 @@ def build_zk_statement(
             step_nonce=step_info.get("nonce", 0),
             step_number=step_info.get("step_number", 0),
             epoch=step_info.get("epoch", 0),
-            commitment_scheme=commitment_scheme,
-            timestamp=step_info.get("timestamp")
         )
     
     elif proof_type == ZKProofType.LORA_STEP:
@@ -416,21 +313,17 @@ def build_zk_statement(
         target_modules = hyperparameters.get("target_modules", ["attention"])
         
         return LoRAStepStatement(
-            base_weights_root=w_t_root,  # Base weights (frozen)
-            lora_A_root=w_t_root[:32] + "A" * 32,  # Mock LoRA A commitment
-            lora_B_root=w_t_root[:32] + "B" * 32,  # Mock LoRA B commitment
+            base_weights_root=w_t_root,
+            adapter_a_root_before=w_t_root[:32] + "A" * 32,
+            adapter_b_root_before=w_t_root[:32] + "B" * 32,
+            adapter_a_root_after=w_t1_root[:32] + "A" * 32,
+            adapter_b_root_after=w_t1_root[:32] + "B" * 32,
             batch_root=batch_root,
-            lora_hparams_hash=hparams_hash,
-            updated_weights_root=w_t1_root,
+            hparams_hash=hparams_hash,
             rank=hyperparameters.get("rank", 8),
             alpha=hyperparameters.get("alpha", 16.0),
-            dropout_rate=hyperparameters.get("dropout_rate", 0.1),
-            step_nonce=step_info.get("nonce", 0),
             step_number=step_info.get("step_number", 0),
             epoch=step_info.get("epoch", 0),
-            target_modules=target_modules,
-            commitment_scheme=commitment_scheme,
-            timestamp=step_info.get("timestamp")
         )
     
     else:

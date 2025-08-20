@@ -2120,6 +2120,12 @@ class TrainingProvenanceAuditor:
         from ..zk.witness import extract_sgd_witness, extract_lora_witness, build_zk_statement
         from ..zk.commitments import PoseidonHasher
         from ..zk.spec import ZKProofType, CommitmentScheme
+        from ..zk.zk_types import (
+            SGDStepStatement,
+            SGDStepWitness,
+            LoRAStepStatement,
+            LoRAStepWitness,
+        )
 
         if proof_type == "sgd_step":
             model_weights_before = weights_before.get("weights", {})
@@ -2129,7 +2135,7 @@ class TrainingProvenanceAuditor:
             gradients = batch_data.get("gradients", {})
             loss_value = batch_data.get("loss", 0.0)
 
-            witness = extract_sgd_witness(
+            witness: SGDStepWitness = extract_sgd_witness(
                 model_weights_before=model_weights_before,
                 model_weights_after=model_weights_after,
                 batch_inputs=batch_inputs,
@@ -2140,7 +2146,7 @@ class TrainingProvenanceAuditor:
                 commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
             )
 
-            statement = build_zk_statement(
+            statement: SGDStepStatement = build_zk_statement(
                 weights_before=model_weights_before,
                 weights_after=model_weights_after,
                 batch_inputs=batch_inputs,
@@ -2163,7 +2169,7 @@ class TrainingProvenanceAuditor:
             gradients_B = batch_data.get("gradients_B", {})
             loss_value = batch_data.get("loss", 0.0)
 
-            witness = extract_lora_witness(
+            witness: LoRAStepWitness = extract_lora_witness(
                 base_weights=base_weights,
                 lora_A_before=lora_A_before,
                 lora_B_before=lora_B_before,
@@ -2178,7 +2184,7 @@ class TrainingProvenanceAuditor:
                 commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
             )
 
-            statement = build_zk_statement(
+            statement: LoRAStepStatement = build_zk_statement(
                 weights_before={"base": base_weights, "lora_A": lora_A_before, "lora_B": lora_B_before},
                 weights_after={"base": base_weights, "lora_A": lora_A_after, "lora_B": lora_B_after},
                 batch_inputs=batch_inputs,
@@ -2208,7 +2214,7 @@ class TrainingProvenanceAuditor:
             "witness_id": f"{self.model_id}_{proof_type}_{step_info.get('step_number', 0)}",
             "proof_type": proof_type,
             "poseidon_commitment": poseidon_commitment,
-            "statement_metadata": statement.to_dict() if hasattr(statement, 'to_dict') else {},
+            "statement_metadata": asdict(statement),
             "witness_metadata": {
                 "step_number": step_info.get("step_number", 0),
                 "epoch": step_info.get("epoch", 0),

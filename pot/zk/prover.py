@@ -28,6 +28,80 @@ except ImportError:
     )
     from lora_builder import LoRAWitnessBuilder
 
+# Optional import of legacy spec types for compatibility
+try:  # pragma: no cover - compatibility layer
+    from .spec import (
+        SGDStepStatement as SpecSGDStepStatement,
+        SGDStepWitness as SpecSGDStepWitness,
+        LoRAStepStatement as SpecLoRAStepStatement,
+        LoRAStepWitness as SpecLoRAStepWitness,
+    )
+except Exception:  # pragma: no cover
+    SpecSGDStepStatement = SpecSGDStepWitness = None
+    SpecLoRAStepStatement = SpecLoRAStepWitness = None
+
+
+def _convert_sgd_statement(stmt: "SpecSGDStepStatement") -> SGDStepStatement:
+    """Convert legacy spec statement to canonical type."""
+    return SGDStepStatement(
+        W_t_root=stmt.W_t_root,
+        batch_root=stmt.batch_root,
+        hparams_hash=stmt.hparams_hash,
+        W_t1_root=stmt.W_t1_root,
+        step_nonce=getattr(stmt, "step_nonce", 0),
+        step_number=stmt.step_number,
+        epoch=stmt.epoch,
+    )
+
+
+def _convert_sgd_witness(wit: "SpecSGDStepWitness") -> SGDStepWitness:
+    """Convert legacy spec witness to canonical type."""
+    def _flatten(tensors):
+        return [float(x) for arr in tensors.values() for x in np.asarray(arr).flatten()]
+
+    return SGDStepWitness(
+        weights_before=_flatten(wit.weight_values),
+        weights_after=_flatten(wit.updated_weights),
+        batch_inputs=np.asarray(wit.batch_inputs).flatten().tolist(),
+        batch_targets=np.asarray(wit.batch_targets).flatten().tolist(),
+        learning_rate=wit.learning_rate,
+        loss_value=wit.loss_value,
+    )
+
+
+def _convert_lora_statement(stmt: "SpecLoRAStepStatement") -> LoRAStepStatement:
+    return LoRAStepStatement(
+        base_weights_root=stmt.base_weights_root,
+        adapter_a_root_before=stmt.lora_A_root,
+        adapter_b_root_before=stmt.lora_B_root,
+        adapter_a_root_after=getattr(stmt, "lora_A_root", stmt.lora_A_root),
+        adapter_b_root_after=getattr(stmt, "lora_B_root", stmt.lora_B_root),
+        batch_root=stmt.batch_root,
+        hparams_hash=stmt.lora_hparams_hash,
+        rank=stmt.rank,
+        alpha=stmt.alpha,
+        step_number=stmt.step_number,
+        epoch=stmt.epoch,
+    )
+
+
+def _convert_lora_witness(wit: "SpecLoRAStepWitness") -> LoRAStepWitness:
+    def _flatten(tensors):
+        return [float(x) for arr in tensors.values() for x in np.asarray(arr).flatten()]
+
+    return LoRAStepWitness(
+        adapter_a_before=_flatten(wit.lora_A_matrices),
+        adapter_b_before=_flatten(wit.lora_B_matrices),
+        adapter_a_after=_flatten(wit.updated_A_matrices),
+        adapter_b_after=_flatten(wit.updated_B_matrices),
+        adapter_a_gradients=_flatten(wit.gradients_A),
+        adapter_b_gradients=_flatten(wit.gradients_B),
+        batch_inputs=np.asarray(wit.batch_inputs).flatten().tolist(),
+        batch_targets=np.asarray(wit.batch_targets).flatten().tolist(),
+        learning_rate=wit.learning_rate,
+        loss_value=wit.loss_value,
+    )
+
 
 @dataclass
 class ProverConfig:
@@ -60,8 +134,8 @@ class SGDZKProver:
             
             self.config.rust_binary = binary_path
     
-    def prove_sgd_step(self, 
-                      statement: SGDStepStatement, 
+    def prove_sgd_step(self,
+                      statement: SGDStepStatement,
                       witness: SGDStepWitness) -> bytes:
         """
         Generate a zero-knowledge proof for an SGD training step.
@@ -73,9 +147,15 @@ class SGDZKProver:
         Returns:
             Proof bytes that can be verified against the statement
         """
+        # Allow legacy spec types
+        if SpecSGDStepStatement and isinstance(statement, SpecSGDStepStatement):
+            statement = _convert_sgd_statement(statement)
+        if SpecSGDStepWitness and isinstance(witness, SpecSGDStepWitness):
+            witness = _convert_sgd_witness(witness)
+
         # Convert statement to the format expected by Rust
         public_inputs = self._statement_to_public_inputs(statement)
-        
+
         # Convert witness to the format expected by Rust
         witness_data = self._witness_to_rust_format(witness)
         
@@ -275,7 +355,7 @@ class LoRAZKProver:
 
             self.config.rust_binary = binary_path
     
-    def prove_lora_step(self, 
+    def prove_lora_step(self,
                        statement: LoRAStepStatement,
                        witness: LoRAStepWitness) -> Tuple[bytes, LoRAProofMetadata]:
         """
@@ -286,6 +366,11 @@ class LoRAZKProver:
         """
         start_time = time.time()
         
+        if SpecLoRAStepStatement and isinstance(statement, SpecLoRAStepStatement):
+            statement = _convert_lora_statement(statement)
+        if SpecLoRAStepWitness and isinstance(witness, SpecLoRAStepWitness):
+            witness = _convert_lora_witness(witness)
+
         public_inputs = self._statement_to_public_inputs(statement)
         witness_data = self._witness_to_rust_format(witness)
 

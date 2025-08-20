@@ -13,7 +13,7 @@ import time
 sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent))
 
-from zk_types import SGDStepStatement, SGDStepWitness
+from pot.zk.zk_types import SGDStepStatement, SGDStepWitness
 from prover import SGDZKProver, ProverConfig
 from verifier import SGDZKVerifier, VerifierConfig
 from builder import ZKWitnessBuilder

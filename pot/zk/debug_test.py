@@ -5,7 +5,7 @@ import hashlib
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
-from zk_types import SGDStepStatement, SGDStepWitness
+from pot.zk.zk_types import SGDStepStatement, SGDStepWitness
 from prover import SGDZKProver
 
 # Create simple test data

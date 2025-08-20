@@ -6,14 +6,13 @@ including SGD and LoRA training step proofs integrated with the existing
 PoT infrastructure.
 """
 
-from .spec import (
+from .zk_types import (
     SGDStepStatement,
     SGDStepWitness,
     LoRAStepStatement,
     LoRAStepWitness,
-    ZKProofType,
-    CommitmentScheme
 )
+from .spec import ZKProofType, CommitmentScheme
 
 from .commitments import (
     PoseidonHasher,

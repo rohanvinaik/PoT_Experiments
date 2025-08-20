@@ -409,17 +409,17 @@ def test_zk_pytest_compatibility():
     witness = SGDStepWitness(
         weights_before=[0.1] * 10,
         weights_after=[0.11] * 10,
-        gradients=[0.01] * 10,
-        batch_inputs=[[0.5] * 5 for _ in range(4)],
-        batch_targets=[[1.0] for _ in range(4)],
+        batch_inputs=[0.5] * (5 * 4),
+        batch_targets=[1.0] * 4,
         learning_rate=0.01
     )
-    
+
     statement = SGDStepStatement(
-        weights_before_root=b"before" * 8,
-        weights_after_root=b"after" * 8,
+        W_t_root=b"before" * 8,
         batch_root=b"batch" * 8,
         hparams_hash=b"hparams" * 4,
+        W_t1_root=b"after" * 8,
+        step_nonce=0,
         step_number=1,
         epoch=1
     )
