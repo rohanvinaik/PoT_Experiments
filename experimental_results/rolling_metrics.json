@@ -1,49 +1,9 @@
 {
-  "total_runs": 21,
-  "successful_runs": 21,
-  "zk_pipeline_runs": 3,
-  "interface_test_runs": 3,
+  "total_runs": 7,
+  "successful_runs": 7,
+  "zk_pipeline_runs": 1,
+  "interface_test_runs": 1,
   "timing_samples": [
-    {
-      "t_per_query": 0.852,
-      "t_total": 21.3,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.852,
-      "t_total": 21.3,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.734,
-      "t_total": 23.5,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.89,
-      "t_total": 15.4,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.84,
-      "t_total": 17.5,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.79,
-      "t_total": 19.6,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 1.0942066709200542,
-      "t_total": 13.131313800811768,
-      "hardware": "mps"
-    },
-    {
-      "t_per_query": 0.8727181355158488,
-      "t_total": 10.473467826843262,
-      "hardware": "mps"
-    },
     {
       "t_per_query": 0.852,
       "t_total": 21.3,
@@ -71,54 +31,6 @@
     }
   ],
   "statistical_samples": [
-    {
-      "decision": "SAME",
-      "confidence": 0.975,
-      "n_used": 25,
-      "effect_size": 0.001234
-    },
-    {
-      "decision": "SAME",
-      "confidence": 0.975,
-      "n_used": 25,
-      "effect_size": 0.001234
-    },
-    {
-      "decision": "DIFFERENT",
-      "confidence": 0.99,
-      "n_used": 32,
-      "effect_size": 8.75421
-    },
-    {
-      "decision": "UNDECIDED",
-      "confidence": 0.95,
-      "n_used": 15,
-      "effect_size": 0.012345
-    },
-    {
-      "decision": "UNDECIDED",
-      "confidence": 0.95,
-      "n_used": 17,
-      "effect_size": 0.02469
-    },
-    {
-      "decision": "UNDECIDED",
-      "confidence": 0.95,
-      "n_used": 19,
-      "effect_size": 0.037035
-    },
-    {
-      "decision": "UNDECIDED",
-      "confidence": 0.0,
-      "n_used": 12,
-      "effect_size": 0.0
-    },
-    {
-      "decision": "UNDECIDED",
-      "confidence": 0.0,
-      "n_used": 12,
-      "effect_size": 11.90629768371582
-    },
     {
       "decision": "SAME",
       "confidence": 0.975,
@@ -162,25 +74,7 @@
       "size_bytes": 632,
       "generation_time": 0.287,
       "verified": true
-    },
-    {
-      "proof_type": "sgd",
-      "size_bytes": 924,
-      "generation_time": 0.45,
-      "verified": true
-    },
-    {
-      "proof_type": "sgd",
-      "size_bytes": 924,
-      "generation_time": 0.456,
-      "verified": true
-    },
-    {
-      "proof_type": "lora",
-      "size_bytes": 632,
-      "generation_time": 0.287,
-      "verified": true
     }
   ],
-  "last_updated": "2025-08-20T16:27:11.445256"
+  "last_updated": "2025-08-20T16:43:54.721088"
 }

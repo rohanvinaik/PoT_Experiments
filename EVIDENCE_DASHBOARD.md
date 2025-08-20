@@ -2,8 +2,8 @@
 
 **Live Performance Metrics & Validation Evidence**
 
-*Last Updated: 2025-08-20 16:40:18 UTC*
-*Auto-generated from 21 validation runs*
+*Last Updated: 2025-08-20 16:44:34 UTC*
+*Auto-generated from 7 validation runs*
 
 ---
 
@@ -11,34 +11,34 @@
 
 | Metric | Result |
 |--------|--------|
-| **Decisive Outcome Rate** | 38.5% |
-| **Per-Query Time** | 0.849s |
-| **Query Time Range** | 0.734s - 1.094s |
+| **Decisive Outcome Rate** | 40.0% |
+| **Per-Query Time** | 0.821s |
+| **Query Time Range** | 0.734s - 0.890s |
 | **Overall Success Rate** | 100.0% |
-| **Avg Proof Size** | 807 bytes |
-| **Proof Gen Time** | 0.387s |
+| **Avg Proof Size** | 778 bytes |
+| **Proof Gen Time** | 0.371s |
 | **Proof Verify Rate** | 100.0% |
-| **Avg Confidence** | 96.4% |
-| **Total Validation Runs** | 21 |
+| **Avg Confidence** | 96.3% |
+| **Total Validation Runs** | 7 |
 
 ---
 
 ## 🔬 Statistical / Experimental Metrics
 
 ### **Sample Size & Queries**
-- **Total Tests Completed**: 13
-- **Average Samples per Test**: 20.4
+- **Total Tests Completed**: 5
+- **Average Samples per Test**: 21.6
 - **Median Samples per Test**: 19.0
 
 ### **Error Rates & Detection**
-- **SAME Detection Rate**: 23.1% (3 tests)
-- **DIFFERENT Detection Rate**: 15.4% (2 tests)
-- **Undecided Rate**: 61.5% (8 tests)
+- **SAME Detection Rate**: 20.0% (1 tests)
+- **DIFFERENT Detection Rate**: 20.0% (1 tests)
+- **Undecided Rate**: 60.0% (3 tests)
 
 ### **Decision Thresholds & Effect Size**
-- **Average Confidence Level**: 96.4%
+- **Average Confidence Level**: 96.3%
 - **Confidence Range**: 95.0% - 99.0%
-- **Average Effect Size**: 2.274
+- **Average Effect Size**: 1.766
 - **Median Effect Size**: 0.025
 
 ---
@@ -46,15 +46,15 @@
 ## ⚡ Performance / Runtime Metrics
 
 ### **Per-Run Timing**
-- **Average Per-Query Time**: 0.849s
-- **Median Per-Query Time**: 0.852s
-- **Query Time Range**: 0.734s - 1.094s
-- **Performance Stability**: ±0.090s (CV: 10.6%)
-- **Average Total Runtime**: 18.42s
+- **Average Per-Query Time**: 0.821s
+- **Median Per-Query Time**: 0.840s
+- **Query Time Range**: 0.734s - 0.890s
+- **Performance Stability**: ±0.060s (CV: 7.4%)
+- **Average Total Runtime**: 19.46s
 
 ### **Throughput & Efficiency**
 - **Queries per Second (QPS)**: 1.2
-- **Total Validation Runs**: 21
+- **Total Validation Runs**: 7
 - **Processing Efficiency**: 100.0% success rate
 
 ### **Resource Usage**
@@ -65,16 +65,16 @@
 ## 🔐 Cryptographic / Provenance Metrics
 
 ### **Proof Artifacts**
-- **Total Proofs Generated**: 5
-- **Average Proof Size**: 807 bytes
+- **Total Proofs Generated**: 2
+- **Average Proof Size**: 778 bytes
 - **Proof Size Range**: 632 - 924 bytes
 - **Proof Types**:
-  - sgd: 3 proofs
-  - lora: 2 proofs
+  - lora: 1 proofs
+  - sgd: 1 proofs
 
 ### **Proof System Performance**
-- **Average Generation Time**: 0.387s
-- **Median Generation Time**: 0.450s
+- **Average Generation Time**: 0.371s
+- **Median Generation Time**: 0.371s
 - **Verification Success Rate**: 100.0%
 
 ### **Integrity Guarantees**
@@ -118,7 +118,7 @@
 ## 🔬 Advanced Analytics
 
 ### **Performance Trends**
-- ⬇️ **Improving**: 8.5% faster (last 10 runs)
+- ⬆️ **Slight increase**: 5.9% slower (last 5 runs)
 
 ### **Quality Metrics**
 - **System Reliability**: 🟢 **Excellent** (100.0% success rate)
