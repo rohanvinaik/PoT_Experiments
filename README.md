@@ -332,7 +332,7 @@ print(f"Calibrated δ*: {thresholds['delta_star']:.4f}")
 
 **Live Performance Metrics & Validation Evidence**
 
-*Last Updated: 2025-08-20 16:30:29 UTC*
+*Last Updated: 2025-08-20 16:40:18 UTC*
 *Auto-generated from 21 validation runs*
 
 ---
@@ -463,6 +463,7 @@ print(f"Calibrated δ*: {thresholds['delta_star']:.4f}")
 *Dashboard automatically updated from `experimental_results/validation_history.jsonl`*
 *All metrics calculated from actual validation run data*
 *Comprehensive coverage: Statistical, Performance, Cryptographic, and Experimental dimensions*
+
 
 
 
