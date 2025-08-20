@@ -100,7 +100,10 @@ class TestZKIntegration:
             batch_data={'inputs': [[1.0]], 'targets': [[1.0]]},
             learning_rate=0.001
         )
-        
+
+        assert proof_result['success']
+        assert proof_result['proof_type'] in ['sgd', 'lora']
+
         # Store proof on blockchain
         tx_hash = blockchain.store_commitment(proof_result['proof'])
         
@@ -144,10 +147,11 @@ class TestZKIntegration:
             batch_data={'inputs': [[1.0]], 'targets': [[1.0]]},
             learning_rate=0.001
         )
-        
+
         # Both should detect the difference
         assert result.decision in ['DIFFERENT', 'UNDECIDED']
         assert proof_result['success']
+        assert proof_result['proof_type'] in ['sgd', 'lora']
     
     def test_zk_lora_optimization(self):
         """Test optimized LoRA proving."""
@@ -221,8 +225,9 @@ class TestZKIntegration:
             batch_data={'inputs': inputs, 'targets': targets},
             learning_rate=0.01
         )
-        
+
         assert proof_result['success']
+        assert proof_result['proof_type'] in ['sgd', 'lora']
     
     def test_zk_proof_persistence(self):
         """Test ZK proof persistence and retrieval."""
@@ -243,7 +248,10 @@ class TestZKIntegration:
                 learning_rate=0.001,
                 step_number=i
             )
-            
+
+            assert proof_result['success']
+            assert proof_result['proof_type'] in ['sgd', 'lora']
+
             proofs.append(proof_result['proof'])
             tx_hash = blockchain.store_commitment(proof_result['proof'])
             tx_hashes.append(tx_hash)
@@ -276,7 +284,10 @@ class TestZKIntegration:
                 batch_data={'inputs': [[1.0]], 'targets': [[1.0]]},
                 learning_rate=0.001
             )
-            
+
+            assert proof_result['success']
+            assert proof_result['proof_type'] in ['sgd', 'lora']
+
             elapsed_ms = (time.time() - start) * 1000
             
             # Record metric
@@ -314,6 +325,8 @@ class TestZKIntegration:
                 batch_data={'inputs': [[1.0]], 'targets': [[1.0]]},
                 learning_rate=0.001
             )
+            assert proof_result['success']
+            assert proof_result['proof_type'] in ['sgd', 'lora']
             times_no_cache.append(time.time() - start)
         
         # Run again (should benefit from cache)
@@ -326,6 +339,8 @@ class TestZKIntegration:
                 batch_data={'inputs': [[1.0]], 'targets': [[1.0]]},
                 learning_rate=0.001
             )
+            assert proof_result['success']
+            assert proof_result['proof_type'] in ['sgd', 'lora']
             times_with_cache.append(time.time() - start)
         
         # With cache should be faster (or at least not slower)
