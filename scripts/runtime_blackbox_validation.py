@@ -19,6 +19,14 @@ import pathlib
 # Ensure PYTHONPATH includes repository root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Local model configuration
+LOCAL_MODEL_BASE = "/Users/rohanvinaik/LLM_Models"
+LOCAL_MODEL_MAPPING = {
+    "gpt2": f"{LOCAL_MODEL_BASE}/gpt2",
+    "distilgpt2": f"{LOCAL_MODEL_BASE}/distilgpt2", 
+    "gpt2-medium": f"{LOCAL_MODEL_BASE}/gpt2-medium",
+}
+
 # Set environment for compatibility
 os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
 
@@ -56,9 +64,14 @@ class MinimalLM:
             from transformers import AutoModelForCausalLM, AutoTokenizer
             
             start_time = time.time()
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+            # Use local model path if available
+            local_path = LOCAL_MODEL_MAPPING.get(model_name, model_name)
+            print(f"Loading model from: {local_path}")
+            
+            self.tokenizer = AutoTokenizer.from_pretrained(local_path, use_fast=True, local_files_only=True)
             self.model = AutoModelForCausalLM.from_pretrained(
-                model_name,
+                local_path,
+                local_files_only=True,
                 torch_dtype=torch.float16 if self.device == "mps" else None,
                 attn_implementation="eager"
             ).eval().to(self.device)

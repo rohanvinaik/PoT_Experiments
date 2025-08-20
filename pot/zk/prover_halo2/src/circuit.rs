@@ -1,6 +1,7 @@
+// CLEANUP 2025-08-20: Removed unused imports (crate::poseidon::primitives, ff::Field in tests)
 use ff::{Field, PrimeField};
 use halo2_proofs::{
-    circuit::{AssignedCell, Layouter, SimpleFloorPlanner, Value},
+    circuit::{Layouter, SimpleFloorPlanner, Value},
     plonk::{Advice, Circuit, Column, ConstraintSystem, Error, Fixed, Instance, Selector},
     poly::Rotation,
 };
@@ -8,7 +9,6 @@ use pasta_curves::pallas;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
-use crate::poseidon::primitives;
 use crate::fixed_point::primitives as fp;
 
 /// Public inputs for SGD step verification, matching Python SGDStepStatement
@@ -781,7 +781,7 @@ impl<F: Field + ff::PrimeField> SGDCircuit<F> {
 /// Utility functions for working with the circuit
 pub mod utils {
     use super::*;
-    use crate::poseidon::primitives;
+    // Removed unused import: crate::poseidon::primitives
 
     /// Convert Python hex strings to field elements
     pub fn hex_to_field(hex_str: &str) -> Result<pallas::Base, String> {

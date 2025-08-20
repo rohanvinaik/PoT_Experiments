@@ -1,5 +1,4 @@
 use ff::{Field, PrimeField};
-use pasta_curves::pallas;
 
 /// Simplified Poseidon implementation for compatibility with Python
 /// This is a minimal implementation that provides the interface needed

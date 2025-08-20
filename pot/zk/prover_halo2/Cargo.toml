@@ -6,9 +6,15 @@ authors = ["PoT Team <pot@example.com>"]
 description = "Halo2 ZK circuit for Proof-of-Training verification"
 license = "MIT"
 
+# Updated to Halo2 0.3.1 (August 2025) - Latest stable version
+# Key changes from 0.3.0:
+# - Security fix for multiopen argument vulnerability (discovered by zkSecurity)
+# - Enhanced multiopen logic to detect and reject unsafe evaluation sequences
+# - Uses indexmap crate to reduce complexity in multiopen operations
+# - No breaking API changes for Circuit trait implementations
 [dependencies]
-halo2_proofs = "0.3"
-halo2_gadgets = "0.3"
+halo2_proofs = "0.3.1"
+halo2_gadgets = "0.3.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 bincode = "1.3"
@@ -18,7 +24,7 @@ pasta_curves = "0.5"
 rand = "0.8"
 hex = "0.4"
 thiserror = "1.0"
-clap = "4.0"
+clap = { version = "4.0", features = ["derive"] }
 base64 = "0.22"
 flate2 = "1.0"
 

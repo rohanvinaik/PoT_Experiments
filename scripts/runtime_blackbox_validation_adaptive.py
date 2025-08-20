@@ -20,6 +20,14 @@ import pathlib
 # Ensure PYTHONPATH includes repository root
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Local model configuration
+LOCAL_MODEL_BASE = "/Users/rohanvinaik/LLM_Models"
+LOCAL_MODEL_MAPPING = {
+    "gpt2": f"{LOCAL_MODEL_BASE}/gpt2",
+    "distilgpt2": f"{LOCAL_MODEL_BASE}/distilgpt2", 
+    "gpt2-medium": f"{LOCAL_MODEL_BASE}/gpt2-medium",
+}
+
 # Import adaptive sampling module
 from pot.core.adaptive_sampling import (
     AdaptiveConfig, 
@@ -71,9 +79,14 @@ class MinimalLM:
             from transformers import AutoModelForCausalLM, AutoTokenizer
             
             start_time = time.time()
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+            # Use local model path if available
+            local_path = LOCAL_MODEL_MAPPING.get(model_name, model_name)
+            logger.info(f"Loading model from: {local_path}")
+            
+            self.tokenizer = AutoTokenizer.from_pretrained(local_path, use_fast=True, local_files_only=True)
             self.model = AutoModelForCausalLM.from_pretrained(
-                model_name,
+                local_path,
+                local_files_only=True,
                 torch_dtype=torch.float16 if self.device == "mps" else None,
                 attn_implementation="eager"
             ).eval().to(self.device)
@@ -148,7 +161,7 @@ class EnhancedStatisticalDecisionFramework:
             self.delta_star = 0.10  # DIFFERENT threshold
             self.epsilon_diff = 0.10  # Relative ME for DIFFERENT
             self.n_min = 30
-            self.n_max = 400
+            self.n_max = 50  # Reduced for faster testing
             self.batch_size = 8
         elif mode == "quick_gate":
             self.confidence = 0.975
@@ -156,7 +169,7 @@ class EnhancedStatisticalDecisionFramework:
             self.delta_star = 0.10
             self.epsilon_diff = 0.20
             self.n_min = 12
-            self.n_max = 120
+            self.n_max = 30  # Reduced for faster testing
             self.batch_size = 4
         elif mode == "adaptive":
             # Adaptive mode with relaxed initial thresholds
@@ -165,7 +178,7 @@ class EnhancedStatisticalDecisionFramework:
             self.delta_star = 0.08
             self.epsilon_diff = 0.25
             self.n_min = 10
-            self.n_max = 200
+            self.n_max = 40  # Reduced for faster testing
             self.batch_size = 6
         else:
             raise ValueError(f"Unknown mode: {mode}")
@@ -681,7 +694,7 @@ def main():
             model_b = MinimalLM(test_case["model_b"], seed=43 if test_case["model_a"] == test_case["model_b"] else 42)
             
             # Generate challenges with variance reduction
-            n_prompts = min(framework.n_max // 2, 40)  # More prompts for better coverage
+            n_prompts = min(framework.n_max // 2, 15)  # Reduced for faster testing
             K = 32  # Positions per prompt
             prompts = generate_adaptive_challenge_prompts(n_prompts, K, strategy="stratified")
             

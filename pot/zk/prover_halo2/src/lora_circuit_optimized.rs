@@ -1,6 +1,7 @@
+// CLEANUP 2025-08-20: Removed unused imports (std::time::Instant, halo2_proofs::dev::MockProver)
 use halo2_proofs::{
     arithmetic::Field,
-    circuit::{Layouter, SimpleFloorPlanner, Value, Region, AssignedCell},
+    circuit::{Layouter, SimpleFloorPlanner, Value, Region},
     plonk::{
         Advice, Circuit, Column, ConstraintSystem, Error, Expression, Fixed, Selector, Instance,
     },
@@ -8,7 +9,6 @@ use halo2_proofs::{
 };
 use ff::PrimeField;
 use serde::{Serialize, Deserialize};
-use std::marker::PhantomData;
 
 /// Optimized configuration for LoRA circuit with specialized gates
 #[derive(Debug, Clone)]
@@ -572,7 +572,7 @@ impl LoRAProof {
 mod tests {
     use super::*;
     use halo2_proofs::pasta::Fp;
-    use halo2_proofs::dev::MockProver;
+    // Removed unused import: halo2_proofs::dev::MockProver
     
     #[test]
     fn test_optimized_circuit_construction() {
@@ -692,8 +692,7 @@ mod tests {
 
 /// Benchmarking module for comparing LoRA vs full SGD
 pub mod benchmarks {
-    use super::*;
-    use std::time::Instant;
+    // Removed unused import: std::time::Instant
     
     pub struct BenchmarkResults {
         pub rank: usize,
@@ -765,7 +764,7 @@ pub mod benchmarks {
         for (d_in, d_out, rank) in configurations {
             let results = benchmark_lora_vs_sgd(d_in, d_out, rank);
             results.print_summary();
-            println!("\n" + &"=".repeat(40));
+            println!("\n{}", "=".repeat(40));
         }
     }
 }

@@ -1,21 +1,58 @@
+// CLEANUP 2025-08-20: Removed unused imports (serde::Deserialize, tempfile::tempdir)
 use clap::{Arg, Command};
 use prover_halo2::{
-    generate_setup, proof_from_json, verify_sgd_step, ProverError, ProvingSystemParams,
+    cli::{self, OutputFormat},
+    generate_setup, proof_from_json, verify_sgd_step, ProvingSystemParams,
 };
+use serde::Serialize; // Removed unused import: Deserialize
 use std::fs;
+use std::path::PathBuf;
 use std::time::Instant;
 
+#[derive(Debug, Serialize)]
+struct VerificationResult {
+    valid: bool,
+    verification_time_ms: u64,
+    metadata: VerificationMetadata,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct VerificationMetadata {
+    circuit_size: usize,
+    proof_size: usize,
+    params_k: u32,
+    setup_time_ms: u64,
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let matches = Command::new("verify_sgd")
+    let app = Command::new("verify-sgd")
         .version("0.1.0")
-        .about("Verify ZK proof for SGD training step")
+        .author("PoT Team")
+        .about("Verify zero-knowledge proofs for SGD training steps")
+        .long_about(
+            "Verifies zero-knowledge proofs for SGD training steps from proof files.\n\
+             Requires a proof file and optionally a pre-generated trusted setup.\n\
+             Outputs verification result with timing information."
+        )
         .arg(
             Arg::new("proof")
                 .short('p')
                 .long("proof")
                 .value_name("FILE")
                 .help("JSON file containing the proof to verify")
-                .required(true),
+                .required(true)
+                .value_parser(clap::value_parser!(PathBuf)),
+        )
+        .arg(
+            Arg::new("output")
+                .short('o')
+                .long("output")
+                .value_name("FILE")
+                .help("Output file for verification result (default: stdout)")
+                .required(false)
+                .value_parser(clap::value_parser!(PathBuf)),
         )
         .arg(
             Arg::new("setup")
@@ -23,13 +60,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .long("setup")
                 .value_name("FILE")
                 .help("Setup file (if not provided, will generate new setup)")
-                .required(false),
+                .required(false)
+                .value_parser(clap::value_parser!(PathBuf)),
         )
         .arg(
             Arg::new("params-k")
                 .long("params-k")
-                .value_name("NUMBER")
-                .help("KZG parameter size (log2) - must match proof generation")
+                .value_name("SIZE")
+                .help("Circuit size parameter (log2 of constraint count) - must match proof generation")
+                .value_parser(clap::value_parser!(u32).range(8..=25))
                 .default_value("17"),
         )
         .arg(
@@ -46,32 +85,60 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .help("Enable benchmark timing")
                 .action(clap::ArgAction::SetTrue),
         )
-        .get_matches();
+        .arg(
+            Arg::new("format")
+                .long("format")
+                .value_name("FORMAT")
+                .help("Output format")
+                .value_parser(clap::value_parser!(OutputFormat))
+                .default_value("json"),
+        );
+    
+    let matches = app.get_matches();
 
+    // Extract arguments
     let verbose = matches.get_flag("verbose");
     let benchmark = matches.get_flag("benchmark");
+    let proof_path = matches.get_one::<PathBuf>("proof").unwrap();
+    let output_path = matches.get_one::<PathBuf>("output");
+    let setup_path = matches.get_one::<PathBuf>("setup");
+    let params_k = matches.get_one::<u32>("params-k").copied().unwrap_or(17);
+    let format = matches.get_one::<OutputFormat>("format").cloned().unwrap_or(OutputFormat::Json);
     
-    if verbose {
-        println!("SGD ZK Proof Verifier v0.1.0");
-        println!("=============================");
+    // Validate input files
+    if let Err(e) = cli::validate_input_file(Some(proof_path)) {
+        cli::error_exit(&e);
     }
-
-    // Parse command line arguments
-    let proof_path = matches.get_one::<String>("proof").unwrap();
-    let params_k: u32 = matches.get_one::<String>("params-k").unwrap().parse()?;
-
-    if verbose {
-        println!("Proof file: {}", proof_path);
-        println!("KZG params k: {}", params_k);
+    if let Some(setup_file) = setup_path {
+        if let Err(e) = cli::validate_input_file(Some(setup_file)) {
+            cli::error_exit(&e);
+        }
+    }
+    
+    // Validate output file directory
+    if let Some(output_file) = output_path {
+        if let Err(e) = cli::validate_output_file(Some(output_file)) {
+            cli::error_exit(&e);
+        }
+    }
+    
+    cli::verbose_println(verbose, "Starting SGD proof verification");
+    cli::verbose_println(verbose, &format!("Using circuit parameters: k={}", params_k));
+    cli::verbose_println(verbose, &format!("Proof file: {}", proof_path.display()));
+    if let Some(setup_file) = setup_path {
+        cli::verbose_println(verbose, &format!("Setup file: {}", setup_file.display()));
+    }
+    if let Some(output_file) = output_path {
+        cli::verbose_println(verbose, &format!("Output file: {}", output_file.display()));
     }
 
     // Read proof file
-    if verbose {
-        println!("\nReading proof file...");
-    }
+    cli::verbose_println(verbose, "Reading proof file...");
     
     let proof_json = fs::read_to_string(proof_path)
-        .map_err(|e| format!("Failed to read proof file: {}", e))?;
+        .map_err(|e| format!("Failed to read proof file '{}': {}", proof_path.display(), e))?;
+        
+    cli::verbose_println(verbose, &format!("Read {} bytes from proof file", proof_json.len()));
 
     // Parse proof
     let proof = proof_from_json(&proof_json)
@@ -230,7 +297,7 @@ fn verify_batch_proofs(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::tempdir;
+    // Removed unused import: tempfile::tempdir
 
     #[test]
     fn test_cli_structure() {

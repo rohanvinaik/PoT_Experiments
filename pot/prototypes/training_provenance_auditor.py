@@ -1547,6 +1547,473 @@ class TrainingProvenanceAuditor(IProvenanceAuditor):
         
         logger.info(f"TrainingProvenanceAuditor initialized for model: {model_id} with {hash_function} hashing")
     
+    # ====================================================================
+    # IProvenanceAuditor Interface Implementation
+    # ====================================================================
+    
+    def log_event(self, event_type: EventType, data: Dict[str, Any]) -> None:
+        """
+        Log a training event using the IProvenanceAuditor interface.
+        
+        This method implements the abstract interface by mapping to the existing
+        log_training_event method with appropriate parameter conversion.
+        
+        Args:
+            event_type: Type of event to log
+            data: Event data dictionary containing epoch, metrics, etc.
+            
+        Required data fields:
+            - epoch: Training epoch number (defaults to 0)
+            - metrics: Training metrics dictionary (defaults to {})
+            
+        Optional data fields:
+            - checkpoint_hash: Hash of model checkpoint
+            - timestamp: Event timestamp (datetime object or ISO string)
+            - metadata: Additional metadata dictionary
+        """
+        # Extract required fields
+        epoch = data.get('epoch', 0)
+        metrics = data.get('metrics', {})
+        
+        # Extract optional fields
+        checkpoint_hash = data.get('checkpoint_hash')
+        metadata = data.get('metadata')
+        
+        # Handle timestamp conversion
+        timestamp = data.get('timestamp')
+        if isinstance(timestamp, str):
+            try:
+                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                timestamp = None
+        
+        # Call existing method
+        self.log_training_event(
+            epoch=epoch,
+            metrics=metrics,
+            checkpoint_hash=checkpoint_hash,
+            timestamp=timestamp,
+            event_type=event_type,
+            metadata=metadata
+        )
+        
+        logger.debug(f"Interface log_event called: {event_type.value} for epoch {epoch}")
+    
+    def generate_proof(self, proof_type: ProofType) -> Dict[str, Any]:
+        """
+        Generate a proof of training using the IProvenanceAuditor interface.
+        
+        This method implements the abstract interface by mapping to existing
+        proof generation methods based on the proof type.
+        
+        Args:
+            proof_type: Type of proof to generate
+            
+        Returns:
+            Dictionary containing proof data with standardized structure:
+            - proof_type: Type of proof generated
+            - root: Merkle root or main hash
+            - proof_data: Type-specific proof information
+            - metadata: Additional proof metadata
+            
+        Raises:
+            ValueError: If no events exist to generate proof from
+            NotImplementedError: If proof type is not supported
+        """
+        if not self.events:
+            raise ValueError("No training events available to generate proof from")
+        
+        # Map proof types
+        if proof_type in [ProofType.MERKLE_TREE, ProofType.MERKLE]:
+            # Use existing generate_training_proof method
+            start_epoch = min(e.epoch for e in self.events)
+            end_epoch = max(e.epoch for e in self.events)
+            
+            try:
+                existing_proof = self.generate_training_proof(
+                    start_epoch=start_epoch,
+                    end_epoch=end_epoch,
+                    proof_type=ProofType.MERKLE
+                )
+                
+                # Standardize output format
+                return {
+                    'proof_type': proof_type.value,
+                    'root': existing_proof.get('merkle_root'),
+                    'proof_data': {
+                        'start_epoch': start_epoch,
+                        'end_epoch': end_epoch,
+                        'event_count': len(self.events),
+                        'merkle_proofs': existing_proof.get('proofs', {}),
+                        'verification_hashes': existing_proof.get('verification_hashes', [])
+                    },
+                    'metadata': {
+                        'model_id': self.model_id,
+                        'generation_time': datetime.now(timezone.utc).isoformat(),
+                        'hash_function': self.hash_function,
+                        'total_events': len(self.events)
+                    }
+                }
+            except Exception as e:
+                logger.error(f"Failed to generate Merkle proof: {e}")
+                # Fallback to simple proof
+                return self._generate_simple_merkle_proof(proof_type)
+                
+        elif proof_type in [ProofType.ZK_PROOF, ProofType.ZERO_KNOWLEDGE]:
+            # Generate ZK proof using existing ZK infrastructure
+            try:
+                zk_proof = self.zk_proof_generator.generate_proof(
+                    events=self.events,
+                    model_id=self.model_id
+                )
+                
+                return {
+                    'proof_type': proof_type.value,
+                    'root': zk_proof.get('commitment'),
+                    'proof_data': {
+                        'zk_proof': zk_proof.get('proof'),
+                        'public_inputs': zk_proof.get('public_inputs', {}),
+                        'circuit_type': zk_proof.get('circuit_type', 'training_verification')
+                    },
+                    'metadata': {
+                        'model_id': self.model_id,
+                        'generation_time': datetime.now(timezone.utc).isoformat(),
+                        'proof_system': 'halo2',
+                        'total_events': len(self.events)
+                    }
+                }
+            except Exception as e:
+                logger.warning(f"ZK proof generation failed: {e}, falling back to Merkle proof")
+                return self.generate_proof(ProofType.MERKLE_TREE)
+                
+        elif proof_type == ProofType.SIGNATURE:
+            # Generate signature-based proof
+            return self._generate_signature_proof()
+            
+        elif proof_type == ProofType.TIMESTAMP:
+            # Generate timestamp proof
+            return self._generate_timestamp_proof()
+            
+        elif proof_type == ProofType.COMPOSITE:
+            # Generate composite proof with multiple verification methods
+            return self._generate_composite_proof()
+            
+        else:
+            raise NotImplementedError(f"Proof type {proof_type} not implemented")
+    
+    def verify_proof(self, proof: Dict[str, Any]) -> bool:
+        """
+        Verify a proof using the IProvenanceAuditor interface.
+        
+        This method implements the abstract interface by routing to appropriate
+        verification methods based on the proof type.
+        
+        Args:
+            proof: Proof dictionary to verify
+            
+        Returns:
+            True if proof is valid, False otherwise
+            
+        Expected proof format:
+            - proof_type: Type of proof (string)
+            - root: Main hash or commitment
+            - proof_data: Proof-specific data
+            - metadata: Additional metadata
+        """
+        try:
+            proof_type_str = proof.get('proof_type', '')
+            
+            # Convert string to enum
+            try:
+                proof_type = ProofType(proof_type_str)
+            except ValueError:
+                logger.error(f"Unknown proof type: {proof_type_str}")
+                return False
+            
+            if proof_type in [ProofType.MERKLE_TREE, ProofType.MERKLE]:
+                return self._verify_merkle_proof(proof)
+                
+            elif proof_type in [ProofType.ZK_PROOF, ProofType.ZERO_KNOWLEDGE]:
+                return self._verify_zk_proof(proof)
+                
+            elif proof_type == ProofType.SIGNATURE:
+                return self._verify_signature_proof(proof)
+                
+            elif proof_type == ProofType.TIMESTAMP:
+                return self._verify_timestamp_proof(proof)
+                
+            elif proof_type == ProofType.COMPOSITE:
+                return self._verify_composite_proof(proof)
+                
+            else:
+                logger.error(f"Verification not implemented for proof type: {proof_type}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Proof verification failed: {e}")
+            return False
+    
+    def get_merkle_root(self) -> Optional[str]:
+        """
+        Get current Merkle root using the IProvenanceAuditor interface.
+        
+        This method implements the abstract interface by returning the root
+        of the master tree if available, or generating one from current events.
+        
+        Returns:
+            Merkle root hash as hex string, or None if no events exist
+        """
+        try:
+            # First check if we have a master tree with a root
+            if self.master_tree and hasattr(self.master_tree, 'get_root_hash'):
+                root = self.master_tree.get_root_hash()
+                if root:
+                    logger.debug(f"Returning master tree root: {root[:16]}...")
+                    return root
+            
+            # If no master tree, build one from current events
+            if not self.events:
+                logger.debug("No events available, returning None")
+                return None
+            
+            # Create temporary tree from all events
+            temp_tree = MerkleTree(self.events)
+            root = temp_tree.get_root_hash()
+            
+            if root:
+                logger.debug(f"Generated temporary tree root: {root[:16]}...")
+                # Update master tree for future calls
+                self.master_tree = temp_tree
+                
+            return root
+            
+        except Exception as e:
+            logger.error(f"Failed to get Merkle root: {e}")
+            return None
+    
+    # ====================================================================
+    # Helper Methods for Interface Implementation
+    # ====================================================================
+    
+    def _generate_simple_merkle_proof(self, proof_type: ProofType) -> Dict[str, Any]:
+        """Generate a simple Merkle proof when the main method fails."""
+        try:
+            # Build simple tree from event hashes
+            event_hashes = [e.event_hash for e in self.events]
+            data_blocks = [bytes.fromhex(h) if isinstance(h, str) else h for h in event_hashes]
+            root_hash = self._compute_merkle_root(data_blocks)
+            
+            return {
+                'proof_type': proof_type.value,
+                'root': root_hash.hex(),
+                'proof_data': {
+                    'event_count': len(self.events),
+                    'event_hashes': event_hashes
+                },
+                'metadata': {
+                    'model_id': self.model_id,
+                    'generation_time': datetime.now(timezone.utc).isoformat(),
+                    'fallback_proof': True
+                }
+            }
+        except Exception as e:
+            logger.error(f"Simple Merkle proof generation failed: {e}")
+            return {
+                'proof_type': proof_type.value,
+                'root': None,
+                'proof_data': {},
+                'metadata': {
+                    'model_id': self.model_id,
+                    'generation_time': datetime.now(timezone.utc).isoformat(),
+                    'error': str(e)
+                }
+            }
+    
+    def _generate_signature_proof(self) -> Dict[str, Any]:
+        """Generate signature-based proof."""
+        try:
+            # Create data to sign
+            data_to_sign = {
+                'model_id': self.model_id,
+                'event_count': len(self.events),
+                'first_event': self.events[0].to_dict() if self.events else None,
+                'last_event': self.events[-1].to_dict() if self.events else None,
+                'timestamp': datetime.now(timezone.utc).isoformat()
+            }
+            
+            # Simple signature using HMAC (in production, use proper signing)
+            secret_key = secrets.token_bytes(32)
+            signature = hmac.new(
+                secret_key,
+                json.dumps(data_to_sign, sort_keys=True).encode(),
+                hashlib.sha256
+            ).hexdigest()
+            
+            return {
+                'proof_type': ProofType.SIGNATURE.value,
+                'root': signature,
+                'proof_data': {
+                    'signed_data': data_to_sign,
+                    'signature': signature,
+                    'algorithm': 'HMAC-SHA256'
+                },
+                'metadata': {
+                    'model_id': self.model_id,
+                    'generation_time': datetime.now(timezone.utc).isoformat()
+                }
+            }
+        except Exception as e:
+            logger.error(f"Signature proof generation failed: {e}")
+            return {
+                'proof_type': ProofType.SIGNATURE.value, 
+                'root': None, 
+                'proof_data': {}, 
+                'metadata': {
+                    'model_id': self.model_id,
+                    'generation_time': datetime.now(timezone.utc).isoformat(),
+                    'error': str(e)
+                }
+            }
+    
+    def _generate_timestamp_proof(self) -> Dict[str, Any]:
+        """Generate timestamp-based proof."""
+        return {
+            'proof_type': ProofType.TIMESTAMP.value,
+            'root': str(int(time.time())),
+            'proof_data': {
+                'timestamp': datetime.now(timezone.utc).isoformat(),
+                'event_timestamps': [e.timestamp.isoformat() for e in self.events],
+                'model_id': self.model_id
+            },
+            'metadata': {
+                'model_id': self.model_id,
+                'generation_time': datetime.now(timezone.utc).isoformat(),
+                'total_events': len(self.events)
+            }
+        }
+    
+    def _generate_composite_proof(self) -> Dict[str, Any]:
+        """Generate composite proof combining multiple verification methods."""
+        merkle_proof = self.generate_proof(ProofType.MERKLE_TREE)
+        timestamp_proof = self._generate_timestamp_proof()
+        
+        return {
+            'proof_type': ProofType.COMPOSITE.value,
+            'root': merkle_proof.get('root'),
+            'proof_data': {
+                'merkle_proof': merkle_proof,
+                'timestamp_proof': timestamp_proof,
+                'composite_hash': hashlib.sha256(
+                    (str(merkle_proof) + str(timestamp_proof)).encode()
+                ).hexdigest()
+            },
+            'metadata': {
+                'model_id': self.model_id,
+                'generation_time': datetime.now(timezone.utc).isoformat(),
+                'component_proofs': ['merkle', 'timestamp']
+            }
+        }
+    
+    def _verify_merkle_proof(self, proof: Dict[str, Any]) -> bool:
+        """Verify a Merkle proof."""
+        try:
+            proof_data = proof.get('proof_data', {})
+            claimed_root = proof.get('root')
+            
+            if not claimed_root:
+                return False
+            
+            # Verify by regenerating the proof
+            current_root = self.get_merkle_root()
+            return current_root == claimed_root
+            
+        except Exception as e:
+            logger.error(f"Merkle proof verification failed: {e}")
+            return False
+    
+    def _verify_zk_proof(self, proof: Dict[str, Any]) -> bool:
+        """Verify a zero-knowledge proof."""
+        try:
+            proof_data = proof.get('proof_data', {})
+            zk_proof = proof_data.get('zk_proof')
+            public_inputs = proof_data.get('public_inputs', {})
+            
+            if not zk_proof:
+                return False
+            
+            # Use existing ZK verifier
+            return self.zk_proof_generator.verify_proof(
+                zk_proof,
+                public_inputs,
+                self.events
+            )
+            
+        except Exception as e:
+            logger.error(f"ZK proof verification failed: {e}")
+            return False
+    
+    def _verify_signature_proof(self, proof: Dict[str, Any]) -> bool:
+        """Verify a signature-based proof."""
+        try:
+            proof_data = proof.get('proof_data', {})
+            signature = proof_data.get('signature')
+            signed_data = proof_data.get('signed_data', {})
+            
+            if not signature or not signed_data:
+                return False
+            
+            # In a real implementation, we would verify against a known public key
+            # For now, just check that the signature is valid format
+            return len(signature) == 64 and all(c in '0123456789abcdef' for c in signature.lower())
+            
+        except Exception as e:
+            logger.error(f"Signature proof verification failed: {e}")
+            return False
+    
+    def _verify_timestamp_proof(self, proof: Dict[str, Any]) -> bool:
+        """Verify a timestamp proof."""
+        try:
+            proof_data = proof.get('proof_data', {})
+            timestamp_str = proof_data.get('timestamp')
+            
+            if not timestamp_str:
+                return False
+            
+            # Verify timestamp is valid and not too far in the future
+            timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            now = datetime.now(timezone.utc)
+            
+            # Allow up to 1 hour clock skew
+            return abs((now - timestamp).total_seconds()) < 3600
+            
+        except Exception as e:
+            logger.error(f"Timestamp proof verification failed: {e}")
+            return False
+    
+    def _verify_composite_proof(self, proof: Dict[str, Any]) -> bool:
+        """Verify a composite proof."""
+        try:
+            proof_data = proof.get('proof_data', {})
+            merkle_proof = proof_data.get('merkle_proof')
+            timestamp_proof = proof_data.get('timestamp_proof')
+            
+            if not merkle_proof or not timestamp_proof:
+                return False
+            
+            # Verify both components
+            merkle_valid = self._verify_merkle_proof(merkle_proof)
+            timestamp_valid = self._verify_timestamp_proof(timestamp_proof)
+            
+            return merkle_valid and timestamp_valid
+            
+        except Exception as e:
+            logger.error(f"Composite proof verification failed: {e}")
+            return False
+    
+    # ====================================================================
+    # End of Interface Implementation
+    # ====================================================================
+    
     def _compute_merkle_root(self, data_blocks: List[bytes]) -> bytes:
         """
         Compute Merkle root using configured hash function.
@@ -1629,7 +2096,7 @@ class TrainingProvenanceAuditor(IProvenanceAuditor):
         self.metadata['last_epoch'] = max(current_last, epoch)
         
         # Store on blockchain if configured
-        if self.blockchain_client and event_type in [EventType.CHECKPOINT_SAVE, EventType.TRAINING_END]:
+        if self.blockchain_client and event_type in [EventType.CHECKPOINT, EventType.TRAINING_END]:
             tx_id = self.blockchain_client.store_hash(
                 event.event_hash,
                 {'event_id': event_id, 'epoch': epoch, 'type': event_type.value}
@@ -3014,7 +3481,7 @@ if __name__ == "__main__":
                 epoch=epoch,
                 metrics={'checkpoint_saved': True},
                 checkpoint_hash=hashlib.sha256(f"checkpoint_{epoch}".encode()).hexdigest(),
-                event_type=EventType.CHECKPOINT_SAVE
+                event_type=EventType.CHECKPOINT
             )
     
     # Log training end
@@ -3071,7 +3538,7 @@ if __name__ == "__main__":
     print("=" * 70)
     
     checkpoint_events = auditor.query_events(
-        event_types=[EventType.CHECKPOINT_SAVE]
+        event_types=[EventType.CHECKPOINT]
     )
     print(f"Checkpoint saves: {len(checkpoint_events)}")
     

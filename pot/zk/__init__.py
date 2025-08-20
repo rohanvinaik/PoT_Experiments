@@ -31,12 +31,7 @@ from .witness import (
     build_zk_statement
 )
 
-from .auto_prover import (
-    prove_sgd_step,
-    verify_sgd_step,
-    prove_lora_step,
-    verify_lora_step,
-)
+from .auto_prover import AutoProver
 
 from .metrics import (
     ZKMetricsCollector,
@@ -52,11 +47,8 @@ __all__ = [
     'ZKProofType',
     'CommitmentScheme',
     
-    # Proving and Verification
-    'prove_sgd_step',
-    'verify_sgd_step',
-    'prove_lora_step',
-    'verify_lora_step',
+    # Auto Prover
+    'AutoProver',
     
     # Commitment Functions
     'PoseidonHasher',

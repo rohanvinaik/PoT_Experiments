@@ -1,10 +1,8 @@
-use ff::Field;
 use halo2_proofs::{
     plonk::{keygen_pk, keygen_vk, ProvingKey, VerifyingKey},
     poly::commitment::Params,
 };
-use pasta_curves::{pallas, vesta, EqAffine};
-use rand::rngs::OsRng;
+use pasta_curves::{pallas, vesta};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -13,6 +11,7 @@ pub mod fixed_point;
 pub mod poseidon;
 pub mod lora_circuit;
 pub mod lora_circuit_optimized;
+pub mod cli;
 
 use circuit::{SGDCircuit, SGDCircuitParams, SGDPublicInputs, SGDWitness};
 

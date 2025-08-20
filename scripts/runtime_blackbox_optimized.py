@@ -8,6 +8,14 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Local model configuration
+LOCAL_MODEL_BASE = "/Users/rohanvinaik/LLM_Models"
+LOCAL_MODEL_MAPPING = {
+    "gpt2": f"{LOCAL_MODEL_BASE}/gpt2",
+    "distilgpt2": f"{LOCAL_MODEL_BASE}/distilgpt2", 
+    "gpt2-medium": f"{LOCAL_MODEL_BASE}/gpt2-medium",
+}
+
 import json
 import time
 import hashlib
@@ -159,14 +167,20 @@ def run_optimized_test(test_case: Dict) -> Dict:
     # Load models and tokenizer
     t_start = time.time()
     
-    tokenizer = AutoTokenizer.from_pretrained(test_case['model_a'])
+    # Use local model paths if available
+    local_path_a = LOCAL_MODEL_MAPPING.get(test_case['model_a'], test_case['model_a'])
+    local_path_b = LOCAL_MODEL_MAPPING.get(test_case['model_b'], test_case['model_b'])
+    
+    print(f"Loading models from: {local_path_a} vs {local_path_b}")
+    
+    tokenizer = AutoTokenizer.from_pretrained(local_path_a, local_files_only=True)
     tokenizer.pad_token = tokenizer.eos_token
     
-    model_a = AutoModelForCausalLM.from_pretrained(test_case['model_a'])
+    model_a = AutoModelForCausalLM.from_pretrained(local_path_a, local_files_only=True)
     t_load_a = time.time() - t_start
     
     t_start = time.time()
-    model_b = AutoModelForCausalLM.from_pretrained(test_case['model_b'])
+    model_b = AutoModelForCausalLM.from_pretrained(local_path_b, local_files_only=True)
     t_load_b = time.time() - t_start
     
     # Initialize optimized scorer

@@ -24,7 +24,7 @@ A comprehensive, production-ready framework for verifying the authenticity and i
 - **False Rejection Rate**: < 1%
 - **Query Efficiency**: 2-3 average queries with sequential testing
 - **Detection Rate**: 100% against all tested attack vectors
-- **Validation Success**: 100.0% (±0.0%) (32 runs) deterministic framework
+- **Validation Success**: 100.0% (±0.0%) (39 runs) deterministic framework
 - **Legacy Validation**: 95.5% (21/22 experiments with random models)
 - **Performance**: >6,250x specification (measured: 0.000146s avg)
 
@@ -561,8 +561,8 @@ Our comprehensive experimental validation demonstrates that **all core paper cla
 
 | Paper Claim | Specification | Measured Result | Validation Status |
 |-------------|---------------|-----------------|-------------------|
-| **Fast Verification** | <1 second | **0.000146s** (146μs)| ✅ **6,861x faster**|
-| **High Accuracy** | >95% success | **100.0% success** (32 runs)| ✅ **+5.0% margin**|
+| **Fast Verification** | <1 second | **0.000146s** (146μs)| ✅ **6,857x faster**|
+| **High Accuracy** | >95% success | **100.0% success** (39 runs)| ✅ **+5.0% margin**|
 | **Attack Detection** | Robust defense | **100% detection** | ✅ **Perfect security** |
 | **Memory Efficiency** | <10MB usage | **<10MB confirmed** | ✅ **Within spec** |
 | **Production Throughput** | High performance | **>11,000/sec** | ✅ **Enterprise ready** |
@@ -785,6 +785,97 @@ Based on rolling analysis of all validation runs:
 - **Recent Performance:** 100.0% success in last 10 runs
 
 *Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T12:33:40.659211*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 43
+- **Deterministic Framework:** 100.0% success rate (33 runs)
+- **Average Verification Time:** 0.000146s (±0.000023s)
+- **Performance Consistency:** 16.0% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:05:35.875493*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 44
+- **Deterministic Framework:** 100.0% success rate (34 runs)
+- **Average Verification Time:** 0.000147s (±0.000024s)
+- **Performance Consistency:** 16.5% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:33:34.789780*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 45
+- **Deterministic Framework:** 100.0% success rate (35 runs)
+- **Average Verification Time:** 0.000147s (±0.000024s)
+- **Performance Consistency:** 16.3% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:35:40.729784*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 46
+- **Deterministic Framework:** 100.0% success rate (36 runs)
+- **Average Verification Time:** 0.000147s (±0.000024s)
+- **Performance Consistency:** 16.1% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:37:43.521906*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 47
+- **Deterministic Framework:** 100.0% success rate (37 runs)
+- **Average Verification Time:** 0.000146s (±0.000023s)
+- **Performance Consistency:** 15.9% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:43:59.717366*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 48
+- **Deterministic Framework:** 100.0% success rate (38 runs)
+- **Average Verification Time:** 0.000146s (±0.000023s)
+- **Performance Consistency:** 15.8% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:46:09.492917*
+
+
+### 📈 **Live Validation Metrics** (Updated Automatically)
+
+Based on rolling analysis of all validation runs:
+
+- **Total Validation Runs:** 49
+- **Deterministic Framework:** 100.0% success rate (39 runs)
+- **Average Verification Time:** 0.000146s (±0.000023s)
+- **Performance Consistency:** 15.6% coefficient of variation
+- **Recent Performance:** 100.0% success in last 10 runs
+
+*Metrics automatically updated from `validation_results_history.json` | Last Updated: 2025-08-20T15:48:20.289189*
 
 ### 🎯 How to Validate Results Yourself
 

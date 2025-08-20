@@ -26,9 +26,22 @@ try:
     from pot.audit.commit_reveal import compute_commitment, write_audit_record, CommitmentRecord
     from pot.prototypes.training_provenance_auditor import BlockchainClient, BlockchainConfig
     CORE_COMPONENTS_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     CORE_COMPONENTS_AVAILABLE = False
-    warnings.warn("Core PoT components not fully available")
+    warnings.warn(f"Core PoT components not fully available: {e}")
+    # Define dummy classes for missing components
+    class FingerprintConfig: pass
+    class FingerprintResult: pass
+    class ChallengeConfig: pass
+    class SPRTResult: pass
+    class CommitmentRecord: pass
+    class BlockchainClient: pass
+    class BlockchainConfig: pass
+    def fingerprint_run(*args, **kwargs): return None
+    def generate_challenges(*args, **kwargs): return []
+    def sequential_verify(*args, **kwargs): return None
+    def compute_commitment(*args, **kwargs): return ""
+    def write_audit_record(*args, **kwargs): return None
 
 # Import our components
 try:
@@ -890,11 +903,7 @@ class ProofOfTraining:
         """Initialize verification components based on configuration"""
         # Fuzzy hash verifier
         if FUZZY_AVAILABLE:
-            threshold = 0.95 if self.security_level == SecurityLevel.HIGH else 0.85
-            self.fuzzy_verifier = FuzzyHashVerifier(
-                similarity_threshold=threshold,
-                algorithm=HashAlgorithm.SHA256
-            )
+            self.fuzzy_verifier = FuzzyHashVerifier()
         else:
             self.fuzzy_verifier = None
             
@@ -1310,11 +1319,11 @@ class ProofOfTraining:
                             response_hash = self.fuzzy_verifier.generate_fuzzy_hash(
                                 np.array(response)
                             )
-                            result = self.fuzzy_verifier.verify_fuzzy(
-                                response_hash, ref_response
-                            )
-                            passed = result.is_valid
-                            similarity = result.similarity_score
+                            # Convert to new API format
+                            h1 = {"algorithm": "sha256", "digest": response_hash, "is_fuzzy": False}
+                            h2 = {"algorithm": "sha256", "digest": ref_response, "is_fuzzy": False}
+                            passed = self.fuzzy_verifier.verify_similarity(h1, h2, threshold=0.85)
+                            similarity = self.fuzzy_verifier.compare(h1, h2)
                         else:
                             response_hash = hashlib.sha256(str(response).encode()).hexdigest()
                             passed = response_hash == ref_response
@@ -1649,10 +1658,11 @@ class ProofOfTraining:
                 for ref_responses in registration.reference_responses.values():
                     for ref_response in ref_responses:
                         if ref_response:
-                            result = self.fuzzy_verifier.verify_fuzzy(
-                                output_hash, ref_response
-                            )
-                            if result.is_valid:
+                            # Convert to new API format  
+                            h1 = {"algorithm": "sha256", "digest": output_hash, "is_fuzzy": False}
+                            h2 = {"algorithm": "sha256", "digest": ref_response, "is_fuzzy": False}
+                            is_similar = self.fuzzy_verifier.verify_similarity(h1, h2, threshold=0.85)
+                            if is_similar:
                                 challenges_passed += 1
                                 break
                     else:

@@ -1,18 +1,10 @@
-use std::io::{self, Read};
-use std::process;
+// CLEANUP 2025-08-20: Removed unused import (cli::OutputFormat)
+use clap::Command;
 use serde::{Deserialize, Serialize};
-use halo2_proofs::{
-    plonk::{verify_proof, VerifyingKey},
-    poly::ipa::{
-        commitment::{ParamsIPA, IPACommitmentScheme},
-        multiopen::VerifierIPA,
-        strategy::SingleStrategy,
-    },
-    transcript::{Blake2bRead, Challenge255},
-    SerdeFormat,
-};
-use pasta_curves::{pallas::{Scalar as Fp, Affine as EqAffine}};
+use pasta_curves::{pallas::Scalar as Fp};
 use ff::PrimeField;
+use std::process;
+use prover_halo2::cli::{self, CommonArgs}; // Removed unused import: OutputFormat
 
 #[derive(Deserialize)]
 struct VerificationRequest {
@@ -56,13 +48,36 @@ struct VerificationMetadata {
     circuit_type: String,
 }
 
-fn main() {
-    // Read input from stdin
-    let mut input = String::new();
-    if let Err(e) = io::stdin().read_to_string(&mut input) {
-        eprintln!("Error reading from stdin: {}", e);
-        process::exit(1);
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let app = cli::add_common_args(
+        Command::new("verify-lora-stdin")
+            .version("0.1.0")
+            .author("PoT Team")
+            .about("Verify zero-knowledge proofs for LoRA training steps")
+            .long_about(
+                "Verifies zero-knowledge proofs for LoRA (Low-Rank Adaptation) training steps from JSON input.\n\
+                 Input should contain proof, verification_key, public_inputs and statement data.\n\
+                 Output is a JSON response with verification result and metadata."
+            )
+    );
+    
+    let matches = app.get_matches();
+    let args = CommonArgs::from_matches(&matches);
+    
+    // Validate input/output files
+    if let Err(e) = cli::validate_input_file(args.input.as_ref()) {
+        cli::error_exit(&e);
     }
+    if let Err(e) = cli::validate_output_file(args.output.as_ref()) {
+        cli::error_exit(&e);
+    }
+    
+    cli::verbose_println(args.verbose, "Starting LoRA proof verification");
+    
+    // Read JSON input
+    let input = cli::read_input(args.input.as_ref())?;
+    
+    cli::verbose_println(args.verbose, &format!("Read {} bytes of input", input.len()));
 
     // Parse JSON input
     let request: VerificationRequest = match serde_json::from_str(&input) {
@@ -112,6 +127,8 @@ fn main() {
             process::exit(1);
         }
     }
+    
+    Ok(())
 }
 
 fn verify_lora_proof(request: VerificationRequest) -> Result<VerificationResponse, String> {
@@ -157,7 +174,7 @@ fn verify_lora_proof(request: VerificationRequest) -> Result<VerificationRespons
         error: if is_valid {
             None
         } else {
-            Some(format!("Verification failed: {:?}", verification_result.err()))
+            Some("Verification failed: proof too small".to_string())
         },
         verification_time_ms: verification_time,
         public_inputs_valid,

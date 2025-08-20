@@ -1,8 +1,9 @@
+// CLEANUP 2025-08-20: Removed unused imports (halo2_proofs::{arithmetic::Field, plonk::Circuit})
 use halo2_proofs::{
-    arithmetic::Field,
+    // Removed unused imports: arithmetic::Field, Circuit
     dev::MockProver,
     pasta::Fp,
-    plonk::{keygen_vk, keygen_pk, create_proof, verify_proof, Circuit},
+    plonk::{keygen_vk, keygen_pk, create_proof, verify_proof},
     poly::commitment::Params,
     transcript::{Blake2bRead, Blake2bWrite, Challenge255},
 };
