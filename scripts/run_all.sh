@@ -249,6 +249,89 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run CorrectedDifferenceScorer tests
+print_header "TESTING CORRECTED DIFFERENCE SCORER"
+print_info "Testing scorer with proper orientation (larger = more different)"
+
+if ${PYTHON} -c "
+from pot.scoring.diff_scorer import CorrectedDifferenceScorer
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
+
+print('Testing CorrectedDifferenceScorer...')
+tokenizer = AutoTokenizer.from_pretrained('gpt2')
+tokenizer.pad_token = tokenizer.eos_token
+
+device = torch.device('cuda' if torch.cuda.is_available() else 
+                      'mps' if torch.backends.mps.is_available() else 'cpu')
+model_a = AutoModelForCausalLM.from_pretrained('gpt2').to(device)
+model_b = AutoModelForCausalLM.from_pretrained('distilgpt2').to(device)
+
+scorer = CorrectedDifferenceScorer()
+prompts = ['The capital of France is', 'Machine learning is']
+
+# Test same model
+scores_same = scorer.score_batch(model_a, model_a, prompts, tokenizer, k=16)
+avg_same = sum(scores_same) / len(scores_same)
+
+# Test different models
+scores_diff = scorer.score_batch(model_a, model_b, prompts, tokenizer, k=16)
+avg_diff = sum(scores_diff) / len(scores_diff)
+
+print(f'Same model score: {avg_same:.6f} (expected ~0)')
+print(f'Different models score: {avg_diff:.6f} (expected > 0)')
+
+assert avg_same < 0.001, 'Same model score too high'
+assert avg_diff > 0.1, 'Different model score too low'
+assert avg_diff > avg_same, 'Score orientation incorrect'
+
+print('✅ CorrectedDifferenceScorer working correctly')
+" > "${RESULTS_DIR}/corrected_scorer_${TIMESTAMP}.log" 2>&1; then
+    print_success "CorrectedDifferenceScorer tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    print_info "Scorer orientation verified: larger scores = more different models"
+else
+    print_error "CorrectedDifferenceScorer tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/corrected_scorer_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+# Run integrated calibration test
+print_header "RUNNING INTEGRATED CALIBRATION TEST"
+print_info "Testing CorrectedDifferenceScorer + CalibratedConfig + EnhancedSequentialTester"
+
+if ${PYTHON} scripts/test_integrated_calibration.py > "${RESULTS_DIR}/integrated_calibration_${TIMESTAMP}.log" 2>&1; then
+    print_success "Integrated calibration test passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check for perfect calibration
+    LATEST_INTEGRATED=$(ls -t experimental_results/integrated_calibration/integrated_test_*.json 2>/dev/null | head -1)
+    if [ -f "$LATEST_INTEGRATED" ]; then
+        INTEGRATED_SUMMARY=$(python3 -c "
+import json
+with open('$LATEST_INTEGRATED') as f:
+    data = json.load(f)
+    all_passed = data['summary']['all_passed']
+    undecided = data['summary']['undecided_count']
+    if all_passed and undecided == 0:
+        print('🎉 PERFECT CALIBRATION achieved!')
+    elif all_passed:
+        print('✅ All tests passed with calibrated thresholds')
+    else:
+        print('⚠️ Some calibration issues remain')
+" 2>/dev/null)
+        if [ -n "$INTEGRATED_SUMMARY" ]; then
+            print_info "$INTEGRATED_SUMMARY"
+        fi
+    fi
+else
+    print_error "Integrated calibration test failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/integrated_calibration_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Run progressive testing strategy for efficient verification
 print_header "RUNNING PROGRESSIVE TESTING STRATEGY"
 print_info "Testing multi-stage approach with early stopping"

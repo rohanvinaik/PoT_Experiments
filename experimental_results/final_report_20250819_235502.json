@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-08-19T23:55:02.966280",
+  "components": {
+    "enhanced_diff_decision": true,
+    "calibrated_thresholds": true,
+    "corrected_scorer": true,
+    "integrated_calibration": false,
+    "runtime_validation": true,
+    "optimized_performance": true,
+    "progressive_testing": false,
+    "revalidation": false
+  },
+  "status": "INCOMPLETE",
+  "key_metrics": {
+    "same_model_score": 0.0,
+    "different_model_score": 0.72,
+    "speedup": 49.562587803187334,
+    "undecided_count": null
+  }
+}

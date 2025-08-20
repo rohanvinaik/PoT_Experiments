@@ -141,11 +141,13 @@ class EnhancedSequentialTester:
         self.M2 = 0.0  # Welford's algorithm
         self.raw_scores: List[float] = []
         self.clipped_scores: List[float] = []
+        self.differences: List[float] = []  # Track differences for compatibility
     
     def update(self, score: float) -> None:
         """Update with new score"""
         self.n += 1
         self.raw_scores.append(score)
+        self.differences.append(score)  # Track differences
         
         # Clip score for stable CI
         clipped = np.clip(score, self.config.score_clip_low, self.config.score_clip_high)
