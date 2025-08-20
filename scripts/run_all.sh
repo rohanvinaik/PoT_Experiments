@@ -866,6 +866,36 @@ else
     FAILED_TESTS=$((FAILED_TESTS + 1))
 fi
 
+# Test comprehensive result schema
+print_header "RUNNING RESULT SCHEMA TESTS"
+print_info "Testing comprehensive result structure and audit trail"
+
+if ${PYTHON} scripts/test_result_schema.py > "${RESULTS_DIR}/result_schema_${TIMESTAMP}.log" 2>&1; then
+    print_success "Result schema tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    print_info "✅ Comprehensive result structure implemented"
+    print_info "✅ Merkle root audit trail working"
+else
+    print_error "Result schema tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
+# Test result schema integration
+print_header "RUNNING RESULT SCHEMA INTEGRATION TESTS"
+print_info "Testing integration with verification pipeline"
+
+if ${PYTHON} scripts/test_result_schema_integration.py > "${RESULTS_DIR}/result_schema_integration_${TIMESTAMP}.log" 2>&1; then
+    print_success "Result schema integration tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    print_info "✅ Pipeline integration working"
+    print_info "✅ Result persistence functional"
+else
+    print_error "Result schema integration tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
 # Extract available algorithms
 FUZZY_ALGO_SUMMARY=$(python3 -c "
 import sys, os
