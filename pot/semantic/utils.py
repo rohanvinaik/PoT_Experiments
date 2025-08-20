@@ -21,6 +21,11 @@ from .types import ConceptVector, SemanticLibrary, MatchingConfig, SemanticDista
 from .base import IConceptLibrary
 # Import concrete class only when needed (lazy import)
 
+# For type hints only
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .library import ConceptLibrary
+
 logger = logging.getLogger(__name__)
 
 
@@ -899,7 +904,7 @@ def bundle_hypervectors(hvs: List[torch.Tensor],
 # Visualization Helpers
 # ============================================================================
 
-def plot_concept_space(library: ConceptLibrary, embeddings: Optional[torch.Tensor] = None,
+def plot_concept_space(library: 'ConceptLibrary', embeddings: Optional[torch.Tensor] = None,
                       method: str = 'pca', show_labels: bool = True,
                       figsize: Tuple[int, int] = (10, 8)) -> matplotlib.figure.Figure:
     """

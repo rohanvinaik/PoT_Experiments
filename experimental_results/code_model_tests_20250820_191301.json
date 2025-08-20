@@ -1,0 +1,274 @@
+[
+  {
+    "scenario": {
+      "name": "Fine-tuning Detection",
+      "description": "Can we detect when GPT-2 has been fine-tuned on code?",
+      "model_a": "gpt2",
+      "model_b": "microsoft/CodeGPT-small-py",
+      "expected": "DIFFERENT",
+      "hypothesis": "Code fine-tuning should create detectable differences"
+    },
+    "runs": [],
+    "vocabulary_analysis": {},
+    "summary": {},
+    "error": "Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.\nSee the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434"
+  },
+  {
+    "scenario": {
+      "name": "Code Model Comparison",
+      "description": "Different architectures trained on code",
+      "model_a": "Salesforce/codegen-350M-mono",
+      "model_b": "codeparrot/codeparrot-small",
+      "expected": "DIFFERENT",
+      "hypothesis": "Different code models should be distinguishable"
+    },
+    "runs": [],
+    "vocabulary_analysis": {},
+    "summary": {},
+    "error": "Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.\nSee the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434"
+  },
+  {
+    "scenario": {
+      "name": "Cross-Domain Test",
+      "description": "General language model vs code-specific model",
+      "model_a": "gpt2",
+      "model_b": "Salesforce/codegen-350M-mono",
+      "expected": "DIFFERENT",
+      "hypothesis": "Domain specialization creates strong differences"
+    },
+    "runs": [],
+    "vocabulary_analysis": {},
+    "summary": {},
+    "error": "Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.\nSee the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434"
+  },
+  {
+    "scenario": {
+      "name": "Architecture Family Test",
+      "description": "GPT-Neo vs GPT-2 (different implementations)",
+      "model_a": "EleutherAI/gpt-neo-125m",
+      "model_b": "gpt2",
+      "expected": "DIFFERENT",
+      "hypothesis": "Different architectures are distinguishable"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 8.789453029632568,
+        "mean_kl_div": 2.882214409609636
+      },
+      {
+        "run": 1,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 8.79355788230896,
+        "mean_kl_div": 2.882214409609636
+      },
+      {
+        "run": 2,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 8.727514266967773,
+        "mean_kl_div": 2.882214409609636
+      },
+      {
+        "run": 3,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 8.713977813720703,
+        "mean_kl_div": 2.882214409609636
+      },
+      {
+        "run": 4,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 8.767467975616455,
+        "mean_kl_div": 2.882214409609636
+      }
+    ],
+    "vocabulary_analysis": {
+      "vocab_size_a": 50257,
+      "vocab_size_b": 50257,
+      "code_token_analysis": {
+        "def": {
+          "model_a_ids": [
+            4299
+          ],
+          "model_b_ids": [
+            4299
+          ],
+          "same_tokenization": true
+        },
+        "class": {
+          "model_a_ids": [
+            4871
+          ],
+          "model_b_ids": [
+            4871
+          ],
+          "same_tokenization": true
+        },
+        "import": {
+          "model_a_ids": [
+            11748
+          ],
+          "model_b_ids": [
+            11748
+          ],
+          "same_tokenization": true
+        },
+        "return": {
+          "model_a_ids": [
+            7783
+          ],
+          "model_b_ids": [
+            7783
+          ],
+          "same_tokenization": true
+        },
+        "if": {
+          "model_a_ids": [
+            361
+          ],
+          "model_b_ids": [
+            361
+          ],
+          "same_tokenization": true
+        },
+        "for": {
+          "model_a_ids": [
+            1640
+          ],
+          "model_b_ids": [
+            1640
+          ],
+          "same_tokenization": true
+        },
+        "while": {
+          "model_a_ids": [
+            4514
+          ],
+          "model_b_ids": [
+            4514
+          ],
+          "same_tokenization": true
+        },
+        "(": {
+          "model_a_ids": [
+            7
+          ],
+          "model_b_ids": [
+            7
+          ],
+          "same_tokenization": true
+        },
+        ")": {
+          "model_a_ids": [
+            8
+          ],
+          "model_b_ids": [
+            8
+          ],
+          "same_tokenization": true
+        },
+        "[": {
+          "model_a_ids": [
+            58
+          ],
+          "model_b_ids": [
+            58
+          ],
+          "same_tokenization": true
+        },
+        "]": {
+          "model_a_ids": [
+            60
+          ],
+          "model_b_ids": [
+            60
+          ],
+          "same_tokenization": true
+        },
+        "{": {
+          "model_a_ids": [
+            90
+          ],
+          "model_b_ids": [
+            90
+          ],
+          "same_tokenization": true
+        },
+        "}": {
+          "model_a_ids": [
+            92
+          ],
+          "model_b_ids": [
+            92
+          ],
+          "same_tokenization": true
+        },
+        ":": {
+          "model_a_ids": [
+            25
+          ],
+          "model_b_ids": [
+            25
+          ],
+          "same_tokenization": true
+        },
+        "=": {
+          "model_a_ids": [
+            28
+          ],
+          "model_b_ids": [
+            28
+          ],
+          "same_tokenization": true
+        },
+        "+=": {
+          "model_a_ids": [
+            47932
+          ],
+          "model_b_ids": [
+            47932
+          ],
+          "same_tokenization": true
+        },
+        "==": {
+          "model_a_ids": [
+            855
+          ],
+          "model_b_ids": [
+            855
+          ],
+          "same_tokenization": true
+        },
+        "!=": {
+          "model_a_ids": [
+            0,
+            28
+          ],
+          "model_b_ids": [
+            0,
+            28
+          ],
+          "same_tokenization": true
+        }
+      },
+      "overlap_ratio": 1.0
+    },
+    "summary": {
+      "total_runs": 5,
+      "decisions": {
+        "DIFFERENT": 5
+      },
+      "majority_decision": "DIFFERENT",
+      "matches_expected": true,
+      "avg_queries": 12.0,
+      "avg_confidence": 0.975,
+      "avg_time": 8.758394193649291,
+      "vocabulary_overlap": 1.0
+    }
+  }
+]

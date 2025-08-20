@@ -1,0 +1,919 @@
+[
+  {
+    "scenario": {
+      "name": "Code Specialization Detection",
+      "description": "General model vs code-specialized model",
+      "model_a": "gpt2",
+      "model_b": "bigcode/tiny_starcoder_py",
+      "expected": "DIFFERENT",
+      "hypothesis": "Code specialization creates detectable differences"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 9.105578899383545,
+        "mean_kl_div": 13.493518908818563
+      },
+      {
+        "run": 1,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 9.143635034561157,
+        "mean_kl_div": 13.493518908818563
+      },
+      {
+        "run": 2,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 9.131384134292603,
+        "mean_kl_div": 13.493518908818563
+      },
+      {
+        "run": 3,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 9.11513614654541,
+        "mean_kl_div": 13.493518908818563
+      },
+      {
+        "run": 4,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 9.134974241256714,
+        "mean_kl_div": 13.493518908818563
+      }
+    ],
+    "vocabulary_analysis": {
+      "vocab_size_a": 50257,
+      "vocab_size_b": 49152,
+      "code_token_analysis": {
+        "def": {
+          "model_a_ids": [
+            4299
+          ],
+          "model_b_ids": [
+            589
+          ],
+          "same_tokenization": false
+        },
+        "class": {
+          "model_a_ids": [
+            4871
+          ],
+          "model_b_ids": [
+            823
+          ],
+          "same_tokenization": false
+        },
+        "import": {
+          "model_a_ids": [
+            11748
+          ],
+          "model_b_ids": [
+            465
+          ],
+          "same_tokenization": false
+        },
+        "return": {
+          "model_a_ids": [
+            7783
+          ],
+          "model_b_ids": [
+            601
+          ],
+          "same_tokenization": false
+        },
+        "if": {
+          "model_a_ids": [
+            361
+          ],
+          "model_b_ids": [
+            325
+          ],
+          "same_tokenization": false
+        },
+        "for": {
+          "model_a_ids": [
+            1640
+          ],
+          "model_b_ids": [
+            979
+          ],
+          "same_tokenization": false
+        },
+        "while": {
+          "model_a_ids": [
+            4514
+          ],
+          "model_b_ids": [
+            5525
+          ],
+          "same_tokenization": false
+        },
+        "(": {
+          "model_a_ids": [
+            7
+          ],
+          "model_b_ids": [
+            26
+          ],
+          "same_tokenization": false
+        },
+        ")": {
+          "model_a_ids": [
+            8
+          ],
+          "model_b_ids": [
+            27
+          ],
+          "same_tokenization": false
+        },
+        "[": {
+          "model_a_ids": [
+            58
+          ],
+          "model_b_ids": [
+            77
+          ],
+          "same_tokenization": false
+        },
+        "]": {
+          "model_a_ids": [
+            60
+          ],
+          "model_b_ids": [
+            79
+          ],
+          "same_tokenization": false
+        },
+        "{": {
+          "model_a_ids": [
+            90
+          ],
+          "model_b_ids": [
+            109
+          ],
+          "same_tokenization": false
+        },
+        "}": {
+          "model_a_ids": [
+            92
+          ],
+          "model_b_ids": [
+            111
+          ],
+          "same_tokenization": false
+        },
+        ":": {
+          "model_a_ids": [
+            25
+          ],
+          "model_b_ids": [
+            44
+          ],
+          "same_tokenization": false
+        },
+        "=": {
+          "model_a_ids": [
+            28
+          ],
+          "model_b_ids": [
+            47
+          ],
+          "same_tokenization": false
+        },
+        "+=": {
+          "model_a_ids": [
+            47932
+          ],
+          "model_b_ids": [
+            9372
+          ],
+          "same_tokenization": false
+        },
+        "==": {
+          "model_a_ids": [
+            855
+          ],
+          "model_b_ids": [
+            379
+          ],
+          "same_tokenization": false
+        },
+        "!=": {
+          "model_a_ids": [
+            0,
+            28
+          ],
+          "model_b_ids": [
+            6901
+          ],
+          "same_tokenization": false
+        }
+      },
+      "overlap_ratio": 0.9780130131126012
+    },
+    "summary": {
+      "total_runs": 5,
+      "decisions": {
+        "DIFFERENT": 5
+      },
+      "majority_decision": "DIFFERENT",
+      "matches_expected": true,
+      "avg_queries": 12.0,
+      "avg_confidence": 0.975,
+      "avg_time": 9.126141691207886,
+      "vocabulary_overlap": 0.9780130131126012
+    }
+  },
+  {
+    "scenario": {
+      "name": "Architecture Comparison",
+      "description": "GPT-2 vs Pythia (different architectures)",
+      "model_a": "gpt2",
+      "model_b": "EleutherAI/pythia-70m",
+      "expected": "DIFFERENT",
+      "hypothesis": "Different architectures are distinguishable"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "UNDECIDED",
+        "queries": 30,
+        "time": 12.839447021484375,
+        "mean_kl_div": NaN
+      },
+      {
+        "run": 1,
+        "decision": "UNDECIDED",
+        "queries": 30,
+        "time": 13.787224054336548,
+        "mean_kl_div": NaN
+      },
+      {
+        "run": 2,
+        "decision": "UNDECIDED",
+        "queries": 30,
+        "time": 13.739492893218994,
+        "mean_kl_div": NaN
+      },
+      {
+        "run": 3,
+        "decision": "UNDECIDED",
+        "queries": 30,
+        "time": 14.02999234199524,
+        "mean_kl_div": NaN
+      },
+      {
+        "run": 4,
+        "decision": "UNDECIDED",
+        "queries": 30,
+        "time": 16.1684250831604,
+        "mean_kl_div": NaN
+      }
+    ],
+    "vocabulary_analysis": {
+      "vocab_size_a": 50257,
+      "vocab_size_b": 50254,
+      "code_token_analysis": {
+        "def": {
+          "model_a_ids": [
+            4299
+          ],
+          "model_b_ids": [
+            1545
+          ],
+          "same_tokenization": false
+        },
+        "class": {
+          "model_a_ids": [
+            4871
+          ],
+          "model_b_ids": [
+            2437
+          ],
+          "same_tokenization": false
+        },
+        "import": {
+          "model_a_ids": [
+            11748
+          ],
+          "model_b_ids": [
+            2948
+          ],
+          "same_tokenization": false
+        },
+        "return": {
+          "model_a_ids": [
+            7783
+          ],
+          "model_b_ids": [
+            2309
+          ],
+          "same_tokenization": false
+        },
+        "if": {
+          "model_a_ids": [
+            361
+          ],
+          "model_b_ids": [
+            338
+          ],
+          "same_tokenization": false
+        },
+        "for": {
+          "model_a_ids": [
+            1640
+          ],
+          "model_b_ids": [
+            1542
+          ],
+          "same_tokenization": false
+        },
+        "while": {
+          "model_a_ids": [
+            4514
+          ],
+          "model_b_ids": [
+            6050
+          ],
+          "same_tokenization": false
+        },
+        "(": {
+          "model_a_ids": [
+            7
+          ],
+          "model_b_ids": [
+            9
+          ],
+          "same_tokenization": false
+        },
+        ")": {
+          "model_a_ids": [
+            8
+          ],
+          "model_b_ids": [
+            10
+          ],
+          "same_tokenization": false
+        },
+        "[": {
+          "model_a_ids": [
+            58
+          ],
+          "model_b_ids": [
+            60
+          ],
+          "same_tokenization": false
+        },
+        "]": {
+          "model_a_ids": [
+            60
+          ],
+          "model_b_ids": [
+            62
+          ],
+          "same_tokenization": false
+        },
+        "{": {
+          "model_a_ids": [
+            90
+          ],
+          "model_b_ids": [
+            92
+          ],
+          "same_tokenization": false
+        },
+        "}": {
+          "model_a_ids": [
+            92
+          ],
+          "model_b_ids": [
+            94
+          ],
+          "same_tokenization": false
+        },
+        ":": {
+          "model_a_ids": [
+            25
+          ],
+          "model_b_ids": [
+            27
+          ],
+          "same_tokenization": false
+        },
+        "=": {
+          "model_a_ids": [
+            28
+          ],
+          "model_b_ids": [
+            30
+          ],
+          "same_tokenization": false
+        },
+        "+=": {
+          "model_a_ids": [
+            47932
+          ],
+          "model_b_ids": [
+            34788
+          ],
+          "same_tokenization": false
+        },
+        "==": {
+          "model_a_ids": [
+            855
+          ],
+          "model_b_ids": [
+            381
+          ],
+          "same_tokenization": false
+        },
+        "!=": {
+          "model_a_ids": [
+            0,
+            28
+          ],
+          "model_b_ids": [
+            35495
+          ],
+          "same_tokenization": false
+        }
+      },
+      "overlap_ratio": 0.9999403068229301
+    },
+    "summary": {
+      "total_runs": 5,
+      "decisions": {
+        "UNDECIDED": 5
+      },
+      "majority_decision": "UNDECIDED",
+      "matches_expected": false,
+      "avg_queries": 30.0,
+      "avg_confidence": 0.975,
+      "avg_time": 14.112916278839112,
+      "vocabulary_overlap": 0.9999403068229301
+    }
+  },
+  {
+    "scenario": {
+      "name": "Cross-Architecture Code Models",
+      "description": "StarCoder vs GPT-Neo (both can do code)",
+      "model_a": "bigcode/tiny_starcoder_py",
+      "model_b": "EleutherAI/gpt-neo-125m",
+      "expected": "DIFFERENT",
+      "hypothesis": "Different code-capable architectures differ"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 5.487190008163452,
+        "mean_kl_div": 11.25045120716095
+      },
+      {
+        "run": 1,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 5.804487228393555,
+        "mean_kl_div": 11.25045120716095
+      },
+      {
+        "run": 2,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 5.456099987030029,
+        "mean_kl_div": 11.25045120716095
+      },
+      {
+        "run": 3,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 5.50240683555603,
+        "mean_kl_div": 11.25045120716095
+      },
+      {
+        "run": 4,
+        "decision": "DIFFERENT",
+        "queries": 12,
+        "time": 5.510464191436768,
+        "mean_kl_div": 11.25045120716095
+      }
+    ],
+    "vocabulary_analysis": {
+      "vocab_size_a": 49152,
+      "vocab_size_b": 50257,
+      "code_token_analysis": {
+        "def": {
+          "model_a_ids": [
+            589
+          ],
+          "model_b_ids": [
+            4299
+          ],
+          "same_tokenization": false
+        },
+        "class": {
+          "model_a_ids": [
+            823
+          ],
+          "model_b_ids": [
+            4871
+          ],
+          "same_tokenization": false
+        },
+        "import": {
+          "model_a_ids": [
+            465
+          ],
+          "model_b_ids": [
+            11748
+          ],
+          "same_tokenization": false
+        },
+        "return": {
+          "model_a_ids": [
+            601
+          ],
+          "model_b_ids": [
+            7783
+          ],
+          "same_tokenization": false
+        },
+        "if": {
+          "model_a_ids": [
+            325
+          ],
+          "model_b_ids": [
+            361
+          ],
+          "same_tokenization": false
+        },
+        "for": {
+          "model_a_ids": [
+            979
+          ],
+          "model_b_ids": [
+            1640
+          ],
+          "same_tokenization": false
+        },
+        "while": {
+          "model_a_ids": [
+            5525
+          ],
+          "model_b_ids": [
+            4514
+          ],
+          "same_tokenization": false
+        },
+        "(": {
+          "model_a_ids": [
+            26
+          ],
+          "model_b_ids": [
+            7
+          ],
+          "same_tokenization": false
+        },
+        ")": {
+          "model_a_ids": [
+            27
+          ],
+          "model_b_ids": [
+            8
+          ],
+          "same_tokenization": false
+        },
+        "[": {
+          "model_a_ids": [
+            77
+          ],
+          "model_b_ids": [
+            58
+          ],
+          "same_tokenization": false
+        },
+        "]": {
+          "model_a_ids": [
+            79
+          ],
+          "model_b_ids": [
+            60
+          ],
+          "same_tokenization": false
+        },
+        "{": {
+          "model_a_ids": [
+            109
+          ],
+          "model_b_ids": [
+            90
+          ],
+          "same_tokenization": false
+        },
+        "}": {
+          "model_a_ids": [
+            111
+          ],
+          "model_b_ids": [
+            92
+          ],
+          "same_tokenization": false
+        },
+        ":": {
+          "model_a_ids": [
+            44
+          ],
+          "model_b_ids": [
+            25
+          ],
+          "same_tokenization": false
+        },
+        "=": {
+          "model_a_ids": [
+            47
+          ],
+          "model_b_ids": [
+            28
+          ],
+          "same_tokenization": false
+        },
+        "+=": {
+          "model_a_ids": [
+            9372
+          ],
+          "model_b_ids": [
+            47932
+          ],
+          "same_tokenization": false
+        },
+        "==": {
+          "model_a_ids": [
+            379
+          ],
+          "model_b_ids": [
+            855
+          ],
+          "same_tokenization": false
+        },
+        "!=": {
+          "model_a_ids": [
+            6901
+          ],
+          "model_b_ids": [
+            0,
+            28
+          ],
+          "same_tokenization": false
+        }
+      },
+      "overlap_ratio": 0.9780130131126012
+    },
+    "summary": {
+      "total_runs": 5,
+      "decisions": {
+        "DIFFERENT": 5
+      },
+      "majority_decision": "DIFFERENT",
+      "matches_expected": true,
+      "avg_queries": 12.0,
+      "avg_confidence": 0.975,
+      "avg_time": 5.552129650115967,
+      "vocabulary_overlap": 0.9780130131126012
+    }
+  },
+  {
+    "scenario": {
+      "name": "Same Model Verification",
+      "description": "GPT-2 vs GPT-2 (identity test)",
+      "model_a": "gpt2",
+      "model_b": "gpt2",
+      "expected": "SAME",
+      "hypothesis": "Same model should verify as identical"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "SAME",
+        "queries": 12,
+        "time": 12.952471733093262,
+        "mean_kl_div": -4.593626082775397e-06
+      },
+      {
+        "run": 1,
+        "decision": "SAME",
+        "queries": 12,
+        "time": 12.78878116607666,
+        "mean_kl_div": -4.593626082775397e-06
+      },
+      {
+        "run": 2,
+        "decision": "SAME",
+        "queries": 12,
+        "time": 12.747119903564453,
+        "mean_kl_div": -4.593626082775397e-06
+      },
+      {
+        "run": 3,
+        "decision": "SAME",
+        "queries": 12,
+        "time": 13.548923969268799,
+        "mean_kl_div": -4.593626082775397e-06
+      },
+      {
+        "run": 4,
+        "decision": "SAME",
+        "queries": 12,
+        "time": 13.064251899719238,
+        "mean_kl_div": -4.593626082775397e-06
+      }
+    ],
+    "vocabulary_analysis": {
+      "vocab_size_a": 50257,
+      "vocab_size_b": 50257,
+      "code_token_analysis": {
+        "def": {
+          "model_a_ids": [
+            4299
+          ],
+          "model_b_ids": [
+            4299
+          ],
+          "same_tokenization": true
+        },
+        "class": {
+          "model_a_ids": [
+            4871
+          ],
+          "model_b_ids": [
+            4871
+          ],
+          "same_tokenization": true
+        },
+        "import": {
+          "model_a_ids": [
+            11748
+          ],
+          "model_b_ids": [
+            11748
+          ],
+          "same_tokenization": true
+        },
+        "return": {
+          "model_a_ids": [
+            7783
+          ],
+          "model_b_ids": [
+            7783
+          ],
+          "same_tokenization": true
+        },
+        "if": {
+          "model_a_ids": [
+            361
+          ],
+          "model_b_ids": [
+            361
+          ],
+          "same_tokenization": true
+        },
+        "for": {
+          "model_a_ids": [
+            1640
+          ],
+          "model_b_ids": [
+            1640
+          ],
+          "same_tokenization": true
+        },
+        "while": {
+          "model_a_ids": [
+            4514
+          ],
+          "model_b_ids": [
+            4514
+          ],
+          "same_tokenization": true
+        },
+        "(": {
+          "model_a_ids": [
+            7
+          ],
+          "model_b_ids": [
+            7
+          ],
+          "same_tokenization": true
+        },
+        ")": {
+          "model_a_ids": [
+            8
+          ],
+          "model_b_ids": [
+            8
+          ],
+          "same_tokenization": true
+        },
+        "[": {
+          "model_a_ids": [
+            58
+          ],
+          "model_b_ids": [
+            58
+          ],
+          "same_tokenization": true
+        },
+        "]": {
+          "model_a_ids": [
+            60
+          ],
+          "model_b_ids": [
+            60
+          ],
+          "same_tokenization": true
+        },
+        "{": {
+          "model_a_ids": [
+            90
+          ],
+          "model_b_ids": [
+            90
+          ],
+          "same_tokenization": true
+        },
+        "}": {
+          "model_a_ids": [
+            92
+          ],
+          "model_b_ids": [
+            92
+          ],
+          "same_tokenization": true
+        },
+        ":": {
+          "model_a_ids": [
+            25
+          ],
+          "model_b_ids": [
+            25
+          ],
+          "same_tokenization": true
+        },
+        "=": {
+          "model_a_ids": [
+            28
+          ],
+          "model_b_ids": [
+            28
+          ],
+          "same_tokenization": true
+        },
+        "+=": {
+          "model_a_ids": [
+            47932
+          ],
+          "model_b_ids": [
+            47932
+          ],
+          "same_tokenization": true
+        },
+        "==": {
+          "model_a_ids": [
+            855
+          ],
+          "model_b_ids": [
+            855
+          ],
+          "same_tokenization": true
+        },
+        "!=": {
+          "model_a_ids": [
+            0,
+            28
+          ],
+          "model_b_ids": [
+            0,
+            28
+          ],
+          "same_tokenization": true
+        }
+      },
+      "overlap_ratio": 1.0
+    },
+    "summary": {
+      "total_runs": 5,
+      "decisions": {
+        "SAME": 5
+      },
+      "majority_decision": "SAME",
+      "matches_expected": true,
+      "avg_queries": 12.0,
+      "avg_confidence": 0.975,
+      "avg_time": 13.020309734344483,
+      "vocabulary_overlap": 1.0
+    }
+  }
+]
