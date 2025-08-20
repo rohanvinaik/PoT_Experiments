@@ -1,0 +1,6 @@
+CLI Verification Summary
+Mode: quick_gate
+Decision: SAME
+Mean: 0.002792
+CI: [-0.004000, 0.009583]
+Time: 0.02s

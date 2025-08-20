@@ -1,0 +1,28 @@
+
+Statistical Difference Test Summary
+====================================
+Decision: DIFFERENT
+Reason: Effect size 0.162571 ≥ δ* 0.1 and RME 0.082 ≤ 0.2
+
+Statistics:
+-----------
+Samples used: 12
+Mean difference: 0.150273
+Standard deviation: 0.022119
+99% CI: [0.137975, 0.162571]
+Relative margin: 0.082
+
+Performance:
+------------
+Total time: 0.00 seconds
+Scores per second: 74688.70
+
+Interpretation:
+---------------
+Candidate model produces statistically higher scores than reference
+
+Next Steps:
+-----------
+• Confirm difference via secondary PoT metrics:
+• - Fuzzy/TLSH behavioral hashes on the same challenges
+• - Merkle commit of (challenge,response) pairs; compare roots

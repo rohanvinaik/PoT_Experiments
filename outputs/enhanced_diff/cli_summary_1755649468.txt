@@ -1,0 +1,6 @@
+CLI Verification Summary
+Mode: audit_grade
+Decision: DIFFERENT
+Mean: 0.124667
+CI: [0.121766, 0.127567]
+Time: 0.02s

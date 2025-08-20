@@ -1,0 +1,77 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "audit_grade",
+  "timestamp": "2025-08-20 00:24:28 UTC",
+  "config": {
+    "mode": "audit_grade",
+    "confidence": 0.99,
+    "gamma": 0.00033867337464756704,
+    "delta_star": 0.03844598092651665,
+    "epsilon_diff": 0.1,
+    "eta": 0.5,
+    "n_min": 30,
+    "n_max": 400,
+    "K": 64,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "DIFFERENT",
+    "reason": "Effect size 0.127567 \u2265 \u03b4* 0.03844598092651665 and RME 0.023 \u2264 0.1",
+    "n_used": 32,
+    "n_eff": 2048,
+    "mean": 0.12466650264151082,
+    "variance": 0.00030814541378806237,
+    "std_dev": 0.01755407114569331,
+    "ci": [
+      0.12176569867156142,
+      0.1275673066114602
+    ],
+    "half_width": 0.002900803969949397,
+    "gamma": 0.00033867337464756704,
+    "delta_star": 0.03844598092651665,
+    "rme": 0.023268511656983806,
+    "direction": "higher"
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.12466650264151083,
+      "std": 0.01727761180276908,
+      "min": 0.08789678185319633,
+      "max": 0.155332929615646,
+      "percentiles": {
+        "p5": 0.09783645364564635,
+        "p25": 0.11019994137743082,
+        "p50": 0.12650225053744646,
+        "p75": 0.13491687606732383,
+        "p95": 0.15378629530398405
+      }
+    },
+    "clipped": {
+      "mean": 0.12466650264151083,
+      "std": 0.01727761180276908,
+      "min": 0.08789678185319633,
+      "max": 0.155332929615646
+    }
+  },
+  "timing": {
+    "total_time_sec": 0.014796291943639517,
+    "avg_score_time_sec": 1.4532342902384698e-06,
+    "total_score_time_sec": 4.6503497287631035e-05,
+    "avg_batch_time_sec": 0.0018369583413004875,
+    "scores_per_second": 2162.704015431099
+  },
+  "diagnostics": {},
+  "suggestions": [],
+  "interpretation": "Models are statistically different (higher). The mean difference 0.124667 has effect size exceeding the threshold 0.038446 with sufficient precision (RME=0.023 \u2264 0.100). This indicates a material behavioral difference.",
+  "next_steps": [
+    "Investigate source of behavioral difference",
+    "Run secondary verification methods (fuzzy hash, provenance)",
+    "Check for unauthorized modifications or attacks",
+    "Do not use models interchangeably without analysis"
+  ]
+}
