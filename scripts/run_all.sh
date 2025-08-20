@@ -453,6 +453,44 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run zero-knowledge proof tests
+print_header "RUNNING ZERO-KNOWLEDGE PROOF TESTS"
+print_info "Testing ZK proof system and collecting metrics"
+
+ZK_METRICS_FILE="${RESULTS_DIR}/zk_metrics_${TIMESTAMP}.json"
+if ${PYTHON} <<PY > "${RESULTS_DIR}/zk_tests_${TIMESTAMP}.log" 2>&1; then
+from pot.zk.metrics import get_monitor
+import pytest, json, sys
+
+monitor = get_monitor()
+ret = pytest.main(["tests/test_zk_integration.py", "tests/test_zk_validation_suite.py"])
+summary = monitor.metrics_collector.get_summary()
+with open("${ZK_METRICS_FILE}", "w") as f:
+    json.dump(summary, f, indent=2)
+sys.exit(ret)
+PY
+    print_success "Zero-knowledge proof tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    print_error "Zero-knowledge proof tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/zk_tests_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+if [ -f "$ZK_METRICS_FILE" ]; then
+    ZK_SUMMARY=$(${PYTHON} <<PY
+import json
+with open("$ZK_METRICS_FILE") as f:
+    data = json.load(f)
+avg_time = data.get("avg_proof_time_ms", 0.0)
+fail_rate = 1 - data.get("proof_success_rate", 0.0)
+print(f"Average proof time: {avg_time:.2f} ms, Failure rate: {fail_rate:.2%}")
+PY
+)
+    print_info "$ZK_SUMMARY"
+fi
+
 # Skip legacy stress tests - core functionality validated by deterministic framework
 
 # Generate summary report
@@ -748,6 +786,11 @@ fi)
 
 EOF
 
+if [ -n "${ZK_SUMMARY:-}" ]; then
+    echo "" >> "${RESULTS_DIR}/summary_${TIMESTAMP}.txt"
+    echo "ZK Proof Metrics: ${ZK_SUMMARY}" >> "${RESULTS_DIR}/summary_${TIMESTAMP}.txt"
+fi
+
 print_success "Summary report generated: ${RESULTS_DIR}/summary_${TIMESTAMP}.txt"
 
 # Display enhanced summary
@@ -829,8 +872,29 @@ print_info "Testing fixed fuzzy hash implementation with TLSH/ssdeep preference"
 if ${PYTHON} scripts/test_fuzzy_hash_fixed.py > "${RESULTS_DIR}/fuzzy_hash_fixed_${TIMESTAMP}.log" 2>&1; then
     print_success "Fuzzy hash verification tests passed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
-    
+
     print_info "✅ TLSH/ssdeep preference implemented"
+
+    FUZZY_ALGO_SUMMARY=$(${PYTHON} <<'PY' 2>/dev/null
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath('.'))))
+try:
+    from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier
+    verifier = FuzzyHashVerifier()
+    algos = list(verifier.hashers.keys())
+    fuzzy_algos = [algo for algo in algos if algo in ['tlsh', 'ssdeep']]
+    if fuzzy_algos:
+        print(f'✅ Fuzzy algorithms available: {', '.join(fuzzy_algos)}')
+    else:
+        print('⚠️ No fuzzy algorithms available, using SHA-256 fallback')
+    print(f'📋 Total algorithms: {', '.join(algos)}')
+except Exception as e:
+    print(f'⚠️ Could not determine available algorithms: {e}')
+PY
+)
+    if [ -n "$FUZZY_ALGO_SUMMARY" ]; then
+        print_info "$FUZZY_ALGO_SUMMARY"
+    fi
 else
     print_error "Fuzzy hash verification tests failed"
     FAILED_TESTS=$((FAILED_TESTS + 1))
@@ -894,32 +958,6 @@ if ${PYTHON} scripts/test_result_schema_integration.py > "${RESULTS_DIR}/result_
 else
     print_error "Result schema integration tests failed"
     FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-
-# Extract available algorithms
-FUZZY_ALGO_SUMMARY=$(python3 -c "
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath('.'))))
-try:
-    from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier
-    verifier = FuzzyHashVerifier()
-    algos = list(verifier.hashers.keys())
-    fuzzy_algos = [algo for algo in algos if algo in ['tlsh', 'ssdeep']]
-    if fuzzy_algos:
-        print(f'✅ Fuzzy algorithms available: {', '.join(fuzzy_algos)}')
-    else:
-        print('⚠️ No fuzzy algorithms available, using SHA-256 fallback')
-    print(f'📋 Total algorithms: {', '.join(algos)}')
-except Exception as e:
-    print(f'⚠️ Could not determine available algorithms: {e}')
-" 2>/dev/null)
-    if [ -n "$FUZZY_ALGO_SUMMARY" ]; then
-        print_info "$FUZZY_ALGO_SUMMARY"
-    fi
-else
-    print_error "Fuzzy hash verification tests failed"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-    print_info "Check ${RESULTS_DIR}/fuzzy_hash_fixed_${TIMESTAMP}.log for details"
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
