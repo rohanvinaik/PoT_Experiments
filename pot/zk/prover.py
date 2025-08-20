@@ -7,10 +7,13 @@ import subprocess
 import base64
 import time
 import hashlib
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Union, Tuple
 from dataclasses import dataclass, asdict
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # Import ZK types
 try:
@@ -357,8 +360,20 @@ class LoRAZKProver:
                 return proof, metadata
         
         # Fall back to full SGD proof
-        # This would call the regular SGD prover
-        return b"full_sgd_proof", "full"
+        from .exceptions import ProofGenerationError
+        from .auto_prover import AutoProver
+        
+        logger.warning("No LoRA adapters detected, falling back to SGD proof")
+        
+        try:
+            auto_prover = AutoProver(lora_config=self.lora_config)
+            result = auto_prover.prove_sgd_step(
+                model_state_before, model_state_after,
+                batch_data, learning_rate, step_number, epoch
+            )
+            return result['proof'], result['proof_type']
+        except Exception as e:
+            raise ProofGenerationError(f"SGD fallback failed: {e}")
 
 
 # Convenience functions for simple usage
@@ -404,32 +419,28 @@ def auto_prove_training_step(model_before: Dict[str, Any],
                             model_after: Dict[str, Any],
                             batch_data: Dict[str, np.ndarray],
                             learning_rate: float,
-                            step_number: int,
-                            epoch: int,
+                            step_number: int = 0,
+                            epoch: int = 0,
                             lora_config: Optional[LoRAConfig] = None) -> Dict[str, Any]:
     """
     Automatically detect training type and generate appropriate ZK proof.
     
+    This function now uses the improved error handling from auto_prover.py
+    instead of hardcoded fallbacks.
+    
     Returns:
         Dictionary with proof data and metadata
+        
+    Raises:
+        ProverNotFoundError: If required prover binary not found
+        ProofGenerationError: If proof generation fails
+        InvalidModelStateError: If model states are invalid
     """
-    prover = LoRAZKProver(lora_config=lora_config)
-    proof, metadata_or_type = prover.detect_and_prove(
-        model_before, model_after, batch_data,
-        learning_rate, step_number, epoch
-    )
+    from .auto_prover import auto_prove_training_step as improved_auto_prove
     
-    if isinstance(metadata_or_type, LoRAProofMetadata):
-        return {
-            'success': True,
-            'proof': proof,  # Return raw bytes
-            'proof_type': 'lora',
-            'metadata': asdict(metadata_or_type)
-        }
-    else:
-        return {
-            'success': True,
-            'proof': proof,  # Return raw bytes
-            'proof_type': metadata_or_type,
-            'metadata': {}
-        }
+    # Use the improved implementation with proper error handling
+    return improved_auto_prove(
+        model_before, model_after, batch_data,
+        learning_rate, step_number, epoch,
+        lora_config=lora_config
+    )
