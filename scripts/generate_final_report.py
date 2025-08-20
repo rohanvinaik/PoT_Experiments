@@ -82,7 +82,7 @@ def generate_report():
     print("4. INTEGRATED CALIBRATION TEST")
     print("="*60)
     
-    integrated = load_latest_file("integrated_calibration/integrated_test_*.json", results_dir / "integrated_calibration")
+    integrated = load_latest_file("integrated_calibration/integrated_test_*.json", results_dir)
     if integrated:
         summary = integrated.get('summary', {})
         if summary.get('all_passed') and summary.get('undecided_count', 1) == 0:
