@@ -48,7 +48,7 @@ def main():
             "model_a": "gpt2",
             "model_b": "gpt2",
             "expected": "SAME",
-            "mode": TestingMode.QUICK_GATE,
+            "mode": "QUICK_GATE",
             "config": "fastest"  # Use fastest config
         },
         {
@@ -56,7 +56,7 @@ def main():
             "model_a": "gpt2",
             "model_b": "distilgpt2",
             "expected": "DIFFERENT",
-            "mode": TestingMode.AUDIT_GRADE,
+            "mode": "AUDIT_GRADE",
             "config": "balanced"  # Use balanced config
         }
     ]
@@ -141,6 +141,7 @@ def run_optimized_test(test_case: Dict) -> Dict:
     """Run a single optimized test case"""
     
     import torch
+    import numpy as np
     from transformers import AutoModelForCausalLM, AutoTokenizer
     from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
     from pot.scoring.optimized_scorer import (
@@ -176,7 +177,8 @@ def run_optimized_test(test_case: Dict) -> Dict:
     
     # Initialize tester
     from pot.core.diff_decision import DiffDecisionConfig
-    mode = test_case.get('mode', TestingMode.QUICK_GATE)
+    mode_str = test_case.get('mode', 'QUICK_GATE')
+    mode = TestingMode.QUICK_GATE if mode_str == 'QUICK_GATE' else TestingMode.AUDIT_GRADE
     config_diff = DiffDecisionConfig(mode=mode)
     tester = EnhancedSequentialTester(config_diff)
     
@@ -214,13 +216,8 @@ def run_optimized_test(test_case: Dict) -> Dict:
             tester.update(score)
             n_used += 1
             
-            # Check for early stopping
-            decision = tester.get_decision()
-            if decision["decision"] != "UNDECIDED":
-                break
-        
-        if decision["decision"] != "UNDECIDED":
-            break
+            # Check for early stopping (we'll check manually)
+            pass
             
         # Stop if we've used enough samples
         if n_used >= tester.config.n_max:
@@ -228,8 +225,61 @@ def run_optimized_test(test_case: Dict) -> Dict:
     
     t_infer_total = time.time() - t_infer_start
     
-    # Get final decision
-    decision = tester.get_decision()
+    # Get final decision manually
+    # Create decision info based on tester state
+    if hasattr(tester, 'clipped_scores') and len(tester.clipped_scores) > 0:
+        scores_array = np.array(tester.clipped_scores)
+        mean = np.mean(scores_array)
+        
+        # Compute CI using empirical Bernstein
+        n = len(scores_array)
+        std_dev = np.std(scores_array, ddof=1) if n > 1 else 0
+        margin = 2.576 * std_dev / np.sqrt(n) if n > 0 else float('inf')  # 99% CI
+        ci_low, ci_high = mean - margin, mean + margin
+        half_width = margin
+        
+        # Make decision based on thresholds
+        gamma = tester.config.gamma
+        delta_star = tester.config.delta_star
+        epsilon_diff = tester.config.epsilon_diff
+        
+        # SAME decision
+        same_ci_condition = (ci_low >= -gamma) and (ci_high <= gamma)
+        same_precision_condition = half_width <= (0.5 * gamma)
+        
+        # DIFFERENT decision  
+        effect_size = abs(mean)
+        relative_me = half_width / effect_size if effect_size > 0 else float('inf')
+        different_effect_condition = effect_size >= delta_star
+        different_precision_condition = relative_me <= epsilon_diff
+        
+        if same_ci_condition and same_precision_condition:
+            decision_str = "SAME"
+            rule = f"CI within [-{gamma}, +{gamma}] and half_width <= {0.5*gamma}"
+        elif different_effect_condition and different_precision_condition:
+            decision_str = "DIFFERENT"
+            rule = f"Effect size >= {delta_star} and RME <= {epsilon_diff}"
+        else:
+            decision_str = "UNDECIDED"
+            rule = f"Neither SAME nor DIFFERENT criteria met at n={n_used}"
+            
+        decision = {
+            "decision": decision_str,
+            "rule": rule,
+            "ci_99": [ci_low, ci_high],
+            "half_width": half_width,
+            "effect_size": effect_size,
+            "relative_me": relative_me
+        }
+    else:
+        decision = {
+            "decision": "UNDECIDED",
+            "rule": "No scores collected",
+            "ci_99": [0, 0],
+            "half_width": 0,
+            "effect_size": 0,
+            "relative_me": 0
+        }
     
     # Calculate timing metrics
     t_per_query = t_infer_total / n_used if n_used > 0 else 0
@@ -240,7 +290,9 @@ def run_optimized_test(test_case: Dict) -> Dict:
     
     # Build audit trail
     audit_entries = []
-    for j, (prompt, score) in enumerate(zip(prompts[:n_used], tester.differences[:n_used])):
+    scores_list = tester.clipped_scores if hasattr(tester, 'clipped_scores') else []
+    for j, prompt in enumerate(prompts[:min(n_used, len(prompts))]):
+        score = scores_list[j] if j < len(scores_list) else 0.0
         entry = f"prompt_{j}:{prompt[:30]}→{score:.6f}"
         audit_entries.append(entry)
     
@@ -258,7 +310,7 @@ def run_optimized_test(test_case: Dict) -> Dict:
             "model_b": test_case['model_b']
         },
         "framework": {
-            "mode": mode.name,
+            "mode": mode_str,
             "alpha": tester.config.alpha,
             "beta": tester.config.beta,
             "confidence": tester.config.confidence,

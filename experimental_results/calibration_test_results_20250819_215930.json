@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-08-19 21:59:30",
+  "passed": true,
+  "test_results": {
+    "Same-Model Calibration": {
+      "passed": true,
+      "stats": {
+        "mean": 0.00016836824287019993,
+        "std": 0.00010324233763326951,
+        "p50": 0.00016782597858021575,
+        "p75": 0.00018814689585103743,
+        "p90": 0.00033867337464756704,
+        "p95": 0.00033867337464756704,
+        "p99": 0.00033867337464756704,
+        "max": 0.00033867337464756704,
+        "n_samples_total": 450,
+        "score_mean": -0.00011713644304801672,
+        "score_std": 0.0009417284393669297
+      },
+      "error": null
+    },
+    "Near-Clone Calibration": {
+      "passed": true,
+      "stats": {
+        "mean": 0.07848071083416136,
+        "std": 0.0028903834795266587,
+        "p5": 0.0762777039175209,
+        "p10": 0.07631834575206255,
+        "p25": 0.07644027125568748,
+        "p50": 0.07664348042839568,
+        "p75": 0.07960253520975241,
+        "p95": 0.0819697790348378,
+        "min": 0.07623706208297926,
+        "max": 0.08256158999110916,
+        "n_samples_total": 90,
+        "score_mean": 0.07848071083416137,
+        "score_std": 0.01859516776819733
+      },
+      "error": null
+    },
+    "Full Calibration Workflow": {
+      "passed": true,
+      "error": null
+    },
+    "Integration with DiffDecision": {
+      "passed": true,
+      "error": null
+    },
+    "Edge Cases": {
+      "passed": true,
+      "error": null
+    },
+    "Performance Test": {
+      "passed": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "passed_count": 6,
+    "total_count": 6
+  }
+}
