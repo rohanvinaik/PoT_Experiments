@@ -1,0 +1,194 @@
+[
+  {
+    "scenario": {
+      "name": "Chat Model Detection",
+      "description": "Detecting chat/instruction tuning in TinyLlama",
+      "model_a": "TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T",
+      "model_b": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+      "model_type": "causal",
+      "expected": "DIFFERENT",
+      "hypothesis": "Chat tuning creates detectable behavioral changes",
+      "significance": "Critical for detecting ChatGPT-style modifications"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 69.60148191452026,
+        "mean_divergence": 0.31086028153076767
+      },
+      {
+        "run": 1,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 67.26403093338013,
+        "mean_divergence": 0.31086028153076767
+      },
+      {
+        "run": 2,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 68.5228590965271,
+        "mean_divergence": 0.31086028153076767
+      }
+    ],
+    "summary": {
+      "total_runs": 3,
+      "decisions": {
+        "UNDECIDED": 3
+      },
+      "majority_decision": "UNDECIDED",
+      "matches_expected": false,
+      "avg_queries": 20.0,
+      "avg_divergence": 0.31086028153076767,
+      "vocab_size_a": 32000,
+      "vocab_size_b": 32000,
+      "vocab_overlap": 1.0
+    }
+  },
+  {
+    "scenario": {
+      "name": "Dialogue Fine-tuning Detection",
+      "description": "GPT-2 base vs dialogue-tuned DialoGPT",
+      "model_a": "gpt2",
+      "model_b": "microsoft/DialoGPT-small",
+      "model_type": "causal",
+      "expected": "DIFFERENT",
+      "hypothesis": "Dialogue fine-tuning is detectable",
+      "significance": "Identifies conversational adaptations"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 14.584727048873901,
+        "mean_divergence": 5.5691039629280565
+      },
+      {
+        "run": 1,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 14.306648015975952,
+        "mean_divergence": 5.5691039629280565
+      },
+      {
+        "run": 2,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 14.341360807418823,
+        "mean_divergence": 5.5691039629280565
+      }
+    ],
+    "summary": {
+      "total_runs": 3,
+      "decisions": {
+        "UNDECIDED": 3
+      },
+      "majority_decision": "UNDECIDED",
+      "matches_expected": false,
+      "avg_queries": 20.0,
+      "avg_divergence": 5.5691039629280565,
+      "vocab_size_a": 50257,
+      "vocab_size_b": 50257,
+      "vocab_overlap": 1.0
+    }
+  },
+  {
+    "scenario": {
+      "name": "Instruction Tuning Detection (T5)",
+      "description": "T5 base vs FLAN-T5 (instruction-tuned)",
+      "model_a": "t5-small",
+      "model_b": "google/flan-t5-small",
+      "model_type": "t5",
+      "expected": "DIFFERENT",
+      "hypothesis": "FLAN instruction tuning is detectable",
+      "significance": "Detects task-specific fine-tuning"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 2.516533851623535,
+        "mean_divergence": 2.6802387967705728
+      },
+      {
+        "run": 1,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 2.161099910736084,
+        "mean_divergence": 2.6802387967705728
+      },
+      {
+        "run": 2,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 2.3314099311828613,
+        "mean_divergence": 2.6802387967705728
+      }
+    ],
+    "summary": {
+      "total_runs": 3,
+      "decisions": {
+        "UNDECIDED": 3
+      },
+      "majority_decision": "UNDECIDED",
+      "matches_expected": false,
+      "avg_queries": 20.0,
+      "avg_divergence": 2.6802387967705728,
+      "vocab_size_a": 32100,
+      "vocab_size_b": 32100,
+      "vocab_overlap": 1.0
+    }
+  },
+  {
+    "scenario": {
+      "name": "Training Data Variation",
+      "description": "Pythia trained on different data (deduped)",
+      "model_a": "EleutherAI/pythia-160m",
+      "model_b": "EleutherAI/pythia-160m-deduped",
+      "model_type": "causal",
+      "expected": "DIFFERENT",
+      "hypothesis": "Training data changes are detectable",
+      "significance": "Detects data poisoning or filtering"
+    },
+    "runs": [
+      {
+        "run": 0,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 8.294878005981445,
+        "mean_divergence": NaN
+      },
+      {
+        "run": 1,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 8.30208706855774,
+        "mean_divergence": NaN
+      },
+      {
+        "run": 2,
+        "decision": "UNDECIDED",
+        "queries": 20,
+        "time": 8.392637014389038,
+        "mean_divergence": NaN
+      }
+    ],
+    "summary": {
+      "total_runs": 3,
+      "decisions": {
+        "UNDECIDED": 3
+      },
+      "majority_decision": "UNDECIDED",
+      "matches_expected": false,
+      "avg_queries": 20.0,
+      "avg_divergence": NaN,
+      "vocab_size_a": 50254,
+      "vocab_size_b": 50254,
+      "vocab_overlap": 1.0
+    }
+  }
+]
