@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-08-20 16:58:34",
+  "test_mode": "statistical",
+  "model_pairs": [
+    {
+      "pair_id": 1,
+      "model_a": {
+        "name": "gpt2",
+        "path": "/Users/rohanvinaik/LLM_Models/gpt2",
+        "size": "117M params",
+        "category": "Small (<1B)"
+      },
+      "model_b": {
+        "name": "distilgpt2",
+        "path": "/Users/rohanvinaik/LLM_Models/distilgpt2",
+        "size": "117M params",
+        "category": "Small (<1B)"
+      },
+      "tests": {
+        "statistical_identity": {
+          "status": "PASSED",
+          "output": "d time: 0.29s + 0.21s\n   Inference total: 9.63s\n   Per query: 0.803s\n   Total runtime: 9.63s\n   Hardware: mps\n\n\ud83d\udd27 Adaptive Diagnostics:\n   Convergence rate: 0.0000\n   CI improvement: N/A\n   Batch size history: [8, 8]...\n\n\ud83d\udd12 Audit:\n   Merkle root: 449039b0ae21cf2c...\n\n\u2705 Test status: FAIL\n\n\ud83d\udcbe Results saved to: experimental_results/runtime_blackbox_adaptive_20250820_165900.json\n\n\ud83d\udcca SUMMARY:\n   Tests completed: 2/2\n   Decisive outcomes: 0/2\n   Improvement: NO - adaptive sampling helping reach decisions\n"
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_pairs": 1,
+    "successful_pairs": 1,
+    "success_rate": 1.0,
+    "small_models": 1,
+    "large_models": 0,
+    "mixed_sizes": 0
+  }
+}

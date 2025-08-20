@@ -1037,7 +1037,9 @@ class EvidenceLogger:
         test_types = set()
         
         for run in recent_runs[-10:]:  # Last 10 runs
-            model_types.update(run.models_tested.values())
+            # Filter out non-string values from models_tested
+            model_values = [v for v in run.models_tested.values() if isinstance(v, str)]
+            model_types.update(model_values)
             test_types.add(run.test_type)
         
         lines = []

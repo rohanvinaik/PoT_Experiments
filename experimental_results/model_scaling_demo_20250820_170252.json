@@ -1,0 +1,46 @@
+{
+  "timestamp": "2025-08-20 17:02:52",
+  "test_type": "model_scaling_demonstration",
+  "available_models": {
+    "total_checked": 7,
+    "total_available": 7,
+    "by_category": {
+      "Small Models": 2,
+      "Medium Models": 1,
+      "Large Models (7B+)": 4
+    }
+  },
+  "scaling_tests": [
+    {
+      "category": "Small (117M)",
+      "model": "gpt2",
+      "parameters": 124439808,
+      "load_time": 1.2180569171905518,
+      "inference_time": 0.16480016708374023,
+      "status": "SUCCESS"
+    },
+    {
+      "category": "Large (7.2B)",
+      "model": "mistral_for_colab",
+      "parameters": 7248023552,
+      "load_time": 9.828642129898071,
+      "inference_time": 0.4901711940765381,
+      "status": "SUCCESS"
+    }
+  ],
+  "hardware": {
+    "device": "mps",
+    "torch_version": "2.3.1"
+  },
+  "framework_capabilities": {
+    "smallest_tested": "117M parameters (GPT-2)",
+    "largest_available": "7.2B parameters (Mistral/Zephyr)",
+    "scaling_range": "~60x parameter range",
+    "memory_optimization": "fp16 support for large models",
+    "device_support": [
+      "CPU",
+      "CUDA",
+      "MPS (Apple Silicon)"
+    ]
+  }
+}

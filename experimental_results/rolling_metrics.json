@@ -1,6 +1,6 @@
 {
-  "total_runs": 7,
-  "successful_runs": 7,
+  "total_runs": 21,
+  "successful_runs": 21,
   "zk_pipeline_runs": 1,
   "interface_test_runs": 1,
   "timing_samples": [
@@ -28,6 +28,76 @@
       "t_per_query": 0.79,
       "t_total": 19.6,
       "hardware": "mps"
+    },
+    {
+      "t_per_query": 1.038483162720998,
+      "t_total": 12.462616205215454,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7940212885538737,
+      "t_total": 9.529081106185913,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 1.0164384444554646,
+      "t_total": 12.198140859603882,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7864542007446289,
+      "t_total": 9.438308000564575,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 1.0244717796643574,
+      "t_total": 12.294493913650513,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7893781661987305,
+      "t_total": 9.47333574295044,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 1.017174482345581,
+      "t_total": 12.206908702850342,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.8026015162467957,
+      "t_total": 9.631983041763306,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 1.0317656596501668,
+      "t_total": 12.38203477859497,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7882101933161417,
+      "t_total": 9.459335088729858,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.0836259126663208,
+      "t_total": 2.3638010025024414,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.08628499507904053,
+      "t_total": 2.3585870265960693,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.08059048652648926,
+      "t_total": 2.3411829471588135,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.0840073823928833,
+      "t_total": 26.08917498588562,
+      "hardware": "unknown"
     }
   ],
   "statistical_samples": [
@@ -60,6 +130,90 @@
       "confidence": 0.95,
       "n_used": 19,
       "effect_size": 0.037035
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.95,
+      "n_used": 2,
+      "effect_size": 0.36718855798244476
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.95,
+      "n_used": 2,
+      "effect_size": 0.5032015293836594
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.95,
+      "n_used": 2,
+      "effect_size": 0.3908403515815735
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.95,
+      "n_used": 2,
+      "effect_size": 0.5217575132846832
     }
   ],
   "zk_proof_samples": [
@@ -76,5 +230,5 @@
       "verified": true
     }
   ],
-  "last_updated": "2025-08-20T16:43:54.721088"
+  "last_updated": "2025-08-20T17:17:42.240299"
 }

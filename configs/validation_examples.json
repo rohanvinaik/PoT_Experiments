@@ -1,0 +1,90 @@
+{
+  "small_models_local": {
+    "model_a": "gpt2",
+    "model_b": "distilgpt2",
+    "model_source": "local",
+    "local_model_base": "/Users/rohanvinaik/LLM_Models",
+    "test_mode": "adaptive",
+    "n_queries": 12,
+    "confidence": 0.95,
+    "torch_dtype": "float32"
+  },
+  
+  "small_models_huggingface": {
+    "model_a": "gpt2",
+    "model_b": "distilgpt2",
+    "model_source": "huggingface",
+    "hf_cache_dir": "~/.cache/huggingface",
+    "test_mode": "quick_gate",
+    "n_queries": 15,
+    "confidence": 0.975,
+    "torch_dtype": "auto"
+  },
+  
+  "large_models_local": {
+    "model_a": "mistral",
+    "model_b": "zephyr",
+    "model_source": "local",
+    "local_model_base": "/Users/rohanvinaik/LLM_Models",
+    "test_mode": "audit_grade",
+    "n_queries": 20,
+    "confidence": 0.99,
+    "torch_dtype": "float16",
+    "trust_remote_code": true
+  },
+  
+  "large_models_huggingface": {
+    "model_a": "mistralai/Mistral-7B-v0.1",
+    "model_b": "HuggingFaceH4/zephyr-7b-beta",
+    "model_source": "huggingface",
+    "use_hf_token": true,
+    "test_mode": "audit_grade",
+    "n_queries": 25,
+    "confidence": 0.99,
+    "torch_dtype": "float16",
+    "device_map": "auto",
+    "trust_remote_code": true
+  },
+  
+  "cross_size_comparison": {
+    "model_a": "gpt2",
+    "model_b": "mistral",
+    "model_source": "auto",
+    "local_model_base": "/Users/rohanvinaik/LLM_Models",
+    "test_mode": "adaptive",
+    "n_queries": 15,
+    "confidence": 0.95,
+    "torch_dtype": "float16",
+    "positions_per_prompt": 16,
+    "gamma": 0.05,
+    "delta_star": 0.15
+  },
+  
+  "base_vs_finetuned": {
+    "model_a": "llama2-7b",
+    "model_b": "llama2-7b-chat",
+    "model_source": "auto",
+    "local_model_base": "/Users/rohanvinaik/LLM_Models",
+    "test_mode": "audit_grade",
+    "n_queries": 30,
+    "confidence": 0.99,
+    "torch_dtype": "float16",
+    "positions_per_prompt": 64,
+    "gamma": 0.01,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.1
+  },
+  
+  "efficient_testing": {
+    "model_a": "pythia-70m",
+    "model_b": "pythia-1.4b",
+    "model_source": "huggingface",
+    "test_mode": "adaptive",
+    "n_queries": 8,
+    "positions_per_prompt": 16,
+    "confidence": 0.95,
+    "torch_dtype": "float32",
+    "output_results": true,
+    "verbose": true
+  }
+}
