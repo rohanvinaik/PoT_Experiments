@@ -1,0 +1,13 @@
+{
+  "validation_type": "runtime_blackbox_optimized",
+  "timestamp": "2025-08-19T21:52:56.364759",
+  "test_cases": 2,
+  "results": [
+    {
+      "error": "EnhancedSequentialTester.__init__() got an unexpected keyword argument 'mode'",
+      "test_case": {
+        "name": "self_consistency_fast",
+        "model_a": "gpt2",
+        "model_b": "gpt2",
+        "expected": "SAME",
+        "mode": 
