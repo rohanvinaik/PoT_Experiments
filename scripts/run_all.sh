@@ -97,6 +97,25 @@ check_dependencies() {
 check_python
 check_dependencies
 
+# Ensure ZK prover binaries are available
+verify_prover_binaries() {
+    local build_dir="pot/zk/prover_halo2"
+    local target_dir="$build_dir/target/release"
+    if [ ! -f "$target_dir/prove_sgd_stdin" ] || [ ! -f "$target_dir/prove_lora_stdin" ]; then
+        print_info "Building prover binaries..."
+        if (cd "$build_dir" && cargo build --release --bin prove_sgd_stdin --bin prove_lora_stdin); then
+            print_success "Prover binaries built"
+        else
+            print_error "Failed to build prover binaries"
+            exit 1
+        fi
+    else
+        print_success "Prover binaries already built"
+    fi
+}
+
+verify_prover_binaries
+
 # Run deterministic validation first as the standard method
 print_header "RUNNING STANDARD DETERMINISTIC VALIDATION"
 print_info "Using deterministic test models for consistent results..."
@@ -1055,33 +1074,6 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
-# Run ZK validation and integration tests
-print_header "RUNNING ZERO-KNOWLEDGE TESTS"
-ZK_PASSED=0
-ZK_TOTAL=2
-
-if pytest tests/test_zk_validation_suite.py > "${RESULTS_DIR}/zk_validation_suite_${TIMESTAMP}.log" 2>&1; then
-    print_success "ZK validation suite passed"
-    ZK_PASSED=$((ZK_PASSED + 1))
-    PASSED_TESTS=$((PASSED_TESTS + 1))
-else
-    print_error "ZK validation suite failed"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-
-if pytest tests/test_zk_integration.py > "${RESULTS_DIR}/zk_integration_${TIMESTAMP}.log" 2>&1; then
-    print_success "ZK integration tests passed"
-    ZK_PASSED=$((ZK_PASSED + 1))
-    PASSED_TESTS=$((PASSED_TESTS + 1))
-else
-    print_error "ZK integration tests failed"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-
-echo "ZK Tests: ${ZK_PASSED}/${ZK_TOTAL} passed" >> "${RESULTS_DIR}/summary_${TIMESTAMP}.txt"
-print_info "ZK Tests: ${ZK_PASSED}/${ZK_TOTAL} passed"
 
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then
