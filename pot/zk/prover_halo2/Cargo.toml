@@ -20,6 +20,7 @@ hex = "0.4"
 thiserror = "1.0"
 clap = "4.0"
 base64 = "0.22"
+sha2 = "0.10"
 
 [lib]
 name = "pot_zk_prover"
@@ -40,6 +41,10 @@ path = "src/bin/prove_sgd_stdin.rs"
 [[bin]]
 name = "verify_sgd_stdin"
 path = "src/bin/verify_sgd_stdin.rs"
+
+[[bin]]
+name = "prove_lora_stdin"
+path = "src/bin/prove_lora_stdin.rs"
 
 [features]
 default = []

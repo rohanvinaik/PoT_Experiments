@@ -262,9 +262,18 @@ class LoRAZKProver:
         self.config = config or ProverConfig()
         self.lora_config = lora_config or LoRAConfig()
         self.witness_builder = LoRAWitnessBuilder(self.lora_config)
-        
-        # For now, use mock proving
-        self.use_mock = True
+
+        if self.config.rust_binary is None:
+            binary_path = Path(__file__).parent / "prover_halo2/target/release/prove_lora_stdin"
+            if not binary_path.exists():
+                binary_path = Path(__file__).parent / "prover_halo2/target/debug/prove_lora_stdin"
+            if not binary_path.exists():
+                raise FileNotFoundError(
+                    f"Rust LoRA prover binary not found. Please build it with:\n"
+                    f"cd {Path(__file__).parent / 'prover_halo2'} && cargo build --release --bin prove_lora_stdin"
+                )
+
+            self.config.rust_binary = binary_path
     
     def prove_lora_step(self, 
                        statement: LoRAStepStatement,
@@ -277,9 +286,35 @@ class LoRAZKProver:
         """
         start_time = time.time()
         
-        # Mock proof generation for LoRA
-        # In production, this would call Rust LoRA circuit
-        proof_data = self._generate_mock_lora_proof(statement, witness)
+        public_inputs = self._statement_to_public_inputs(statement)
+        witness_data = self._witness_to_rust_format(witness)
+
+        request = {
+            "public_inputs": public_inputs,
+            "witness": witness_data,
+            "params_k": self.config.params_k,
+        }
+
+        try:
+            result = subprocess.run(
+                [str(self.config.rust_binary)],
+                input=json.dumps(request),
+                capture_output=True,
+                text=True,
+                timeout=self.config.timeout,
+            )
+
+            if result.returncode != 0:
+                raise RuntimeError(f"LoRA prover failed: {result.stderr}")
+
+            response = json.loads(result.stdout)
+            proof_data = base64.b64decode(response["proof"])
+        except subprocess.TimeoutExpired:
+            raise TimeoutError(f"Proof generation timed out after {self.config.timeout} seconds")
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Failed to parse prover response: {e}\nOutput: {result.stdout}")
+        except Exception as e:
+            raise RuntimeError(f"Proof generation failed: {e}")
         
         proof_time_ms = int((time.time() - start_time) * 1000)
         
@@ -300,24 +335,43 @@ class LoRAZKProver:
             proof_size_bytes=len(proof_data),
             proof_generation_ms=proof_time_ms,
             circuit_constraints=lora_params * 10,  # Simplified estimate
-            memory_usage_mb=(lora_params * 32) / (1024 * 1024)
+            memory_usage_mb=(lora_params * 32) / (1024 * 1024),
         )
-        
+
         return proof_data, metadata
-    
-    def _generate_mock_lora_proof(self, statement: LoRAStepStatement, witness: LoRAStepWitness) -> bytes:
-        """Generate a mock LoRA proof for testing."""
-        import hashlib
-        
-        # Create deterministic mock proof
-        hasher = hashlib.sha256()
-        hasher.update(str(statement.base_weights_root).encode())
-        hasher.update(str(statement.adapter_a_root_after).encode())
-        hasher.update(str(statement.rank).encode())
-        hasher.update(str(len(witness.adapter_a_before)).encode())
-        
-        mock_proof = b"lora_proof_" + hasher.digest()[:16]
-        return mock_proof
+
+    def _statement_to_public_inputs(self, stmt: LoRAStepStatement) -> Dict[str, Any]:
+        return {
+            "base_weights_root": self._bytes_to_hex(stmt.base_weights_root),
+            "adapter_a_root_after": self._bytes_to_hex(stmt.adapter_a_root_after),
+            "rank": stmt.rank,
+        }
+
+    def _witness_to_rust_format(self, witness: LoRAStepWitness) -> Dict[str, Any]:
+        return {
+            "adapter_a_before": witness.adapter_a_before,
+        }
+
+    def _bytes_to_hex(self, data: bytes) -> str:
+        if isinstance(data, bytes):
+            if len(data) < 32:
+                data = data + b"\x00" * (32 - len(data))
+            elif len(data) > 32:
+                data = data[:32]
+            return "0x" + data.hex()
+        elif isinstance(data, str):
+            if data.startswith("0x"):
+                hex_part = data[2:]
+                if len(hex_part) % 2 == 1:
+                    hex_part = "0" + hex_part
+                if len(hex_part) < 64:
+                    hex_part = hex_part + "0" * (64 - len(hex_part))
+                elif len(hex_part) > 64:
+                    hex_part = hex_part[:64]
+                return "0x" + hex_part
+            return data
+        else:
+            raise TypeError("Unsupported data type for hex conversion")
     
     def detect_and_prove(self,
                          model_state_before: Dict[str, Any],
