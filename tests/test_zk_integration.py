@@ -11,18 +11,29 @@ This ensures the ZK system integrates properly with:
 import pytest
 import numpy as np
 import sys
+import json
 from pathlib import Path
 from typing import Dict, Any
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from pot.zk.prover import auto_prove_training_step
-from pot.zk.parallel_prover import OptimizedLoRAProver
-from pot.zk.config_loader import set_mode
-from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor
-from pot.testing.mock_blockchain import MockBlockchainClient
-from pot.core.model_verification import verify_model_weights
-from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
+from pot.prototypes.training_provenance_auditor import TrainingProvenanceAuditor, MockBlockchainClient
+
+# Optional imports for tests that require full ZK stack
+try:  # pragma: no cover - best effort for optional deps
+    from pot.zk.prover import auto_prove_training_step
+    from pot.zk.parallel_prover import OptimizedLoRAProver
+    from pot.zk.config_loader import set_mode
+    from pot.core.model_verification import verify_model_weights
+    from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
+except Exception:  # pragma: no cover
+    auto_prove_training_step = None
+    OptimizedLoRAProver = None
+    def set_mode(*args, **kwargs):
+        return None
+    verify_model_weights = None
+    EnhancedSequentialTester = None
+    TestingMode = None
 
 
 class TestZKIntegration:
@@ -324,6 +335,64 @@ class TestZKIntegration:
         # In mock implementation, might not see huge difference
         # but should not be significantly slower
         assert avg_with_cache <= avg_no_cache * 1.5
+
+    def test_generate_zk_witness_persistence(self, tmp_path):
+        """Witness creation should produce persistent record with Poseidon commitment."""
+        auditor = TrainingProvenanceAuditor(model_id="witness_test")
+        auditor.witness_dir = tmp_path
+
+        weights_before = {"weights": {"layer": np.random.randn(10).astype(np.float32)}}
+        weights_after = {"weights": {"layer": weights_before["weights"]["layer"] - 0.1}}
+        batch_data = {
+            "inputs": np.random.randn(2, 10).astype(np.float32),
+            "targets": np.random.randn(2, 10).astype(np.float32),
+            "gradients": {"layer": np.random.randn(10).astype(np.float32)},
+            "loss": 0.5,
+        }
+        hyperparameters = {"learning_rate": 0.1}
+        step_info = {"step_number": 1, "epoch": 0}
+
+        result = auditor.generate_zk_witness(
+            weights_before,
+            weights_after,
+            batch_data,
+            hyperparameters,
+            step_info,
+        )
+
+        witness_record = result["witness_record"]
+
+        from dataclasses import asdict
+        from pot.zk.commitments import PoseidonHasher
+
+        def _serialize(obj):
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            if isinstance(obj, bytes):
+                return obj.hex()
+            raise TypeError
+
+        witness_bytes = json.dumps(asdict(result["witness"]), default=_serialize, sort_keys=True).encode()
+        expected_commit = PoseidonHasher.hash_bytes(witness_bytes).hex()
+        assert witness_record["poseidon_commitment"] == expected_commit
+
+        witness_file = Path(auditor.witness_dir) / f"{witness_record['witness_id']}.json"
+        assert witness_file.exists()
+        with open(witness_file) as f:
+            data = json.load(f)
+        assert data["poseidon_commitment"] == expected_commit
+        assert data["statement_metadata"]["step_number"] == step_info["step_number"]
+
+    def test_generate_zk_witness_failure(self):
+        """Invalid proof types should raise errors."""
+        auditor = TrainingProvenanceAuditor(model_id="witness_fail")
+        weights = {"weights": {"layer": np.zeros(1, dtype=np.float32)}}
+        batch = {"inputs": np.zeros((1, 1), dtype=np.float32), "targets": np.zeros((1, 1), dtype=np.float32), "gradients": {}}
+        hyper = {"learning_rate": 0.1}
+        step = {"step_number": 0, "epoch": 0}
+
+        with pytest.raises(ValueError):
+            auditor.generate_zk_witness(weights, weights, batch, hyper, step, proof_type="invalid")
 
 
 def test_zk_pytest_compatibility():
