@@ -537,6 +537,25 @@ else
 fi
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
+# Run calibration system tests
+print_header "RUNNING CALIBRATION SYSTEM TESTS"
+print_info "Testing automatic calibration of γ and δ* from pilot runs"
+
+if ${PYTHON} scripts/test_calibration_system.py > "${RESULTS_DIR}/calibration_test_${TIMESTAMP}.log" 2>&1; then
+    print_success "Calibration system tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+    
+    # Check if calibration results exist
+    if [ -f "experimental_results/test_calibration_"*.json ]; then
+        print_info "Calibration results saved to experimental_results/"
+    fi
+else
+    print_error "Calibration system tests failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    print_info "Check ${RESULTS_DIR}/calibration_test_${TIMESTAMP}.log for details"
+fi
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
 # Run stress tests
 print_header "RUNNING STRESS TESTS"
 

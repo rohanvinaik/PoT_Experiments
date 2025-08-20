@@ -58,6 +58,31 @@ except Exception as e:
     sys.exit(1)
 " || true
 
+echo -e "${GREEN}=== TESTING CALIBRATION SYSTEM ===${NC}"
+echo -e "${YELLOW}Quick test of automatic calibration...${NC}\n"
+
+# Quick calibration test
+python3 -c "
+import sys
+sys.path.insert(0, '.')
+try:
+    from pot.core.calibration import ModelCalibrator, create_mock_calibrator
+    
+    # Quick calibration test
+    calibrator = create_mock_calibrator()
+    result = calibrator.calibrate(
+        same_models=['mock1', 'mock2'],
+        near_clone_pairs=[('ref', 'clone')],
+        use_mock=True
+    )
+    
+    print(f'✅ Calibration working - γ={result.gamma:.6f}, δ*={result.delta_star:.6f}')
+    print(f'   Separation factor: {result.near_clone_stats[\"p5\"] / result.gamma:.1f}x')
+except Exception as e:
+    print(f'❌ Calibration error: {e}')
+    sys.exit(1)
+" || true
+
 echo -e "\n${YELLOW}=== RUNNING LEGACY VALIDATION TESTS ===${NC}"
 echo -e "${YELLOW}Note: These may show inconsistent results due to random models${NC}\n"
 
