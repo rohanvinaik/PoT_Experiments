@@ -126,7 +126,7 @@ if ${PYTHON} scripts/test_enhanced_diff_decision.py > "${RESULTS_DIR}/enhanced_d
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if results file exists and display summary
-    if [ -f "experimental_results/enhanced_diff_decision_test_"*.json ]; then
+    if ls experimental_results/enhanced_diff_decision_test_*.json >/dev/null 2>&1; then
         print_info "Test results saved to experimental_results/"
     fi
 else
@@ -145,7 +145,7 @@ if ${PYTHON} scripts/test_calibration_system.py > "${RESULTS_DIR}/calibration_te
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if calibration results exist
-    if [ -f "experimental_results/test_calibration_"*.json ]; then
+    if ls experimental_results/test_calibration_*.json >/dev/null 2>&1; then
         print_info "Calibration results saved to experimental_results/"
     fi
 else
@@ -164,7 +164,7 @@ if ${PYTHON} scripts/test_enhanced_verifier.py > "${RESULTS_DIR}/enhanced_verifi
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if results exist
-    if [ -f "experimental_results/verifier_test_"*.json ]; then
+    if ls experimental_results/verifier_test_*.json >/dev/null 2>&1; then
         print_info "Verifier test results saved to experimental_results/"
     fi
 else
@@ -183,7 +183,7 @@ if ${PYTHON} scripts/runtime_blackbox_validation.py > "${RESULTS_DIR}/runtime_bl
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if results exist
-    if [ -f "experimental_results/runtime_blackbox_validation_"*.json ]; then
+    if ls experimental_results/runtime_blackbox_validation_*.json >/dev/null 2>&1; then
         print_info "Runtime statistical identity results saved to experimental_results/"
     fi
 else
@@ -202,7 +202,7 @@ if ${PYTHON} scripts/runtime_blackbox_validation_adaptive.py > "${RESULTS_DIR}/r
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if results exist
-    if [ -f "experimental_results/runtime_blackbox_adaptive_"*.json ]; then
+    if ls experimental_results/runtime_blackbox_adaptive_*.json >/dev/null 2>&1; then
         print_info "Adaptive sampling results saved to experimental_results/"
     fi
 else
@@ -221,7 +221,7 @@ if ${PYTHON} scripts/runtime_blackbox_optimized.py > "${RESULTS_DIR}/runtime_opt
     PASSED_TESTS=$((PASSED_TESTS + 1))
     
     # Check if results exist
-    if [ -f "experimental_results/runtime_blackbox_optimized_"*.json ]; then
+    if ls experimental_results/runtime_blackbox_optimized_*.json >/dev/null 2>&1; then
         print_info "Optimized runtime results saved to experimental_results/"
     fi
 else
