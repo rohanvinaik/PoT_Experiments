@@ -434,8 +434,27 @@ class TokenSpaceNormalizer:
             else:
                 return 1.0
         
+        elif method == 'fuzzy':
+            # Fuzzy matching using Jaccard similarity (default to jaccard for fuzzy)
+            # This is for backward compatibility
+            norm1 = self._normalize_tokens(tokens1)
+            norm2 = self._normalize_tokens(tokens2)
+            
+            set1 = set(norm1) if isinstance(norm1, list) else set(tokens1)
+            set2 = set(norm2) if isinstance(norm2, list) else set(tokens2)
+            
+            if not set1 and not set2:
+                return 0.0
+            
+            intersection = len(set1 & set2)
+            union = len(set1 | set2)
+            
+            return 1.0 - (intersection / union if union > 0 else 0.0)
+        
         else:
-            raise ValueError(f"Unknown distance method: {method}")
+            # For other methods, try to fall back to jaccard
+            print(f"Warning: Unknown distance method '{method}', falling back to jaccard")
+            return self.compute_distance(tokens1, tokens2, method='jaccard')
     
     def _levenshtein_distance(self, seq1: List[int], seq2: List[int]) -> int:
         """Compute Levenshtein distance between sequences"""

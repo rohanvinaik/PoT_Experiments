@@ -1,6 +1,6 @@
 {
-  "total_runs": 21,
-  "successful_runs": 21,
+  "total_runs": 23,
+  "successful_runs": 23,
   "zk_pipeline_runs": 1,
   "interface_test_runs": 1,
   "timing_samples": [
@@ -97,6 +97,16 @@
     {
       "t_per_query": 0.0840073823928833,
       "t_total": 26.08917498588562,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.20216611862182618,
+      "t_total": 38.38185691833496,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 8.20570740699768,
+      "t_total": 43.783724308013916,
       "hardware": "unknown"
     }
   ],
@@ -214,6 +224,18 @@
       "confidence": 0.95,
       "n_used": 2,
       "effect_size": 0.5217575132846832
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.99,
+      "n_used": 25,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.975,
+      "n_used": 5,
+      "effect_size": 0.0
     }
   ],
   "zk_proof_samples": [
@@ -230,5 +252,5 @@
       "verified": true
     }
   ],
-  "last_updated": "2025-08-20T17:17:42.240299"
+  "last_updated": "2025-08-20T17:57:14.938242"
 }

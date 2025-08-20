@@ -1,0 +1,71 @@
+# Vocabulary Compatibility Configuration
+# 
+# This configuration controls how the framework handles models with different vocabulary sizes.
+# Most vocabulary differences represent minor fine-tuning rather than fundamental changes.
+
+vocabulary_compatibility:
+  # Minimum overlap ratio to consider models compatible (0.0-1.0)
+  # 0.60 = 60% of tokens must be shared (allows cross-family comparison)
+  min_overlap_ratio: 0.60
+  
+  # How to handle vocabulary mismatches
+  # Options: "warn" | "adapt" | "fail"
+  # - warn: Log warning and continue with shared tokens
+  # - adapt: Adapt verification strategy for mismatch
+  # - fail: Fail verification (legacy behavior)
+  mismatch_behavior: "adapt"
+  
+  # Whether to allow vocabulary extensions
+  # Common in fine-tuned models that add domain-specific tokens
+  allow_extended_vocabularies: true
+  
+  # Maximum token difference to consider as extension (not different architecture)
+  extension_threshold: 1000
+  
+  # Confidence adjustment when vocabularies don't match perfectly
+  # Applied as multiplier to final confidence scores
+  confidence_adjustments:
+    perfect_match: 1.0      # 100% vocabulary match
+    high_overlap: 0.98      # 95-99% overlap
+    extension: 0.95         # One vocab extends the other
+    moderate_overlap: 0.90  # 90-95% overlap
+  
+  # Common vocabulary families and their expected sizes
+  # Used for intelligent family detection
+  vocabulary_families:
+    gpt_family:
+      sizes: [50257, 50258, 50259, 50260]
+      description: "GPT-2/GPT-3 tokenizer family"
+    
+    llama_family:
+      sizes: [32000, 32001, 32002]
+      description: "LLaMA tokenizer family"
+    
+    mistral_family:
+      sizes: [32768, 32000]
+      description: "Mistral/Zephyr tokenizer family"
+    
+    bert_family:
+      sizes: [30000, 30522, 30523]
+      description: "BERT tokenizer family"
+    
+    phi_family:
+      sizes: [51200, 51201]
+      description: "Phi model tokenizer family"
+  
+  # Logging configuration
+  logging:
+    log_compatibility_analysis: true
+    log_adaptation_details: true
+    log_warnings_as_errors: false
+  
+  # Advanced options
+  advanced:
+    # Whether to analyze token frequency distributions
+    analyze_token_distributions: false
+    
+    # Cache compatibility results for repeated comparisons
+    cache_compatibility_results: true
+    
+    # Maximum cache size (number of model pairs)
+    max_cache_size: 100

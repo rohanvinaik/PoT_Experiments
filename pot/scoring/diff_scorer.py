@@ -11,6 +11,11 @@ import torch.nn.functional as F
 from typing import Any, Optional, Literal, Tuple, Union
 import logging
 
+from pot.core.vocabulary_compatibility import (
+    VocabularyCompatibilityAnalyzer,
+    VocabularyMismatchBehavior
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -22,14 +27,31 @@ class CorrectedDifferenceScorer:
     - Handles numerical stability properly
     """
     
-    def __init__(self, epsilon: float = 1e-10):
+    def __init__(
+        self,
+        epsilon: float = 1e-10,
+        min_vocab_overlap: float = 0.95,
+        vocab_mismatch_behavior: str = "adapt",
+        allow_extended_vocabularies: bool = True
+    ):
         """
         Initialize the scorer.
         
         Args:
             epsilon: Small value for numerical stability
+            min_vocab_overlap: Minimum vocabulary overlap ratio for compatibility
+            vocab_mismatch_behavior: How to handle vocab mismatches ("warn", "adapt", "fail")
+            allow_extended_vocabularies: Whether to allow vocabulary extensions
         """
         self.epsilon = epsilon
+        
+        # Initialize vocabulary compatibility analyzer
+        behavior = VocabularyMismatchBehavior(vocab_mismatch_behavior)
+        self.vocab_analyzer = VocabularyCompatibilityAnalyzer(
+            min_overlap_ratio=min_vocab_overlap,
+            mismatch_behavior=behavior,
+            allow_extended_vocabularies=allow_extended_vocabularies
+        )
     
     def delta_ce_abs(
         self,
@@ -53,6 +75,42 @@ class CorrectedDifferenceScorer:
         Returns:
             Non-negative difference score (larger = more different)
         """
+        # Analyze vocabulary compatibility
+        vocab_a = logits_a.size(-1)
+        vocab_b = logits_b.size(-1)
+        
+        if vocab_a != vocab_b:
+            # Analyze compatibility
+            compat_report = self.vocab_analyzer.analyze_vocabulary_overlap(
+                vocab_a, vocab_b
+            )
+            
+            # Get verification strategy
+            strategy = self.vocab_analyzer.suggest_verification_strategy(compat_report)
+            
+            if not strategy["can_proceed"]:
+                # Incompatible vocabularies
+                logger.warning(
+                    f"Vocabularies incompatible for cross-entropy calculation: "
+                    f"{vocab_a} vs {vocab_b} (overlap: {compat_report.overlap_ratio:.1%})"
+                )
+                return 1.0  # Maximum difference for incompatible models
+            
+            # Adapt computation to shared token space
+            shared_start, shared_end = self.vocab_analyzer.determine_shared_token_space(
+                vocab_a, vocab_b
+            )
+            
+            # Log adaptation
+            logger.info(
+                f"Adapting to vocabulary mismatch: {vocab_a} vs {vocab_b}. "
+                f"Computing on {shared_end} shared tokens ({compat_report.overlap_ratio:.1%} overlap)"
+            )
+            
+            # Truncate to shared vocabulary
+            logits_a = logits_a[..., shared_start:shared_end]
+            logits_b = logits_b[..., shared_start:shared_end]
+        
         # Apply temperature scaling
         logits_a = logits_a / temperature
         logits_b = logits_b / temperature
@@ -107,6 +165,24 @@ class CorrectedDifferenceScorer:
         Returns:
             Non-negative symmetric KL divergence (larger = more different)
         """
+        # Analyze vocabulary compatibility
+        vocab_a = logits_a.size(-1)
+        vocab_b = logits_b.size(-1)
+        
+        if vocab_a != vocab_b:
+            compat_report = self.vocab_analyzer.analyze_vocabulary_overlap(vocab_a, vocab_b)
+            strategy = self.vocab_analyzer.suggest_verification_strategy(compat_report)
+            
+            if not strategy["can_proceed"]:
+                logger.warning(f"Vocabularies incompatible for KL divergence: {vocab_a} vs {vocab_b}")
+                return 1.0  # Maximum difference
+            
+            # Adapt to shared token space
+            shared_start, shared_end = self.vocab_analyzer.determine_shared_token_space(vocab_a, vocab_b)
+            logger.info(f"Computing KL on {shared_end} shared tokens")
+            logits_a = logits_a[..., shared_start:shared_end]
+            logits_b = logits_b[..., shared_start:shared_end]
+        
         # Apply temperature scaling
         logits_a = logits_a / temperature
         logits_b = logits_b / temperature

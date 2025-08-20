@@ -17,6 +17,7 @@ from transformers import AutoTokenizer
 from ..core.stats import empirical_bernstein_bound, t_statistic
 from ..core.sequential import SequentialTester, SPRTResult
 from ..core.challenge import generate_challenges, ChallengeConfig
+from ..core.adaptive_challenge import AdaptiveChallengeGenerator, AdaptiveChallengeConfig
 from .fuzzy_hash import FuzzyHasher
 try:
     from .fuzzy_hash import NGramFuzzyHasher, AdvancedFuzzyHasher
@@ -46,7 +47,7 @@ class LMVerifier:
     """
     
     def __init__(self, reference_model: LM, delta: float = 0.01, 
-                 use_sequential: bool = True):
+                 use_sequential: bool = True, enable_adaptive_challenges: bool = True):
         """
         Initialize LM verifier
         
@@ -54,10 +55,12 @@ class LMVerifier:
             reference_model: Reference language model f*
             delta: Confidence parameter (1-delta confidence)
             use_sequential: Whether to use SPRT for early stopping
+            enable_adaptive_challenges: Whether to use adaptive challenge generation
         """
         self.reference_model = reference_model
         self.delta = delta
         self.use_sequential = use_sequential
+        self.enable_adaptive_challenges = enable_adaptive_challenges
         
         # Initialize tokenizer and normalizer
         self.tokenizer = reference_model.tok if hasattr(reference_model, 'tok') else None
@@ -71,6 +74,16 @@ class LMVerifier:
         
         # Advanced hasher not available
         self.advanced_hasher = None
+        
+        # Initialize adaptive challenge generator if enabled
+        if enable_adaptive_challenges:
+            self.adaptive_generator = AdaptiveChallengeGenerator(
+                min_overlap_ratio=0.95,
+                core_vocab_size=30000,
+                enable_frequency_weighting=False
+            )
+        else:
+            self.adaptive_generator = None
         
         # Sequential tester if enabled
         if use_sequential:
@@ -171,6 +184,98 @@ class LMVerifier:
             return 1.0 - cos_sim
 
         raise ValueError(f"Unknown method: {method}")
+    
+    def generate_adaptive_challenges(self, 
+                                    candidate_model: LM,
+                                    n: int,
+                                    master_key: str,
+                                    session_nonce: str) -> Dict[str, Any]:
+        """
+        Generate challenges adapted to vocabulary differences between models.
+        
+        Args:
+            candidate_model: Model being verified (may have different vocabulary)
+            n: Number of challenges to generate
+            master_key: Master key for challenge generation
+            session_nonce: Session nonce for freshness
+        
+        Returns:
+            Dictionary with adaptive challenges and metadata
+        """
+        if not self.adaptive_generator:
+            # Fall back to standard generation
+            config = ChallengeConfig(
+                master_key_hex=master_key,
+                session_nonce_hex=session_nonce,
+                n=n,
+                family="lm:templates",
+                params={
+                    "templates": [
+                        "Complete the following: The {object} is {attribute}",
+                        "Q: What is {concept}? A:",
+                        "The {adjective} {subject} {verb} the {object}."
+                    ],
+                    "slots": {
+                        "object": ["car", "book", "tree", "computer"],
+                        "attribute": ["fast", "interesting", "tall", "complex"],
+                        "concept": ["gravity", "democracy", "photosynthesis"],
+                        "adjective": ["clever", "curious", "colorful"],
+                        "subject": ["cat", "scientist", "artist"],
+                        "verb": ["chases", "observes", "creates"]
+                    }
+                }
+            )
+            return generate_challenges(config)
+        
+        # Get vocabulary sizes
+        ref_vocab_size = self.reference_model.get_vocab_size() if hasattr(self.reference_model, 'get_vocab_size') else 50257
+        cand_vocab_size = candidate_model.get_vocab_size() if hasattr(candidate_model, 'get_vocab_size') else 50257
+        
+        # Get model names if available
+        ref_name = getattr(self.reference_model, 'model_name', 'reference')
+        cand_name = getattr(candidate_model, 'model_name', 'candidate')
+        
+        # Create adaptive configuration
+        adaptive_config = AdaptiveChallengeConfig(
+            master_key_hex=master_key,
+            session_nonce_hex=session_nonce,
+            n=n,
+            family="lm:templates",
+            params={
+                "templates": [
+                    "Complete the following: The {object} is {attribute}",
+                    "Q: What is {concept}? A:",
+                    "The {adjective} {subject} {verb} the {object}.",
+                    "When the {subject} {verb}, the {object} becomes {adjective}.",
+                    "{subject} and {subject2} {verb} the {adjective} {object}."
+                ],
+                "slots": {
+                    "object": ["car", "book", "tree", "computer", "painting", "equation"],
+                    "attribute": ["fast", "interesting", "tall", "complex", "beautiful", "simple"],
+                    "concept": ["gravity", "democracy", "photosynthesis", "entropy", "harmony"],
+                    "adjective": ["clever", "curious", "colorful", "mysterious", "elegant"],
+                    "subject": ["cat", "scientist", "artist", "teacher", "robot"],
+                    "subject2": ["dog", "engineer", "writer", "student", "bird"],
+                    "verb": ["chases", "observes", "creates", "discovers", "transforms"]
+                }
+            },
+            vocab_size_a=ref_vocab_size,
+            vocab_size_b=cand_vocab_size,
+            model_name_a=ref_name,
+            model_name_b=cand_name,
+            adaptation_strategy="shared_core"
+        )
+        
+        # Generate adapted challenges
+        result = self.adaptive_generator.generate_adaptive_challenges(adaptive_config)
+        
+        # Log adaptation info
+        if result.get("vocabulary_adapted"):
+            print(f"✓ Challenges adapted for vocabulary mismatch: {ref_vocab_size} vs {cand_vocab_size}")
+            print(f"  Strategy: {result.get('adaptation_strategy', 'unknown')}")
+            print(f"  Token coverage: {result.get('token_coverage', 0):.1%}")
+        
+        return result
     
     def evaluate_challenge(self, model: LM, challenge: Union[str, Dict[str, Any]],
                             method: str = 'fuzzy') -> Tuple[str, float]:
