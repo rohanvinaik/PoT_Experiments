@@ -324,7 +324,7 @@ class MerkleNode:
         return self.hash.hex()
 
 
-def build_merkle_tree(data_blocks: List[bytes]) -> MerkleNode:
+def build_merkle_tree(data_blocks: List[bytes], hash_func=None) -> MerkleNode:
     """
     Build a complete Merkle tree from leaf data blocks.
     
@@ -1330,6 +1330,22 @@ class MockBlockchainClient:
         logger.info("Mock blockchain client connected")
         return True
     
+    def store_data(self, data_type: str, data: Dict[str, Any], metadata: Dict[str, Any] = None) -> str:
+        """Store arbitrary data in mock storage"""
+        tx_id = f"0x{self.transaction_counter:064x}"
+        self.transaction_counter += 1
+        self.block_number += 1
+        
+        self.storage[tx_id] = {
+            'type': data_type,
+            'data': data,
+            'metadata': metadata or {},
+            'block': self.block_number,
+            'timestamp': time.time()
+        }
+        
+        return tx_id
+    
     def store_commitment(self, commitment_hash: bytes, metadata: Dict[str, Any]) -> str:
         """Store commitment in mock storage"""
         tx_id = f"0x{self.transaction_counter:064x}"
@@ -1465,7 +1481,8 @@ class TrainingProvenanceAuditor:
     """
     
     def __init__(self, model_id: str, blockchain_client: Optional[BlockchainClient] = None,
-                 compression_enabled: bool = True, max_history_size: int = 10000):
+                 compression_enabled: bool = True, max_history_size: int = 10000,
+                 hash_function: str = "sha256"):
         """
         Initialize TrainingProvenanceAuditor
         
@@ -1474,11 +1491,28 @@ class TrainingProvenanceAuditor:
             blockchain_client: Optional blockchain client for immutable storage
             compression_enabled: Whether to compress large histories
             max_history_size: Maximum number of events to keep in memory
+            hash_function: Hash function to use ("sha256" or "poseidon")
         """
         self.model_id = model_id
         self.blockchain_client = blockchain_client or MockBlockchainClient()
         self.compression_enabled = compression_enabled
         self.max_history_size = max_history_size
+        self.hash_function = hash_function
+        
+        # Set up hash function
+        if hash_function == "poseidon":
+            try:
+                from ..zk.poseidon import poseidon_hash, poseidon_hash_two
+                self._hash_func = poseidon_hash
+                self._hash_two = poseidon_hash_two
+            except ImportError:
+                logger.warning("Poseidon not available, falling back to SHA-256")
+                self.hash_function = "sha256"
+                self._hash_func = lambda x: hashlib.sha256(x).digest()
+                self._hash_two = lambda x, y: hashlib.sha256(x + y).digest()
+        else:
+            self._hash_func = lambda x: hashlib.sha256(x).digest()
+            self._hash_two = lambda x, y: hashlib.sha256(x + y).digest()
         
         # Training history
         self.events: List[TrainingEvent] = []
@@ -1487,6 +1521,10 @@ class TrainingProvenanceAuditor:
         # Merkle trees for epochs
         self.epoch_trees: Dict[int, MerkleTree] = {}
         self.master_tree: Optional[MerkleTree] = None
+        self.merkle_trees: Dict[int, Dict] = {}  # For compatibility
+        
+        # Use Poseidon Merkle trees if requested
+        self.use_poseidon_merkle = (hash_function == "poseidon")
         
         # ZK proof generator
         self.zk_proof_generator = ZeroKnowledgeProof()
@@ -1503,7 +1541,27 @@ class TrainingProvenanceAuditor:
             'last_epoch': -1
         }
         
-        logger.info(f"TrainingProvenanceAuditor initialized for model: {model_id}")
+        logger.info(f"TrainingProvenanceAuditor initialized for model: {model_id} with {hash_function} hashing")
+    
+    def _compute_merkle_root(self, data_blocks: List[bytes]) -> bytes:
+        """
+        Compute Merkle root using configured hash function.
+        
+        Args:
+            data_blocks: List of data blocks
+            
+        Returns:
+            Root hash as bytes
+        """
+        if self.use_poseidon_merkle:
+            try:
+                from ..zk.poseidon import poseidon_merkle_root
+                return poseidon_merkle_root(data_blocks)
+            except ImportError:
+                logger.warning("Poseidon not available, using SHA-256")
+        
+        # Fall back to SHA-256
+        return compute_merkle_root(data_blocks)
     
     def log_training_event(self, epoch: int, metrics: Dict[str, Any],
                           checkpoint_hash: Optional[str] = None,
@@ -2023,6 +2081,267 @@ class TrainingProvenanceAuditor:
         stats['event_types'] = event_types
         
         return stats
+    
+    def generate_zk_witness(self, 
+                           weights_before: Dict[str, Any],
+                           weights_after: Dict[str, Any],
+                           batch_data: Dict[str, Any],
+                           hyperparameters: Dict[str, Any],
+                           step_info: Dict[str, Any],
+                           proof_type: str = "sgd_step") -> Dict[str, Any]:
+        """
+        Generate ZK witness data for training step verification
+        
+        This method extracts witness data that can be used to generate
+        zero-knowledge proofs of correct training step execution.
+        
+        Args:
+            weights_before: Model weights before training step
+            weights_after: Model weights after training step  
+            batch_data: Training batch (inputs, targets, gradients, etc.)
+            hyperparameters: Training hyperparameters
+            step_info: Step metadata (epoch, step_number, nonce, etc.)
+            proof_type: Type of ZK proof ("sgd_step" or "lora_step")
+            
+        Returns:
+            Dictionary containing ZK witness data and dual commitments
+        """
+        try:
+            # Import ZK module functions
+            from ..zk.witness import extract_sgd_witness, extract_lora_witness, build_zk_statement
+            from ..zk.commitments import DualCommitment
+            from ..zk.spec import ZKProofType, CommitmentScheme
+            
+            logger.info(f"Generating ZK witness for {proof_type} step {step_info.get('step_number', 'unknown')}")
+            
+            # Create dual commitment scheme for compatibility
+            dual_committer = DualCommitment()
+            
+            # Extract witness based on proof type
+            if proof_type == "sgd_step":
+                # Extract required data from inputs
+                model_weights_before = weights_before.get("weights", {})
+                model_weights_after = weights_after.get("weights", {})
+                batch_inputs = batch_data.get("inputs", np.array([]))
+                batch_targets = batch_data.get("targets", np.array([]))
+                gradients = batch_data.get("gradients", {})
+                loss_value = batch_data.get("loss", 0.0)
+                
+                # Generate SGD witness
+                witness = extract_sgd_witness(
+                    model_weights_before=model_weights_before,
+                    model_weights_after=model_weights_after,
+                    batch_inputs=batch_inputs,
+                    batch_targets=batch_targets,
+                    hyperparameters=hyperparameters,
+                    gradients=gradients,
+                    loss_value=loss_value,
+                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
+                )
+                
+                # Build ZK statement
+                statement = build_zk_statement(
+                    weights_before=model_weights_before,
+                    weights_after=model_weights_after,
+                    batch_inputs=batch_inputs,
+                    batch_targets=batch_targets,
+                    hyperparameters=hyperparameters,
+                    step_info=step_info,
+                    proof_type=ZKProofType.SGD_STEP,
+                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
+                )
+                
+            elif proof_type == "lora_step":
+                # Extract LoRA-specific data
+                base_weights = weights_before.get("base_weights", {})
+                lora_A_before = weights_before.get("lora_A", {})
+                lora_B_before = weights_before.get("lora_B", {})
+                lora_A_after = weights_after.get("lora_A", {})
+                lora_B_after = weights_after.get("lora_B", {})
+                batch_inputs = batch_data.get("inputs", np.array([]))
+                batch_targets = batch_data.get("targets", np.array([]))
+                gradients_A = batch_data.get("gradients_A", {})
+                gradients_B = batch_data.get("gradients_B", {})
+                loss_value = batch_data.get("loss", 0.0)
+                
+                # Generate LoRA witness
+                witness = extract_lora_witness(
+                    base_weights=base_weights,
+                    lora_A_before=lora_A_before,
+                    lora_B_before=lora_B_before,
+                    lora_A_after=lora_A_after,
+                    lora_B_after=lora_B_after,
+                    batch_inputs=batch_inputs,
+                    batch_targets=batch_targets,
+                    lora_hyperparameters=hyperparameters,
+                    gradients_A=gradients_A,
+                    gradients_B=gradients_B,
+                    loss_value=loss_value,
+                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
+                )
+                
+                # Build LoRA statement
+                statement = build_zk_statement(
+                    weights_before={"base": base_weights, "lora_A": lora_A_before, "lora_B": lora_B_before},
+                    weights_after={"base": base_weights, "lora_A": lora_A_after, "lora_B": lora_B_after},
+                    batch_inputs=batch_inputs,
+                    batch_targets=batch_targets,
+                    hyperparameters=hyperparameters,
+                    step_info=step_info,
+                    proof_type=ZKProofType.LORA_STEP,
+                    commitment_scheme=CommitmentScheme.DUAL_COMMITMENT
+                )
+                
+            else:
+                raise ValueError(f"Unsupported proof type: {proof_type}")
+            
+            # Create ZK witness record for audit trail
+            witness_record = {
+                "witness_id": f"{self.model_id}_{proof_type}_{step_info.get('step_number', 0)}",
+                "proof_type": proof_type,
+                "statement": statement.to_dict() if hasattr(statement, 'to_dict') else str(statement),
+                "witness_metadata": {
+                    "step_number": step_info.get("step_number", 0),
+                    "epoch": step_info.get("epoch", 0),
+                    "timestamp": step_info.get("timestamp", datetime.now(timezone.utc).isoformat()),
+                    "model_id": self.model_id,
+                    "witness_size_bytes": len(str(witness)),
+                    "commitment_scheme": CommitmentScheme.DUAL_COMMITMENT.value
+                },
+                "dual_commitments": {
+                    "supports_sha256": True,
+                    "supports_poseidon": True,
+                    "zk_compatible": True
+                },
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "auditor_version": self.metadata.get("version", "1.0.0")
+            }
+            
+            # Log ZK witness generation event
+            self.log_training_event(
+                epoch=step_info.get("epoch", 0),
+                metrics={"witness_generated": True, "proof_type": proof_type},
+                event_type=EventType.CUSTOM,
+                metadata={
+                    "zk_witness_id": witness_record["witness_id"],
+                    "commitment_scheme": "dual",
+                    "zk_compatible": True
+                }
+            )
+            
+            logger.info(f"Successfully generated ZK witness: {witness_record['witness_id']}")
+            
+            return {
+                "witness": witness,
+                "statement": statement,
+                "witness_record": witness_record,
+                "compatibility": {
+                    "existing_merkle": True,
+                    "zk_friendly": True,
+                    "dual_commitment": True
+                }
+            }
+            
+        except ImportError as e:
+            logger.error(f"ZK module not available: {e}")
+            # Return mock witness for compatibility
+            return self._generate_mock_zk_witness(weights_before, weights_after, batch_data, step_info, proof_type)
+        
+        except Exception as e:
+            logger.error(f"Failed to generate ZK witness: {e}")
+            raise
+    
+    def add_dual_commitment_support(self) -> None:
+        """
+        Add support for dual commitment schemes (SHA-256 + Poseidon)
+        
+        This method enhances the existing SHA-256 Merkle trees with
+        ZK-friendly Poseidon commitments for seamless ZK proof integration.
+        """
+        try:
+            from ..zk.commitments import create_zk_compatible_commitment
+            
+            logger.info("Adding dual commitment support to existing Merkle trees")
+            
+            # Enhance existing epoch trees with ZK compatibility
+            for epoch, merkle_tree in self.epoch_trees.items():
+                if hasattr(merkle_tree, 'root') and merkle_tree.root:
+                    zk_commitment = create_zk_compatible_commitment(merkle_tree.root)
+                    
+                    # Store dual commitment metadata
+                    if not hasattr(merkle_tree, 'zk_metadata'):
+                        merkle_tree.zk_metadata = {}
+                    
+                    merkle_tree.zk_metadata.update({
+                        "dual_commitment": zk_commitment,
+                        "zk_compatible": True,
+                        "enhanced_at": datetime.now(timezone.utc).isoformat()
+                    })
+                    
+                    logger.info(f"Enhanced epoch {epoch} tree with ZK compatibility")
+            
+            # Enhance master tree if it exists
+            if self.master_tree and hasattr(self.master_tree, 'root') and self.master_tree.root:
+                zk_commitment = create_zk_compatible_commitment(self.master_tree.root)
+                
+                if not hasattr(self.master_tree, 'zk_metadata'):
+                    self.master_tree.zk_metadata = {}
+                
+                self.master_tree.zk_metadata.update({
+                    "dual_commitment": zk_commitment,
+                    "zk_compatible": True,
+                    "enhanced_at": datetime.now(timezone.utc).isoformat()
+                })
+                
+                logger.info("Enhanced master tree with ZK compatibility")
+            
+            # Update auditor metadata
+            self.metadata["zk_support"] = {
+                "dual_commitments": True,
+                "sha256_compatible": True,
+                "poseidon_compatible": True,
+                "enabled_at": datetime.now(timezone.utc).isoformat()
+            }
+            
+            logger.info("Successfully added dual commitment support")
+            
+        except ImportError:
+            logger.warning("ZK module not available - dual commitment support not added")
+        except Exception as e:
+            logger.error(f"Failed to add dual commitment support: {e}")
+    
+    def _generate_mock_zk_witness(self, weights_before: Dict, weights_after: Dict, 
+                                 batch_data: Dict, step_info: Dict, proof_type: str) -> Dict[str, Any]:
+        """
+        Generate mock ZK witness when ZK module is not available
+        
+        This ensures compatibility even when ZK dependencies are missing.
+        """
+        mock_witness = {
+            "witness": {
+                "type": "mock",
+                "proof_type": proof_type,
+                "note": "Mock witness - ZK module not available"
+            },
+            "statement": {
+                "type": "mock",
+                "step_number": step_info.get("step_number", 0),
+                "epoch": step_info.get("epoch", 0)
+            },
+            "witness_record": {
+                "witness_id": f"{self.model_id}_mock_{step_info.get('step_number', 0)}",
+                "is_mock": True,
+                "generated_at": datetime.now(timezone.utc).isoformat()
+            },
+            "compatibility": {
+                "existing_merkle": True,
+                "zk_friendly": False,
+                "dual_commitment": False
+            }
+        }
+        
+        logger.warning("Generated mock ZK witness - install ZK module for full functionality")
+        return mock_witness
     
     def _compress_events(self, events: List[TrainingEvent]) -> str:
         """Compress events for storage"""

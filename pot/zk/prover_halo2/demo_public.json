@@ -1,0 +1,9 @@
+{
+  "w_t_root": "0x1234567890abcdef1234567890abcdef",
+  "batch_root": "0xfedcba0987654321fedcba0987654321",
+  "hparams_hash": "0x11111111111111111111111111111111",
+  "w_t1_root": "0x22222222222222222222222222222222",
+  "step_nonce": 123,
+  "step_number": 456,
+  "epoch": 1
+}

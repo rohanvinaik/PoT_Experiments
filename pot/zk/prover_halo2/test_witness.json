@@ -1,0 +1,1 @@
+{"weights_before":[1.0,2.0,3.0],"weights_after":[0.9,1.9,2.9],"batch_inputs":[0.5,0.6],"batch_targets":[1.0,0.0],"gradients":[0.1,0.1,0.1],"learning_rate":0.01,"loss_value":0.5}
