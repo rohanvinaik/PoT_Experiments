@@ -15,8 +15,12 @@ The codebase now includes an enhanced statistical difference testing framework w
    - **UNDECIDED**: Provides specific diagnostics and suggestions
 
 3. **INTEGRATION POINTS**:
-   - `scripts/test_enhanced_diff_decision.py` - Comprehensive test suite
+   - `scripts/run_enhanced_diff_test.py` - Production CLI with verify/calibrate modes
+   - `scripts/test_enhanced_diff_decision.py` - Decision logic testing
    - `scripts/test_enhanced_diff_integration.py` - Integration tests
+   - `scripts/test_enhanced_verifier.py` - Verifier component tests
+   - `scripts/test_calibration_system.py` - Calibration system tests
+   - `tests/test_enhanced_diff.py` - Comprehensive test suite (27 tests)
    - `scripts/experimental_report_clean.py` - Includes enhanced results
    - All `run_all*.sh` scripts include enhanced framework tests
 
@@ -37,7 +41,7 @@ When the user asks for Google Colab code or any test runners:
    - `scripts/` - Actual test scripts that run the framework
 
 2. **DO NOT CREATE SIMPLIFIED/MOCK VERSIONS** - The user needs to verify paper claims with real tests:
-   - Statistical identity verification must use `pot.core.diff_decision.SequentialDiffTester`
+   - Statistical identity verification must use `pot.core.diff_decision.EnhancedSequentialTester`
    - LLM verification must actually load and test models
    - Fuzzy hashing must use real algorithms (TLSH, SSDEEP)
    - Provenance must build actual Merkle trees
@@ -56,6 +60,7 @@ When the user asks for Google Colab code or any test runners:
 ## EXISTING WORKING SCRIPTS
 
 The following scripts in `scripts/` are the REAL tests that should be run:
+- `run_enhanced_diff_test.py` - Enhanced statistical verification with calibration
 - `run_statistical_verification.py` - Statistical identity with confidence intervals
 - `test_llm_verification.py` - LLM verification (updated to use GPT-2/DistilGPT-2)
 - `run_fuzzy_verification.py` - Fuzzy hash testing
