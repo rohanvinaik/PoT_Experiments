@@ -82,8 +82,8 @@ class ZKPerformanceBenchmark:
             )
             
             statement = SGDStepStatement(
-                weights_before_root=b"before" * 8,
-                weights_after_root=b"after" * 8,
+                W_t_root=b"before" * 8,
+                W_t1_root=b"after" * 8,
                 batch_root=b"batch" * 8,
                 hparams_hash=b"hparams" * 4,
                 step_number=1,
@@ -178,8 +178,8 @@ class ZKPerformanceBenchmark:
             )
             
             full_statement = SGDStepStatement(
-                weights_before_root=b"before" * 8,
-                weights_after_root=b"after" * 8,
+                W_t_root=b"before" * 8,
+                W_t1_root=b"after" * 8,
                 batch_root=b"batch" * 8,
                 hparams_hash=b"hparams" * 4,
                 step_number=1,
@@ -239,8 +239,8 @@ class ZKPerformanceBenchmark:
                 )
                 
                 statement = SGDStepStatement(
-                    weights_before_root=f"before_{i}".encode() * 4,
-                    weights_after_root=f"after_{i}".encode() * 4,
+                    W_t_root=f"before_{i}".encode() * 4,
+                    W_t1_root=f"after_{i}".encode() * 4,
                     batch_root=f"batch_{i}".encode() * 4,
                     hparams_hash=b"hparams" * 4,
                     step_number=i,

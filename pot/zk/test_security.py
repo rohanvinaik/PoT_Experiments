@@ -49,8 +49,8 @@ class TestInvalidWitnesses:
         )
         
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -89,8 +89,8 @@ class TestInvalidWitnesses:
         )
         
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -249,8 +249,8 @@ class TestTamperingResistance:
         )
         
         statement1 = SGDStepStatement(
-            weights_before_root=b"before1" * 8,
-            weights_after_root=b"after1" * 8,
+            W_t_root=b"before1" * 8,
+            W_t1_root=b"after1" * 8,
             batch_root=b"batch1" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -262,8 +262,8 @@ class TestTamperingResistance:
         
         # Create different statement
         statement2 = SGDStepStatement(
-            weights_before_root=b"before2" * 8,
-            weights_after_root=b"after2" * 8,
+            W_t_root=b"before2" * 8,
+            W_t1_root=b"after2" * 8,
             batch_root=b"batch2" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=2,
@@ -296,8 +296,8 @@ class TestTamperingResistance:
         proofs = []
         for step in range(3):
             statement = SGDStepStatement(
-                weights_before_root=b"before" * 8,
-                weights_after_root=b"after" * 8,
+                W_t_root=b"before" * 8,
+                W_t1_root=b"after" * 8,
                 batch_root=b"batch" * 8,
                 hparams_hash=b"hparams" * 4,
                 step_number=step,  # Different step numbers
@@ -347,8 +347,8 @@ class TestZeroKnowledgeProperty:
         
         # Same statement (public inputs)
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -398,8 +398,8 @@ class TestZeroKnowledgeProperty:
         )
         
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -492,8 +492,8 @@ class TestZeroKnowledgeProperty:
             )
             
             statement = SGDStepStatement(
-                weights_before_root=b"before" * 8,
-                weights_after_root=b"after" * 8,
+                W_t_root=b"before" * 8,
+                W_t1_root=b"after" * 8,
                 batch_root=b"batch" * 8,
                 hparams_hash=b"hparams" * 4,
                 step_number=1,
@@ -535,8 +535,8 @@ class TestSoundnessAndCompleteness:
             )
             
             statement = SGDStepStatement(
-                weights_before_root=b"before" * 8,
-                weights_after_root=b"after" * 8,
+                W_t_root=b"before" * 8,
+                W_t1_root=b"after" * 8,
                 batch_root=b"batch" * 8,
                 hparams_hash=b"hparams" * 4,
                 step_number=1,
@@ -621,8 +621,8 @@ class TestSoundnessAndCompleteness:
         invalid_witnesses.append(wrong_witness2)
         
         statement = SGDStepStatement(
-            weights_before_root=b"before" * 8,
-            weights_after_root=b"after" * 8,
+            W_t_root=b"before" * 8,
+            W_t1_root=b"after" * 8,
             batch_root=b"batch" * 8,
             hparams_hash=b"hparams" * 4,
             step_number=1,
@@ -640,8 +640,8 @@ class TestSoundnessAndCompleteness:
         
         # Create statement
         statement = SGDStepStatement(
-            weights_before_root=b"fixed_before" * 4,
-            weights_after_root=b"fixed_after" * 4,
+            W_t_root=b"fixed_before" * 4,
+            W_t1_root=b"fixed_after" * 4,
             batch_root=b"fixed_batch" * 4,
             hparams_hash=b"fixed_hparams" * 2,
             step_number=42,
