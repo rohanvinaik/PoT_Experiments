@@ -8,6 +8,12 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import warnings
+# Suppress CUDA warnings that are harmless
+warnings.filterwarnings('ignore', message='.*CUDA.*')
+warnings.filterwarnings('ignore', message='.*cuDNN.*')
+warnings.filterwarnings('ignore', message='.*cuFFT.*')
+
 import time
 import json
 from pathlib import Path
@@ -20,10 +26,16 @@ def main():
     print("="*60)
     
     # Import required modules
-    from pot.core.diff_decision import DiffDecisionConfig, EnhancedSequentialTester, TestingMode
-    from pot.scoring.optimized_scorer import FastScorer
-    from transformers import AutoModelForCausalLM, AutoTokenizer
-    import torch
+    try:
+        from pot.core.diff_decision import DiffDecisionConfig, EnhancedSequentialTester, TestingMode
+        from pot.scoring.optimized_scorer import FastScorer
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        import torch
+    except ImportError as e:
+        print(f"❌ Import error: {e}")
+        print("Please ensure all dependencies are installed:")
+        print("  pip install torch transformers numpy scipy")
+        return 1
     
     # Test configurations - specifically tuned for GPT-2 models
     test_configs = [
@@ -60,20 +72,45 @@ def main():
     ]
     
     results = []
-    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     
-    for test in test_configs:
+    # Determine device
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+        print(f"Using device: CUDA ({torch.cuda.get_device_name(0)})")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+        print(f"Using device: MPS (Apple Silicon)")
+    else:
+        device = torch.device("cpu")
+        print(f"Using device: CPU")
+    
+    for test_idx, test in enumerate(test_configs, 1):
         print(f"\n📊 Testing: {test['name']}")
         print("-" * 40)
         print(f"Models: {test['model_a']} vs {test['model_b']}")
         print(f"Expected: {test['expected']}")
         
         # Load models
-        tokenizer = AutoTokenizer.from_pretrained(test['model_a'])
-        tokenizer.pad_token = tokenizer.eos_token
-        
-        model_a = AutoModelForCausalLM.from_pretrained(test['model_a']).to(device)
-        model_b = AutoModelForCausalLM.from_pretrained(test['model_b']).to(device)
+        try:
+            print(f"\nLoading tokenizer from {test['model_a']}...")
+            tokenizer = AutoTokenizer.from_pretrained(test['model_a'])
+            tokenizer.pad_token = tokenizer.eos_token
+            
+            print(f"Loading model {test['model_a']}...")
+            model_a = AutoModelForCausalLM.from_pretrained(test['model_a']).to(device)
+            
+            print(f"Loading model {test['model_b']}...")
+            model_b = AutoModelForCausalLM.from_pretrained(test['model_b']).to(device)
+            
+            print("✅ Models loaded successfully")
+        except Exception as e:
+            print(f"❌ Failed to load models: {e}")
+            results.append({
+                "test": test['name'],
+                "error": str(e),
+                "success": False
+            })
+            continue
         
         # Configure test
         config = DiffDecisionConfig(mode=TestingMode.AUDIT_GRADE)
@@ -112,16 +149,27 @@ def main():
         scores = []
         start_time = time.time()
         
-        for i in range(config.n_max):
-            prompt = prompts[i % len(prompts)]
-            score = scorer.score(model_a, model_b, prompt, tokenizer)
-            scores.append(score)
-            tester.update(score)
-            
-            # Progress update every 20 samples
-            if (i + 1) % 20 == 0:
-                current_mean = np.mean(scores)
-                print(f"  {i+1}/{config.n_max}: mean={current_mean:.6f}")
+        try:
+            for i in range(config.n_max):
+                prompt = prompts[i % len(prompts)]
+                score = scorer.score(model_a, model_b, prompt, tokenizer)
+                scores.append(score)
+                tester.update(score)
+                
+                # Progress update every 20 samples
+                if (i + 1) % 20 == 0:
+                    current_mean = np.mean(scores)
+                    print(f"  {i+1}/{config.n_max}: mean={current_mean:.6f}")
+        except Exception as e:
+            print(f"❌ Error during scoring: {e}")
+            if len(scores) < config.n_min:
+                print(f"Not enough samples collected ({len(scores)} < {config.n_min})")
+                results.append({
+                    "test": test['name'],
+                    "error": str(e),
+                    "success": False
+                })
+                continue
             
             # Check for early stopping
             if i >= config.n_min and i % 10 == 0:
