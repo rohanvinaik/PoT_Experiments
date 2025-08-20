@@ -218,6 +218,40 @@ The ZK-PoT framework demonstrates exceptional scalability across model sizes:
 
 *This demonstrates the framework's universal applicability from research prototypes to production LLMs.*
 
+### 🔍 Vocabulary-Aware Verification
+
+The framework includes sophisticated vocabulary analysis that distinguishes between meaningful architectural changes and minor vocabulary adjustments:
+
+#### Example Analysis Output:
+```
+GPT-2 (50,257 tokens) vs Mistral-7B (32,768 tokens):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Overlap Analysis:
+  • Overlap Ratio: 65.2%
+  • Shared Tokens: 32,768
+  • Unique to GPT-2: 17,489
+  • Unique to Mistral: 0
+
+Architectural Impact:
+  • Relationship: DIFFERENT FAMILIES
+  • Parameter Change: 24.4% (severe impact)
+  • Embedding Layer: Major changes required
+  • Backward Compatible: False
+  
+Verification Strategy:
+  • Method: adaptive_major
+  • Confidence Adjustment: 0.70x
+  • Recommendation: Use semantic verification methods
+  • Focus: Shared token space only
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+This analysis enables the framework to:
+- **Correctly identify fine-tuned models** as variants rather than different models
+- **Adapt verification strategies** based on vocabulary overlap
+- **Provide nuanced decisions** (SAME, SAME_EXTENDED, SAME_REDUCED, DIFFERENT)
+- **Scale confidence** appropriately for cross-family comparisons
+
 
 ## 🎯 **Complete Production System**
 
