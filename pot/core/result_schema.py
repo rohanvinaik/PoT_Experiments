@@ -42,10 +42,14 @@ def build_result(tester,
         else:
             hardware = "cpu"
     
+    # Ensure info is not None
+    if info is None:
+        info = {"decision": "UNDECIDED", "rule": "", "ci": [0.0, 0.0], "half_width": 0.0}
+    
     # Calculate RME
     if "rme" not in info:
         if "half_width" in info and hasattr(tester, "mean"):
-            denom = max(abs(tester.mean), config.min_effect_floor)
+            denom = max(abs(tester.mean), getattr(config, "min_effect_floor", 0.001))
             info["rme"] = info["half_width"] / denom
     
     result = {
