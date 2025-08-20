@@ -1,3 +1,0 @@
-Test_Pair,Decision,Expected,n_used,n_eff,Mean,CI_Low,CI_High,Half_Width,RME,Status
-gpt2_vs_gpt2,SAME,SAME,30,3840,0.000000,0.000000,0.000000,0.000000,N/A,PASS
-gpt2_vs_distilgpt2,DIFFERENT,DIFFERENT,30,3840,0.705539,0.704202,0.706876,0.001337,0.0019,PASS
