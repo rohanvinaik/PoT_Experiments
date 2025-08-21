@@ -71,6 +71,66 @@ This framework fundamentally changes how we can interact with and reason about A
 
 The practical implications—fraud detection, security verification, regulatory compliance—are just the beginning. We're establishing a new field: the empirical study of artificial intelligence through behavioral analysis.
 
+## 🌐 The Unified Proof-of-Training Framework
+
+### Two Modes, One Vision
+
+This implementation represents the **black-box verification mode** of a larger unified framework for AI model trust. The complete PoT vision operates in two complementary modes:
+
+#### Mode 1: Provenance Fingerprinting (White-Box, During Training)
+*For model creators who want to generate verifiable "birth certificates"*
+
+When you have full access during training, the framework can create a comprehensive provenance record:
+- **Cryptographic hashing** of training artifacts (data, weights, code)
+- **Training architecture analysis** recording the computational graph and data flow
+- **Randomized challenge evolution** logging model responses throughout training
+- **Semantic verification** ensuring learned concepts align with training objectives
+
+This produces a tamper-evident "Proof-of-Training certificate"—essentially a model's DNA recorded at birth.
+
+#### Mode 2: Behavioral Fingerprinting (Black-Box, Post-Deployment)
+*For auditors and users who need to verify deployed models*
+
+**This is what our implementation provides.** When you only have API access to a deployed model:
+- **Sequential hypothesis testing** determines identity with minimal queries
+- **Empirical-Bernstein bounds** provide tight confidence intervals
+- **Cryptographic challenges** ensure reproducible, unforgeable verification
+- **Fuzzy matching** handles minor variations from versioning or hardware
+
+This produces a statistical verdict on model identity, sealed in an auditable transcript.
+
+### The Unified Workflow
+
+The power emerges when these modes connect:
+
+1. **Generation Phase** (Mode 1): During training, a developer generates a Proof-of-Training certificate containing the model's behavioral fingerprint—its expected responses to cryptographic challenges.
+
+2. **Verification Phase** (Mode 2): An auditor uses our black-box tools to probe the deployed model, generating a real-time behavioral fingerprint.
+
+3. **Comparison**: The framework statistically compares these fingerprints. If they match within tolerance (using our SAME/DIFFERENT decision rules), the deployed model is verified as authentic.
+
+### Our Implementation's Role
+
+This codebase provides:
+- **Complete Mode 2 implementation**: All black-box verification capabilities
+- **Standalone comparison**: Can verify any two models against each other
+- **Certificate validation**: Can verify models against Mode 1 certificates when available
+- **ZK proof generation**: Creates cryptographic evidence of the verification process
+
+The architecture supports both scenarios:
+- **With certificates**: Verify deployed models against their training provenance
+- **Without certificates**: Compare models directly (e.g., "Is this API really GPT-4?")
+
+### Real-World Application
+
+Consider a typical workflow:
+1. **OpenAI** trains GPT-4 and generates a Proof-of-Training certificate (Mode 1)
+2. **You** call their API endpoint claiming to serve GPT-4
+3. **Our framework** verifies the API against the certificate (Mode 2)
+4. **Result**: Mathematical proof the API serves authentic GPT-4, or detection of substitution
+
+This unified approach provides maximum trust when possible (with certificates) while remaining practical for real-world scenarios (black-box only).
+
 ## 📊 Validated Performance Results
 
 ### Reporting Standards
