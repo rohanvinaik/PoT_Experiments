@@ -1,0 +1,36 @@
+
+Enhanced Difference Verification Summary
+========================================
+Mode: quick_gate
+Decision: SAME
+Reason: CI [0.000000, 0.000000] within ±0.015 and half_width 0.000000 ≤ 0.007500
+
+Configuration:
+--------------
+Confidence: 98%
+γ (SAME band): 0.015000
+δ* (DIFFERENT threshold): 0.100000
+ε_diff (RME target): 0.200
+
+Results:
+--------
+Samples used: 12 (effective: 384)
+Mean difference: 0.000000
+Standard deviation: 0.000001
+CI: [0.000000, 0.000000]
+Half-width: 0.000000
+
+Performance:
+------------
+Total time: 12.09s
+Scores per second: 1.0
+
+Interpretation:
+---------------
+Models are statistically equivalent. The mean difference 0.000000 with 98% CI [0.000000, 0.000000] is entirely within the equivalence band ±0.015000, and precision requirement (half_width ≤ 0.007500) is met. This indicates no material difference in behavior.
+
+Next Steps:
+-----------
+• Models verified as equivalent within tolerance
+• Consider tightening γ if stricter equivalence needed
+• May proceed with model deployment/replacement

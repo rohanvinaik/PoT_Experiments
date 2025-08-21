@@ -1,0 +1,37 @@
+
+Enhanced Difference Verification Summary
+========================================
+Mode: quick_gate
+Decision: DIFFERENT
+Reason: Effect size 1.011250 ≥ δ* 0.1 and RME 0.011 ≤ 0.2
+
+Configuration:
+--------------
+Confidence: 98%
+γ (SAME band): 0.015000
+δ* (DIFFERENT threshold): 0.100000
+ε_diff (RME target): 0.200
+
+Results:
+--------
+Samples used: 12 (effective: 384)
+Mean difference: 1.000000
+Standard deviation: 0.000001
+CI: [0.988750, 1.011250]
+Half-width: 0.011250
+RME: 0.011
+
+Performance:
+------------
+Total time: 15.61s
+Scores per second: 0.8
+
+Interpretation:
+---------------
+Models are statistically different (higher). The mean difference 1.000000 has effect size exceeding the threshold 0.100000 with sufficient precision (RME=0.011 ≤ 0.200). This indicates a material behavioral difference.
+
+Next Steps:
+-----------
+• Investigate source of behavioral difference
+• Run secondary verification methods (fuzzy hash, provenance)
+• Check for unauthorized modifications or attacks
