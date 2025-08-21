@@ -1469,6 +1469,14 @@ else
     print_info "Skipping ZK health validation (--skip-zk specified)"
 fi
 
+# Update README with comprehensive experimental data
+print_info "Updating README with latest experimental results..."
+if ${PYTHON} scripts/update_readme_comprehensive.py > /dev/null 2>&1; then
+    print_success "README updated with all experimental data"
+else
+    print_warning "Could not update README automatically"
+fi
+
 # Set exit code based on test results (prioritize deterministic validation)
 if [ "$DETERMINISTIC_SUCCESS" = true ]; then
     echo ""

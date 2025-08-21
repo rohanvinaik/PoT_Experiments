@@ -433,4 +433,14 @@ Examples:
         return run_verification(args, scorer, prompt_gen, logger)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    result = main()
+    
+    # Try to update README with new results
+    try:
+        import subprocess
+        subprocess.run([sys.executable, "scripts/update_readme_comprehensive.py"], 
+                      capture_output=True, timeout=5)
+    except:
+        pass  # Silent fail - not critical
+    
+    sys.exit(result)

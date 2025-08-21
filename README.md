@@ -102,8 +102,8 @@ This framework detects model substitution, tampering, and fraud using only black
 
 | Circuit | Proof Size | Generation | Verification | Purpose |
 |---------|------------|------------|--------------|---------|
-| **SGD** | 807 bytes | 0.387s | 0.012s | Training step verification |
-| **LoRA** | 807 bytes | 0.752s | 0.015s | Fine-tuning verification |
+| **SGD** | 924 bytes | 0.456s | 0.012s | Training step verification |
+| **LoRA** | 632 bytes | 0.287s | 0.015s | Fine-tuning verification |
 | **Recursive** | 807 bytes | 2.841s | 0.018s | Multi-step aggregation |
 
 ## 🚀 Quick Start
@@ -159,7 +159,6 @@ Beyond statistical behavioral testing, the framework includes cryptographic secu
 - ✅ Config hashing alone provides perfect discrimination for identity verification
 - ✅ TLSH fuzzy hashing detects near-clones and modified models
 - ✅ Successfully detected: Size fraud (125M vs 1.3B), Architecture differences (GPT-2 vs Phi-2)
-
 ## 📈 Technical Innovation
 
 ### Enhanced Diff Decision Framework
@@ -172,8 +171,8 @@ Beyond statistical behavioral testing, the framework includes cryptographic secu
 ### Statistical Parameters
 | Mode | Confidence | n_min | n_max | Decision Rate |
 |------|------------|-------|-------|---------------|
-| **QUICK_GATE** | 97.5% | 10 | 120 | 96.8% |
-| **AUDIT_GRADE** | 99% | 30 | 400 | 99.6% |
+| **QUICK_GATE** | 97.5% | 10 | 120 | 66.7% |
+| **AUDIT_GRADE** | 99% | 30 | 400 | 80.0% |
 | **EXTENDED** | 99.9% | 50 | 800 | 99.9% |
 
 ## 🏗️ Architecture
