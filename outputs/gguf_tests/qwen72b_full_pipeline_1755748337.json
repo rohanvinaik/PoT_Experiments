@@ -1,0 +1,13 @@
+{
+  "model": "Qwen2.5-72B-Q4",
+  "pipeline": "Full PoT Framework",
+  "decision": "SAME",
+  "confidence": 0.99,
+  "components_tested": [
+    "Statistical",
+    "Security",
+    "Evidence"
+  ],
+  "runtime_seconds": 75.4124801158905,
+  "timestamp": 1755748337.839896
+}

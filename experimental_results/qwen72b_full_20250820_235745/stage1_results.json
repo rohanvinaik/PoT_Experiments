@@ -1,0 +1,7 @@
+{
+  "stage": "statistical",
+  "decision": "SAME",
+  "mean_diff": 0.0,
+  "n_samples": 10,
+  "time_seconds": 100.74788308143616
+}

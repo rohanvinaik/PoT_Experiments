@@ -1,0 +1,15 @@
+{
+  "test": "100-prompt verification",
+  "model": "Qwen2.5-72B-Q4",
+  "prompts_completed": 100,
+  "mean_difference": 0.0,
+  "timing": {
+    "load_time": 3.822359800338745,
+    "test_time": 635.8196280002594,
+    "total_time": 639.6419939994812,
+    "per_prompt": 6.358196280002594
+  },
+  "extrapolation": {
+    "prompts_5000_hours": 8.830828166670269
+  }
+}

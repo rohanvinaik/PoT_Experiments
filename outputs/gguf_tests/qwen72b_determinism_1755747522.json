@@ -1,0 +1,39 @@
+{
+  "model": "Qwen2.5-72B-Q4",
+  "decision": "FULLY_DETERMINISTIC",
+  "determinism_rate": 1.0,
+  "load_time_seconds": 15.888719081878662,
+  "generation_time_seconds": 101.08761620521545,
+  "detailed_results": [
+    {
+      "prompt": "The future of artificial intelligence is",
+      "same_seed_deterministic": true,
+      "diff_seed_varies": false,
+      "gen_time": 20.462986946105957
+    },
+    {
+      "prompt": "Climate change requires immediate action to",
+      "same_seed_deterministic": true,
+      "diff_seed_varies": false,
+      "gen_time": 20.134886026382446
+    },
+    {
+      "prompt": "Technology advances when innovation meets",
+      "same_seed_deterministic": true,
+      "diff_seed_varies": false,
+      "gen_time": 20.069083213806152
+    },
+    {
+      "prompt": "The key to sustainable development is",
+      "same_seed_deterministic": true,
+      "diff_seed_varies": false,
+      "gen_time": 20.230273008346558
+    },
+    {
+      "prompt": "Scientific breakthroughs happen when",
+      "same_seed_deterministic": true,
+      "diff_seed_varies": false,
+      "gen_time": 20.19038701057434
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "base": {
+    "architecture": "LlamaForCausalLM",
+    "hidden_size": 4096,
+    "num_layers": 32,
+    "num_heads": 32,
+    "vocab_size": 32000,
+    "max_position": 4096,
+    "hash": "d8fc4af3054ed558"
+  },
+  "chat": {
+    "architecture": "LlamaForCausalLM",
+    "hidden_size": 4096,
+    "num_layers": 32,
+    "num_heads": 32,
+    "vocab_size": 32000,
+    "max_position": 4096,
+    "hash": "d8fc4af3054ed558"
+  }
+}

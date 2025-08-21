@@ -1,0 +1,15 @@
+{
+  "pot_time_seconds": 167,
+  "standard_approaches": {
+    "retraining_seconds": 1209600,
+    "gradient_seconds": 21600,
+    "weight_compare_seconds": 2700,
+    "behavioral_seconds": 10800
+  },
+  "speedup_factors": {
+    "vs_retraining": 7243.11377245509,
+    "vs_gradient": 129.34131736526948,
+    "vs_weights": 16.167664670658684,
+    "vs_behavioral": 64.67065868263474
+  }
+}
