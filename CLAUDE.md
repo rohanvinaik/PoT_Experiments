@@ -150,16 +150,28 @@ The primary validation pipeline is `scripts/run_all.sh` which:
 
 ### Running Tests
 
+**IMPORTANT: Always use the main validation pipeline script `run_all.sh` - do not run individual test scripts directly.**
+
 ```bash
-# Full validation
+# Full validation pipeline (recommended)
 bash scripts/run_all.sh
 
-# Skip ZK tests (faster)
+# Skip ZK tests for faster runs
 bash scripts/run_all.sh --skip-zk
 
-# Rebuild ZK binaries
+# Rebuild ZK binaries if needed
 bash scripts/run_all.sh --rebuild-zk
 ```
+
+**Why use run_all.sh:**
+- Properly sets up environment and dependencies
+- Runs tests in correct sequence with proper model loading
+- Handles error conditions and cleanup
+- Generates comprehensive results in `experimental_results/`
+- Updates rolling metrics for README auto-update
+- Validates the complete pipeline end-to-end
+
+**Individual test scripts are NOT meant to be run directly** - they are called by run_all.sh with proper context and parameters.
 
 ### Expected Results
 
