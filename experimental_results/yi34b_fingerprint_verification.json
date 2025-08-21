@@ -1,0 +1,439 @@
+{
+  "timestamp": "2025-08-21T13:01:06.557221",
+  "fingerprints": {
+    "model1": {
+      "path": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "shards": [
+        {
+          "file": "pytorch_model-00001-of-00007.bin",
+          "size_bytes": 9975359207,
+          "size_gb": 9.975359207,
+          "hash": "cf53ca9dd5f09070",
+          "n_samples": 9741,
+          "sample_stats": {
+            "mean": 4776318.308338084,
+            "std": 354196229.6704746,
+            "min": -6330806272.0,
+            "max": 6316979712.0,
+            "n_valid": 8234
+          }
+        },
+        {
+          "file": "pytorch_model-00002-of-00007.bin",
+          "size_bytes": 9909328339,
+          "size_gb": 9.909328339,
+          "hash": "259e9fb8f96e6ecc",
+          "n_samples": 9677,
+          "sample_stats": {
+            "mean": -0.00014250236807419726,
+            "std": 0.01242694334613304,
+            "min": -0.08336587250232697,
+            "max": 0.14817817509174347,
+            "n_valid": 9677
+          }
+        },
+        {
+          "file": "pytorch_model-00003-of-00007.bin",
+          "size_bytes": 9747818967,
+          "size_gb": 9.747818967,
+          "hash": "8b24340a98fe0c2a",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": 7.895388885432039e-05,
+            "std": 0.012478979481698791,
+            "min": -0.059749897569417953,
+            "max": 0.05376846343278885,
+            "n_valid": 9519
+          }
+        },
+        {
+          "file": "pytorch_model-00004-of-00007.bin",
+          "size_bytes": 9747848235,
+          "size_gb": 9.747848235,
+          "hash": "74de75839e0743d1",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": -4743361.345417686,
+            "std": 360609218.68550706,
+            "min": -6335264256.0,
+            "max": 6330151936.0,
+            "n_valid": 8059
+          }
+        },
+        {
+          "file": "pytorch_model-00005-of-00007.bin",
+          "size_bytes": 9747848295,
+          "size_gb": 9.747848295,
+          "hash": "f02c401ceb404ee8",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": 1828126.3618696977,
+            "std": 297819218.4861719,
+            "min": -6340966400.0,
+            "max": 6346274816.0,
+            "n_valid": 8117
+          }
+        },
+        {
+          "file": "pytorch_model-00006-of-00007.bin",
+          "size_bytes": 9938689163,
+          "size_gb": 9.938689163,
+          "hash": "05f303168de73756",
+          "n_samples": 9705,
+          "sample_stats": {
+            "mean": 8325542.594351589,
+            "std": 310161577.2270775,
+            "min": -6296139264.0,
+            "max": 6338475520.0,
+            "n_valid": 8232
+          }
+        },
+        {
+          "file": "pytorch_model-00007-of-00007.bin",
+          "size_bytes": 9711130661,
+          "size_gb": 9.711130661,
+          "hash": "1d0e86daddc30857",
+          "n_samples": 9483,
+          "sample_stats": {
+            "mean": 2.1167365280950137e-05,
+            "std": 0.01579138056673323,
+            "min": -0.09240031242370605,
+            "max": 0.8525303602218628,
+            "n_valid": 9483
+          }
+        },
+        {
+          "file": "model-00001-of-00007.safetensors",
+          "size_bytes": 9975341688,
+          "size_gb": 9.975341688,
+          "hash": "22b20b2af5d971bd",
+          "n_samples": 9741,
+          "sample_stats": {
+            "mean": -3562834.7109432137,
+            "std": 299828078.77383244,
+            "min": -6323926528.0,
+            "max": 6329889280.0,
+            "n_valid": 8333
+          }
+        },
+        {
+          "file": "model-00002-of-00007.safetensors",
+          "size_bytes": 9909310352,
+          "size_gb": 9.909310352,
+          "hash": "1e408962ab872483",
+          "n_samples": 9677,
+          "sample_stats": {
+            "mean": -3.2843065514712264e-05,
+            "std": 0.012240922631045278,
+            "min": -0.05132737755775452,
+            "max": 0.056698206812143326,
+            "n_valid": 9677
+          }
+        },
+        {
+          "file": "model-00003-of-00007.safetensors",
+          "size_bytes": 9747801000,
+          "size_gb": 9.747801,
+          "hash": "b0e8200a5812c304",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": 2.4974216962551452e-05,
+            "std": 0.012441136087520519,
+            "min": -0.06121525540947914,
+            "max": 0.05315830558538437,
+            "n_valid": 9519
+          }
+        },
+        {
+          "file": "model-00004-of-00007.safetensors",
+          "size_bytes": 9747829904,
+          "size_gb": 9.747829904,
+          "hash": "c7027337cde6d645",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": -1995311.4526855457,
+            "std": 337908122.30723435,
+            "min": -6340770304.0,
+            "max": 6325958656.0,
+            "n_valid": 8089
+          }
+        },
+        {
+          "file": "model-00005-of-00007.safetensors",
+          "size_bytes": 9747829904,
+          "size_gb": 9.747829904,
+          "hash": "c595f22380d0eee4",
+          "n_samples": 9519,
+          "sample_stats": {
+            "mean": 2832044.5754576786,
+            "std": 271569042.3252838,
+            "min": -6322157568.0,
+            "max": 6329169920.0,
+            "n_valid": 8067
+          }
+        },
+        {
+          "file": "model-00006-of-00007.safetensors",
+          "size_bytes": 9938670728,
+          "size_gb": 9.938670728,
+          "hash": "0ac2ef1fc89fd492",
+          "n_samples": 9705,
+          "sample_stats": {
+            "mean": -2445833.3799985303,
+            "std": 347111286.6685814,
+            "min": -6334150144.0,
+            "max": 6343522304.0,
+            "n_valid": 8257
+          }
+        },
+        {
+          "file": "model-00007-of-00007.safetensors",
+          "size_bytes": 9711114320,
+          "size_gb": 9.71111432,
+          "hash": "d81ef2514c56c5c5",
+          "n_samples": 9483,
+          "sample_stats": {
+            "mean": 3828538.4553043656,
+            "std": 335213066.93323964,
+            "min": -6332053504.0,
+            "max": 6329497088.0,
+            "n_valid": 7998
+          }
+        }
+      ],
+      "total_size_gb": 137.55592076300002,
+      "n_shards": 14,
+      "combined_hash": "d1d19ee8a0bd7218"
+    },
+    "model2": {
+      "path": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "shards": [
+        {
+          "file": "model-00001-of-00015.safetensors",
+          "size_bytes": 4793130760,
+          "size_gb": 4.79313076,
+          "hash": "f3bd74d60cd9c70a",
+          "n_samples": 4680,
+          "sample_stats": {
+            "mean": -5723395.572100706,
+            "std": 251866829.69853368,
+            "min": -6293452800.0,
+            "max": 3165010688.0,
+            "n_valid": 3968
+          }
+        },
+        {
+          "file": "model-00002-of-00015.safetensors",
+          "size_bytes": 4756459720,
+          "size_gb": 4.75645972,
+          "hash": "4115c615e813f55c",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 0.00026590446080302087,
+            "std": 0.011704780967669644,
+            "min": -0.050593551248311996,
+            "max": 0.05303660407662392,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00003-of-00015.safetensors",
+          "size_bytes": 4991370136,
+          "size_gb": 4.991370136,
+          "hash": "ae0e8391528cc8e5",
+          "n_samples": 4874,
+          "sample_stats": {
+            "mean": 4.729633713267547e-05,
+            "std": 0.012194094612814283,
+            "min": -0.05828486755490303,
+            "max": 0.05596578121185303,
+            "n_valid": 4874
+          }
+        },
+        {
+          "file": "model-00004-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "d189d931d067cd6e",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": -0.0003733545926193438,
+            "std": 0.015314886892020088,
+            "min": -0.057309672236442566,
+            "max": 0.6220566034317017,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00005-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "4757549fce30e27f",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": -0.00016388019946971232,
+            "std": 0.012416682938820018,
+            "min": -0.044367466121912,
+            "max": 0.04522337764501572,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00006-of-00015.safetensors",
+          "size_bytes": 4991370160,
+          "size_gb": 4.99137016,
+          "hash": "fb74041448a0a271",
+          "n_samples": 4874,
+          "sample_stats": {
+            "mean": -2.0730646027491352e-05,
+            "std": 0.012571859830663234,
+            "min": -0.041802410036325455,
+            "max": 0.05535554885864258,
+            "n_valid": 4874
+          }
+        },
+        {
+          "file": "model-00007-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "f3085b306e59f58d",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 0.00032361361460643594,
+            "std": 0.016813602228204584,
+            "min": -0.055233754217624664,
+            "max": 0.7548709511756897,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00008-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "4312010f6a8d0163",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 0.0002795326621076438,
+            "std": 0.012676225298590322,
+            "min": -0.04717569053173065,
+            "max": 0.05169260874390602,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00009-of-00015.safetensors",
+          "size_bytes": 4991370160,
+          "size_gb": 4.99137016,
+          "hash": "49d3f9974956a7f2",
+          "n_samples": 4874,
+          "sample_stats": {
+            "mean": -6.635011586310928e-05,
+            "std": 0.01271077337341373,
+            "min": -0.049618277698755264,
+            "max": 0.05266960710287094,
+            "n_valid": 4874
+          }
+        },
+        {
+          "file": "model-00010-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "742b2cc42ff686fa",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 0.0003651881360751035,
+            "std": 0.017473489350332872,
+            "min": -0.04217107221484184,
+            "max": 0.81346595287323,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00011-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "fe38270557fefe52",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 6.78285944113386e-06,
+            "std": 0.012903314340037256,
+            "min": -0.048762574791908264,
+            "max": 0.052425820380449295,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00012-of-00015.safetensors",
+          "size_bytes": 4991370160,
+          "size_gb": 4.99137016,
+          "hash": "79e6848fc83a27c9",
+          "n_samples": 4874,
+          "sample_stats": {
+            "mean": 6.95096874087631e-05,
+            "std": 0.013044256155076072,
+            "min": -0.045955296605825424,
+            "max": 0.04998445510864258,
+            "n_valid": 4874
+          }
+        },
+        {
+          "file": "model-00013-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "e512d324a476e90d",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 6.887170857547193e-06,
+            "std": 0.021185857735921663,
+            "min": -0.05633135512471199,
+            "max": 1.1191266775131226,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00014-of-00015.safetensors",
+          "size_bytes": 4756459760,
+          "size_gb": 4.75645976,
+          "hash": "cac6b97bf8c8c186",
+          "n_samples": 4644,
+          "sample_stats": {
+            "mean": 0.00012114065839331701,
+            "std": 0.013569875834380197,
+            "min": -0.051327601075172424,
+            "max": 0.05059443414211273,
+            "n_valid": 4644
+          }
+        },
+        {
+          "file": "model-00015-of-00015.safetensors",
+          "size_bytes": 1211148856,
+          "size_gb": 1.211148856,
+          "hash": "a81764fdeb7b0639",
+          "n_samples": 1182,
+          "sample_stats": {
+            "mean": -5.960949920413079e-05,
+            "std": 0.011545465307417126,
+            "min": -0.040585290640592575,
+            "max": 0.03472558408975601,
+            "n_valid": 1182
+          }
+        }
+      ],
+      "total_size_gb": 68.777898032,
+      "n_shards": 15,
+      "combined_hash": "7d710e6f91641925"
+    }
+  },
+  "comparison": {
+    "model1_size_gb": 137.55592076300002,
+    "model2_size_gb": 68.777898032,
+    "size_diff_gb": 68.77802273100002,
+    "model1_shards": 14,
+    "model2_shards": 15,
+    "hash_match": false,
+    "shard_matches": 0,
+    "match_ratio": 0.0,
+    "stats": {
+      "mean_diff": 1013218.9480551225,
+      "std_diff": 191381438.08865005,
+      "similar_distribution": 

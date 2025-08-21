@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-08-21 11:41:49",
+  "total_time": 0.0051729679107666016,
+  "passed": true,
+  "test_results": {
+    "Configuration Modes": {
+      "passed": true,
+      "error": null
+    },
+    "Enhanced Tester Decisions": {
+      "passed": true,
+      "error": null
+    },
+    "Complete Verifier Scenarios": {
+      "passed": true,
+      "error": null
+    },
+    "CI Methods": {
+      "passed": true,
+      "error": null
+    },
+    "Effective Sample Size": {
+      "passed": true,
+      "error": null
+    }
+  },
+  "summary": {
+    "passed_count": 5,
+    "total_count": 5
+  }
+}

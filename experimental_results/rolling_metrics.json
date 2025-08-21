@@ -1,6 +1,6 @@
 {
-  "total_runs": 44,
-  "successful_runs": 44,
+  "total_runs": 48,
+  "successful_runs": 48,
   "zk_pipeline_runs": 1,
   "interface_test_runs": 1,
   "timing_samples": [
@@ -213,6 +213,26 @@
       "t_per_query": 0.0,
       "t_total": 0.0,
       "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.902121901512146,
+      "t_total": 10.826294898986816,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.6996487776438395,
+      "t_total": 8.396547079086304,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.923176904519399,
+      "t_total": 11.078948020935059,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7336965004603068,
+      "t_total": 8.805124998092651,
+      "hardware": "mps"
     }
   ],
   "statistical_samples": [
@@ -467,6 +487,30 @@
       "confidence": 0.99,
       "n_used": 3,
       "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
     }
   ],
   "zk_proof_samples": [
@@ -483,5 +527,5 @@
       "verified": true
     }
   ],
-  "last_updated": "2025-08-21T00:00:30.160151"
+  "last_updated": "2025-08-21T11:43:09.857761"
 }

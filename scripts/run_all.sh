@@ -25,6 +25,9 @@ LOG_FILE="${RESULTS_DIR}/run_all_${TIMESTAMP}.log"
 # Parse command line arguments
 REBUILD_ZK=false
 SKIP_ZK=false
+MODEL1=""
+MODEL2=""
+AUTO_THROTTLE=true
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -36,16 +39,33 @@ while [[ $# -gt 0 ]]; do
             SKIP_ZK=true
             shift
             ;;
+        --model1)
+            MODEL1="$2"
+            shift 2
+            ;;
+        --model2)
+            MODEL2="$2"
+            shift 2
+            ;;
+        --no-throttle)
+            AUTO_THROTTLE=false
+            shift
+            ;;
         --help|-h)
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
             echo "  --rebuild-zk    Force rebuild of ZK prover binaries"
             echo "  --skip-zk       Skip ZK system checks and tests"
+            echo "  --model1 PATH   Path to first model for comparison"
+            echo "  --model2 PATH   Path to second model for comparison"
+            echo "  --no-throttle   Disable automatic resource throttling"
             echo "  --help, -h      Show this help message"
             echo ""
             echo "Environment Variables:"
             echo "  PYTHON          Python executable (default: python3)"
+            echo "  MODEL1          Alternative to --model1 flag"
+            echo "  MODEL2          Alternative to --model2 flag"
             echo ""
             exit 0
             ;;
@@ -56,6 +76,10 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Use environment variables if command line args not provided
+MODEL1="${MODEL1:-${MODEL1_ENV:-}}"
+MODEL2="${MODEL2:-${MODEL2_ENV:-}}"
 
 # Ensure repository root on PYTHONPATH for direct script execution
 export PYTHONPATH="${PYTHONPATH:-$(pwd)}"
@@ -81,6 +105,213 @@ print_info() {
 
 # Create results directory
 mkdir -p "${RESULTS_DIR}"
+
+# ==============================================================================
+# Model Size Detection and Resource Management
+# ==============================================================================
+
+# Function to detect model size and set resource limits
+detect_and_configure_resources() {
+    local model_path="$1"
+    local model_name="$2"
+    
+    if [ -z "$model_path" ]; then
+        print_info "No model path specified, using default resource settings"
+        return 0
+    fi
+    
+    if [ ! -d "$model_path" ]; then
+        print_info "Model path not found: $model_path, using default settings"
+        return 0
+    fi
+    
+    print_info "Detecting model size for: $model_name"
+    
+    # Try to detect model size from config.json
+    local config_file="$model_path/config.json"
+    local model_size_gb=0
+    local param_count=0
+    
+    if [ -f "$config_file" ]; then
+        # Extract model parameters from config
+        param_count=$(${PYTHON} -c "
+import json
+with open('$config_file') as f:
+    config = json.load(f)
+    
+# Try to estimate parameter count
+hidden_size = config.get('hidden_size', 0)
+num_layers = config.get('num_hidden_layers', 0) 
+vocab_size = config.get('vocab_size', 0)
+intermediate_size = config.get('intermediate_size', hidden_size * 4)
+
+# Rough parameter estimation (varies by architecture)
+if hidden_size > 0 and num_layers > 0:
+    # Approximate formula for transformer models
+    params = vocab_size * hidden_size  # Embeddings
+    params += num_layers * (
+        4 * hidden_size * hidden_size +  # Attention
+        2 * hidden_size * intermediate_size  # FFN
+    )
+    print(int(params))
+else:
+    print(0)
+" 2>/dev/null || echo "0")
+        
+        # Convert to billions
+        if [ "$param_count" -gt 0 ]; then
+            local params_b=$(echo "scale=1; $param_count / 1000000000" | bc)
+            print_info "Detected model size: ~${params_b}B parameters"
+        fi
+    fi
+    
+    # Fallback: check actual directory size
+    if [ "$param_count" -eq 0 ]; then
+        model_size_gb=$(du -s "$model_path" 2>/dev/null | awk '{printf "%.0f", $1/1024/1024}')
+        print_info "Model directory size: ${model_size_gb}GB"
+        # Estimate parameters from file size (rough: 2 bytes per param for fp16)
+        param_count=$(echo "$model_size_gb * 500000000" | bc)
+    fi
+    
+    # Configure resources based on model size
+    if [ "$AUTO_THROTTLE" = true ]; then
+        configure_resources_for_size "$param_count"
+    else
+        print_info "Auto-throttling disabled, using default settings"
+    fi
+}
+
+# Function to configure resources based on model size
+configure_resources_for_size() {
+    local param_count="$1"
+    
+    # Default settings (for small models < 1B)
+    local cpu_threads=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "8")
+    local nice_level=0
+    local memory_limit=""
+    
+    if [ "$param_count" -gt 30000000000 ]; then
+        # Extra large models (>30B params)
+        print_info "Configuring for EXTRA LARGE model (>30B parameters)"
+        cpu_threads=$(echo "$cpu_threads / 3" | bc)  # Use 1/3 of CPUs
+        nice_level=15
+        memory_limit="50GB"
+        
+        # Set aggressive throttling
+        export OMP_NUM_THREADS="${cpu_threads}"
+        export MKL_NUM_THREADS="${cpu_threads}"
+        export TORCH_NUM_THREADS="${cpu_threads}"
+        export TOKENIZERS_PARALLELISM="false"
+        export PYTORCH_CUDA_ALLOC_CONF="max_split_size_mb=256"
+        export CUDA_VISIBLE_DEVICES=""  # Force CPU only for large models
+        
+        print_info "Resource limits set:"
+        print_info "  CPU threads: ${cpu_threads}"
+        print_info "  Nice level: ${nice_level}"
+        print_info "  Memory target: ${memory_limit}"
+        print_info "  CUDA: Disabled (CPU only)"
+        
+        # Just warn about ZK memory requirements, don't auto-skip
+        if [ "$SKIP_ZK" = false ]; then
+            print_info "WARNING: ZK tests may require significant memory for >30B models"
+            print_info "You can skip with --skip-zk if needed, but will attempt to run"
+        fi
+        
+    elif [ "$param_count" -gt 7000000000 ]; then
+        # Large models (7B-30B params)
+        print_info "Configuring for LARGE model (7B-30B parameters)"
+        cpu_threads=$(echo "$cpu_threads / 2" | bc)  # Use half CPUs
+        nice_level=10
+        memory_limit="30GB"
+        
+        export OMP_NUM_THREADS="${cpu_threads}"
+        export MKL_NUM_THREADS="${cpu_threads}"
+        export TORCH_NUM_THREADS="${cpu_threads}"
+        export TOKENIZERS_PARALLELISM="false"
+        
+        print_info "Resource limits set:"
+        print_info "  CPU threads: ${cpu_threads}"
+        print_info "  Nice level: ${nice_level}"
+        print_info "  Memory target: ${memory_limit}"
+        
+    elif [ "$param_count" -gt 1000000000 ]; then
+        # Medium models (1B-7B params)
+        print_info "Configuring for MEDIUM model (1B-7B parameters)"
+        cpu_threads=$(echo "3 * $cpu_threads / 4" | bc)  # Use 3/4 CPUs
+        nice_level=5
+        
+        export OMP_NUM_THREADS="${cpu_threads}"
+        export MKL_NUM_THREADS="${cpu_threads}"
+        
+        print_info "Resource limits set:"
+        print_info "  CPU threads: ${cpu_threads}"
+        print_info "  Nice level: ${nice_level}"
+        
+    else
+        # Small models (<1B params)
+        print_info "Configuring for SMALL model (<1B parameters)"
+        print_info "Using default resource settings (no throttling needed)"
+    fi
+    
+    # Apply nice level if set
+    if [ "$nice_level" -gt 0 ] && [ "${NICE_APPLIED:-false}" != true ]; then
+        print_info "Adjusting process priority with nice level ${nice_level}"
+        # Note: We can't renice the current shell, but we can set for subprocesses
+        export NICE_PREFIX="nice -n ${nice_level}"
+        export NICE_APPLIED=true
+    fi
+    
+    # Check available memory if limit is set
+    if [ -n "$memory_limit" ]; then
+        check_memory_availability "$memory_limit"
+    fi
+}
+
+# Function to check memory availability
+check_memory_availability() {
+    local required_memory="$1"
+    
+    print_info "Checking memory availability (need ${required_memory})..."
+    
+    # Get available memory (platform-specific)
+    local available_mem=0
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        available_mem=$(top -l 1 -n 0 | grep PhysMem | awk '{print $6}' | sed 's/G//')
+    else
+        # Linux
+        available_mem=$(free -g | awk '/^Mem:/{print $7}')
+    fi
+    
+    local required_gb=$(echo "$required_memory" | sed 's/GB//')
+    
+    if (( $(echo "$available_mem < $required_gb" | bc -l) )); then
+        print_error "Insufficient memory: ${available_mem}GB available, ${required_gb}GB required"
+        print_info "Consider:"
+        print_info "  - Closing other applications"
+        print_info "  - Using smaller models"
+        print_info "  - Adding --skip-zk flag"
+        
+        # Don't exit, just warn
+        print_info "Continuing with warning - may experience slowdowns or failures"
+    else
+        print_success "Memory check passed: ${available_mem}GB available"
+    fi
+}
+
+# Export model paths for use in Python scripts
+if [ -n "$MODEL1" ]; then
+    export POT_MODEL1="$MODEL1"
+    detect_and_configure_resources "$MODEL1" "Model 1"
+fi
+
+if [ -n "$MODEL2" ]; then
+    export POT_MODEL2="$MODEL2"
+    detect_and_configure_resources "$MODEL2" "Model 2"
+fi
+
+# Set NICE_PREFIX if not already set
+NICE_PREFIX="${NICE_PREFIX:-}"
 
 # ZK Binary Build Management
 #==============================================================================
@@ -455,7 +686,16 @@ TOTAL_TESTS=$((TOTAL_TESTS + 1))
 print_header "RUNNING ENHANCED DIFF DECISION TESTS"
 print_info "Testing enhanced statistical difference framework with SAME/DIFFERENT rules"
 
-if ${PYTHON} scripts/test_enhanced_diff_decision.py > "${RESULTS_DIR}/enhanced_diff_decision_${TIMESTAMP}.log" 2>&1; then
+# Build command with model paths if provided
+ENHANCED_DIFF_CMD="${NICE_PREFIX} ${PYTHON} scripts/test_enhanced_diff_decision.py"
+if [ -n "$MODEL1" ] && [ -n "$MODEL2" ]; then
+    # Check if the script supports model arguments
+    if grep -q "argparse\|--model" scripts/test_enhanced_diff_decision.py 2>/dev/null; then
+        ENHANCED_DIFF_CMD="$ENHANCED_DIFF_CMD --ref-model '$MODEL1' --cand-model '$MODEL2'"
+    fi
+fi
+
+if eval "$ENHANCED_DIFF_CMD" > "${RESULTS_DIR}/enhanced_diff_decision_${TIMESTAMP}.log" 2>&1; then
     print_success "Enhanced diff decision tests passed"
     PASSED_TESTS=$((PASSED_TESTS + 1))
     

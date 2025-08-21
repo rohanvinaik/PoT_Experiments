@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-08-21T12:55:27.214245",
+  "tests": [
+    {
+      "test": "config_hash",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "hash1": "a659b3bff9ffdc1f",
+      "hash2": "508e5bd3c4a98205",
+      "match": false,
+      "success": true
+    },
+    {
+      "test": "architecture",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "params1_B": 30.41,
+      "params2_B": 30.41,
+      "difference_B": 0.0,
+      "relative_diff": 0.0,
+      "arch1": "LlamaForCausalLM",
+      "arch2": "LlamaForCausalLM",
+      "arch_match": true,
+      "success": true
+    },
+    {
+      "test": "tokenizer",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "vocab_match": true,
+      "success": true
+    },
+    {
+      "test": "model_shards",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "shards1": 14,
+      "shards2": 15,
+      "size1_gb": 137.56,
+      "size2_gb": 68.78,
+      "available_ram_gb": 41.13,
+      "required_ram_gb": 206.34,
+      "loadable": false,
+      "success": true
+    },
+    {
+      "test": "statistical_simulation",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "success": false,
+      "error": "'TestingMode' object has no attribute 'score_clip_low'"
+    }
+  ],
+  "verdict": "CANNOT_LOAD",
+  "explanation": "Models are too large for available RAM"
+}

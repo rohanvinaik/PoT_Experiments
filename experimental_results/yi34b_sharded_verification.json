@@ -1,0 +1,75 @@
+{
+  "timestamp": "2025-08-21T12:59:24.336014",
+  "tests": [
+    {
+      "test": "sampling",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "samples": [
+        {
+          "pattern": "embed",
+          "model1_matches": 1,
+          "model2_matches": 1,
+          "structure_match": true
+        },
+        {
+          "pattern": "lm_head",
+          "model1_matches": 1,
+          "model2_matches": 1,
+          "structure_match": true
+        }
+      ],
+      "success": true
+    },
+    {
+      "test": "embeddings",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "vocab_match": true,
+      "hidden_match": true,
+      "embed_size1_gb": 0.917504,
+      "embed_size2_gb": 0.917504,
+      "first_shard_compared": true,
+      "success": true
+    },
+    {
+      "test": "layer_wise",
+      "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+      "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+      "layers_compared": [
+        {
+          "shard_index": 0,
+          "model1_layers": 9,
+          "model2_layers": 4,
+          "model1_params": 4987666432,
+          "model2_params": 2396563456,
+          "param_diff": 2591102976,
+          "layers_match": false
+        },
+        {
+          "shard_index": 1,
+          "model1_layers": 9,
+          "model2_layers": 5,
+          "model1_params": 4954650624,
+          "model2_params": 2378227712,
+          "param_diff": 2576422912,
+          "layers_match": false
+        },
+        {
+          "shard_index": 2,
+          "model1_layers": 9,
+          "model2_layers": 6,
+          "model1_params": 4873895936,
+          "model2_params": 2495682560,
+          "param_diff": 2378213376,
+          "layers_match": false
+        }
+      ],
+      "success": true,
+      "shards_compared": 3
+    }
+  ],
+  "shard_results": [],
+  "verdict": "LIKELY_SAME_ARCHITECTURE",
+  "explanation": "Structure and embeddings match"
+}

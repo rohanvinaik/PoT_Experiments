@@ -1,0 +1,15 @@
+{
+  "model1": "/Users/rohanvinaik/LLM_Models/yi-34b",
+  "model2": "/Users/rohanvinaik/LLM_Models/yi-34b-chat",
+  "mode": "QUICK_GATE",
+  "start_time": "2025-08-21T12:45:14.603389",
+  "memory_config": {
+    "max_memory_gb": 35,
+    "batch_size": 1,
+    "enable_8bit": true
+  },
+  "success": false,
+  "error": "'TestingMode' object has no attribute 'n_max'",
+  "end_time": "2025-08-21T12:45:14.678941",
+  "peak_memory_gb": 23.983856201171875
+}

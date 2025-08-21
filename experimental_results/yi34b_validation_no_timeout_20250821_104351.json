@@ -1,0 +1,18 @@
+{
+  "timestamp": "20250821_104351",
+  "models": {
+    "base": "/Users/rohanvinaik/LLM_Models/yi-34b",
+    "chat": "/Users/rohanvinaik/LLM_Models/yi-34b-chat"
+  },
+  "results": {
+    "Model Loading": false,
+    "Statistical Identity": false,
+    "Enhanced Diff": false,
+    "Query Efficiency": true
+  },
+  "summary": {
+    "passed": 1,
+    "total": 4,
+    "note": "Run WITHOUT timeouts for large model testing"
+  }
+}

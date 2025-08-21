@@ -1,0 +1,25 @@
+{
+  "timestamp": "2025-08-21T13:05:20.902117",
+  "config": {
+    "max_memory_gb": 30,
+    "n_challenges": 5,
+    "use_8bit": false,
+    "use_4bit": true,
+    "mode": "quick"
+  },
+  "challenges": [],
+  "memory_stats": [
+    {
+      "stage": "initial",
+      "percent": 46.4
+    }
+  ],
+  "verdict": "FAILED",
+  "error": "Could not generate responses",
+  "memory_summary": {
+    "initial": 46.4,
+    "peak": 46.4,
+    "final": 46.4,
+    "max_increase": 0.0
+  }
+}
