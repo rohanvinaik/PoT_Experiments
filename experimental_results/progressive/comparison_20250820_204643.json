@@ -1,0 +1,50 @@
+{
+  "timestamp": "2025-08-20T20:46:43.082410",
+  "results": [
+    {
+      "test": "Self-consistency (should be quick)",
+      "expected": "SAME",
+      "progressive": {
+        "decision": "SAME",
+        "stages": 1,
+        "samples": 5,
+        "time": 7.123469114303589
+      },
+      "standard": {
+        "decision": "SAME",
+        "samples": 200,
+        "time": 180.28069615364075
+      },
+      "efficiency": {
+        "speedup": 25.307991550303157,
+        "sample_reduction": 97.5,
+        "decisions_match": true
+      }
+    },
+    {
+      "test": "Different models (may need deeper analysis)",
+      "expected": "DIFFERENT",
+      "progressive": {
+        "decision": "DIFFERENT",
+        "stages": 2,
+        "samples": 55,
+        "time": 28.28804898262024
+      },
+      "standard": {
+        "decision": "DIFFERENT",
+        "samples": 200,
+        "time": 123.37224912643433
+      },
+      "efficiency": {
+        "speedup": 4.361285191574449,
+        "sample_reduction": 72.5,
+        "decisions_match": true
+      }
+    }
+  ],
+  "summary": {
+    "total_speedup": 8.574976775888441,
+    "total_sample_reduction": 0.85,
+    "all_decisions_match": true
+  }
+}

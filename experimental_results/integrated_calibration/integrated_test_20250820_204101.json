@@ -1,0 +1,81 @@
+{
+  "timestamp": "2025-08-20T20:41:01.162307",
+  "results": [
+    {
+      "mode": "quick",
+      "test": "GPT-2 vs GPT-2",
+      "expected": "SAME/IDENTICAL",
+      "decision": "IDENTICAL",
+      "mean": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "n_samples": 40,
+      "success": true,
+      "time": 2.668492078781128
+    },
+    {
+      "mode": "quick",
+      "test": "GPT-2 vs DistilGPT-2",
+      "expected": "DIFFERENT",
+      "decision": "DIFFERENT",
+      "mean": 0.719649052619934,
+      "ci": [
+        0.7162802155843563,
+        0.7230178896555116
+      ],
+      "n_samples": 40,
+      "success": true,
+      "time": 1.8940000534057617
+    },
+    {
+      "mode": "audit",
+      "test": "GPT-2 vs GPT-2",
+      "expected": "SAME/IDENTICAL",
+      "decision": "IDENTICAL",
+      "mean": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "n_samples": 40,
+      "success": true,
+      "time": 2.1712329387664795
+    },
+    {
+      "mode": "audit",
+      "test": "GPT-2 vs DistilGPT-2",
+      "expected": "DIFFERENT",
+      "decision": "DIFFERENT",
+      "mean": 0.719649052619934,
+      "ci": [
+        0.7176430329922706,
+        0.7216550722475973
+      ],
+      "n_samples": 40,
+      "success": true,
+      "time": 1.8117949962615967
+    }
+  ],
+  "summary": {
+    "all_passed": true,
+    "undecided_count": 0,
+    "score_ranges": {
+      "same_model": [
+        0.0,
+        0.0
+      ],
+      "different_models": [
+        0.719649052619934,
+        0.719649052619934
+      ]
+    }
+  },
+  "configuration": {
+    "scorer": "CorrectedDifferenceScorer",
+    "config": "CalibratedConfig",
+    "tester": "EnhancedSequentialTester"
+  },
+  "device": "mps"
+}

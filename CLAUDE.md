@@ -106,10 +106,11 @@ When the user asks for Google Colab code or any test runners:
    - Save results to `experimental_results/` with real data
    - Use the actual PoT framework classes and methods
 
-4. **USE ONLY OPEN MODELS**:
-   - GPT-2 and DistilGPT-2 only
-   - NO Mistral, Zephyr, or any gated models
-   - NO authentication tokens required
+4. **MODEL USAGE GUIDELINES**:
+   - **Preferred**: GPT-2, DistilGPT-2, Pythia models (no auth required)
+   - **Advanced**: Mistral, Llama-2/3, Zephyr (require HF authentication)
+   - **Download as needed**: Use HuggingFace CLI for any required models
+   - See "DOWNLOADING MODELS FROM HUGGINGFACE" section for setup
 
 ## EXISTING WORKING SCRIPTS
 
@@ -241,11 +242,220 @@ pip install tlsh  # For fuzzy hashing (TLSH)
 **Models that WORK without authentication:**
 - `gpt2`, `distilgpt2`, `gpt2-medium` (HuggingFace)
 - `EleutherAI/pythia-70m`, `EleutherAI/pythia-160m`
+- `microsoft/DialoGPT-medium`, `microsoft/DialoGPT-large`
 - Models in `/Users/rohanvinaik/LLM_Models/` directory
 
-**Models to AVOID (require authentication):**
-- Mistral, Zephyr, Llama-2 (gated models)
-- Any model requiring HuggingFace login tokens
+**Models that require authentication (but can be downloaded):**
+- Mistral, Zephyr, Llama-2, Llama-3 (gated models)
+- Requires HuggingFace token setup (see downloading section below)
+
+## DOWNLOADING MODELS FROM HUGGINGFACE
+
+### Setting Up HuggingFace Authentication (for gated models)
+
+**For gated models like Llama, Mistral, etc.:**
+
+```bash
+# Install HuggingFace CLI
+pip install --upgrade huggingface_hub
+
+# Login with your token (get from https://huggingface.co/settings/tokens)
+huggingface-cli login
+# Enter your token when prompted
+
+# Verify login
+huggingface-cli whoami
+```
+
+### Model Downloading Procedures
+
+**1. Direct download to local model directory:**
+
+```bash
+# Navigate to model storage directory
+cd /Users/rohanvinaik/LLM_Models
+
+# Download open models (no auth required)
+huggingface-cli download gpt2 --local-dir gpt2 --local-dir-use-symlinks False
+huggingface-cli download distilgpt2 --local-dir distilgpt2 --local-dir-use-symlinks False
+huggingface-cli download EleutherAI/pythia-70m --local-dir pythia-70m --local-dir-use-symlinks False
+huggingface-cli download EleutherAI/pythia-160m --local-dir pythia-160m --local-dir-use-symlinks False
+
+# Download gated models (requires authentication)
+huggingface-cli download meta-llama/Llama-2-7b-chat-hf --local-dir llama-2-7b-chat-hf --local-dir-use-symlinks False
+huggingface-cli download meta-llama/Meta-Llama-3-8B-Instruct --local-dir llama-3-8b-instruct --local-dir-use-symlinks False
+huggingface-cli download mistralai/Mistral-7B-Instruct-v0.2 --local-dir mistral-7b-instruct --local-dir-use-symlinks False
+```
+
+**2. Using Python API for programmatic downloads:**
+
+```python
+from huggingface_hub import snapshot_download
+import os
+
+# Set local directory
+models_dir = "/Users/rohanvinaik/LLM_Models"
+
+# Download function with progress
+def download_model(model_name, local_name=None):
+    if local_name is None:
+        local_name = model_name.split('/')[-1]
+    
+    local_path = os.path.join(models_dir, local_name)
+    print(f"Downloading {model_name} to {local_path}")
+    
+    snapshot_download(
+        repo_id=model_name,
+        local_dir=local_path,
+        local_dir_use_symlinks=False,
+        resume_download=True
+    )
+    print(f"✅ Downloaded {model_name}")
+
+# Example downloads
+download_model("gpt2")
+download_model("distilgpt2") 
+download_model("EleutherAI/pythia-70m", "pythia-70m")
+download_model("meta-llama/Llama-2-7b-chat-hf", "llama-2-7b-chat-hf")
+```
+
+**3. Batch download script:**
+
+```bash
+#!/bin/bash
+# save as download_models.sh
+
+MODEL_DIR="/Users/rohanvinaik/LLM_Models"
+cd "$MODEL_DIR"
+
+# Open models (no auth required)
+echo "Downloading open models..."
+huggingface-cli download gpt2 --local-dir gpt2 --local-dir-use-symlinks False
+huggingface-cli download distilgpt2 --local-dir distilgpt2 --local-dir-use-symlinks False
+huggingface-cli download EleutherAI/pythia-70m --local-dir pythia-70m --local-dir-use-symlinks False
+huggingface-cli download EleutherAI/pythia-160m --local-dir pythia-160m --local-dir-use-symlinks False
+
+# Gated models (requires authentication)
+echo "Downloading gated models (requires HF login)..."
+huggingface-cli download meta-llama/Llama-2-7b-chat-hf --local-dir llama-2-7b-chat-hf --local-dir-use-symlinks False
+huggingface-cli download mistralai/Mistral-7B-Instruct-v0.2 --local-dir mistral-7b-instruct --local-dir-use-symlinks False
+
+echo "All models downloaded to $MODEL_DIR"
+```
+
+### Model Organization and Naming
+
+**Recommended directory structure:**
+```
+/Users/rohanvinaik/LLM_Models/
+├── gpt2/                          # 117M params, Base GPT-2
+├── distilgpt2/                    # 82M params, Distilled GPT-2
+├── gpt2-medium/                   # 345M params, Medium GPT-2
+├── pythia-70m/                    # 70M params, Pythia small
+├── pythia-160m/                   # 160M params, Pythia medium
+├── llama-2-7b-chat-hf/           # 7B params, Llama-2 chat
+├── llama-3-8b-instruct/          # 8B params, Llama-3 instruct
+├── mistral-7b-instruct/          # 7B params, Mistral instruct
+└── ...
+```
+
+**Naming conventions for the pipeline:**
+- Use descriptive folder names that include model size
+- Avoid spaces and special characters in folder names
+- Include variant information (base, chat, instruct) in name
+- The pipeline will auto-detect and categorize by parameter count
+
+### Verification of Downloaded Models
+
+**Check model integrity after download:**
+
+```bash
+# Verify model files exist
+ls -la /Users/rohanvinaik/LLM_Models/gpt2/
+# Should contain: config.json, pytorch_model.bin, tokenizer.json, etc.
+
+# Test model loading
+python -c "
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import os
+
+model_path = '/Users/rohanvinaik/LLM_Models/gpt2'
+print(f'Testing {model_path}...')
+try:
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModelForCausalLM.from_pretrained(model_path)
+    print(f'✅ {model_path} loads successfully')
+    print(f'   Model size: {model.num_parameters():,} parameters')
+except Exception as e:
+    print(f'❌ Error loading {model_path}: {e}')
+"
+```
+
+### Integration with PoT Pipeline
+
+**Using downloaded models with the verification pipeline:**
+
+```bash
+# Scan downloaded models
+python scripts/run_pipeline_with_models.py --models-dir /Users/rohanvinaik/LLM_Models
+
+# Test specific downloaded model pairs
+python scripts/run_enhanced_diff_test.py \
+  --ref-model /Users/rohanvinaik/LLM_Models/llama-2-7b-chat-hf \
+  --cand-model /Users/rohanvinaik/LLM_Models/mistral-7b-instruct \
+  --mode audit --verbose
+
+# Size fraud detection with downloaded models
+python scripts/run_pipeline_with_models.py --auto-pairs mixed --test-mode enhanced
+```
+
+### Storage Management
+
+**Disk space considerations:**
+- Small models (70M-345M): ~500MB each
+- Medium models (1B-3B): ~2-6GB each  
+- Large models (7B+): ~13-28GB each
+- Plan for 50-100GB storage for comprehensive model collection
+
+**Cleanup old models:**
+```bash
+# Remove specific model
+rm -rf /Users/rohanvinaik/LLM_Models/model_name
+
+# Check disk usage
+du -sh /Users/rohanvinaik/LLM_Models/*
+```
+
+### Troubleshooting Model Downloads
+
+**Common download issues:**
+
+1. **Authentication errors for gated models:**
+   ```bash
+   # Re-login to HuggingFace
+   huggingface-cli logout
+   huggingface-cli login
+   ```
+
+2. **Download interrupted/corrupted:**
+   ```bash
+   # Resume interrupted download
+   huggingface-cli download model_name --local-dir dir_name --resume-download
+   ```
+
+3. **Network timeout errors:**
+   ```bash
+   # Use smaller batch sizes or retry
+   export HF_HUB_OFFLINE=0
+   huggingface-cli download model_name --local-dir dir_name --max-workers 1
+   ```
+
+4. **Disk space errors:**
+   ```bash
+   # Check available space
+   df -h /Users/rohanvinaik/LLM_Models
+   # Clean up if needed
+   ```
 
 ### Error Handling & Common Issues
 

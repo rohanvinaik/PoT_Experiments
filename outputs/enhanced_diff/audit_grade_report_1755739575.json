@@ -1,0 +1,77 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "audit_grade",
+  "timestamp": "2025-08-21 01:26:15 UTC",
+  "config": {
+    "mode": "audit_grade",
+    "confidence": 0.99,
+    "gamma": 0.01,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.1,
+    "eta": 0.5,
+    "n_min": 30,
+    "n_max": 400,
+    "K": 64,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "DIFFERENT",
+    "reason": "Effect size 1.000311 \u2265 \u03b4* 0.1 and RME 0.003 \u2264 0.1",
+    "n_used": 32,
+    "n_eff": 2048,
+    "mean": 0.997802734375,
+    "variance": 4.817593482232873e-05,
+    "std_dev": 0.006940888619069516,
+    "ci": [
+      0.9952949648453514,
+      1.0003105039046485
+    ],
+    "half_width": 0.002507769529648549,
+    "gamma": 0.01,
+    "delta_star": 0.1,
+    "rme": 0.00251329189954501,
+    "direction": "higher"
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.997802734375,
+      "std": 0.006831576454899034,
+      "min": 0.9765625,
+      "max": 1.0,
+      "percentiles": {
+        "p5": 0.9765625,
+        "p25": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p95": 1.0
+      }
+    },
+    "clipped": {
+      "mean": 0.3,
+      "std": 0.0,
+      "min": 0.3,
+      "max": 0.3
+    }
+  },
+  "timing": {
+    "total_time_sec": 289.91830962500535,
+    "avg_score_time_sec": 9.059272138089,
+    "total_score_time_sec": 289.896708418848,
+    "avg_batch_time_sec": 36.23973474962986,
+    "scores_per_second": 0.11037591948363103
+  },
+  "diagnostics": {},
+  "suggestions": [],
+  "interpretation": "Models are statistically different (higher). The mean difference 0.997803 has effect size exceeding the threshold 0.100000 with sufficient precision (RME=0.003 \u2264 0.100). This indicates a material behavioral difference.",
+  "next_steps": [
+    "Investigate source of behavioral difference",
+    "Run secondary verification methods (fuzzy hash, provenance)",
+    "Check for unauthorized modifications or attacks",
+    "Do not use models interchangeably without analysis"
+  ]
+}

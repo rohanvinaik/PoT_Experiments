@@ -2,8 +2,8 @@
 
 **Live Performance Metrics & Validation Evidence**
 
-*Last Updated: 2025-08-20 17:57:14 UTC*
-*Auto-generated from 23 validation runs*
+*Last Updated: 2025-08-20 21:26:15 UTC*
+*Auto-generated from 28 validation runs*
 
 ---
 
@@ -11,54 +11,54 @@
 
 | Metric | Result |
 |--------|--------|
-| **Decisive Outcome Rate** | 9.5% |
-| **Per-Query Time** | 1.045s |
+| **Decisive Outcome Rate** | 11.5% |
+| **Per-Query Time** | 1.021s |
 | **Query Time Range** | 0.081s - 8.206s |
 | **Overall Success Rate** | 100.0% |
 | **Avg Proof Size** | 778 bytes |
 | **Proof Gen Time** | 0.371s |
 | **Proof Verify Rate** | 100.0% |
-| **Avg Confidence** | 96.2% |
-| **Total Validation Runs** | 23 |
+| **Avg Confidence** | 96.4% |
+| **Total Validation Runs** | 28 |
 
 ---
 
 ## 🔬 Statistical / Experimental Metrics
 
 ### **Sample Size & Queries**
-- **Total Tests Completed**: 21
-- **Average Samples per Test**: 12.7
+- **Total Tests Completed**: 26
+- **Average Samples per Test**: 13.3
 - **Median Samples per Test**: 12.0
 
 ### **Error Rates & Detection**
-- **SAME Detection Rate**: 4.8% (1 tests)
-- **DIFFERENT Detection Rate**: 4.8% (1 tests)
-- **Undecided Rate**: 90.5% (19 tests)
+- **SAME Detection Rate**: 3.8% (1 tests)
+- **DIFFERENT Detection Rate**: 7.7% (2 tests)
+- **Undecided Rate**: 88.5% (23 tests)
 
 ### **Decision Thresholds & Effect Size**
-- **Average Confidence Level**: 96.2%
+- **Average Confidence Level**: 96.4%
 - **Confidence Range**: 95.0% - 99.0%
-- **Average Effect Size**: 3.340
-- **Median Effect Size**: 0.037
+- **Average Effect Size**: 3.652
+- **Median Effect Size**: 0.202
 
 ---
 
 ## ⚡ Performance / Runtime Metrics
 
 ### **Per-Run Timing**
-- **Average Per-Query Time**: 1.045s
-- **Median Per-Query Time**: 0.794s
+- **Average Per-Query Time**: 1.021s
+- **Median Per-Query Time**: 0.800s
 - **Query Time Range**: 0.081s - 8.206s
-- **Performance Stability**: ±1.677s (CV: 160.6%)
-- **Average Total Runtime**: 15.32s
+- **Performance Stability**: ±1.533s (CV: 150.2%)
+- **Average Total Runtime**: 14.59s
 
 ### **Throughput & Efficiency**
 - **Queries per Second (QPS)**: 1.0
-- **Total Validation Runs**: 23
+- **Total Validation Runs**: 28
 - **Processing Efficiency**: 100.0% success rate
 
 ### **Resource Usage**
-- **UNKNOWN**: 27051.978125 MB avg memory
+- **UNKNOWN**: 28888.95625 MB avg memory
 
 ---
 
@@ -89,8 +89,8 @@
 ## 🧪 Experimental Setup Metadata
 
 ### **Models & Testing**
-- **Models Tested**: distilgpt2, gpt2, gpt2-medium, phi-2
-- **Test Types**: 2 different validation types
+- **Models Tested**: /Users/rohanvinaik/LLM_Models/llama-2-7b-chat-hf, /Users/rohanvinaik/LLM_Models/mistral_for_colab, distilgpt2, gpt2, gpt2-medium...
+- **Test Types**: 3 different validation types
 - **Recent Runs**: 20 total validation runs
 
 ### **Hardware & Environment**
@@ -105,11 +105,6 @@
 
 | Timestamp | Type | Success | Decision | Timing | Hardware |
 |-----------|------|---------|----------|--------|----------|
-| 16:51:52 | runtime_blac... | ✅ | UNDECIDED | 0.79s | MPS |
-| 16:55:06 | runtime_blac... | ✅ | UNDECIDED | 1.02s | MPS |
-| 16:55:16 | runtime_blac... | ✅ | UNDECIDED | 0.79s | MPS |
-| 16:58:13 | runtime_blac... | ✅ | UNDECIDED | 1.02s | MPS |
-| 16:58:23 | runtime_blac... | ✅ | UNDECIDED | 0.79s | MPS |
 | 16:58:50 | runtime_blac... | ✅ | UNDECIDED | 1.02s | MPS |
 | 16:59:00 | runtime_blac... | ✅ | UNDECIDED | 0.80s | MPS |
 | 16:59:24 | runtime_blac... | ✅ | UNDECIDED | 1.03s | MPS |
@@ -120,18 +115,23 @@
 | 17:17:42 | configurable... | ✅ | UNDECIDED | 0.08s | UNKNOWN |
 | 17:32:35 | configurable... | ✅ | UNDECIDED | 0.20s | UNKNOWN |
 | 17:57:14 | configurable... | ✅ | UNDECIDED | 8.21s | UNKNOWN |
+| 20:35:31 | runtime_blac... | ✅ | UNDECIDED | 1.00s | MPS |
+| 20:35:41 | runtime_blac... | ✅ | UNDECIDED | 0.80s | MPS |
+| 20:38:54 | runtime_blac... | ✅ | UNDECIDED | 1.00s | MPS |
+| 20:39:03 | runtime_blac... | ✅ | UNDECIDED | 0.78s | MPS |
+| 21:26:15 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
 
 ---
 
 ## 🔬 Advanced Analytics
 
 ### **Performance Trends**
-- ⬆️ **Slight increase**: 132.6% slower (last 10 runs)
+- ⬆️ **Slight increase**: 1981.1% slower (last 9 runs)
 
 ### **Quality Metrics**
 - **System Reliability**: 🟢 **Excellent** (100.0% success rate)
-- **ZK Pipeline Health**: 4.3% of runs include ZK proofs
-- **Interface Compliance**: 4.3% of runs include interface tests
+- **ZK Pipeline Health**: 3.6% of runs include ZK proofs
+- **Interface Compliance**: 3.6% of runs include interface tests
 
 ### **Error Analysis**
 ✅ **No errors in recent runs**

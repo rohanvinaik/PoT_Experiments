@@ -1,0 +1,100 @@
+{
+  "timestamp": "20250820_205222",
+  "fixes_applied": [
+    "Calibrated thresholds from actual model runs (\u03b3=0.00102, \u03b4*=0.0383)",
+    "Corrected score orientation (absolute CE difference, always \u2265 0)",
+    "Fixed EnhancedSequentialTester with .differences field",
+    "Proper K=128 for audit grade variance control",
+    "Empirical-Bernstein CI with clipped scores"
+  ],
+  "calibration_source": "Based on CorrectedDifferenceScorer measurements",
+  "test_results": {
+    "gpt2_gpt2": {
+      "test_case": "gpt2_vs_gpt2",
+      "expected": "SAME",
+      "decision": "SAME",
+      "passed": true,
+      "n_used": 30,
+      "n_eff": 3840,
+      "mean": 0.0,
+      "ci": [
+        0.0,
+        0.0
+      ],
+      "half_width": 0.0,
+      "rme": null,
+      "timing": {
+        "t_total": 2.417899665888399,
+        "t_infer_total": 2.416164207737893,
+        "t_per_query": 0.08053880692459643
+      },
+      "config": {
+        "gamma": 0.00102,
+        "delta_star": 0.0383,
+        "epsilon_diff": 0.1,
+        "k_positions": 128,
+        "n_min": 30,
+        "n_max": 400,
+        "confidence": 0.99
+      },
+      "reason": "Mean and CI indicate identical models"
+    },
+    "gpt2_distilgpt2": {
+      "test_case": "gpt2_vs_distilgpt2",
+      "expected": "DIFFERENT",
+      "decision": "DIFFERENT",
+      "passed": true,
+      "n_used": 30,
+      "n_eff": 3840,
+      "mean": 0.7055386930704116,
+      "ci": [
+        0.7042015208309768,
+        0.7068758653098465
+      ],
+      "half_width": 0.0013371722394349007,
+      "rme": 0.001895250044495367,
+      "timing": {
+        "t_total": 1.4382977499626577,
+        "t_infer_total": 1.4364794155117124,
+        "t_per_query": 0.047882647183723745
+      },
+      "config": {
+        "gamma": 0.00102,
+        "delta_star": 0.0383,
+        "epsilon_diff": 0.1,
+        "k_positions": 128,
+        "n_min": 30,
+        "n_max": 400,
+        "confidence": 0.99
+      },
+      "reason": "Effect size 0.706876 \u2265 \u03b4* 0.0383 and RME 0.002 \u2264 0.1"
+    }
+  },
+  "overall_passed": true,
+  "summary_table": {
+    "test": [
+      "GPT2 vs GPT2",
+      "GPT2 vs DistilGPT2"
+    ],
+    "expected": [
+      "SAME",
+      "DIFFERENT"
+    ],
+    "got": [
+      "SAME",
+      "DIFFERENT"
+    ],
+    "passed": [
+      true,
+      true
+    ],
+    "mean": [
+      0.0,
+      0.7055386930704116
+    ],
+    "n_used": [
+      30,
+      30
+    ]
+  }
+}

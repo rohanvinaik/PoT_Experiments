@@ -1,6 +1,6 @@
 {
-  "total_runs": 23,
-  "successful_runs": 23,
+  "total_runs": 28,
+  "successful_runs": 28,
   "zk_pipeline_runs": 1,
   "interface_test_runs": 1,
   "timing_samples": [
@@ -107,6 +107,31 @@
     {
       "t_per_query": 8.20570740699768,
       "t_total": 43.783724308013916,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 1.002312441666921,
+      "t_total": 12.028695106506348,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7997536857922872,
+      "t_total": 9.598000288009644,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.9999911189079285,
+      "t_total": 12.000850915908813,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.7777596116065979,
+      "t_total": 9.333960771560669,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 0.0,
+      "t_total": 0.0,
       "hardware": "unknown"
     }
   ],
@@ -236,6 +261,36 @@
       "confidence": 0.975,
       "n_used": 5,
       "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "UNDECIDED",
+      "confidence": 0.0,
+      "n_used": 12,
+      "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 0.997802734375
     }
   ],
   "zk_proof_samples": [
@@ -252,5 +307,5 @@
       "verified": true
     }
   ],
-  "last_updated": "2025-08-20T17:57:14.938242"
+  "last_updated": "2025-08-20T21:26:15.101917"
 }
