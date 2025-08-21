@@ -66,6 +66,7 @@ For the first time, we combine:
 |-----------|--------------|---------|--------|------------------------|
 | **🎯 Instruction Tuning** | GPT-2 vs DialoGPT | 13 | ✅ DIFFERENT | Detects ChatGPT-style modifications |
 | **💰 Size Fraud Detection** | Pythia-70M vs 160M | 10 | ✅ DIFFERENT | Catches smaller models served as larger |
+| **🎓 Distillation Detection** | GPT-2 vs DistilGPT-2 | 30 | ✅ DIFFERENT | Identifies quality degradation fraud |
 | **Code Specialization** | GPT-2 vs StarCoder | 12 | ✅ DIFFERENT | Identifies Copilot/CodeWhisperer |
 | **Cross-Architecture** | StarCoder vs GPT-Neo | 12 | ✅ DIFFERENT | Works across model families |
 | **Identity Verification** | GPT-2 vs GPT-2 | 10 | ✅ SAME | Prevents false positives |
@@ -99,6 +100,7 @@ Instruction-tuning (RLHF, supervised fine-tuning) is what transforms raw languag
 | Modification Type | Detection Rate | Queries Needed | Why It Matters |
 |------------------|----------------|----------------|----------------|
 | **Dialogue Tuning** | 100% (3/3) | 13 | Identifies conversational AI systems |
+| **Distillation Detection** | 67% (2/3) | 30 | Catches quality degradation fraud |
 | **Code Specialization** | 100% (5/5) | 12 | Detects GitHub Copilot-style models |
 | **Safety Alignment** | Validated | <20 | Critical for AI safety verification |
 | **Domain Adaptation** | 97.8% overlap | 12-15 | Works even with vocabulary changes |
