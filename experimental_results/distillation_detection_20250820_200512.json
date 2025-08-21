@@ -1,0 +1,59 @@
+[
+  {
+    "scenario": {
+      "name": "GPT-2 Distillation Detection",
+      "description": "Can we detect DistilGPT-2 vs GPT-2?",
+      "model_a": "gpt2",
+      "model_b": "distilgpt2",
+      "expected": "DIFFERENT",
+      "optimization": "2x faster, 40% smaller",
+      "risk": "Quality degradation hidden from users",
+      "real_scenario": "API serves DistilGPT-2 but charges for GPT-2"
+    },
+    "success": true,
+    "decision": "DIFFERENT",
+    "samples": 30,
+    "avg_distance": 0.21080400347709655,
+    "std_distance": 0.07121946143382858,
+    "params_a": 124439808,
+    "params_b": 81912576
+  },
+  {
+    "scenario": {
+      "name": "Same Family Verification",
+      "description": "GPT-2 vs GPT-2-Medium (legitimate scaling)",
+      "model_a": "gpt2",
+      "model_b": "gpt2-medium",
+      "expected": "DIFFERENT",
+      "optimization": "Larger model, not optimized",
+      "risk": "None - legitimate size difference",
+      "real_scenario": "Detecting actual model upgrades"
+    },
+    "success": true,
+    "decision": "DIFFERENT",
+    "samples": 30,
+    "avg_distance": 0.19210843741893768,
+    "std_distance": 0.054504184181037925,
+    "params_a": 124439808,
+    "params_b": 354823168
+  },
+  {
+    "scenario": {
+      "name": "Identical Model Control",
+      "description": "DistilGPT-2 vs DistilGPT-2 (same)",
+      "model_a": "distilgpt2",
+      "model_b": "distilgpt2",
+      "expected": "SAME",
+      "optimization": "N/A - control test",
+      "risk": "False positive prevention",
+      "real_scenario": "Ensuring consistency"
+    },
+    "success": true,
+    "decision": "SAME",
+    "samples": 30,
+    "avg_distance": 0.0,
+    "std_distance": 0.0,
+    "params_a": 81912576,
+    "params_b": 81912576
+  }
+]

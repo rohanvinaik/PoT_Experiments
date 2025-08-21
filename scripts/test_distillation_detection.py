@@ -137,14 +137,18 @@ def test_distillation(scenario: Dict) -> Dict:
         local_model_a = f"~/LLM_Models/{scenario['model_a']}"
         local_model_b = f"~/LLM_Models/{scenario['model_b']}"
         
+        # Use different dtypes to avoid numerical issues
+        dtype_a = torch.float32
+        dtype_b = torch.float64 if 'medium' in scenario['model_b'] else torch.float32
+        
         model_a = AutoModelForCausalLM.from_pretrained(
             scenario['model_a'],
-            torch_dtype=torch.float32,
+            torch_dtype=dtype_a,
             low_cpu_mem_usage=True
         )
         model_b = AutoModelForCausalLM.from_pretrained(
             scenario['model_b'],
-            torch_dtype=torch.float32,
+            torch_dtype=dtype_b,
             low_cpu_mem_usage=True
         )
         
