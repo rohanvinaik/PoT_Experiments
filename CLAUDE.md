@@ -214,6 +214,290 @@ python scripts/test_size_fraud_detection.py
 - **ZK Tests**: Health score >70/100
 - **Performance**: <1 second for most verifications
 
+## CRITICAL EXECUTION REQUIREMENTS
+
+### Prerequisites & Environment Setup
+
+**REQUIRED before running any tests:**
+
+1. **Working Directory**: Always execute from `/Users/rohanvinaik/PoT_Experiments`
+2. **Python Environment**: Python 3.11.8 with required packages
+3. **Model Directory**: Models must be in `/Users/rohanvinaik/LLM_Models` 
+4. **Rust Toolchain**: Version 1.88.0+ for ZK circuits (installed and working)
+
+### Dependency Installation
+
+```bash
+# Core Python dependencies (REQUIRED)
+pip install torch>=2.2.0 transformers>=4.36.2 numpy scipy scikit-learn
+
+# Optional but recommended
+pip install tlsh  # For fuzzy hashing (TLSH)
+# Note: SSDeep is optional (warnings are normal)
+```
+
+### Model Access Requirements
+
+**Models that WORK without authentication:**
+- `gpt2`, `distilgpt2`, `gpt2-medium` (HuggingFace)
+- `EleutherAI/pythia-70m`, `EleutherAI/pythia-160m`
+- Models in `/Users/rohanvinaik/LLM_Models/` directory
+
+**Models to AVOID (require authentication):**
+- Mistral, Zephyr, Llama-2 (gated models)
+- Any model requiring HuggingFace login tokens
+
+### Error Handling & Common Issues
+
+**Normal Warnings (IGNORE these):**
+```
+FuzzyHashVerifier not available  # SSDeep not installed
+TokenSpaceNormalizer not available  # Optional component
+```
+
+**Fatal Errors to Address:**
+- `ModuleNotFoundError`: Missing dependencies, install with pip
+- `CUDA out of memory`: Use `--skip-zk` flag or smaller models
+- `No such file or directory`: Check working directory and model paths
+- `Permission denied`: Check file permissions on scripts
+
+### Debugging Failed Tests
+
+**If run_all.sh fails:**
+1. Check `experimental_results/run_all_YYYYMMDD_HHMMSS.log` for details
+2. Try `bash scripts/run_all.sh --skip-zk` to isolate ZK issues
+3. Verify models exist: `ls /Users/rohanvinaik/LLM_Models/`
+4. Check disk space: `df -h` (needs >2GB free)
+
+**If individual scripts fail:**
+- NEVER run them directly, always use the pipeline
+- Check if the script requires specific model paths
+- Verify the script exists in `scripts/` directory
+
+### Step-by-Step Execution Guide
+
+**For Full Pipeline Validation:**
+```bash
+# 1. Navigate to correct directory
+cd /Users/rohanvinaik/PoT_Experiments
+
+# 2. Verify environment
+python --version  # Should be 3.11.8
+which python     # Should point to correct environment
+
+# 3. Run full validation (15-20 minutes)
+bash scripts/run_all.sh
+
+# 4. Check results
+ls experimental_results/  # Should contain new JSON files
+tail experimental_results/run_all_*.log  # Check for errors
+```
+
+**For Quick Testing:**
+```bash
+# Fast test without ZK proofs (2-5 minutes)
+cd /Users/rohanvinaik/PoT_Experiments
+bash scripts/run_all.sh --skip-zk
+```
+
+**For Custom Model Testing:**
+```bash
+# Test specific model pairs
+cd /Users/rohanvinaik/PoT_Experiments
+python scripts/run_pipeline_with_models.py --auto-pairs small --non-interactive
+
+# Size fraud detection
+python scripts/test_size_fraud_detection.py
+```
+
+### Output Validation
+
+**Successful run should produce:**
+- Exit code 0 (no errors)
+- New files in `experimental_results/` with timestamp
+- Updated `experimental_results/rolling_metrics.json`
+- Console output showing "✅" success indicators
+- ZK proofs generated and verified (if not using --skip-zk)
+
+**Success indicators to look for:**
+```
+✅ Standard deterministic validation passed
+✅ Enhanced diff decision tests passed  
+✅ ZK system pre-flight checks passed
+✅ All ZK prover binaries ready
+```
+
+### File Permissions & System Requirements
+
+**Required permissions:**
+- Read/write access to `/Users/rohanvinaik/PoT_Experiments/`
+- Execute permissions on `scripts/*.sh` files
+- Network access for downloading models (if needed)
+
+**System requirements:**
+- **Memory**: 16GB RAM minimum (for 7B models)
+- **Storage**: 10GB free space for models and results
+- **CPU**: Multi-core recommended (M2 Pro or equivalent)
+
+### Recovery from Common Failures
+
+**If tests hang or timeout:**
+```bash
+# Kill hung processes
+pkill -f python
+pkill -f rust
+
+# Clean temporary files
+rm -rf /tmp/pot_*
+
+# Restart with clean state
+bash scripts/run_all.sh
+```
+
+**If ZK tests fail:**
+```bash
+# Rebuild ZK binaries
+bash scripts/run_all.sh --rebuild-zk
+
+# Or skip ZK if hardware incompatible
+bash scripts/run_all.sh --skip-zk
+```
+
+## TROUBLESHOOTING GUIDE
+
+### Quick Diagnostic Commands
+
+**Before asking for help, run these diagnostic commands:**
+
+```bash
+# Check working directory
+pwd  # Should be /Users/rohanvinaik/PoT_Experiments
+
+# Check Python environment  
+python --version && which python
+
+# Check required packages
+python -c "import torch, transformers, numpy, scipy; print('✅ Core deps OK')"
+
+# Check model directory
+ls -la /Users/rohanvinaik/LLM_Models/ | head -5
+
+# Check script permissions
+ls -la scripts/run_all.sh
+
+# Check recent log files
+ls -lt experimental_results/*.log | head -3
+```
+
+### Most Common Issues & Solutions
+
+**1. "No such file or directory" when running scripts**
+```bash
+# Solution: Verify working directory
+cd /Users/rohanvinaik/PoT_Experiments
+ls scripts/run_all.sh  # Should exist
+```
+
+**2. "ModuleNotFoundError: No module named 'pot'"**
+```bash
+# Solution: Run from correct directory
+cd /Users/rohanvinaik/PoT_Experiments
+python -c "import pot; print('✅ pot module found')"
+```
+
+**3. "Permission denied" errors**
+```bash
+# Solution: Fix script permissions
+chmod +x scripts/*.sh
+chmod +x scripts/*.py
+```
+
+**4. ZK tests fail with "cargo not found"**
+```bash
+# Solution: Check Rust installation
+which cargo  # Should return a path
+cargo --version  # Should be 1.88.0+
+
+# If missing: install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+**5. Models not found or authentication errors**
+```bash
+# Solution: Use only open models
+# AVOID: mistral, zephyr, llama-2 (require auth)
+# USE: gpt2, distilgpt2, pythia models
+
+# Test model access
+python -c "from transformers import AutoTokenizer; tok = AutoTokenizer.from_pretrained('gpt2'); print('✅ GPT-2 accessible')"
+```
+
+**6. Out of memory errors**
+```bash
+# Solution: Use smaller models or skip ZK
+bash scripts/run_all.sh --skip-zk
+
+# For model testing, use small models only
+python scripts/test_size_fraud_detection.py  # Uses Pythia-70M/160M
+```
+
+### Emergency Reset Procedure
+
+**If everything is broken and you need to start fresh:**
+
+```bash
+# 1. Clean all processes
+pkill -f python
+pkill -f cargo
+pkill -f rust
+
+# 2. Clean temporary files
+rm -rf /tmp/pot_*
+rm -rf experimental_results/temp_*
+
+# 3. Reset to working directory
+cd /Users/rohanvinaik/PoT_Experiments
+
+# 4. Verify core dependencies
+python -c "import torch, transformers; print('Dependencies OK')"
+
+# 5. Test with minimal command
+bash scripts/run_all.sh --skip-zk
+```
+
+### When to Use Different Commands
+
+**Use `bash scripts/run_all.sh` when:**
+- You want to validate the complete framework
+- You have 15-20 minutes for full testing
+- You want to reproduce paper results
+- ZK circuits are working (Rust/cargo available)
+
+**Use `bash scripts/run_all.sh --skip-zk` when:**
+- ZK tests are failing due to hardware/Rust issues
+- You want faster testing (5-10 minutes)
+- You only need statistical verification
+- Memory constraints prevent ZK proof generation
+
+**Use `python scripts/test_size_fraud_detection.py` when:**
+- You want to test specific model pairs (Pythia)
+- You need a quick functional test (2-3 minutes)
+- You want to validate size fraud detection specifically
+
+**Use `python scripts/run_pipeline_with_models.py` when:**
+- You have custom models in `/Users/rohanvinaik/LLM_Models/`
+- You want interactive model selection
+- You need to test specific model combinations
+
 ## REMEMBER
 
 The user is validating academic paper claims. Mock tests are USELESS for this purpose. Always use the real PoT framework code that exists in this repository.
+
+**FINAL CHECKLIST for LLM instances:**
+- [ ] Working directory: `/Users/rohanvinaik/PoT_Experiments`
+- [ ] Python 3.11.8 with torch, transformers, numpy, scipy
+- [ ] Models accessible (gpt2, distilgpt2, pythia)
+- [ ] Script permissions set (`chmod +x scripts/*`)
+- [ ] Use `bash scripts/run_all.sh` for full validation
+- [ ] Check logs in `experimental_results/` if errors occur
+- [ ] Use `--skip-zk` flag if ZK tests fail
