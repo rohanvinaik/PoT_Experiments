@@ -1,0 +1,19 @@
+{
+  "scenario": {
+    "name": "Architecture & Training Quality Detection",
+    "description": "Can we detect Phi-2 vs GPT-2 differences?",
+    "model_a": "gpt2",
+    "model_b": "microsoft/phi-2",
+    "expected": "DIFFERENT",
+    "size_ratio": "22x larger (2.7B vs 124M)",
+    "key_differences": [
+      "Modern architecture optimizations",
+      "High-quality curated training data",
+      "Advanced positional encoding",
+      "Improved attention mechanisms"
+    ],
+    "real_scenario": "Detecting undisclosed architecture improvements in APIs"
+  },
+  "success": false,
+  "error": "Repo id must be in the form 'repo_name' or 'namespace/repo_name': '~/LLM_Models/phi-2'. Use `repo_type` argument if needed."
+}

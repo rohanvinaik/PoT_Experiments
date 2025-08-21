@@ -1,0 +1,25 @@
+{
+  "scenario": {
+    "name": "Architecture & Training Quality Detection",
+    "description": "Can we detect Phi-2 vs GPT-2 differences?",
+    "model_a": "gpt2",
+    "model_b": "microsoft/phi-2",
+    "expected": "DIFFERENT",
+    "size_ratio": "22x larger (2.7B vs 124M)",
+    "key_differences": [
+      "Modern architecture optimizations",
+      "High-quality curated training data",
+      "Advanced positional encoding",
+      "Improved attention mechanisms"
+    ],
+    "real_scenario": "Detecting undisclosed architecture improvements in APIs"
+  },
+  "success": true,
+  "decision": "DIFFERENT",
+  "samples": 10,
+  "avg_distance": 0.534950566291809,
+  "std_distance": 0.17465938724414043,
+  "params_a": 124439808,
+  "params_b": 2779683840,
+  "vocab_overlap": 0.9992444576995725
+}
