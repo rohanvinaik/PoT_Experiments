@@ -1,0 +1,77 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "audit_grade",
+  "timestamp": "2025-08-21 02:14:50 UTC",
+  "config": {
+    "mode": "audit_grade",
+    "confidence": 0.99,
+    "gamma": 0.01,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.1,
+    "eta": 0.5,
+    "n_min": 30,
+    "n_max": 400,
+    "K": 64,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "DIFFERENT",
+    "reason": "Effect size 0.438267 \u2265 \u03b4* 0.1 and RME 0.011 \u2264 0.1",
+    "n_used": 32,
+    "n_eff": 2048,
+    "mean": 0.43359375,
+    "variance": 0.08531927293346772,
+    "std_dev": 0.29209463010036274,
+    "ci": [
+      0.4289209825792579,
+      0.4382665174207421
+    ],
+    "half_width": 0.004672767420742096,
+    "gamma": 0.01,
+    "delta_star": 0.1,
+    "rme": 0.01077683297036015,
+    "direction": "higher"
+  },
+  "scores": {
+    "raw": {
+      "mean": 0.43359375,
+      "std": 0.28749442717085294,
+      "min": 0.0390625,
+      "max": 1.0,
+      "percentiles": {
+        "p5": 0.0546875,
+        "p25": 0.140625,
+        "p50": 0.43359375,
+        "p75": 0.6015625,
+        "p95": 0.9171874999999999
+      }
+    },
+    "clipped": {
+      "mean": 0.238330078125,
+      "std": 0.09517230369810764,
+      "min": 0.0390625,
+      "max": 0.3
+    }
+  },
+  "timing": {
+    "total_time_sec": 54.948299208888784,
+    "avg_score_time_sec": 1.716753368586069,
+    "total_score_time_sec": 54.93610779475421,
+    "avg_batch_time_sec": 6.86847164077335,
+    "scores_per_second": 0.5823656138718754
+  },
+  "diagnostics": {},
+  "suggestions": [],
+  "interpretation": "Models are statistically different (higher). The mean difference 0.433594 has effect size exceeding the threshold 0.100000 with sufficient precision (RME=0.011 \u2264 0.100). This indicates a material behavioral difference.",
+  "next_steps": [
+    "Investigate source of behavioral difference",
+    "Run secondary verification methods (fuzzy hash, provenance)",
+    "Check for unauthorized modifications or attacks",
+    "Do not use models interchangeably without analysis"
+  ]
+}
