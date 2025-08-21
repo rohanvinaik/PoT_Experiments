@@ -173,6 +173,40 @@ bash scripts/run_all.sh --rebuild-zk
 
 **Individual test scripts are NOT meant to be run directly** - they are called by run_all.sh with proper context and parameters.
 
+### Model Loading Pipeline for Custom Tests
+
+**IMPORTANT: There is an existing model loading pipeline for testing custom model pairs!**
+
+```bash
+# Easy model selection pipeline (scans your LLM models directory)
+python scripts/run_pipeline_with_models.py --models-dir /Users/rohanvinaik/LLM_Models
+
+# Automated testing with presets
+python scripts/run_pipeline_with_models.py --auto-pairs small --test-mode enhanced --non-interactive
+
+# Size fraud detection (built-in test)
+python scripts/test_size_fraud_detection.py
+```
+
+**Model Loading Features:**
+- Automatically scans `/Users/rohanvinaik/LLM_Models` for valid models
+- Categorizes by size (Small <1B, Medium 1B-7B, Large 7B+)
+- Supports interactive model pair selection
+- Built-in test scenarios (size fraud, distillation, instruction-tuning)
+- Generates comprehensive reports in `experimental_results/`
+
+**Preset Options:**
+- `--auto-pairs small`: Test small model pairs (GPT-2 variants)
+- `--auto-pairs large`: Test large model pairs (7B+ models)
+- `--auto-pairs mixed`: Test cross-size comparisons
+- `--auto-pairs base-ft`: Test base vs fine-tuned models
+
+**Test Modes:**
+- `quick`: Fast statistical tests only
+- `statistical`: Statistical identity verification
+- `enhanced`: Enhanced diff decision framework
+- `comprehensive`: Full pipeline with ZK proofs (default)
+
 ### Expected Results
 
 - **Deterministic Tests**: 100% success rate

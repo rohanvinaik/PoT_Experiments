@@ -1,0 +1,36 @@
+{
+  "timestamp": "2025-08-20 21:04:47",
+  "test_mode": "enhanced",
+  "model_pairs": [
+    {
+      "pair_id": 1,
+      "model_a": {
+        "name": "pythia-160m",
+        "path": "/Users/rohanvinaik/LLM_Models/pythia-160m",
+        "size": "Unknown size",
+        "category": "Small (<1B)"
+      },
+      "model_b": {
+        "name": "distilgpt2",
+        "path": "/Users/rohanvinaik/LLM_Models/distilgpt2",
+        "size": "117M params",
+        "category": "Small (<1B)"
+      },
+      "tests": {
+        "enhanced_diff": {
+          "status": "COMPLETED",
+          "exit_code": 1,
+          "output": ""
+        }
+      }
+    }
+  ],
+  "summary": {
+    "total_pairs": 1,
+    "successful_pairs": 1,
+    "success_rate": 1.0,
+    "small_models": 1,
+    "large_models": 0,
+    "mixed_sizes": 0
+  }
+}

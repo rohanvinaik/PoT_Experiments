@@ -1,0 +1,49 @@
+[
+  {
+    "scenario": {
+      "name": "Pythia Size Scaling",
+      "description": "Can we detect 70M vs 160M parameter difference?",
+      "model_a": "EleutherAI/pythia-70m",
+      "model_b": "EleutherAI/pythia-160m",
+      "expected": "DIFFERENT",
+      "cost_savings": "56% compute reduction",
+      "fraud_scenario": "Provider claims Pythia-160M but serves 70M"
+    },
+    "detection": "DIFFERENT",
+    "success": true,
+    "queries": 10,
+    "avg_diff": 64579.4046875,
+    "params_a": 70426624,
+    "params_b": 162322944
+  },
+  {
+    "scenario": {
+      "name": "GPT-Neo Size Detection",
+      "description": "Detecting 125M vs 1.3B parameter models",
+      "model_a": "EleutherAI/gpt-neo-125m",
+      "model_b": "EleutherAI/gpt-neo-1.3B",
+      "expected": "DIFFERENT",
+      "cost_savings": "90% compute reduction",
+      "fraud_scenario": "Major downsizing - 10x smaller model"
+    },
+    "detection": null,
+    "skipped": true
+  },
+  {
+    "scenario": {
+      "name": "Same Architecture Test",
+      "description": "Same model should verify as identical",
+      "model_a": "EleutherAI/pythia-70m",
+      "model_b": "EleutherAI/pythia-70m",
+      "expected": "SAME",
+      "cost_savings": "N/A",
+      "fraud_scenario": "Control test - no fraud"
+    },
+    "detection": "SAME",
+    "success": true,
+    "queries": 10,
+    "avg_diff": 0.0,
+    "params_a": 70426624,
+    "params_b": 70426624
+  }
+]
