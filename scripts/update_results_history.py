@@ -213,6 +213,61 @@ class ValidationResultsHistory:
                 'latest': max(r['timestamp'] for r in self.history['runs'] if r['timestamp'])
             }
         }
+        
+        # Calculate enhanced diff statistics from rolling metrics
+        self._update_enhanced_diff_stats()
+    
+    def _update_enhanced_diff_stats(self):
+        """Update enhanced diff statistics from rolling metrics file."""
+        rolling_metrics_file = "experimental_results/rolling_metrics.json"
+        if not os.path.exists(rolling_metrics_file):
+            return
+        
+        try:
+            with open(rolling_metrics_file, 'r') as f:
+                rolling_data = json.load(f)
+            
+            statistical_samples = rolling_data.get('statistical_samples', [])
+            if not statistical_samples:
+                return
+            
+            # Analyze decisions and outcomes
+            same_decisions = [s for s in statistical_samples if s.get('decision') == 'SAME']
+            different_decisions = [s for s in statistical_samples if s.get('decision') == 'DIFFERENT'] 
+            undecided_decisions = [s for s in statistical_samples if s.get('decision') == 'UNDECIDED']
+            
+            total_decisions = len(statistical_samples)
+            if total_decisions == 0:
+                return
+            
+            # Calculate metrics for Core Performance Metrics table
+            # Simulate expected behavior for metrics calculation
+            false_accepts = len([s for s in same_decisions if s.get('effect_size', 0) > 0.1])  # Should be DIFFERENT but marked SAME
+            false_rejects = len([s for s in different_decisions if s.get('effect_size', 0) < 0.01])  # Should be SAME but marked DIFFERENT
+            
+            avg_queries = mean([s.get('n_used', 0) for s in statistical_samples if s.get('n_used')])
+            avg_confidence = mean([s.get('confidence', 0) for s in statistical_samples if s.get('confidence')])
+            undecided_rate = len(undecided_decisions) / total_decisions * 100
+            
+            # Store enhanced diff statistics
+            self.history['statistics']['enhanced_diff'] = {
+                'total_runs': total_decisions,
+                'false_accepts': false_accepts,
+                'false_rejects': false_rejects,
+                'total_same_tests': len(same_decisions) + false_rejects,
+                'total_different_tests': len(different_decisions) + false_accepts,
+                'avg_undecided_rate': undecided_rate,
+                'avg_queries_used': avg_queries,
+                'avg_confidence': avg_confidence,
+                'decision_breakdown': {
+                    'same': len(same_decisions),
+                    'different': len(different_decisions), 
+                    'undecided': len(undecided_decisions)
+                }
+            }
+            
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            print(f"Warning: Could not parse rolling metrics for enhanced diff stats: {e}")
     
     def add_results(self, new_results: List[Dict[str, Any]]):
         """Add new results to history."""
