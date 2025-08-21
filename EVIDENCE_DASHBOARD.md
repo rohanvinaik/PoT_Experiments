@@ -2,8 +2,8 @@
 
 **Live Performance Metrics & Validation Evidence**
 
-*Last Updated: 2025-08-20 22:40:52 UTC*
-*Auto-generated from 37 validation runs*
+*Last Updated: 2025-08-20 23:14:09 UTC*
+*Auto-generated from 38 validation runs*
 
 ---
 
@@ -11,35 +11,35 @@
 
 | Metric | Result |
 |--------|--------|
-| **Decisive Outcome Rate** | 28.6% |
+| **Decisive Outcome Rate** | 30.6% |
 | **Per-Query Time** | 1.021s |
 | **Query Time Range** | 0.081s - 8.206s |
 | **Overall Success Rate** | 100.0% |
 | **Avg Proof Size** | 778 bytes |
 | **Proof Gen Time** | 0.371s |
 | **Proof Verify Rate** | 100.0% |
-| **Avg Confidence** | 97.0% |
-| **Total Validation Runs** | 37 |
+| **Avg Confidence** | 97.1% |
+| **Total Validation Runs** | 38 |
 
 ---
 
 ## 🔬 Statistical / Experimental Metrics
 
 ### **Sample Size & Queries**
-- **Total Tests Completed**: 35
-- **Average Samples per Test**: 20.3
+- **Total Tests Completed**: 36
+- **Average Samples per Test**: 20.6
 - **Median Samples per Test**: 12.0
 
 ### **Error Rates & Detection**
-- **SAME Detection Rate**: 8.6% (3 tests)
-- **DIFFERENT Detection Rate**: 20.0% (7 tests)
-- **Undecided Rate**: 71.4% (25 tests)
+- **SAME Detection Rate**: 8.3% (3 tests)
+- **DIFFERENT Detection Rate**: 22.2% (8 tests)
+- **Undecided Rate**: 69.4% (25 tests)
 
 ### **Decision Thresholds & Effect Size**
-- **Average Confidence Level**: 97.0%
+- **Average Confidence Level**: 97.1%
 - **Confidence Range**: 95.0% - 99.0%
 - **Average Effect Size**: nan
-- **Median Effect Size**: 0.391
+- **Median Effect Size**: 0.412
 
 ---
 
@@ -54,11 +54,11 @@
 
 ### **Throughput & Efficiency**
 - **Queries per Second (QPS)**: 1.0
-- **Total Validation Runs**: 37
+- **Total Validation Runs**: 38
 - **Processing Efficiency**: 100.0% success rate
 
 ### **Resource Usage**
-- **UNKNOWN**: 31038.2484375 MB avg memory
+- **UNKNOWN**: 31335.06015625 MB avg memory
 
 ---
 
@@ -69,8 +69,8 @@
 - **Average Proof Size**: 778 bytes
 - **Proof Size Range**: 632 - 924 bytes
 - **Proof Types**:
-  - lora: 1 proofs
   - sgd: 1 proofs
+  - lora: 1 proofs
 
 ### **Proof System Performance**
 - **Average Generation Time**: 0.371s
@@ -105,7 +105,6 @@
 
 | Timestamp | Type | Success | Decision | Timing | Hardware |
 |-----------|------|---------|----------|--------|----------|
-| 17:57:14 | configurable... | ✅ | UNDECIDED | 8.21s | UNKNOWN |
 | 20:35:31 | runtime_blac... | ✅ | UNDECIDED | 1.00s | MPS |
 | 20:35:41 | runtime_blac... | ✅ | UNDECIDED | 0.80s | MPS |
 | 20:38:54 | runtime_blac... | ✅ | UNDECIDED | 1.00s | MPS |
@@ -120,6 +119,7 @@
 | 22:39:24 | enhanced_dif... | ✅ | UNDECIDED | 0.00s | UNKNOWN |
 | 22:40:23 | enhanced_dif... | ✅ | SAME | 0.00s | UNKNOWN |
 | 22:40:52 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
+| 23:14:09 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
 
 ---
 
@@ -130,8 +130,8 @@
 
 ### **Quality Metrics**
 - **System Reliability**: 🟢 **Excellent** (100.0% success rate)
-- **ZK Pipeline Health**: 2.7% of runs include ZK proofs
-- **Interface Compliance**: 2.7% of runs include interface tests
+- **ZK Pipeline Health**: 2.6% of runs include ZK proofs
+- **Interface Compliance**: 2.6% of runs include interface tests
 
 ### **Error Analysis**
 ✅ **No errors in recent runs**

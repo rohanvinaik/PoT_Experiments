@@ -172,7 +172,7 @@ Beyond statistical behavioral testing, the framework includes cryptographic secu
 | Mode | Confidence | n_min | n_max | Decision Rate |
 |------|------------|-------|-------|---------------|
 | **QUICK_GATE** | 97.5% | 10 | 120 | 66.7% |
-| **AUDIT_GRADE** | 99% | 30 | 400 | 80.0% |
+| **AUDIT_GRADE** | 99% | 30 | 400 | 83.3% |
 | **EXTENDED** | 99.9% | 50 | 800 | 99.9% |
 
 ## 🏗️ Architecture
