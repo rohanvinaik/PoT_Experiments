@@ -434,7 +434,7 @@ bash scripts/make_evidence_bundle.sh \
 ### Verification Transcripts
 Complete challenge-response transcripts available:
 - `experimental_results/yi34b_comprehensive_report.json`
-- `experimental_results/yi34b_verification.json`
+- `experimental_results/yi34b_sharded_verification.json`
 
 ### Reproduce Our Results
 ```bash
@@ -442,7 +442,7 @@ Complete challenge-response transcripts available:
 bash scripts/run_all.sh --skip-zk
 
 # Large models with memory management (5 minutes)
-python scripts/test_yi34b.py --max-memory 30
+python scripts/test_yi34b_sharded.py --max-memory 30
 
 # Full pipeline with ZK proofs (15 minutes)
 bash scripts/run_all.sh
