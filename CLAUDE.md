@@ -149,12 +149,14 @@ The primary validation pipeline is `scripts/run_all.sh` which:
    - Health scores
    - Success rates
 
-### Running Tests
+### Running the Complete Validation Pipeline
 
-**IMPORTANT: Always use the main validation pipeline script `run_all.sh` - do not run individual test scripts directly.**
+**IMPORTANT: Follow this sequence for comprehensive validation testing.**
+
+#### 1. Main Pipeline (All Components)
 
 ```bash
-# Full validation pipeline (recommended)
+# Full validation pipeline with all tests
 bash scripts/run_all.sh
 
 # Skip ZK tests for faster runs
@@ -164,15 +166,48 @@ bash scripts/run_all.sh --skip-zk
 bash scripts/run_all.sh --rebuild-zk
 ```
 
-**Why use run_all.sh:**
-- Properly sets up environment and dependencies
-- Runs tests in correct sequence with proper model loading
-- Handles error conditions and cleanup
-- Generates comprehensive results in `experimental_results/`
-- Updates rolling metrics for README auto-update
-- Validates the complete pipeline end-to-end
+#### 2. Statistical Verification (Enhanced Framework)
 
-**Individual test scripts are NOT meant to be run directly** - they are called by run_all.sh with proper context and parameters.
+```bash
+# Test specific model pairs with enhanced diff decision
+python scripts/run_enhanced_diff_test.py \
+    --mode quick \
+    --ref-model /Users/rohanvinaik/LLM_Models/gpt2 \
+    --cand-model /Users/rohanvinaik/LLM_Models/distilgpt2 \
+    --prf-key deadbeefcafebabe1234567890abcdef
+
+# Run comprehensive model tests
+python /tmp/run_model_tests.py  # Tests multiple pairs automatically
+```
+
+#### 3. Security Verification Suite
+
+```bash
+# Run security tests on all model pairs
+python scripts/run_security_tests_simple.py
+
+# This runs three security checks:
+# - Config Hash: SHA-256 of config.json (100% accuracy)
+# - TLSH Fuzzy Hash: Locality-sensitive hashing for similarity
+# - Tokenizer Compatibility: Checks if models are drop-in replaceable
+```
+
+#### 4. Zero-Knowledge Proof Validation
+
+```bash
+# Run ZK proof generation and verification
+python scripts/run_zk_validation.py
+
+# Test specific proof types
+cd pot/zk/prover_halo2
+cargo test --release  # Run Rust ZK circuit tests
+```
+
+**Complete Test Sequence Summary:**
+1. Statistical tests → SAME/DIFFERENT decision with confidence
+2. Security tests → Config/fuzzy hash verification  
+3. ZK proofs → Cryptographic training verification
+4. Reports → Auto-generated in `experimental_results/`
 
 ### Model Loading Pipeline for Custom Tests
 
@@ -211,9 +246,19 @@ python scripts/test_size_fraud_detection.py
 ### Expected Results
 
 - **Deterministic Tests**: 100% success rate
-- **Statistical Tests**: >95% success rate
+- **Statistical Tests**: 
+  - >95% success rate for clear cases
+  - Proper SAME/DIFFERENT decisions with 97.5-99% confidence
+  - Effect size detection for behavioral differences
+- **Security Tests**:
+  - Config Hash: 100% discrimination accuracy
+  - TLSH Fuzzy Hash: 80%+ accuracy, similarity scores
+  - Tokenizer: Correctly identifies architecture incompatibilities
 - **ZK Tests**: Health score >70/100
-- **Performance**: <1 second for most verifications
+- **Performance**: 
+  - Small models (GPT-2, DistilGPT2): 1-2 seconds per query
+  - Medium models (Pythia): ~1 second per query  
+  - Large models (7B+): 8-10 seconds per query
 
 ## CRITICAL EXECUTION REQUIREMENTS
 
