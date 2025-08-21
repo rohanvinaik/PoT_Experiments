@@ -45,7 +45,7 @@ except ImportError as e:
 
 # Import our components
 try:
-    from fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector, HashAlgorithm
+    from pot.security.fuzzy_hash_verifier import FuzzyHashVerifier, ChallengeVector, HashAlgorithm
     FUZZY_AVAILABLE = True
 except ImportError:
     FUZZY_AVAILABLE = False
@@ -63,11 +63,10 @@ except ImportError:
     warnings.warn("TrainingProvenanceAuditor not available")
 
 try:
-    from token_space_normalizer import (
+    from pot.security.token_space_normalizer import (
         TokenSpaceNormalizer, 
         StochasticDecodingController,
-        TokenizerType,
-        SamplingMethod
+        TokenizerType
     )
     TOKEN_AVAILABLE = True
 except ImportError:

@@ -2,8 +2,8 @@
 
 **Live Performance Metrics & Validation Evidence**
 
-*Last Updated: 2025-08-20 22:31:37 UTC*
-*Auto-generated from 34 validation runs*
+*Last Updated: 2025-08-20 22:40:52 UTC*
+*Auto-generated from 37 validation runs*
 
 ---
 
@@ -11,35 +11,35 @@
 
 | Metric | Result |
 |--------|--------|
-| **Decisive Outcome Rate** | 25.0% |
+| **Decisive Outcome Rate** | 28.6% |
 | **Per-Query Time** | 1.021s |
 | **Query Time Range** | 0.081s - 8.206s |
 | **Overall Success Rate** | 100.0% |
 | **Avg Proof Size** | 778 bytes |
 | **Proof Gen Time** | 0.371s |
 | **Proof Verify Rate** | 100.0% |
-| **Avg Confidence** | 96.9% |
-| **Total Validation Runs** | 34 |
+| **Avg Confidence** | 97.0% |
+| **Total Validation Runs** | 37 |
 
 ---
 
 ## 🔬 Statistical / Experimental Metrics
 
 ### **Sample Size & Queries**
-- **Total Tests Completed**: 32
-- **Average Samples per Test**: 17.7
+- **Total Tests Completed**: 35
+- **Average Samples per Test**: 20.3
 - **Median Samples per Test**: 12.0
 
 ### **Error Rates & Detection**
-- **SAME Detection Rate**: 6.2% (2 tests)
-- **DIFFERENT Detection Rate**: 18.8% (6 tests)
-- **Undecided Rate**: 75.0% (24 tests)
+- **SAME Detection Rate**: 8.6% (3 tests)
+- **DIFFERENT Detection Rate**: 20.0% (7 tests)
+- **Undecided Rate**: 71.4% (25 tests)
 
 ### **Decision Thresholds & Effect Size**
-- **Average Confidence Level**: 96.9%
+- **Average Confidence Level**: 97.0%
 - **Confidence Range**: 95.0% - 99.0%
 - **Average Effect Size**: nan
-- **Median Effect Size**: 0.412
+- **Median Effect Size**: 0.391
 
 ---
 
@@ -54,11 +54,11 @@
 
 ### **Throughput & Efficiency**
 - **Queries per Second (QPS)**: 1.0
-- **Total Validation Runs**: 34
+- **Total Validation Runs**: 37
 - **Processing Efficiency**: 100.0% success rate
 
 ### **Resource Usage**
-- **UNKNOWN**: 30483.0234375 MB avg memory
+- **UNKNOWN**: 31038.2484375 MB avg memory
 
 ---
 
@@ -69,8 +69,8 @@
 - **Average Proof Size**: 778 bytes
 - **Proof Size Range**: 632 - 924 bytes
 - **Proof Types**:
-  - sgd: 1 proofs
   - lora: 1 proofs
+  - sgd: 1 proofs
 
 ### **Proof System Performance**
 - **Average Generation Time**: 0.371s
@@ -90,7 +90,7 @@
 
 ### **Models & Testing**
 - **Models Tested**: /Users/rohanvinaik/LLM_Models/distilgpt2, /Users/rohanvinaik/LLM_Models/gpt-neo-1.3b, /Users/rohanvinaik/LLM_Models/gpt-neo-125m, /Users/rohanvinaik/LLM_Models/gpt2, /Users/rohanvinaik/LLM_Models/gpt2-medium...
-- **Test Types**: 2 different validation types
+- **Test Types**: 1 different validation types
 - **Recent Runs**: 20 total validation runs
 
 ### **Hardware & Environment**
@@ -105,9 +105,6 @@
 
 | Timestamp | Type | Success | Decision | Timing | Hardware |
 |-----------|------|---------|----------|--------|----------|
-| 17:17:08 | configurable... | ✅ | UNDECIDED | 0.08s | UNKNOWN |
-| 17:17:42 | configurable... | ✅ | UNDECIDED | 0.08s | UNKNOWN |
-| 17:32:35 | configurable... | ✅ | UNDECIDED | 0.20s | UNKNOWN |
 | 17:57:14 | configurable... | ✅ | UNDECIDED | 8.21s | UNKNOWN |
 | 20:35:31 | runtime_blac... | ✅ | UNDECIDED | 1.00s | MPS |
 | 20:35:41 | runtime_blac... | ✅ | UNDECIDED | 0.80s | MPS |
@@ -120,18 +117,21 @@
 | 22:25:52 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
 | 22:28:02 | enhanced_dif... | ✅ | UNDECIDED | 0.00s | UNKNOWN |
 | 22:31:37 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
+| 22:39:24 | enhanced_dif... | ✅ | UNDECIDED | 0.00s | UNKNOWN |
+| 22:40:23 | enhanced_dif... | ✅ | SAME | 0.00s | UNKNOWN |
+| 22:40:52 | enhanced_dif... | ✅ | DIFFERENT | 0.00s | UNKNOWN |
 
 ---
 
 ## 🔬 Advanced Analytics
 
 ### **Performance Trends**
-- ⬆️ **Slight increase**: 11.1% slower (last 3 runs)
+- **Performance Trend**: Collecting timing data...
 
 ### **Quality Metrics**
 - **System Reliability**: 🟢 **Excellent** (100.0% success rate)
-- **ZK Pipeline Health**: 2.9% of runs include ZK proofs
-- **Interface Compliance**: 2.9% of runs include interface tests
+- **ZK Pipeline Health**: 2.7% of runs include ZK proofs
+- **Interface Compliance**: 2.7% of runs include interface tests
 
 ### **Error Analysis**
 ✅ **No errors in recent runs**

@@ -1,0 +1,96 @@
+{
+  "verifier": "enhanced_stat_diff_v2",
+  "mode": "quick_gate",
+  "timestamp": "2025-08-21 02:39:24 UTC",
+  "config": {
+    "mode": "quick_gate",
+    "confidence": 0.975,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "epsilon_diff": 0.2,
+    "eta": 0.5,
+    "n_min": 12,
+    "n_max": 120,
+    "K": 32,
+    "batch_size": 4,
+    "ci_method": "eb",
+    "clip_range": [
+      0.0,
+      0.3
+    ]
+  },
+  "results": {
+    "decision": "UNDECIDED",
+    "reason": "Reached n_max without meeting decision criteria",
+    "n_used": 120,
+    "n_eff": 3840,
+    "mean": NaN,
+    "variance": NaN,
+    "std_dev": NaN,
+    "ci": [
+      NaN,
+      NaN
+    ],
+    "half_width": NaN,
+    "gamma": 0.015,
+    "delta_star": 0.1,
+    "rme": null,
+    "direction": null
+  },
+  "scores": {
+    "raw": {
+      "mean": NaN,
+      "std": NaN,
+      "min": NaN,
+      "max": NaN,
+      "percentiles": {
+        "p5": NaN,
+        "p25": NaN,
+        "p50": NaN,
+        "p75": NaN,
+        "p95": NaN
+      }
+    },
+    "clipped": {
+      "mean": NaN,
+      "std": NaN,
+      "min": NaN,
+      "max": NaN
+    }
+  },
+  "timing": {
+    "total_time_sec": 9.647330499952659,
+    "avg_score_time_sec": 0.0801656618345684,
+    "total_score_time_sec": 9.619879420148209,
+    "avg_batch_time_sec": 0.3214666111006712,
+    "scores_per_second": 12.438674097522508
+  },
+  "diagnostics": {
+    "same_check": {
+      "ci_within_band": false,
+      "precision_met": false,
+      "needed_half_width": 0.0075
+    },
+    "different_check": {
+      "effect_size_met": false,
+      "rme": Infinity,
+      "rme_target": 0.2
+    }
+  },
+  "suggestions": [
+    "Increase K to 64 positions per prompt",
+    "Ensure score clipping range is appropriate",
+    "Effect size too small - may be near-clones or need different score metric",
+    "Consider switching score method (delta_ce \u2192 symmetric_kl)",
+    "Add more diverse challenge types",
+    "Check if models are loading correctly"
+  ],
+  "interpretation": "Unable to make a definitive decision with current data after 120 samples. CI extends outside equivalence band \u00b10.015000. Effect size nan below threshold 0.100000. Consider: (1) increasing samples to ~120, (2) using K=64 positions, (3) checking model loading, or (4) trying a different scoring metric.",
+  "next_steps": [
+    "Increase K to 64 positions per prompt",
+    "Ensure score clipping range is appropriate",
+    "Effect size too small - may be near-clones or need different score metric",
+    "Consider switching score method (delta_ce \u2192 symmetric_kl)",
+    "Add more diverse challenge types"
+  ]
+}

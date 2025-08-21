@@ -169,8 +169,8 @@ def run_verification(args, scorer, prompt_gen, logger):
             logger.info(f"Using device: {device}")
             
             # Load models - use float32 for stability with larger models
-            # Phi-2, GPT-2-medium and other models need higher precision
-            needs_float32 = any(name in args.ref_model.lower() for name in ['phi', 'medium', 'large', 'xl', '7b', '13b'])
+            # Phi-2, GPT-2-medium, Pythia and other models need higher precision
+            needs_float32 = any(name in args.ref_model.lower() for name in ['phi', 'pythia', 'medium', 'large', 'xl', '7b', '13b'])
             dtype = torch.float32 if (device == "cpu" or needs_float32) else torch.float16
             
             ref_model = AutoModelForCausalLM.from_pretrained(
@@ -183,7 +183,7 @@ def run_verification(args, scorer, prompt_gen, logger):
                 ref_model = ref_model.to(device)
             
             # Check if candidate model also needs float32
-            needs_float32_cand = any(name in args.cand_model.lower() for name in ['phi', 'medium', 'large', 'xl', '7b', '13b'])
+            needs_float32_cand = any(name in args.cand_model.lower() for name in ['phi', 'pythia', 'medium', 'large', 'xl', '7b', '13b'])
             dtype_cand = torch.float32 if (device == "cpu" or needs_float32_cand) else torch.float16
             
             cand_model = AutoModelForCausalLM.from_pretrained(

@@ -1,0 +1,132 @@
+{
+  "timestamp": 1755744721,
+  "total_pairs": 5,
+  "success_rate": "5/5",
+  "results": [
+    {
+      "name": "GPT-2 Identity",
+      "expected": "SAME",
+      "ref": "gpt2",
+      "cand": "gpt2",
+      "fuzzy_hash": {
+        "ref_algo": "tlsh",
+        "cand_algo": "tlsh",
+        "similarity": 1.0,
+        "is_fuzzy": true
+      },
+      "config_hash": {
+        "identical": true,
+        "ref_hash": "0daed7749b4f02b8...",
+        "cand_hash": "0daed7749b4f02b8..."
+      },
+      "tokenizer": {
+        "same_class": true,
+        "same_vocab_size": true,
+        "same_tokens": true,
+        "ref_vocab_size": 50257,
+        "cand_vocab_size": 50257,
+        "compatible": true
+      }
+    },
+    {
+      "name": "GPT-Neo Size Fraud",
+      "expected": "DIFFERENT",
+      "ref": "gpt-neo-125m",
+      "cand": "gpt-neo-1.3b",
+      "fuzzy_hash": {
+        "ref_algo": "tlsh",
+        "cand_algo": "tlsh",
+        "similarity": 0.4375,
+        "is_fuzzy": true
+      },
+      "config_hash": {
+        "identical": false,
+        "ref_hash": "046827afb72530d7...",
+        "cand_hash": "514c46cabaa3406b..."
+      },
+      "tokenizer": {
+        "same_class": true,
+        "same_vocab_size": true,
+        "same_tokens": true,
+        "ref_vocab_size": 50257,
+        "cand_vocab_size": 50257,
+        "compatible": true
+      }
+    },
+    {
+      "name": "GPT-2 vs Phi-2",
+      "expected": "DIFFERENT",
+      "ref": "gpt2",
+      "cand": "phi-2",
+      "fuzzy_hash": {
+        "ref_algo": "tlsh",
+        "cand_algo": "tlsh",
+        "similarity": 0.2825,
+        "is_fuzzy": true
+      },
+      "config_hash": {
+        "identical": false,
+        "ref_hash": "0daed7749b4f02b8...",
+        "cand_hash": "fbd955b298fdbd35..."
+      },
+      "tokenizer": {
+        "same_class": false,
+        "same_vocab_size": true,
+        "same_tokens": true,
+        "ref_vocab_size": 50257,
+        "cand_vocab_size": 50257,
+        "compatible": false
+      }
+    },
+    {
+      "name": "Pythia 70M Identity",
+      "expected": "SAME",
+      "ref": "pythia-70m",
+      "cand": "pythia-70m",
+      "fuzzy_hash": {
+        "ref_algo": "tlsh",
+        "cand_algo": "tlsh",
+        "similarity": 1.0,
+        "is_fuzzy": true
+      },
+      "config_hash": {
+        "identical": true,
+        "ref_hash": "002050231a9b1ec3...",
+        "cand_hash": "002050231a9b1ec3..."
+      },
+      "tokenizer": {
+        "same_class": true,
+        "same_vocab_size": true,
+        "same_tokens": true,
+        "ref_vocab_size": 50254,
+        "cand_vocab_size": 50254,
+        "compatible": true
+      }
+    },
+    {
+      "name": "Pythia 70M vs 160M",
+      "expected": "DIFFERENT",
+      "ref": "pythia-70m",
+      "cand": "pythia-160m",
+      "fuzzy_hash": {
+        "ref_algo": "tlsh",
+        "cand_algo": "tlsh",
+        "similarity": 0.645,
+        "is_fuzzy": true
+      },
+      "config_hash": {
+        "identical": false,
+        "ref_hash": "002050231a9b1ec3...",
+        "cand_hash": "76eb275107220e45..."
+      },
+      "tokenizer": {
+        "same_class": true,
+        "same_vocab_size": true,
+        "same_tokens": true,
+        "ref_vocab_size": 50254,
+        "cand_vocab_size": 50254,
+        "compatible": true
+      }
+    }
+  ]
+}

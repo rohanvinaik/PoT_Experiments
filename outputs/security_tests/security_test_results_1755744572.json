@@ -1,0 +1,73 @@
+{
+  "timestamp": 1755744572,
+  "test_pairs": 5,
+  "fuzzy_hash_success_rate": "N/A",
+  "token_normalizer_success_rate": "N/A",
+  "detailed_results": [
+    {
+      "name": "GPT-2 Identity Test",
+      "test_type": "identity",
+      "expected": "SAME",
+      "ref_model": "gpt2",
+      "cand_model": "gpt2",
+      "fuzzy_hash": {
+        "error": "'FuzzyHashVerifier' object has no attribute 'available_algorithms'"
+      },
+      "token_normalizer": {
+        "error": "TokenSpaceNormalizer.__init__() missing 1 required positional argument: 'tokenizer'"
+      }
+    },
+    {
+      "name": "GPT-Neo Size Fraud (125M vs 1.3B)",
+      "test_type": "size_fraud",
+      "expected": "DIFFERENT",
+      "ref_model": "gpt-neo-125m",
+      "cand_model": "gpt-neo-1.3b",
+      "fuzzy_hash": {
+        "error": "'FuzzyHashVerifier' object has no attribute 'available_algorithms'"
+      },
+      "token_normalizer": {
+        "error": "TokenSpaceNormalizer.__init__() missing 1 required positional argument: 'tokenizer'"
+      }
+    },
+    {
+      "name": "GPT-2 vs Phi-2 Architecture",
+      "test_type": "architecture",
+      "expected": "DIFFERENT",
+      "ref_model": "gpt2",
+      "cand_model": "phi-2",
+      "fuzzy_hash": {
+        "error": "'FuzzyHashVerifier' object has no attribute 'available_algorithms'"
+      },
+      "token_normalizer": {
+        "error": "TokenSpaceNormalizer.__init__() missing 1 required positional argument: 'tokenizer'"
+      }
+    },
+    {
+      "name": "Pythia 70M Identity Test",
+      "test_type": "identity",
+      "expected": "SAME",
+      "ref_model": "pythia-70m",
+      "cand_model": "pythia-70m",
+      "fuzzy_hash": {
+        "error": "'FuzzyHashVerifier' object has no attribute 'available_algorithms'"
+      },
+      "token_normalizer": {
+        "error": "TokenSpaceNormalizer.__init__() missing 1 required positional argument: 'tokenizer'"
+      }
+    },
+    {
+      "name": "Pythia 70M vs 160M Size",
+      "test_type": "size_difference",
+      "expected": "DIFFERENT",
+      "ref_model": "pythia-70m",
+      "cand_model": "pythia-160m",
+      "fuzzy_hash": {
+        "error": "'FuzzyHashVerifier' object has no attribute 'available_algorithms'"
+      },
+      "token_normalizer": {
+        "error": "TokenSpaceNormalizer.__init__() missing 1 required positional argument: 'tokenizer'"
+      }
+    }
+  ]
+}
