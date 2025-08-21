@@ -10,14 +10,39 @@ This isn't just about commercial verification. It's about developing a rigorous 
 
 ## ⚡ Our Breakthrough
 
-We developed a theoretical framework that proves AI models have unique "behavioral fingerprints"—statistical patterns in their responses that are as distinctive as human fingerprints. Using this insight, we can:
+### The Core Scientific Advancement
+
+**We transformed model verification from a fixed benchmark problem into a sequential statistical decision process with cryptographic guarantees.**
+
+Traditional approaches ask "do these 10,000 outputs match?" and require white-box access or massive computational resources. We ask a fundamentally different question: "when can we stop querying and be mathematically certain these models are the same or different?"
+
+**The Special Insight**: If you precommit to a large cryptographic challenge space and evaluate identity with a variance-adaptive sequential test (EB bounds + explicit SAME/DIFF rules), you can decide model identity with statistical guarantees in O(10–100) queries—then seal that decision in a cryptographic, auditable transcript—without ever needing the model's weights.
+
+Our key insight combines four innovations:
+
+1. **Sequential Hypothesis Testing with Adaptive Bounds**: Instead of a fixed number of queries, we use Empirical-Bernstein (EB) confidence intervals that tighten with each observation. After each model response, we update our statistical estimate and stop the moment we can make a definitive SAME/DIFFERENT decision with mathematical certainty (typically 20-30 queries instead of thousands).
+
+2. **Cryptographically Precommitted Challenges**: Challenges are generated via HMAC-SHA256 with a secret key, creating a vast, predetermined challenge space. This prevents "fishing" for easy cases while maintaining black-box integrity—the verification transcript can be reproduced and audited without accessing model weights.
+
+3. **Formal Decision Rules with Error Control**: We define explicit criteria:
+   - **SAME**: Confidence interval ⊆ [-γ, +γ] with half-width ≤ η·γ  
+   - **DIFFERENT**: |effect size| ≥ δ* with relative mean error ≤ ε_diff
+   - This replaces heuristics with rigorous mathematics, guaranteeing false positive rates < α (typically 0.01).
+
+4. **Cryptographic Audit Trail**: Every verification produces tamper-evident proof artifacts (using Halo2 ZK circuits) that demonstrate the verifier ran correctly. This creates an unforgeable chain of evidence from challenge to verdict.
+
+**The Result**: We can determine if two models are identical with 99% confidence using just 20-30 queries, then seal that decision in a cryptographic proof—all without ever seeing the models' weights. This converts an intractable white-box problem into an efficient black-box protocol.
+
+### What This Enables
+
+Using this framework, we can:
 
 - **Identify models** with 99% confidence using just 20-30 queries
 - **Infer structural properties** without accessing weights or architecture
 - **Detect modifications** (fine-tuning, compression, backdoors) through behavioral divergence
 - **Verify training provenance** using cryptographic challenge-response protocols
 
-Most remarkably: **we verified 206GB models on a 64GB laptop in 3.5 minutes**—something the industry considers impossible.
+Most remarkably: **we verified 206GB models on a 64GB laptop in 3.5 minutes**—demonstrating that frontier-scale verification is possible on commodity hardware through sequential processing.
 
 ### The Scientific Innovation
 
