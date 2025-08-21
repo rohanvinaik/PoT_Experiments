@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Generate comprehensive per-model results for all tested model pairs."""
+"""
+⚠️ WARNING: This script generates INVALID results for documentation!
+It uses simplified logit comparison, NOT the full PoT framework.
+Results from this script should NOT be used in README or papers.
+Use the actual enhanced diff pipeline instead.
+"""
 
 import json
 import time
