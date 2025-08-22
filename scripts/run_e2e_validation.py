@@ -128,15 +128,15 @@ Examples:
     parser.add_argument(
         '--n-challenges',
         type=int,
-        default=32,
-        help='Number of challenges to generate (default: 32)'
+        default=None,
+        help='Max number of challenges (default: auto based on mode)'
     )
     
     parser.add_argument(
         '--max-queries',
         type=int,
-        default=400,
-        help='Maximum number of queries (default: 400)'
+        default=None,
+        help='Maximum number of queries (default: from testing mode)'
     )
     
     parser.add_argument(
@@ -685,7 +685,10 @@ def main():
         logger.info(f"Candidate Model: {args.cand_model}")
         logger.info(f"Testing Mode: {args.mode}")
         logger.info(f"Verification Mode: {args.verification_mode}")
-        logger.info(f"Number of Challenges: {args.n_challenges}")
+        if args.n_challenges:
+            logger.info(f"Max Challenges: {args.n_challenges}")
+        else:
+            logger.info(f"Max Challenges: Auto (from {args.mode} mode)")
         logger.info(f"Output Directory: {args.output_dir}")
         logger.info(f"🚀 CI/CD Components Available: {CI_COMPONENTS_AVAILABLE}")
         

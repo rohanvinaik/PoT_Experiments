@@ -248,59 +248,6 @@ class PipelineOrchestrator:
         finally:
             self._end_stage(metrics)
     
-    def generate_challenges(self, seeds: List[str]) -> List[Dict[str, Any]]:
-        """Generate cryptographic challenges from the commit seeds"""
-
-        metrics = self._start_stage(PipelineStage.CHALLENGE_GENERATION)
-
-        try:
-            # Derive session nonce deterministically from run_id
-            session_nonce = hashlib.sha256(self.run_id.encode()).hexdigest()[:32]
-
-            cfg = ChallengeConfig(
-                master_key_hex=self.config.hmac_key,
-                session_nonce_hex=session_nonce,
-                n=len(seeds),
-                family="lm:templates",
-                params={},
-            )
-
-            generated = generate_challenges(cfg)# Build challenges list with seeds for full traceability
-            challenges = []
-
-            # Ensure we have matching seeds and challenges
-            if seeds and len(seeds) >= len(generated["challenges"]):
-                # Use zip for clean iteration when we have enough seeds
-                for seed, ch in zip(seeds, generated["challenges"]):
-                    challenges.append({
-                        "id": ch.challenge_id,
-                        "seed": seed,
-                        "prompt": ch.parameters.get("prompt", ""),
-                        "metadata": ch.parameters,
-                    })
-            else:
-                # Fallback: handle case where seeds might be missing or insufficient
-                for i, ch in enumerate(generated["challenges"]):
-                    challenge_dict = {
-                        "id": ch.challenge_id,
-                        "prompt": ch.parameters.get("prompt", ""),
-                        "metadata": ch.parameters,
-                    }
-                    # Add seed if available
-                    if seeds and i < len(seeds):
-                        challenge_dict["seed"] = seeds[i]
-                    challenges.append(challenge_dict)
-
-            metrics.metadata["n_challenges"] = len(challenges)
-            self.evidence_bundle["challenges"] = challenges
-
-            return challenges
-
-        except Exception as e:
-            metrics.errors.append(str(e))
-            raise
-        finally:
-            self._end_stage(metrics)
     
     def load_models(
         self,
@@ -355,15 +302,15 @@ class PipelineOrchestrator:
         self,
         ref_model: Any,
         cand_model: Any,
-        challenges: List[Dict[str, Any]]
+        challenge_seeds: List[str]
     ) -> Dict[str, Any]:
         """
-        Run the main verification process
+        Run the main verification process following pot_runner pattern
         
         Args:
             ref_model: Reference model
             cand_model: Candidate model
-            challenges: List of challenges to run
+            challenge_seeds: Pre-commit seeds for challenge generation
             
         Returns:
             Verification results dictionary
@@ -371,7 +318,8 @@ class PipelineOrchestrator:
         metrics = self._start_stage(PipelineStage.VERIFICATION)
         
         try:
-            report: Optional[Dict[str, Any]] = None
+            report = None  # Initialize report variable
+            
             if self.config.dry_run:
                 # Simulate verification for dry run
                 self._log("Dry run: Simulating verification")
@@ -379,40 +327,100 @@ class PipelineOrchestrator:
                 result = {
                     "decision": "SAME",
                     "confidence": 0.99,
-                    "n_queries": min(10, len(challenges)),
+                    "n_queries": 2,
                     "ci_progression": [],
                     "effect_size": 0.0,
+                    "challenges_used": 2,
                 }
+                # Track challenges for evidence bundle
+                self.evidence_bundle["challenges_used"] = 2
+                self.evidence_bundle["challenges"] = []  # Empty list for dry run
             else:
-                # Prepare prompt generator from challenge list
-                from itertools import cycle
-                prompts = [c["prompt"] for c in challenges]
-                prompt_cycle = cycle(prompts)
+                # Generate all prompts upfront from seeds (following pot_runner pattern)
+                session_nonce = hashlib.sha256(self.run_id.encode()).hexdigest()[:32]
+                
+                # Stage 2.5: Generate all challenges from seeds
+                challenges = []
+                prompts = []
+                
+                for i, seed in enumerate(challenge_seeds):
+                    cfg = ChallengeConfig(
+                        master_key_hex=self.config.hmac_key,
+                        session_nonce_hex=session_nonce,
+                        n=1,
+                        family="lm:templates",
+                        params={"index": i},
+                    )
+                    
+                    challenge_result = generate_challenges(cfg)
+                    challenge = challenge_result["challenges"][0]
+                    
+                    challenges.append({
+                        "id": challenge.challenge_id,
+                        "seed": seed,
+                        "prompt": challenge.parameters.get("prompt", ""),
+                        "metadata": challenge.parameters,
+                        "index": i
+                    })
+                    prompts.append(challenge.parameters.get("prompt", ""))
 
-                def prompt_generator() -> str:
-                    return next(prompt_cycle)
-
+                # Create verifier with proper configuration
+                diff_config = DiffDecisionConfig(mode=self.config.testing_mode)
+                
+                # Use iterator for prompts (will stop early on decision)
+                prompt_iter = iter(prompts)
+                challenges_used = []
+                
+                def prompt_generator():
+                    """Generate next prompt from pre-generated list"""
+                    try:
+                        prompt = next(prompt_iter)
+                        idx = len(challenges_used)
+                        if idx < len(challenges):
+                            challenges_used.append(challenges[idx])
+                        return prompt
+                    except StopIteration:
+                        # Should not happen as we have n_max prompts
+                        return prompts[0]
+                
                 # Scoring function using fuzzy distance between model outputs
-                lm_verifier = LMVerifier(ref_model, delta=0.01, use_sequential=False)
-
                 def score_fn(ref, cand, prompt, K=32):
-                    ref_out = ref.generate(prompt, max_new_tokens=64)
-                    cand_out = cand.generate(prompt, max_new_tokens=64)
-                    return lm_verifier.compute_output_distance(ref_out, cand_out, method="fuzzy")
-
-                verifier = create_enhanced_verifier(
-                    score_fn,
-                    prompt_generator,
-                    mode=self.config.testing_mode,
-                    n_max=min(len(prompts), self.config.max_queries),
+                    try:
+                        ref_out = ref.generate(prompt, max_new_tokens=64)
+                        cand_out = cand.generate(prompt, max_new_tokens=64)
+                        # Simple normalized edit distance as score
+                        import difflib
+                        score = 1.0 - difflib.SequenceMatcher(None, ref_out, cand_out).ratio()
+                        return min(max(score, 0.0), 1.0)
+                    except Exception as e:
+                        self._log(f"Warning: Score computation failed: {e}", level="WARNING")
+                        return 0.5  # Neutral score on error
+                
+                # Create and run verifier
+                verifier = DifferenceVerifier(
+                    score_fn=score_fn,
+                    prompt_generator=prompt_generator,
+                    cfg=diff_config,
+                    use_enhanced=True
                 )
-                report = verifier.verify_difference(ref_model, cand_model, verbose=self.config.verbose)
-
+                
+                # Run verification (will stop early on decision)
+                report = verifier.verify_difference(
+                    ref_model=ref_model,
+                    cand_model=cand_model,
+                    verbose=self.config.verbose
+                )
+                
+                # Track actual challenges used
+                self.evidence_bundle["challenges"] = challenges_used
+                self.evidence_bundle["challenges_used"] = len(challenges_used)
+                
                 result = {
                     "decision": report["results"]["decision"],
-                    "confidence": 1.0 - verifier.cfg.alpha,
+                    "confidence": report["results"].get("confidence", 1.0 - diff_config.alpha),
                     "n_queries": report["results"]["n_used"],
-                    "ci_progression": [],
+                    "challenges_used": len(challenges_used),
+                    "ci_progression": report.get("progression", []),
                     "effect_size": report["results"]["mean"],
                 }
 
@@ -560,7 +568,7 @@ class PipelineOrchestrator:
         self,
         ref_model_path: str,
         cand_model_path: str,
-        n_challenges: int = 32
+        n_challenges: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Run the complete end-to-end validation pipeline
@@ -568,7 +576,7 @@ class PipelineOrchestrator:
         Args:
             ref_model_path: Path or identifier for reference model
             cand_model_path: Path or identifier for candidate model
-            n_challenges: Number of challenges to generate
+            n_challenges: Optional max number of challenges (uses config n_max if not provided)
             
         Returns:
             Complete pipeline results dictionary
@@ -576,23 +584,27 @@ class PipelineOrchestrator:
         self._log(f"Starting E2E validation pipeline (run_id: {self.run_id})")
         self._log(f"Configuration: {self.config.testing_mode}, {self.config.verification_mode}")
         
+        # Use n_max from testing mode config if n_challenges not specified
+        if n_challenges is None:
+            # Get n_max from the testing mode configuration
+            diff_config = DiffDecisionConfig(mode=self.config.testing_mode)
+            n_challenges = diff_config.n_max
+            self._log(f"Using n_max={n_challenges} from {self.config.testing_mode} mode")
+        
         try:
-            # Stage 1: Pre-commit challenges
+            # Stage 1: Pre-commit challenge seeds (generate max possible)
             pre_commit = self.pre_commit_challenges(n_challenges)
             
-            # Stage 2: Generate challenges
-            challenges = self.generate_challenges(pre_commit['seeds'])
-            
-            # Stage 3: Load models
+            # Stage 2: Load models first (before generating challenges)
             ref_model, cand_model = self.load_models(ref_model_path, cand_model_path)
             
-            # Stage 4: Run verification
-            verification = self.run_verification(ref_model, cand_model, challenges)
+            # Stage 3: Run verification (which will generate challenges as needed)
+            verification = self.run_verification(ref_model, cand_model, pre_commit['seeds'])
             
-            # Stage 5: Generate evidence bundle
+            # Stage 4: Generate evidence bundle
             evidence_bundle = self.generate_evidence_bundle()
             
-            # Stage 6: Generate ZK proof (optional)
+            # Stage 5: Generate ZK proof (optional)
             zk_proof = self.generate_zk_proof(evidence_bundle)
             
             # Mark pipeline as completed

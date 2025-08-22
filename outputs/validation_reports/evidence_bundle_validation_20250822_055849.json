@@ -1,0 +1,101 @@
+{
+  "run_id": "validation_20250822_055849",
+  "timestamp": "2025-08-22T05:58:49.933623",
+  "config": {
+    "testing_mode": "quick_gate",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": true,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "2af0b2ee67fd1fa6741acdbfbd639f88ae9132ddeaf331a0ca87718c8ca5a500",
+    "verbose": false
+  },
+  "pre_commit": {
+    "n_challenges": 120,
+    "hmac_key": "2af0b2ee67fd1fa6741acdbfbd639f88ae9132ddeaf331a0ca87718c8ca5a500",
+    "run_id": "validation_20250822_055849",
+    "commitment": "cee7755f1da0f1515af96971268cbe6eadad3b82431d127bfa2e0bc6420ccd5b",
+    "seeds": [
+      "ef4fcf7e0ddba337a397b7ea4a2b806b89d2075eb6b36ec39e827fb966f94999",
+      "86a20819c881a9ae9acf88a5d02dff464e2812d4264f2368eaedce70ea5672c7"
+    ]
+  },
+  "challenges": [],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 2,
+    "ci_progression": [],
+    "effect_size": 0.0,
+    "challenges_used": 2
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755856729.4271638,
+      "end_time": 1755856729.4280472,
+      "duration": 0.0008833408355712891,
+      "memory_peak_mb": 385.40625,
+      "memory_delta_mb": 0.078125,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.328125,
+        "n_challenges": 120,
+        "hmac_key": "2af0b2ee67fd1fa6741acdbfbd639f88ae9132ddeaf331a0ca87718c8ca5a500",
+        "run_id": "validation_20250822_055849",
+        "commitment": "cee7755f1da0f1515af96971268cbe6eadad3b82431d127bfa2e0bc6420ccd5b",
+        "seeds": [
+          "ef4fcf7e0ddba337a397b7ea4a2b806b89d2075eb6b36ec39e827fb966f94999",
+          "86a20819c881a9ae9acf88a5d02dff464e2812d4264f2368eaedce70ea5672c7"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755856729.428117,
+      "end_time": 1755856729.42816,
+      "duration": 4.291534423828125e-05,
+      "memory_peak_mb": 385.40625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 97.9,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.40625,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755856729.428208,
+      "end_time": 1755856729.933289,
+      "duration": 0.5050809383392334,
+      "memory_peak_mb": 385.40625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.0,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.40625,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "48648e83e1a36ded4a04f9b92c9f2cb3b38fcd2098d3bc22f2a2da14c7bff32b"
+}
