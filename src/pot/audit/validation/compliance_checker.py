@@ -7,7 +7,7 @@ Validates audit trails and systems against regulatory requirements and standards
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Any
+from typing import Dict, List, Optional, Set, Any, Tuple
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path

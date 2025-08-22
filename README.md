@@ -98,11 +98,9 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| Yi-34B vs **Yi-34B-Chat**        | Local-weights | DIFFERENT  | 20      | ~215 s     | ~10.7 s   | **Sharded** (34B-class)  |
-| Llama-2-7B vs **Mistral-7B**     | Local-weights | DIFFERENT  | 32      | ~290 s     | ~9.1 s    | Architecture change      |
-| GPT-2 vs **DistilGPT-2**         | Local-weights | DIFFERENT  | 32      | ~56 s      | ~1.7 s    | Distillation             |
-| **Pythia-70M** vs **Pythia-70M** | Local-weights | SAME       | 10      | ~60 s      | ~6 s      | Self-consistency         |
+| **GPT-2** vs **DistilGPT-2** | Audit-grade | SAME | 2 | ~0.5 s | ~0.3 s | Distillation |
 
+<!-- Table auto-updated: 2025-08-22 00:12:42 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
@@ -154,22 +152,35 @@ result = tester.test_models(model_a, model_b)
 print(result.decision)  # SAME / DIFFERENT / UNDECIDED
 ```
 
-### Basic verification (CLI)
+### Complete E2E validation (recommended)
 ```bash
-# NEW: Complete end-to-end validation with reporting
+# Unified E2E pipeline with all features
 python scripts/run_e2e_validation.py \
   --ref-model gpt2 \
   --cand-model distilgpt2 \
   --mode audit
 
-# Legacy: Direct statistical testing  
+# With enhanced CI/CD features
+python scripts/run_e2e_validation.py \
+  --ref-model gpt2 \
+  --cand-model distilgpt2 \
+  --mode audit \
+  --enable-attack-simulation \
+  --enable-sharding \
+  --performance-dashboard
+
+# API mode validation
+python scripts/run_e2e_validation.py \
+  --ref-model http://api1.example.com/model \
+  --cand-model http://api2.example.com/model \
+  --verification-mode api \
+  --generate-evidence-bundle
+
+# Legacy: Direct statistical testing (minimal features)
 python scripts/run_enhanced_diff_test.py \
   --ref-model gpt2 \
   --cand-model distilgpt2 \
   --mode audit
-
-# API mode (example; requires endpoint wrapper)
-python scripts/run_api_diff_test.py --config configs/api_example.yaml
 ```
 
 ### Evidence bundle (one command)

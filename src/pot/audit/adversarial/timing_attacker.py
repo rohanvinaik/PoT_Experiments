@@ -6,7 +6,7 @@ Implements timing-based side channel attacks.
 
 import time
 import numpy as np
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass
 import logging
 from scipy import stats

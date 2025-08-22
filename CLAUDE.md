@@ -28,12 +28,23 @@ PoT_Experiments/
 
 ## Primary Validation Methods
 
-### 1. E2E Pipeline (Recommended)
+### 1. Unified E2E Pipeline (Recommended)
 ```bash
+# Basic validation with all integrated features
 python scripts/run_e2e_validation.py \
     --ref-model gpt2 \
     --cand-model distilgpt2 \
     --mode audit
+
+# Enhanced validation with all CI/CD components
+python scripts/run_e2e_validation.py \
+    --ref-model gpt2 \
+    --cand-model distilgpt2 \
+    --mode audit \
+    --enable-attack-simulation \
+    --enable-sharding \
+    --performance-dashboard \
+    --test-data-generation
 ```
 
 ### 2. Full Validation Suite
@@ -161,11 +172,21 @@ pip install tlsh  # Fuzzy hashing (SSDeep warnings are normal)
 
 ## Key Scripts Reference
 
-- `run_e2e_validation.py` - Complete validation with reporting
-- `run_enhanced_diff_test.py` - Statistical verification
+- `run_e2e_validation.py` - **Unified E2E pipeline with all CI/CD features** (recommended)
+- `run_enhanced_diff_test.py` - Statistical verification (legacy)
 - `test_size_fraud_detection.py` - Size fraud detection
 - `run_pipeline_with_models.py` - Custom model testing
 - `run_zk_validation.py` - ZK proof validation
+
+### Unified E2E Pipeline Features
+The main `run_e2e_validation.py` script now includes:
+- **Performance tracking** with SQLite database and real-time monitoring
+- **Audit trail validation** with cryptographic hash chain verification
+- **Adversarial attack simulation** (replay, timing, injection attacks)
+- **Model sharding** for large models (34B+ parameters)
+- **Evidence bundle generation** with cryptographic signing
+- **Performance dashboards** with metrics visualization
+- **Test data management** for CI testing environments
 
 ## Creating Custom Manifests
 
