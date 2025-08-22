@@ -54,8 +54,8 @@ class DiffDecisionConfig:
     batch_size: int = 4
     
     # Score normalization
-    score_clip_low: float = 0.0
-    score_clip_high: float = 0.3  # For ΔCE scores
+    score_clip_low: float = -100.0  # Allow negative CE differences
+    score_clip_high: float = 100.0  # Allow large positive CE differences
     
     # CI method
     ci_method: Literal["eb", "t"] = "eb"  # Empirical-Bernstein recommended

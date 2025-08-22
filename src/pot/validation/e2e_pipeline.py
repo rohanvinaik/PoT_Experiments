@@ -390,62 +390,61 @@ class PipelineOrchestrator:
                         # Shouldn't happen with proper n_max
                         return prompts[0]
                 
-                # Proper cross-entropy scoring function with K positions
+                # Proper cross-entropy scoring function with generation
                 def score_fn(ref, cand, prompt, K=32):
                     """
-                    Compute cross-entropy difference at K random positions
-                    Following the PoT paper methodology
+                    Generate K tokens and compute cross-entropy difference
+                    Following the cryptographic PoT paper methodology
                     """
                     try:
                         import torch
-                        import torch.nn.functional as F
-                        import random
                         
-                        # Tokenize prompt
-                        ref_inputs = ref.tok(prompt, return_tensors="pt")
-                        ref_input_ids = ref_inputs.input_ids.to(ref.device)
-                        
-                        # Get logits from both models
+                        # Generate K tokens using reference model (deterministic)
+                        ref_inputs = ref.tok(prompt, return_tensors="pt").to(ref.device)
                         with torch.no_grad():
-                            ref_outputs = ref.m(ref_input_ids)
-                            ref_logits = ref_outputs.logits[0]  # [seq_len, vocab_size]
-                            
-                            cand_outputs = cand.m(ref_input_ids.to(cand.device))
-                            cand_logits = cand_outputs.logits[0]  # [seq_len, vocab_size]
+                            ref_outputs = ref.m.generate(
+                                **ref_inputs,
+                                max_new_tokens=K,
+                                do_sample=False,  # Deterministic generation
+                                pad_token_id=ref.tok.pad_token_id
+                            )
                         
-                        # Sample K random positions (excluding first token)
-                        seq_len = ref_logits.shape[0]
-                        if seq_len <= 1:
-                            return 0.0
+                        # Decode the generated tokens (excluding the prompt)
+                        prompt_length = ref_inputs.input_ids.shape[1]
+                        generated_tokens = ref_outputs[0][prompt_length:]
+                        target_text = ref.tok.decode(generated_tokens, skip_special_tokens=True)
                         
-                        # Sample min(K, seq_len-1) positions
-                        n_positions = min(K, seq_len - 1)
-                        positions = random.sample(range(1, seq_len), n_positions)
+                        # Compute cross-entropy for both models on prompt + target
+                        full_text = prompt + target_text
                         
-                        # Compute cross-entropy at sampled positions
-                        ce_scores = []
-                        for pos in positions:
-                            # Get target token at this position
-                            target_token = ref_input_ids[0, pos]
-                            
-                            # Get distributions at position pos-1 (predicting token at pos)
-                            ref_dist = F.softmax(ref_logits[pos-1], dim=-1)
-                            cand_dist = F.softmax(cand_logits[pos-1], dim=-1)
-                            
-                            # Cross-entropy: -log(p_cand(target_token))
-                            # Higher CE means model assigns lower probability to target
-                            cand_ce = -torch.log(cand_dist[target_token] + 1e-10)
-                            ref_ce = -torch.log(ref_dist[target_token] + 1e-10)
-                            
-                            # Difference: positive if candidate is worse at predicting
-                            ce_diff = (cand_ce - ref_ce).item()
-                            ce_scores.append(ce_diff)
+                        # Get CE from reference model
+                        ref_full_inputs = ref.tok(full_text, return_tensors="pt").to(ref.device)
+                        with torch.no_grad():
+                            ref_ce_outputs = ref.m(**ref_full_inputs, labels=ref_full_inputs.input_ids)
+                            ref_loss = ref_ce_outputs.loss.item()
                         
-                        # Return mean cross-entropy difference
-                        # Positive score = candidate worse than reference
-                        # Negative score = candidate better than reference
-                        # Near zero = similar models
-                        return sum(ce_scores) / len(ce_scores) if ce_scores else 0.0
+                        # Get CE from candidate model  
+                        cand_full_inputs = cand.tok(full_text, return_tensors="pt").to(cand.device)
+                        with torch.no_grad():
+                            cand_ce_outputs = cand.m(**cand_full_inputs, labels=cand_full_inputs.input_ids)
+                            cand_loss = cand_ce_outputs.loss.item()
+                        
+                        # Normalize by target length for fair comparison
+                        target_length = len(generated_tokens)
+                        if target_length > 0:
+                            ref_ce = ref_loss * target_length
+                            cand_ce = cand_loss * target_length
+                        else:
+                            ref_ce = ref_loss
+                            cand_ce = cand_loss
+                        
+                        # Return the CE difference (cand - ref)
+                        # Positive: candidate worse at predicting generated text
+                        # Negative: candidate better at predicting generated text
+                        # Near zero: similar models
+                        ce_diff = cand_ce - ref_ce
+                        
+                        return ce_diff
                         
                     except Exception as e:
                         self._log(f"Warning: CE score computation failed: {e}", level="WARNING")
@@ -519,6 +518,51 @@ class PipelineOrchestrator:
 
             # Store detailed verification info in evidence bundle
             self.evidence_bundle["verification"] = report if report is not None else result
+            
+            # Generate Merkle root for audit trail
+            try:
+                # Create transcript entries for Merkle tree
+                transcript = []
+                for i, challenge in enumerate(challenges_used[:prompts_used]):
+                    entry = f"challenge_{i}:{challenge['id']}:{challenge['prompt'][:50]}"
+                    transcript.append(entry)
+                
+                # Simple Merkle tree implementation
+                def merkle_hash(data):
+                    """Compute SHA-256 hash of data"""
+                    if isinstance(data, str):
+                        data = data.encode()
+                    return hashlib.sha256(data).hexdigest()
+                
+                def build_merkle_tree(leaves):
+                    """Build Merkle tree and return root"""
+                    if not leaves:
+                        return merkle_hash("")
+                    if len(leaves) == 1:
+                        return merkle_hash(leaves[0])
+                    
+                    # Hash all leaves
+                    layer = [merkle_hash(leaf) for leaf in leaves]
+                    
+                    # Build tree bottom-up
+                    while len(layer) > 1:
+                        next_layer = []
+                        for i in range(0, len(layer), 2):
+                            if i + 1 < len(layer):
+                                combined = layer[i] + layer[i + 1]
+                            else:
+                                combined = layer[i] + layer[i]  # Duplicate if odd
+                            next_layer.append(merkle_hash(combined))
+                        layer = next_layer
+                    
+                    return layer[0]
+                
+                merkle_root = build_merkle_tree(transcript)
+                self.evidence_bundle["transcript_merkle_root"] = merkle_root
+                self.evidence_bundle["transcript_entries"] = len(transcript)
+                self._log(f"Generated Merkle root for {len(transcript)} transcript entries: {merkle_root[:16]}...")
+            except Exception as e:
+                self._log(f"Warning: Failed to generate Merkle root: {e}", level="WARNING")
 
             return result
 
@@ -560,6 +604,8 @@ class PipelineOrchestrator:
                 'pre_commit': self.evidence_bundle.get('pre_commit', {}),
                 'challenges': self.evidence_bundle.get('challenges', []),
                 'verification': self.evidence_bundle.get('verification', {}),
+                'transcript_merkle_root': self.evidence_bundle.get('transcript_merkle_root', ''),
+                'transcript_entries': self.evidence_bundle.get('transcript_entries', 0),
                 'metrics': {
                     stage.value: metrics.to_dict() 
                     for stage, metrics in self.stage_metrics.items()

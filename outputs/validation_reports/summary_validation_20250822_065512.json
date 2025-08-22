@@ -1,0 +1,29 @@
+{
+  "run_id": "validation_20250822_065512",
+  "timestamp": "2025-08-22T06:56:40.162249",
+  "decision": "UNDECIDED",
+  "confidence": 0.975,
+  "metrics": {
+    "n_queries": 120,
+    "total_duration_seconds": 86.5080018043518,
+    "peak_memory_mb": 2203.5
+  },
+  "stage_summary": {
+    "pre_commit": {
+      "duration": 0.00061798095703125,
+      "success": true
+    },
+    "model_loading": {
+      "duration": 5.890980958938599,
+      "success": true
+    },
+    "verification": {
+      "duration": 80.60610103607178,
+      "success": true
+    },
+    "evidence_generation": {
+      "duration": 0.010301828384399414,
+      "success": true
+    }
+  }
+}

@@ -1,0 +1,1229 @@
+{
+  "run_id": "validation_20250822_065131",
+  "timestamp": "2025-08-22T06:53:33.578808",
+  "config": {
+    "testing_mode": "quick_gate",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": false,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "f4e9a8955ccee8f5c9824c2ad7a74634694ffeb3a1f2345ea05292252d31501b",
+    "verbose": true
+  },
+  "pre_commit": {
+    "n_challenges": 120,
+    "hmac_key": "f4e9a8955ccee8f5c9824c2ad7a74634694ffeb3a1f2345ea05292252d31501b",
+    "run_id": "validation_20250822_065131",
+    "commitment": "989585b29c8049983703ce04653611ea5afcc95542c7af67060c8f49b3771992",
+    "seeds": [
+      "e56de6ff7d08fb9446af1bdd85ca012b90b0d76f34cbc6c4d36053590989b01c",
+      "62d5343376980dd878780e6098f983e328093de5368dab23caa51d90b5f15fa3",
+      "32797f58dd95a4756fa3b3f07e1b9515f81b4ee8318be654eca415497d90bc4d",
+      "4b62bada72ad1241378628ade863a28385ec598cc26b5a4b01fe40832a766b8c",
+      "f7d946d62e46a157d3f9341b59b5ca31b5b941749312879199b325492349a145",
+      "f0131b8f32030dbbc6825116d0271318ec37097cc69f36ee1a4ac39a3b67e364",
+      "a53608df35e5b2a3621427760eaf5032802801783f73bbc8e12b1556039f2647",
+      "cf790f139ffdbd2a9c503d25088551053d3272d664a6df6aa80ebfdf7b04506f",
+      "0a050162146933d305bfcd0a101104914d03f59f5ba73542d6f38e6769bc0e3e",
+      "530cd91041e7cc933956fa1e09d76d03e420453fd401ddef55c645f636d4a345",
+      "12f639f2e6c999eec8cd5190429d1338c8980076479f46e507fa657972ec3c4a",
+      "57e62a7dccc3516bada549fab127011a09ae14390c4e67f80810e4cff248f2d8",
+      "c4debdf88d2f82bd6f8dc0e37dd2db969fe344f33f6e984d35fa0cf2c3f60221",
+      "de1ce148c19b8008298f9b5844610fbfd29c15070d65e829763a1d66b6cff93a",
+      "8fbb31d1e4dddf7fbb81bf8c277cf5b886f98d1c316b86a33dedaf258a0cf04b",
+      "66226e34650195c61ba0c235dbfadfdfde07554cd820c1b82a58cc311801f40e",
+      "2aed44e319ed0bf84af458819a6c4bbbd4b59c85aa85c3ac8ffcb2556f2e6689",
+      "ba580bf464353b7cfed09824b63c4ed1b5c52035ed9ebadaa9d2cfc3c5fcba83",
+      "1f511d2c792f9517d4245415f8d64ada17bc8295cde6fda12a391d63bfbd11f3",
+      "40cc8addc4c89826a2e2897837d736fcff65a32a47f8b495179c83468fc5353a",
+      "6b52cc3ff325e4685aa0eb4b26c51988fc36edaf138fef1b40d530a39a5235dc",
+      "175af7c8bc6bfa05594ffa456967d981a80ff307e7de18c214d5149294e8360d",
+      "9cbe14e3d0b1104b77cfd3130f9f090ab5406088a9dbcfc50b03d791ccfefa71",
+      "7167b9e90006ec1ae33fd2dfda2d7a2b998ba47522f1f8a5426899ecb7fba974",
+      "2f1c4f383bcbaed3f9e0f54f9943a45ffde2730407cd4cf6c5e46a402efb4db0",
+      "d30d97d8fd867e30c0ca9c886ef485d384bee535cd24e3a4312d6d6ae172516e",
+      "aecbe526a6d54a178d8b0b3525095993fbe3b2b3b45938d2ec3101f0a86c7d88",
+      "6c28c78f422985fd981670f7faff17caedc7e8741c8b0d79818b8ae80ca8478a",
+      "bebf454b585aa666863d6648d710778a97e637600401f98d0db06a0948a04701",
+      "d7af558d021d9e612e20270ad0eed02a68d7904054f51f37fccc53fe01db3cc0",
+      "fa748759b59cc8bbb925f197d8ea4867de0eba7a49f66669c0277ed792ac570f",
+      "5ab65aabcc84a0073a3a605aac977013ef57f454a984ebce5fd8068db0048f1f",
+      "9c201b65b480b9d1186b39a6a28105292932b52d1db5ae3aa402b2d78e145b8a",
+      "8b70bbcdeaac046f75dff96bf5c712957a94da5bbd26d01954a44918ee9dfe3b",
+      "be4248f5455533ad65ea5565d8f78399949e38f73bfe7e5c7c886474385301f9",
+      "96fab1fee9dec8a4fdb9153a7f3f534b5361bd9ccf1a665d92ae179a14b96d8d",
+      "ed78e839a9983132bab18e6a99c5d6ed4db66177b75819f16017ddfbf8b8bce3",
+      "1972881f1562bcb6ef81fb767682f34031e545f5fcff8a375576a7b9eec6d702",
+      "bb7f42e6b7c2f29dd49f1beb3f2057915610dc440f15d2f7a9330af439893ba2",
+      "83902336ce38ca79f077fb7788eab2e08b8efe2793045a5de998349c4e9b8c06",
+      "aa16bc64099528919ea42bc2a3161a956a7026e5319ef9cd57f2a981e52ce050",
+      "ae240c562b2c6a3a3caa12063e224e4ef2c21710502b15130ab73218b1c51766",
+      "e6cb0e7b6c73ce8c68eed21c49ca17e2b7ce0fd7c29e7dfda7cbfe04abdfbce7",
+      "129b5ed638eda60a8eada21f928a944472c46a7cf63a9acad3710ef87b180446",
+      "dd35b547a6ec5508c25d61cbb2d73e619eecb4090ab795326ac96cc6702fa4c2",
+      "d3a44cccbbc564b6bdc7dbcb4256913a7f9b94fc571bde408694a89f0b911530",
+      "17a7a993230e3b037939db1524ad23f4e6270f4435fbe422f35eb922bf9ca4a9",
+      "4bb4cf9860e3d4397ef27e9804aaaf64a48fa4804e93a77a7d61021b6761c6ea",
+      "9f77d8d5e56e52c34b86d74dbccf29158b358db11910d71dc0f72975e99ec8c2",
+      "b8e85498289b4a67bf88f75974760e9ee4d9037a4b094970b8fe071090464e74",
+      "44f54b791b5afe3b8ff6b642db8c6af8f459553361703a91800a8e9bf18f31c7",
+      "2c3d7a5e6037d8ded3863e1b8296ddbeba1b436806653349fecfdd751b8f6b8d",
+      "fb274964c54e51a31e4ecb5471e549e13e995c1f4b57091e0d258b53f01e5ce1",
+      "2e06a06219c06b28e055c3dd80a3683c3e3cc2d83b3550530fdc5234f662fb19",
+      "d3dbe5ebd83f6edcf67b5c95d5bccdcc657b13292ffcae70bb0e774e515871dc",
+      "f352c6d77bdb981204311343ef8c52871492635bb89ad2d61dd07b53130065c7",
+      "eb96a036912ad2dcdcd600871dddbadc9cfa898ee2bc40769c1adb3cfcd1cccb",
+      "7e7562392b3dc7192be8805024e647f7ee76cde7cba80f5ffb11a8069504dbf6",
+      "583a6c7484b25543046a0b51aaaa297724a3bc0b1015e38f427b1c39c6d4e772",
+      "c156f58399eda84385065a2e48a4c5a3b3e9f55ed54af96a98d06d4cfdcb92a9",
+      "c1ea5ea923a072576bf9d63d3267f5f6a5e8f46bddcc26380e96b019785fdad3",
+      "e811324244a42690c725c1bad62a110a71bd3430b37750a0d1e9c240df01c9e3",
+      "7a63f0ee312814f1e5f0bb5d1933e264e3b314cad28e6d2669d1e6907318e5fa",
+      "81cac08d6a03217b75c407572ed9912674496f08a6eb9cbd142300b539a2c37c",
+      "9b2750cb90b09d80a0e5f745fe180866859c90d96a66da6714237a41663ec95f",
+      "2de1e2dd0e76a8511a86bc22fb6759d930829c51b60d27156b61478416d2f0b8",
+      "b144bbcea0c2c14a58e445f116882647202efce4c39d428ca998cf7d3e82d5ca",
+      "061d49fceef4bb720be19c22a4ce8c76bc8adc2d5f26177efad3e27384c16688",
+      "97eae9ccd1685e14e5d1116cb469f551c65e940308a1ea416067380435b2fea5",
+      "79311068be1570fe83faad360083adbac8bd850ef9de294236deb6e7cdaee651",
+      "1b51e91e686235fb96d6da180b8e31031826ce9837eac1d4e42bdfa59d59c358",
+      "c6f500d56955f4fb35cc364de2036f6b726b83b1d2a786d5630f5bd0ea3710c6",
+      "bb47993e2dfa0ba6a7796a842918d1540927485a4ef130cc9ccf66393048f351",
+      "9669e6b8be41780e16ac9db7cec834dc9f0531ee06a7c940cbe6dca67cf8aa30",
+      "f312c4ade6ba8bfc2d97f657cbfa341271897b046dfc30e5979bc45f68bedc01",
+      "b9df67840d578345c30a03663dde33e5724e69550d6915e3e46d952e41626689",
+      "c97ed221b63c347aa4e3b8daae4a2ee4f7457d9d0636711ff8a74e6b2cdb46dd",
+      "2b71018ea164050a267dce9a80b6e0e2086b4f20786a48491e877f36a389bf74",
+      "b78c6984bdb0a134d593990c4afdd4118f740e81daa45b9f5eff794fe6c1eaea",
+      "384a9886ce1f40960e74ae1c19da83e0efc3cb6826cee6afae0f185f92f30642",
+      "6a70eae4175fe34e60dbbd16c7bd603c15670406f5dc0e13e27dc44eaa2a301c",
+      "e045d31a0532bf14ecf014ae8639cac795e50ee3635b96b6048efef3bb02ae64",
+      "68d6dd8bdd3b7b78fd06e6cde71b43f2a53aa97182a765dfa79dd0850b5cec40",
+      "d0aec455f2e55666f72f3360766fc68dbf4cac0593bdba31e1d88fddc6af9b5a",
+      "2118184e7ebe25cc223334dbefb62e636495bd7e69e20005316c5fa7f982b820",
+      "943ab9562bb57bf183a9914a1f297d0e9d80e434d4d02b5d6d3f69323b771755",
+      "e7168a5a8fd5a9febaf6c9ee004371b03ba14f2fa00b8a2c39711abc1d1e8fdd",
+      "9e85175adc0fd0a646e119a6d9551cf9b1d2cec40062bbee0f75ed62759e0ea8",
+      "e8ae58d0efa73726e315b28480a99316a844dcc877ff8ae6533af28779b231a3",
+      "4e93d55f83c7f3c9508b511251add712c1916324dc2968ece934b4582820a08c",
+      "203c8d3ab1cde07748f0de5536edbcc117023a1e2aa5bbb8abd0877ff33a9198",
+      "90bd3d4a1919833ca9fb47722e34270c27202b41052948a29db768507299b770",
+      "6672127353b96b874f99244caaffc004b308f38c6341b28551ed2d5cff3cb00b",
+      "65a9dcaf7a87f1c96cb00eb328df956df088b8ec1a36f419086a2dbfbaf71068",
+      "0d57c592c59b0b5e6d72dbf847c59a25a25f0a193fdac6a3ecca5ef3ef73d77f",
+      "c1ca978066704926ac278558454669f60820d18640d214db5d160d7f112440cf",
+      "9d40b8f34abd8fd112cbd85c1389a29e780104697138e1c990cb608433f3cf27",
+      "f13e31ed13659778c5e228390dd56aef4546990bd0b8b2d1edf736560cc743ee",
+      "eeded74f2154b907fc0510cf0a31184fece80f4d8e23e92a300d5481a4818ff6",
+      "c782baadb406ee6bd10ced6df9629256cf66293b708bca89b3f81d52ce2f282c",
+      "618d4887e0cca735bf7c016782fe2bd8232428b7e2be86b0e400a3657d320ee4",
+      "1de91a1bc1a93ef8de1fcd61f0e1e68f4b1c11558bf82eca2efa589207dfb749",
+      "bc7953188bbbb7022c1845d0e30acc88b46de3442cb4c3f4ad9ec0320a248d12",
+      "e682f4cb0925314d75b975916d207740d606fd198feb2f332e804c8167fad86e",
+      "ede78ec688cbd7ab5b53b0277a7f307047ebfd37092cfcf2c2896642db28d50b",
+      "77790ede917977e348a0e367b15ac4a222604e64c5eaac8c86885080cc146f04",
+      "4e4084a4f87238d05ff2dc3736349d188133ee5f9cb43cffc6bb53e1b4264ac9",
+      "42cd985408826be5c82c1752564d6b83ffda01edfb5d79abd2abc8f5d4f58f4e",
+      "3fa911938a7dff6ec873035967272ea5c0e90c1b7ad848d831ebe4607be44967",
+      "e988dafd87f74754baa657df0d1b7b5088ebc7b62581a777ece07f3e71303259",
+      "d1569742e02e79824ef3e615edcd0bbabbcecec03261f16c90de484086a7b28a",
+      "99d62c33ee7cec8a892f55c86c78fcf251cbe4545c2bd727cb30f0789d9bef29",
+      "3a6eb08cbbc658bf6dd0a1c8122731f2b2e5df04c11ab708eb5b31cebcb09c43",
+      "55c3ff06eb72ed926eaa7416b2594f52f9b963a904559240b8e95890ff212613",
+      "e909303ef0fa60bbad7712812b5147e0a3aba09da11a9d904bc373989b2eb0a3",
+      "831a0c0d6a79b152a3f2d776e7c792fa2c894566cba1d5acea9ac08ea18fff8b",
+      "d1ffe06be1ea1ee999cc4175365eb9d84a869b8fbc2d1d0ef033b7687d651af5",
+      "b6e8cbd73816910f2a3c0a0b487295483066927a8e38a78a9ff2ad364861325b",
+      "7147c953137636771210102cfeb93e7ccf32d2985da685c77108d9bcd5c17986",
+      "a9a5493f028f1307bf4821073a8432de5feaf4b9d337af34854336f8b6ce6e84"
+    ]
+  },
+  "challenges": [
+    {
+      "id": "dd27c927fde77964",
+      "seed": "e56de6ff7d08fb9446af1bdd85ca012b90b0d76f34cbc6c4d36053590989b01c",
+      "index": 0,
+      "prompt": "A unusual dog will transforms the equation."
+    },
+    {
+      "id": "ce2e23c711fad6f0",
+      "seed": "62d5343376980dd878780e6098f983e328093de5368dab23caa51d90b5f15fa3",
+      "index": 1,
+      "prompt": "mysterious artist carefully measures melody."
+    },
+    {
+      "id": "06e27864908e3c95",
+      "seed": "32797f58dd95a4756fa3b3f07e1b9515f81b4ee8318be654eca415497d90bc4d",
+      "index": 2,
+      "prompt": "unusual student methodically measures ball."
+    },
+    {
+      "id": "dea79090d8b1d8e8",
+      "seed": "4b62bada72ad1241378628ade863a28385ec598cc26b5a4b01fe40832a766b8c",
+      "index": 3,
+      "prompt": "teacher creates elegant experiment."
+    },
+    {
+      "id": "54b6b28e501f5897",
+      "seed": "f7d946d62e46a157d3f9341b59b5ca31b5b941749312879199b325492349a145",
+      "index": 4,
+      "prompt": "When the robot analyzes, the puzzle becomes colorful."
+    },
+    {
+      "id": "05919eab50727dfb",
+      "seed": "f0131b8f32030dbbc6825116d0271318ec37097cc69f36ee1a4ac39a3b67e364",
+      "index": 5,
+      "prompt": "mysterious bird methodically inspects painting."
+    },
+    {
+      "id": "84dc03f6dd2c122b",
+      "seed": "a53608df35e5b2a3621427760eaf5032802801783f73bbc8e12b1556039f2647",
+      "index": 6,
+      "prompt": "unusual bird precisely discovers equation."
+    },
+    {
+      "id": "23e388b32d2e5dd4",
+      "seed": "cf790f139ffdbd2a9c503d25088551053d3272d664a6df6aa80ebfdf7b04506f",
+      "index": 7,
+      "prompt": "The melody was created by the mysterious scientist."
+    },
+    {
+      "id": "67ccd1ac5f5eb352",
+      "seed": "0a050162146933d305bfcd0a101104914d03f59f5ba73542d6f38e6769bc0e3e",
+      "index": 8,
+      "prompt": "The ball was discovered by the colorful dog."
+    },
+    {
+      "id": "e100807734085c15",
+      "seed": "530cd91041e7cc933956fa1e09d76d03e420453fd401ddef55c645f636d4a345",
+      "index": 9,
+      "prompt": "When the artist analyzes, the puzzle becomes mysterious."
+    },
+    {
+      "id": "a1908cbc630b7917",
+      "seed": "12f639f2e6c999eec8cd5190429d1338c8980076479f46e507fa657972ec3c4a",
+      "index": 10,
+      "prompt": "student inspects clever painting."
+    },
+    {
+      "id": "ca3cc4bc6ca65eb3",
+      "seed": "57e62a7dccc3516bada549fab127011a09ae14390c4e67f80810e4cff248f2d8",
+      "index": 11,
+      "prompt": "robot and doctor observes the clever story."
+    },
+    {
+      "id": "4c791d48d0966760",
+      "seed": "c4debdf88d2f82bd6f8dc0e37dd2db969fe344f33f6e984d35fa0cf2c3f60221",
+      "index": 12,
+      "prompt": "The simple dog discovers the equation."
+    },
+    {
+      "id": "67ffd93fa9da1159",
+      "seed": "de1ce148c19b8008298f9b5844610fbfd29c15070d65e829763a1d66b6cff93a",
+      "index": 13,
+      "prompt": "The dog chases puzzle suddenly."
+    },
+    {
+      "id": "9f9d0225973c71da",
+      "seed": "8fbb31d1e4dddf7fbb81bf8c277cf5b886f98d1c316b86a33dedaf258a0cf04b",
+      "index": 14,
+      "prompt": "The cat measures melody quickly."
+    },
+    {
+      "id": "4d7023638a5f0b5b",
+      "seed": "66226e34650195c61ba0c235dbfadfdfde07554cd820c1b82a58cc311801f40e",
+      "index": 15,
+      "prompt": "A clever scientist will inspects the story."
+    },
+    {
+      "id": "ef42f7e41a82c84d",
+      "seed": "2aed44e319ed0bf84af458819a6c4bbbd4b59c85aa85c3ac8ffcb2556f2e6689",
+      "index": 16,
+      "prompt": "dog and writer chases the curious equation."
+    },
+    {
+      "id": "87e8a946de256155",
+      "seed": "ba580bf464353b7cfed09824b63c4ed1b5c52035ed9ebadaa9d2cfc3c5fcba83",
+      "index": 17,
+      "prompt": "The experiment was created by the clever student."
+    },
+    {
+      "id": "0bae6b5c8e407c23",
+      "seed": "1f511d2c792f9517d4245415f8d64ada17bc8295cde6fda12a391d63bfbd11f3",
+      "index": 18,
+      "prompt": "A curious student will measures the ball."
+    },
+    {
+      "id": "d57a72e3e979ded9",
+      "seed": "40cc8addc4c89826a2e2897837d736fcff65a32a47f8b495179c83468fc5353a",
+      "index": 19,
+      "prompt": "The complex teacher discovers the pattern."
+    },
+    {
+      "id": "8f1fa4d039d06005",
+      "seed": "6b52cc3ff325e4685aa0eb4b26c51988fc36edaf138fef1b40d530a39a5235dc",
+      "index": 20,
+      "prompt": "student and musician chases the clever pattern."
+    },
+    {
+      "id": "39933c15b8b95a57",
+      "seed": "175af7c8bc6bfa05594ffa456967d981a80ff307e7de18c214d5149294e8360d",
+      "index": 21,
+      "prompt": "cat and mouse inspects the colorful experiment."
+    },
+    {
+      "id": "dc3b7b721e593e92",
+      "seed": "9cbe14e3d0b1104b77cfd3130f9f090ab5406088a9dbcfc50b03d791ccfefa71",
+      "index": 22,
+      "prompt": "When the artist transforms, the puzzle becomes colorful."
+    },
+    {
+      "id": "98c97a027137f676",
+      "seed": "7167b9e90006ec1ae33fd2dfda2d7a2b998ba47522f1f8a5426899ecb7fba974",
+      "index": 23,
+      "prompt": "cat and mouse observes the unusual story."
+    },
+    {
+      "id": "baf7e37b4d0e6419",
+      "seed": "2f1c4f383bcbaed3f9e0f54f9943a45ffde2730407cd4cf6c5e46a402efb4db0",
+      "index": 24,
+      "prompt": "curious bird suddenly creates puzzle."
+    },
+    {
+      "id": "6f78a9d5f5015810",
+      "seed": "d30d97d8fd867e30c0ca9c886ef485d384bee535cd24e3a4312d6d6ae172516e",
+      "index": 25,
+      "prompt": "When the bird inspects, the puzzle becomes simple."
+    },
+    {
+      "id": "33c4d80a894f13eb",
+      "seed": "aecbe526a6d54a178d8b0b3525095993fbe3b2b3b45938d2ec3101f0a86c7d88",
+      "index": 26,
+      "prompt": "A elegant student will observes the equation."
+    },
+    {
+      "id": "43e5c30cd847d360",
+      "seed": "6c28c78f422985fd981670f7faff17caedc7e8741c8b0d79818b8ae80ca8478a",
+      "index": 27,
+      "prompt": "dog and engineer creates the unusual melody."
+    },
+    {
+      "id": "d4390f4cdec05915",
+      "seed": "bebf454b585aa666863d6648d710778a97e637600401f98d0db06a0948a04701",
+      "index": 28,
+      "prompt": "cat and engineer chases the colorful story."
+    },
+    {
+      "id": "2a1a1f3e58ea1eea",
+      "seed": "d7af558d021d9e612e20270ad0eed02a68d7904054f51f37fccc53fe01db3cc0",
+      "index": 29,
+      "prompt": "The dog analyzes story quickly."
+    },
+    {
+      "id": "579232e572684f2b",
+      "seed": "fa748759b59cc8bbb925f197d8ea4867de0eba7a49f66669c0277ed792ac570f",
+      "index": 30,
+      "prompt": "The artist transforms puzzle gracefully."
+    },
+    {
+      "id": "568d766fdc5cc5ec",
+      "seed": "5ab65aabcc84a0073a3a605aac977013ef57f454a984ebce5fd8068db0048f1f",
+      "index": 31,
+      "prompt": "When the scientist chases, the painting becomes curious."
+    },
+    {
+      "id": "750d38fc1b54702e",
+      "seed": "9c201b65b480b9d1186b39a6a28105292932b52d1db5ae3aa402b2d78e145b8a",
+      "index": 32,
+      "prompt": "The ball was transformed by the curious artist."
+    },
+    {
+      "id": "8088348a7a0d470f",
+      "seed": "8b70bbcdeaac046f75dff96bf5c712957a94da5bbd26d01954a44918ee9dfe3b",
+      "index": 33,
+      "prompt": "student and doctor inspects the simple ball."
+    },
+    {
+      "id": "9bf78740af3947d8",
+      "seed": "be4248f5455533ad65ea5565d8f78399949e38f73bfe7e5c7c886474385301f9",
+      "index": 34,
+      "prompt": "The ball was discovered by the unusual dog."
+    },
+    {
+      "id": "25a158dbe823e63e",
+      "seed": "96fab1fee9dec8a4fdb9153a7f3f534b5361bd9ccf1a665d92ae179a14b96d8d",
+      "index": 35,
+      "prompt": "cat analyzes elegant ball."
+    },
+    {
+      "id": "9ee6d490aa0bff48",
+      "seed": "ed78e839a9983132bab18e6a99c5d6ed4db66177b75819f16017ddfbf8b8bce3",
+      "index": 36,
+      "prompt": "A elegant bird will transforms the melody."
+    },
+    {
+      "id": "20e6f193a77b30e4",
+      "seed": "1972881f1562bcb6ef81fb767682f34031e545f5fcff8a375576a7b9eec6d702",
+      "index": 37,
+      "prompt": "cat and mouse creates the colorful equation."
+    },
+    {
+      "id": "135a88e8ee26f54c",
+      "seed": "bb7f42e6b7c2f29dd49f1beb3f2057915610dc440f15d2f7a9330af439893ba2",
+      "index": 38,
+      "prompt": "scientist measures simple ball."
+    },
+    {
+      "id": "8ff410cf71adcd85",
+      "seed": "83902336ce38ca79f077fb7788eab2e08b8efe2793045a5de998349c4e9b8c06",
+      "index": 39,
+      "prompt": "When the teacher transforms, the painting becomes unusual."
+    },
+    {
+      "id": "1e918fea28848ad2",
+      "seed": "aa16bc64099528919ea42bc2a3161a956a7026e5319ef9cd57f2a981e52ce050",
+      "index": 40,
+      "prompt": "The pattern was transformed by the complex artist."
+    },
+    {
+      "id": "98a2adb323412a7d",
+      "seed": "ae240c562b2c6a3a3caa12063e224e4ef2c21710502b15130ab73218b1c51766",
+      "index": 41,
+      "prompt": "The cat measures experiment quietly."
+    },
+    {
+      "id": "612ea9202dabc578",
+      "seed": "e6cb0e7b6c73ce8c68eed21c49ca17e2b7ce0fd7c29e7dfda7cbfe04abdfbce7",
+      "index": 42,
+      "prompt": "robot and engineer creates the clever painting."
+    },
+    {
+      "id": "e04dda766ff75d35",
+      "seed": "129b5ed638eda60a8eada21f928a944472c46a7cf63a9acad3710ef87b180446",
+      "index": 43,
+      "prompt": "The unusual student observes the ball."
+    },
+    {
+      "id": "8641119fd8eb0c96",
+      "seed": "dd35b547a6ec5508c25d61cbb2d73e619eecb4090ab795326ac96cc6702fa4c2",
+      "index": 44,
+      "prompt": "The robot inspects equation methodically."
+    },
+    {
+      "id": "892fb0b0daf42aeb",
+      "seed": "d3a44cccbbc564b6bdc7dbcb4256913a7f9b94fc571bde408694a89f0b911530",
+      "index": 45,
+      "prompt": "A unusual scientist will inspects the story."
+    },
+    {
+      "id": "305897ff6812b2bf",
+      "seed": "17a7a993230e3b037939db1524ad23f4e6270f4435fbe422f35eb922bf9ca4a9",
+      "index": 46,
+      "prompt": "The artist creates painting quickly."
+    },
+    {
+      "id": "e187ac205339c65f",
+      "seed": "4bb4cf9860e3d4397ef27e9804aaaf64a48fa4804e93a77a7d61021b6761c6ea",
+      "index": 47,
+      "prompt": "dog analyzes elegant pattern."
+    },
+    {
+      "id": "8fb3e8f42c3d14bf",
+      "seed": "9f77d8d5e56e52c34b86d74dbccf29158b358db11910d71dc0f72975e99ec8c2",
+      "index": 48,
+      "prompt": "The unusual student discovers the story."
+    },
+    {
+      "id": "455302a919a00dad",
+      "seed": "b8e85498289b4a67bf88f75974760e9ee4d9037a4b094970b8fe071090464e74",
+      "index": 49,
+      "prompt": "The elegant robot observes the experiment."
+    },
+    {
+      "id": "9b7d5b6b6977ef9d",
+      "seed": "44f54b791b5afe3b8ff6b642db8c6af8f459553361703a91800a8e9bf18f31c7",
+      "index": 50,
+      "prompt": "The ball was observed by the elegant scientist."
+    },
+    {
+      "id": "c69296135e2781d6",
+      "seed": "2c3d7a5e6037d8ded3863e1b8296ddbeba1b436806653349fecfdd751b8f6b8d",
+      "index": 51,
+      "prompt": "simple artist precisely analyzes story."
+    },
+    {
+      "id": "aa46e3d67af95db9",
+      "seed": "fb274964c54e51a31e4ecb5471e549e13e995c1f4b57091e0d258b53f01e5ce1",
+      "index": 52,
+      "prompt": "scientist and writer observes the clever puzzle."
+    },
+    {
+      "id": "d4d7f2d9bb6bf46d",
+      "seed": "2e06a06219c06b28e055c3dd80a3683c3e3cc2d83b3550530fdc5234f662fb19",
+      "index": 53,
+      "prompt": "The story was analyzed by the mysterious cat."
+    },
+    {
+      "id": "b99b539ca30feea2",
+      "seed": "d3dbe5ebd83f6edcf67b5c95d5bccdcc657b13292ffcae70bb0e774e515871dc",
+      "index": 54,
+      "prompt": "The artist creates melody gracefully."
+    },
+    {
+      "id": "32d71fef412f3996",
+      "seed": "f352c6d77bdb981204311343ef8c52871492635bb89ad2d61dd07b53130065c7",
+      "index": 55,
+      "prompt": "simple scientist carefully measures puzzle."
+    },
+    {
+      "id": "a449731a5cf6823c",
+      "seed": "eb96a036912ad2dcdcd600871dddbadc9cfa898ee2bc40769c1adb3cfcd1cccb",
+      "index": 56,
+      "prompt": "The equation was observed by the clever bird."
+    },
+    {
+      "id": "8225655caf2b2f55",
+      "seed": "7e7562392b3dc7192be8805024e647f7ee76cde7cba80f5ffb11a8069504dbf6",
+      "index": 57,
+      "prompt": "When the teacher discovers, the story becomes curious."
+    },
+    {
+      "id": "de15c05340dfa9b5",
+      "seed": "583a6c7484b25543046a0b51aaaa297724a3bc0b1015e38f427b1c39c6d4e772",
+      "index": 58,
+      "prompt": "The unusual cat observes the experiment."
+    },
+    {
+      "id": "39cc392e6ce64952",
+      "seed": "c156f58399eda84385065a2e48a4c5a3b3e9f55ed54af96a98d06d4cfdcb92a9",
+      "index": 59,
+      "prompt": "robot transforms clever pattern."
+    },
+    {
+      "id": "c1c54f7f0331cbba",
+      "seed": "c1ea5ea923a072576bf9d63d3267f5f6a5e8f46bddcc26380e96b019785fdad3",
+      "index": 60,
+      "prompt": "artist chases mysterious experiment."
+    },
+    {
+      "id": "bf78b5cb8b3a063f",
+      "seed": "e811324244a42690c725c1bad62a110a71bd3430b37750a0d1e9c240df01c9e3",
+      "index": 61,
+      "prompt": "A mysterious bird will transforms the pattern."
+    },
+    {
+      "id": "0776847811bb363c",
+      "seed": "7a63f0ee312814f1e5f0bb5d1933e264e3b314cad28e6d2669d1e6907318e5fa",
+      "index": 62,
+      "prompt": "A curious scientist will analyzes the equation."
+    },
+    {
+      "id": "158184003c40edd6",
+      "seed": "81cac08d6a03217b75c407572ed9912674496f08a6eb9cbd142300b539a2c37c",
+      "index": 63,
+      "prompt": "The mysterious bird chases the painting."
+    },
+    {
+      "id": "4a3e2d2afd869117",
+      "seed": "9b2750cb90b09d80a0e5f745fe180866859c90d96a66da6714237a41663ec95f",
+      "index": 64,
+      "prompt": "teacher and doctor chases the complex melody."
+    },
+    {
+      "id": "97163ac9493a25b8",
+      "seed": "2de1e2dd0e76a8511a86bc22fb6759d930829c51b60d27156b61478416d2f0b8",
+      "index": 65,
+      "prompt": "A complex cat will measures the puzzle."
+    },
+    {
+      "id": "afa0d43afb6ce1fd",
+      "seed": "b144bbcea0c2c14a58e445f116882647202efce4c39d428ca998cf7d3e82d5ca",
+      "index": 66,
+      "prompt": "simple robot methodically discovers equation."
+    },
+    {
+      "id": "341ac537bd7c0d90",
+      "seed": "061d49fceef4bb720be19c22a4ce8c76bc8adc2d5f26177efad3e27384c16688",
+      "index": 67,
+      "prompt": "The equation was created by the unusual student."
+    },
+    {
+      "id": "9f2824d84019435c",
+      "seed": "97eae9ccd1685e14e5d1116cb469f551c65e940308a1ea416067380435b2fea5",
+      "index": 68,
+      "prompt": "A colorful cat will creates the painting."
+    },
+    {
+      "id": "c3a2d2eb12080e17",
+      "seed": "79311068be1570fe83faad360083adbac8bd850ef9de294236deb6e7cdaee651",
+      "index": 69,
+      "prompt": "The colorful scientist inspects the ball."
+    },
+    {
+      "id": "05c76d8c1d722623",
+      "seed": "1b51e91e686235fb96d6da180b8e31031826ce9837eac1d4e42bdfa59d59c358",
+      "index": 70,
+      "prompt": "teacher transforms complex ball."
+    },
+    {
+      "id": "4ab978578e8849c0",
+      "seed": "c6f500d56955f4fb35cc364de2036f6b726b83b1d2a786d5630f5bd0ea3710c6",
+      "index": 71,
+      "prompt": "dog discovers colorful puzzle."
+    },
+    {
+      "id": "d7423458ca2a3790",
+      "seed": "bb47993e2dfa0ba6a7796a842918d1540927485a4ef130cc9ccf66393048f351",
+      "index": 72,
+      "prompt": "The bird chases equation precisely."
+    },
+    {
+      "id": "d0e602deb1542c4f",
+      "seed": "9669e6b8be41780e16ac9db7cec834dc9f0531ee06a7c940cbe6dca67cf8aa30",
+      "index": 73,
+      "prompt": "The pattern was analyzed by the mysterious bird."
+    },
+    {
+      "id": "9db46ec4097da226",
+      "seed": "f312c4ade6ba8bfc2d97f657cbfa341271897b046dfc30e5979bc45f68bedc01",
+      "index": 74,
+      "prompt": "The clever scientist chases the equation."
+    },
+    {
+      "id": "074815bf74109107",
+      "seed": "b9df67840d578345c30a03663dde33e5724e69550d6915e3e46d952e41626689",
+      "index": 75,
+      "prompt": "The elegant artist analyzes the puzzle."
+    },
+    {
+      "id": "9f6fed1d56f682ce",
+      "seed": "c97ed221b63c347aa4e3b8daae4a2ee4f7457d9d0636711ff8a74e6b2cdb46dd",
+      "index": 76,
+      "prompt": "robot and rabbit observes the unusual equation."
+    },
+    {
+      "id": "396a7e119e228fcb",
+      "seed": "2b71018ea164050a267dce9a80b6e0e2086b4f20786a48491e877f36a389bf74",
+      "index": 77,
+      "prompt": "simple dog slowly analyzes painting."
+    },
+    {
+      "id": "52b3fc1d255fcbcc",
+      "seed": "b78c6984bdb0a134d593990c4afdd4118f740e81daa45b9f5eff794fe6c1eaea",
+      "index": 78,
+      "prompt": "The simple teacher inspects the story."
+    },
+    {
+      "id": "faa4bd3ee916a585",
+      "seed": "384a9886ce1f40960e74ae1c19da83e0efc3cb6826cee6afae0f185f92f30642",
+      "index": 79,
+      "prompt": "teacher and engineer creates the complex experiment."
+    },
+    {
+      "id": "707a2798cf671c0c",
+      "seed": "6a70eae4175fe34e60dbbd16c7bd603c15670406f5dc0e13e27dc44eaa2a301c",
+      "index": 80,
+      "prompt": "unusual teacher precisely observes experiment."
+    },
+    {
+      "id": "4f5a45a7709e7c73",
+      "seed": "e045d31a0532bf14ecf014ae8639cac795e50ee3635b96b6048efef3bb02ae64",
+      "index": 81,
+      "prompt": "The cat discovers melody precisely."
+    },
+    {
+      "id": "0057ed7c83ad757a",
+      "seed": "68d6dd8bdd3b7b78fd06e6cde71b43f2a53aa97182a765dfa79dd0850b5cec40",
+      "index": 82,
+      "prompt": "The teacher observes pattern precisely."
+    },
+    {
+      "id": "0f51bb1068336de2",
+      "seed": "d0aec455f2e55666f72f3360766fc68dbf4cac0593bdba31e1d88fddc6af9b5a",
+      "index": 83,
+      "prompt": "mysterious dog gracefully transforms melody."
+    },
+    {
+      "id": "f954175b4f817e06",
+      "seed": "2118184e7ebe25cc223334dbefb62e636495bd7e69e20005316c5fa7f982b820",
+      "index": 84,
+      "prompt": "The curious dog analyzes the pattern."
+    },
+    {
+      "id": "e4b673825fbb9783",
+      "seed": "943ab9562bb57bf183a9914a1f297d0e9d80e434d4d02b5d6d3f69323b771755",
+      "index": 85,
+      "prompt": "artist and doctor creates the simple equation."
+    },
+    {
+      "id": "60e7b6838368bd79",
+      "seed": "e7168a5a8fd5a9febaf6c9ee004371b03ba14f2fa00b8a2c39711abc1d1e8fdd",
+      "index": 86,
+      "prompt": "The story was analyzed by the simple bird."
+    },
+    {
+      "id": "b40543e26415d25a",
+      "seed": "9e85175adc0fd0a646e119a6d9551cf9b1d2cec40062bbee0f75ed62759e0ea8",
+      "index": 87,
+      "prompt": "The cat transforms experiment precisely."
+    },
+    {
+      "id": "b27d95d2628747ad",
+      "seed": "e8ae58d0efa73726e315b28480a99316a844dcc877ff8ae6533af28779b231a3",
+      "index": 88,
+      "prompt": "elegant artist precisely discovers painting."
+    },
+    {
+      "id": "5c83650eec70ad3b",
+      "seed": "4e93d55f83c7f3c9508b511251add712c1916324dc2968ece934b4582820a08c",
+      "index": 89,
+      "prompt": "The scientist inspects story methodically."
+    },
+    {
+      "id": "0f7a80ddd19e2c8e",
+      "seed": "203c8d3ab1cde07748f0de5536edbcc117023a1e2aa5bbb8abd0877ff33a9198",
+      "index": 90,
+      "prompt": "The experiment was analyzed by the clever student."
+    },
+    {
+      "id": "25e0aef25e5100cd",
+      "seed": "90bd3d4a1919833ca9fb47722e34270c27202b41052948a29db768507299b770",
+      "index": 91,
+      "prompt": "When the bird chases, the puzzle becomes complex."
+    },
+    {
+      "id": "804b93afd7f9316f",
+      "seed": "6672127353b96b874f99244caaffc004b308f38c6341b28551ed2d5cff3cb00b",
+      "index": 92,
+      "prompt": "scientist and engineer measures the unusual melody."
+    },
+    {
+      "id": "3303a34fdfd2021f",
+      "seed": "65a9dcaf7a87f1c96cb00eb328df956df088b8ec1a36f419086a2dbfbaf71068",
+      "index": 93,
+      "prompt": "The equation was created by the unusual bird."
+    },
+    {
+      "id": "00513fb6b4cca5eb",
+      "seed": "0d57c592c59b0b5e6d72dbf847c59a25a25f0a193fdac6a3ecca5ef3ef73d77f",
+      "index": 94,
+      "prompt": "bird transforms elegant pattern."
+    },
+    {
+      "id": "165337a7cc9681be",
+      "seed": "c1ca978066704926ac278558454669f60820d18640d214db5d160d7f112440cf",
+      "index": 95,
+      "prompt": "The clever teacher transforms the puzzle."
+    },
+    {
+      "id": "637156afb4a35b9f",
+      "seed": "9d40b8f34abd8fd112cbd85c1389a29e780104697138e1c990cb608433f3cf27",
+      "index": 96,
+      "prompt": "The colorful bird analyzes the story."
+    },
+    {
+      "id": "9d70ce48c1049e68",
+      "seed": "f13e31ed13659778c5e228390dd56aef4546990bd0b8b2d1edf736560cc743ee",
+      "index": 97,
+      "prompt": "The scientist inspects pattern precisely."
+    },
+    {
+      "id": "4510f5e750108935",
+      "seed": "eeded74f2154b907fc0510cf0a31184fece80f4d8e23e92a300d5481a4818ff6",
+      "index": 98,
+      "prompt": "A unusual artist will transforms the ball."
+    },
+    {
+      "id": "dd347180bf12c9ee",
+      "seed": "c782baadb406ee6bd10ced6df9629256cf66293b708bca89b3f81d52ce2f282c",
+      "index": 99,
+      "prompt": "When the student inspects, the pattern becomes elegant."
+    },
+    {
+      "id": "cebd0d53dc98cef2",
+      "seed": "618d4887e0cca735bf7c016782fe2bd8232428b7e2be86b0e400a3657d320ee4",
+      "index": 100,
+      "prompt": "curious scientist carefully chases experiment."
+    },
+    {
+      "id": "056b23a90f00ee04",
+      "seed": "1de91a1bc1a93ef8de1fcd61f0e1e68f4b1c11558bf82eca2efa589207dfb749",
+      "index": 101,
+      "prompt": "When the teacher transforms, the melody becomes unusual."
+    },
+    {
+      "id": "f4d96e5345b1a342",
+      "seed": "bc7953188bbbb7022c1845d0e30acc88b46de3442cb4c3f4ad9ec0320a248d12",
+      "index": 102,
+      "prompt": "The experiment was measured by the simple dog."
+    },
+    {
+      "id": "f41f362451c6d080",
+      "seed": "e682f4cb0925314d75b975916d207740d606fd198feb2f332e804c8167fad86e",
+      "index": 103,
+      "prompt": "robot and musician measures the complex melody."
+    },
+    {
+      "id": "a435df379e8966f1",
+      "seed": "ede78ec688cbd7ab5b53b0277a7f307047ebfd37092cfcf2c2896642db28d50b",
+      "index": 104,
+      "prompt": "The dog chases story quietly."
+    },
+    {
+      "id": "12a647ca397fe1f8",
+      "seed": "77790ede917977e348a0e367b15ac4a222604e64c5eaac8c86885080cc146f04",
+      "index": 105,
+      "prompt": "The clever bird chases the story."
+    },
+    {
+      "id": "7cc0740e3c17903e",
+      "seed": "4e4084a4f87238d05ff2dc3736349d188133ee5f9cb43cffc6bb53e1b4264ac9",
+      "index": 106,
+      "prompt": "The teacher measures painting carefully."
+    },
+    {
+      "id": "26d63d0542b3dbe4",
+      "seed": "42cd985408826be5c82c1752564d6b83ffda01edfb5d79abd2abc8f5d4f58f4e",
+      "index": 107,
+      "prompt": "scientist and doctor discovers the complex melody."
+    },
+    {
+      "id": "7c8ef2dcd0301a25",
+      "seed": "3fa911938a7dff6ec873035967272ea5c0e90c1b7ad848d831ebe4607be44967",
+      "index": 108,
+      "prompt": "colorful scientist slowly transforms pattern."
+    },
+    {
+      "id": "e9efbdadfb3db69f",
+      "seed": "e988dafd87f74754baa657df0d1b7b5088ebc7b62581a777ece07f3e71303259",
+      "index": 109,
+      "prompt": "simple scientist gracefully measures pattern."
+    },
+    {
+      "id": "03bfed39b0b3dde2",
+      "seed": "d1569742e02e79824ef3e615edcd0bbabbcecec03261f16c90de484086a7b28a",
+      "index": 110,
+      "prompt": "The simple teacher discovers the puzzle."
+    },
+    {
+      "id": "98d3d73534aedb03",
+      "seed": "99d62c33ee7cec8a892f55c86c78fcf251cbe4545c2bd727cb30f0789d9bef29",
+      "index": 111,
+      "prompt": "simple student quietly measures experiment."
+    },
+    {
+      "id": "1d6437371801eb0d",
+      "seed": "3a6eb08cbbc658bf6dd0a1c8122731f2b2e5df04c11ab708eb5b31cebcb09c43",
+      "index": 112,
+      "prompt": "The unusual robot analyzes the ball."
+    },
+    {
+      "id": "cccef64655f3b826",
+      "seed": "55c3ff06eb72ed926eaa7416b2594f52f9b963a904559240b8e95890ff212613",
+      "index": 113,
+      "prompt": "cat observes complex pattern."
+    },
+    {
+      "id": "7c8bc0c53e941171",
+      "seed": "e909303ef0fa60bbad7712812b5147e0a3aba09da11a9d904bc373989b2eb0a3",
+      "index": 114,
+      "prompt": "The story was measured by the mysterious cat."
+    },
+    {
+      "id": "391fd770bf937d48",
+      "seed": "831a0c0d6a79b152a3f2d776e7c792fa2c894566cba1d5acea9ac08ea18fff8b",
+      "index": 115,
+      "prompt": "robot inspects colorful melody."
+    },
+    {
+      "id": "b3ef2baa6598e850",
+      "seed": "d1ffe06be1ea1ee999cc4175365eb9d84a869b8fbc2d1d0ef033b7687d651af5",
+      "index": 116,
+      "prompt": "The elegant dog analyzes the experiment."
+    },
+    {
+      "id": "4ab8c470625c36f4",
+      "seed": "b6e8cbd73816910f2a3c0a0b487295483066927a8e38a78a9ff2ad364861325b",
+      "index": 117,
+      "prompt": "mysterious bird suddenly transforms melody."
+    },
+    {
+      "id": "6b327eb4b92556a2",
+      "seed": "7147c953137636771210102cfeb93e7ccf32d2985da685c77108d9bcd5c17986",
+      "index": 118,
+      "prompt": "A curious dog will observes the melody."
+    },
+    {
+      "id": "3eab86b17e3ef1af",
+      "seed": "a9a5493f028f1307bf4821073a8432de5feaf4b9d337af34854336f8b6ce6e84",
+      "index": 119,
+      "prompt": "The bird creates painting quietly."
+    }
+  ],
+  "verification": {
+    "verifier": "stat_diff_v1",
+    "timestamp": "2025-08-22 10:53:33 UTC",
+    "config": {
+      "alpha": 0.025000000000000022,
+      "rel_margin_target": 0.2,
+      "method": "eb",
+      "n_min": 12,
+      "n_max": 120,
+      "positions_per_prompt": 32,
+      "batch_size": 4,
+      "equivalence_band": 0.015,
+      "early_stop_threshold": 1e-06
+    },
+    "results": {
+      "decision": "UNDECIDED",
+      "reason": "Reached n_max without meeting decision criteria",
+      "direction": null,
+      "n_used": 120,
+      "mean": 7.641286182403564,
+      "variance": 39.75410791100769,
+      "std_dev": 6.305085876576756,
+      "ci_99": [
+        -56.07560772900616,
+        71.35818009381329
+      ],
+      "half_width": 63.71689391140972,
+      "rel_me": 8.338503805568449
+    },
+    "timing": {
+      "total_time_sec": 117.07791462499881,
+      "avg_batch_time_sec": 3.902308730566195,
+      "avg_score_time_sec": 0.9754823864591647,
+      "total_score_time_sec": 117.05788637509977,
+      "scores_per_second": 1.0249584679088335
+    },
+    "scores": {
+      "raw": [
+        3.47503662109375,
+        3.0249710083007812,
+        4.733039855957031,
+        11.864822387695312,
+        14.882087707519531,
+        8.649993896484375,
+        7.62939453125e-05,
+        9.047710418701172,
+        5.896293640136719,
+        7.506629943847656,
+        7.3459930419921875,
+        1.8193130493164062,
+        7.457923889160156,
+        10.041152954101562,
+        7.0385894775390625,
+        9.879592895507812,
+        3.0786361694335938,
+        2.2701416015625,
+        5.662384033203125,
+        21.770034790039062,
+        -2.0821685791015625,
+        8.252761840820312,
+        8.341182708740234,
+        4.9460601806640625,
+        -0.6103591918945312,
+        -1.8339309692382812,
+        15.823806762695312,
+        6.322418212890625,
+        3.6868438720703125,
+        4.615440368652344,
+        23.461090087890625,
+        3.9742813110351562,
+        10.821296691894531,
+        6.112861633300781,
+        1.8316268920898438,
+        -1.3787841796875,
+        -4.436927795410156,
+        4.228584289550781,
+        2.3238143920898438,
+        1.7435684204101562,
+        5.072761535644531,
+        6.248405456542969,
+        2.5246429443359375,
+        8.627037048339844,
+        19.45012664794922,
+        2.9578170776367188,
+        25.633819580078125,
+        23.639297485351562,
+        13.838775634765625,
+        5.223701477050781,
+        11.930549621582031,
+        11.070068359375,
+        3.8680191040039062,
+        7.9917449951171875,
+        24.426513671875,
+        2.4549636840820312,
+        5.299720764160156,
+        6.938232421875,
+        9.048118591308594,
+        1.1857986450195312,
+        7.7947235107421875,
+        18.122825622558594,
+        11.378013610839844,
+        14.263595581054688,
+        10.950950622558594,
+        8.695999145507812,
+        8.598686218261719,
+        10.451042175292969,
+        7.408958435058594,
+        10.85549545288086,
+        4.318107604980469,
+        0.49411773681640625,
+        10.404373168945312,
+        5.587188720703125,
+        2.3875198364257812,
+        7.889007568359375,
+        5.445213317871094,
+        5.048576354980469,
+        9.76629638671875,
+        0.42903900146484375,
+        -1.03857421875,
+        10.022720336914062,
+        7.639060974121094,
+        1.817535400390625,
+        5.1619873046875,
+        1.9659957885742188,
+        6.1160430908203125,
+        21.92318344116211,
+        9.301132202148438,
+        16.614486694335938,
+        12.370307922363281,
+        16.013202667236328,
+        8.561233520507812,
+        9.836288452148438,
+        -1.512847900390625,
+        18.341480255126953,
+        6.93060302734375,
+        -0.27715301513671875,
+        3.1870346069335938,
+        11.931625366210938,
+        0.9144134521484375,
+        12.1005859375,
+        2.0005264282226562,
+        10.123214721679688,
+        20.875606536865234,
+        16.6011962890625,
+        8.479469299316406,
+        6.2983856201171875,
+        1.8921737670898438,
+        2.2110214233398438,
+        18.46001434326172,
+        9.524169921875,
+        5.256248474121094,
+        1.7165756225585938,
+        9.711380004882812,
+        -7.849784851074219,
+        9.907272338867188,
+        5.4898834228515625,
+        11.166481018066406,
+        7.8624267578125
+      ],
+      "summary_stats": {
+        "min": -7.849784851074219,
+        "max": 25.633819580078125,
+        "median": 7.192291259765625,
+        "q25": 3.0652198791503906,
+        "q75": 10.416040420532227,
+        "iqr": 7.350820541381836
+      }
+    },
+    "interpretation": "Unable to determine statistical difference with current sample size and precision",
+    "next_steps": [
+      "Increase n_max beyond 120",
+      "Increase positions_per_prompt beyond 32",
+      "Try different scoring method (symmetric_kl, js_divergence)",
+      "Diversify challenge families (add edge cases, adversarial)",
+      "If still undecided, escalate to secondary PoT metrics",
+      "Consider adjusting rel_margin_target for this model pair",
+      "Check if models are too similar for statistical differentiation"
+    ]
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755859891.044468,
+      "end_time": 1755859891.045084,
+      "duration": 0.0006160736083984375,
+      "memory_peak_mb": 385.421875,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.421875,
+        "n_challenges": 120,
+        "hmac_key": "f4e9a8955ccee8f5c9824c2ad7a74634694ffeb3a1f2345ea05292252d31501b",
+        "run_id": "validation_20250822_065131",
+        "commitment": "989585b29c8049983703ce04653611ea5afcc95542c7af67060c8f49b3771992",
+        "seeds": [
+          "e56de6ff7d08fb9446af1bdd85ca012b90b0d76f34cbc6c4d36053590989b01c",
+          "62d5343376980dd878780e6098f983e328093de5368dab23caa51d90b5f15fa3",
+          "32797f58dd95a4756fa3b3f07e1b9515f81b4ee8318be654eca415497d90bc4d",
+          "4b62bada72ad1241378628ade863a28385ec598cc26b5a4b01fe40832a766b8c",
+          "f7d946d62e46a157d3f9341b59b5ca31b5b941749312879199b325492349a145",
+          "f0131b8f32030dbbc6825116d0271318ec37097cc69f36ee1a4ac39a3b67e364",
+          "a53608df35e5b2a3621427760eaf5032802801783f73bbc8e12b1556039f2647",
+          "cf790f139ffdbd2a9c503d25088551053d3272d664a6df6aa80ebfdf7b04506f",
+          "0a050162146933d305bfcd0a101104914d03f59f5ba73542d6f38e6769bc0e3e",
+          "530cd91041e7cc933956fa1e09d76d03e420453fd401ddef55c645f636d4a345",
+          "12f639f2e6c999eec8cd5190429d1338c8980076479f46e507fa657972ec3c4a",
+          "57e62a7dccc3516bada549fab127011a09ae14390c4e67f80810e4cff248f2d8",
+          "c4debdf88d2f82bd6f8dc0e37dd2db969fe344f33f6e984d35fa0cf2c3f60221",
+          "de1ce148c19b8008298f9b5844610fbfd29c15070d65e829763a1d66b6cff93a",
+          "8fbb31d1e4dddf7fbb81bf8c277cf5b886f98d1c316b86a33dedaf258a0cf04b",
+          "66226e34650195c61ba0c235dbfadfdfde07554cd820c1b82a58cc311801f40e",
+          "2aed44e319ed0bf84af458819a6c4bbbd4b59c85aa85c3ac8ffcb2556f2e6689",
+          "ba580bf464353b7cfed09824b63c4ed1b5c52035ed9ebadaa9d2cfc3c5fcba83",
+          "1f511d2c792f9517d4245415f8d64ada17bc8295cde6fda12a391d63bfbd11f3",
+          "40cc8addc4c89826a2e2897837d736fcff65a32a47f8b495179c83468fc5353a",
+          "6b52cc3ff325e4685aa0eb4b26c51988fc36edaf138fef1b40d530a39a5235dc",
+          "175af7c8bc6bfa05594ffa456967d981a80ff307e7de18c214d5149294e8360d",
+          "9cbe14e3d0b1104b77cfd3130f9f090ab5406088a9dbcfc50b03d791ccfefa71",
+          "7167b9e90006ec1ae33fd2dfda2d7a2b998ba47522f1f8a5426899ecb7fba974",
+          "2f1c4f383bcbaed3f9e0f54f9943a45ffde2730407cd4cf6c5e46a402efb4db0",
+          "d30d97d8fd867e30c0ca9c886ef485d384bee535cd24e3a4312d6d6ae172516e",
+          "aecbe526a6d54a178d8b0b3525095993fbe3b2b3b45938d2ec3101f0a86c7d88",
+          "6c28c78f422985fd981670f7faff17caedc7e8741c8b0d79818b8ae80ca8478a",
+          "bebf454b585aa666863d6648d710778a97e637600401f98d0db06a0948a04701",
+          "d7af558d021d9e612e20270ad0eed02a68d7904054f51f37fccc53fe01db3cc0",
+          "fa748759b59cc8bbb925f197d8ea4867de0eba7a49f66669c0277ed792ac570f",
+          "5ab65aabcc84a0073a3a605aac977013ef57f454a984ebce5fd8068db0048f1f",
+          "9c201b65b480b9d1186b39a6a28105292932b52d1db5ae3aa402b2d78e145b8a",
+          "8b70bbcdeaac046f75dff96bf5c712957a94da5bbd26d01954a44918ee9dfe3b",
+          "be4248f5455533ad65ea5565d8f78399949e38f73bfe7e5c7c886474385301f9",
+          "96fab1fee9dec8a4fdb9153a7f3f534b5361bd9ccf1a665d92ae179a14b96d8d",
+          "ed78e839a9983132bab18e6a99c5d6ed4db66177b75819f16017ddfbf8b8bce3",
+          "1972881f1562bcb6ef81fb767682f34031e545f5fcff8a375576a7b9eec6d702",
+          "bb7f42e6b7c2f29dd49f1beb3f2057915610dc440f15d2f7a9330af439893ba2",
+          "83902336ce38ca79f077fb7788eab2e08b8efe2793045a5de998349c4e9b8c06",
+          "aa16bc64099528919ea42bc2a3161a956a7026e5319ef9cd57f2a981e52ce050",
+          "ae240c562b2c6a3a3caa12063e224e4ef2c21710502b15130ab73218b1c51766",
+          "e6cb0e7b6c73ce8c68eed21c49ca17e2b7ce0fd7c29e7dfda7cbfe04abdfbce7",
+          "129b5ed638eda60a8eada21f928a944472c46a7cf63a9acad3710ef87b180446",
+          "dd35b547a6ec5508c25d61cbb2d73e619eecb4090ab795326ac96cc6702fa4c2",
+          "d3a44cccbbc564b6bdc7dbcb4256913a7f9b94fc571bde408694a89f0b911530",
+          "17a7a993230e3b037939db1524ad23f4e6270f4435fbe422f35eb922bf9ca4a9",
+          "4bb4cf9860e3d4397ef27e9804aaaf64a48fa4804e93a77a7d61021b6761c6ea",
+          "9f77d8d5e56e52c34b86d74dbccf29158b358db11910d71dc0f72975e99ec8c2",
+          "b8e85498289b4a67bf88f75974760e9ee4d9037a4b094970b8fe071090464e74",
+          "44f54b791b5afe3b8ff6b642db8c6af8f459553361703a91800a8e9bf18f31c7",
+          "2c3d7a5e6037d8ded3863e1b8296ddbeba1b436806653349fecfdd751b8f6b8d",
+          "fb274964c54e51a31e4ecb5471e549e13e995c1f4b57091e0d258b53f01e5ce1",
+          "2e06a06219c06b28e055c3dd80a3683c3e3cc2d83b3550530fdc5234f662fb19",
+          "d3dbe5ebd83f6edcf67b5c95d5bccdcc657b13292ffcae70bb0e774e515871dc",
+          "f352c6d77bdb981204311343ef8c52871492635bb89ad2d61dd07b53130065c7",
+          "eb96a036912ad2dcdcd600871dddbadc9cfa898ee2bc40769c1adb3cfcd1cccb",
+          "7e7562392b3dc7192be8805024e647f7ee76cde7cba80f5ffb11a8069504dbf6",
+          "583a6c7484b25543046a0b51aaaa297724a3bc0b1015e38f427b1c39c6d4e772",
+          "c156f58399eda84385065a2e48a4c5a3b3e9f55ed54af96a98d06d4cfdcb92a9",
+          "c1ea5ea923a072576bf9d63d3267f5f6a5e8f46bddcc26380e96b019785fdad3",
+          "e811324244a42690c725c1bad62a110a71bd3430b37750a0d1e9c240df01c9e3",
+          "7a63f0ee312814f1e5f0bb5d1933e264e3b314cad28e6d2669d1e6907318e5fa",
+          "81cac08d6a03217b75c407572ed9912674496f08a6eb9cbd142300b539a2c37c",
+          "9b2750cb90b09d80a0e5f745fe180866859c90d96a66da6714237a41663ec95f",
+          "2de1e2dd0e76a8511a86bc22fb6759d930829c51b60d27156b61478416d2f0b8",
+          "b144bbcea0c2c14a58e445f116882647202efce4c39d428ca998cf7d3e82d5ca",
+          "061d49fceef4bb720be19c22a4ce8c76bc8adc2d5f26177efad3e27384c16688",
+          "97eae9ccd1685e14e5d1116cb469f551c65e940308a1ea416067380435b2fea5",
+          "79311068be1570fe83faad360083adbac8bd850ef9de294236deb6e7cdaee651",
+          "1b51e91e686235fb96d6da180b8e31031826ce9837eac1d4e42bdfa59d59c358",
+          "c6f500d56955f4fb35cc364de2036f6b726b83b1d2a786d5630f5bd0ea3710c6",
+          "bb47993e2dfa0ba6a7796a842918d1540927485a4ef130cc9ccf66393048f351",
+          "9669e6b8be41780e16ac9db7cec834dc9f0531ee06a7c940cbe6dca67cf8aa30",
+          "f312c4ade6ba8bfc2d97f657cbfa341271897b046dfc30e5979bc45f68bedc01",
+          "b9df67840d578345c30a03663dde33e5724e69550d6915e3e46d952e41626689",
+          "c97ed221b63c347aa4e3b8daae4a2ee4f7457d9d0636711ff8a74e6b2cdb46dd",
+          "2b71018ea164050a267dce9a80b6e0e2086b4f20786a48491e877f36a389bf74",
+          "b78c6984bdb0a134d593990c4afdd4118f740e81daa45b9f5eff794fe6c1eaea",
+          "384a9886ce1f40960e74ae1c19da83e0efc3cb6826cee6afae0f185f92f30642",
+          "6a70eae4175fe34e60dbbd16c7bd603c15670406f5dc0e13e27dc44eaa2a301c",
+          "e045d31a0532bf14ecf014ae8639cac795e50ee3635b96b6048efef3bb02ae64",
+          "68d6dd8bdd3b7b78fd06e6cde71b43f2a53aa97182a765dfa79dd0850b5cec40",
+          "d0aec455f2e55666f72f3360766fc68dbf4cac0593bdba31e1d88fddc6af9b5a",
+          "2118184e7ebe25cc223334dbefb62e636495bd7e69e20005316c5fa7f982b820",
+          "943ab9562bb57bf183a9914a1f297d0e9d80e434d4d02b5d6d3f69323b771755",
+          "e7168a5a8fd5a9febaf6c9ee004371b03ba14f2fa00b8a2c39711abc1d1e8fdd",
+          "9e85175adc0fd0a646e119a6d9551cf9b1d2cec40062bbee0f75ed62759e0ea8",
+          "e8ae58d0efa73726e315b28480a99316a844dcc877ff8ae6533af28779b231a3",
+          "4e93d55f83c7f3c9508b511251add712c1916324dc2968ece934b4582820a08c",
+          "203c8d3ab1cde07748f0de5536edbcc117023a1e2aa5bbb8abd0877ff33a9198",
+          "90bd3d4a1919833ca9fb47722e34270c27202b41052948a29db768507299b770",
+          "6672127353b96b874f99244caaffc004b308f38c6341b28551ed2d5cff3cb00b",
+          "65a9dcaf7a87f1c96cb00eb328df956df088b8ec1a36f419086a2dbfbaf71068",
+          "0d57c592c59b0b5e6d72dbf847c59a25a25f0a193fdac6a3ecca5ef3ef73d77f",
+          "c1ca978066704926ac278558454669f60820d18640d214db5d160d7f112440cf",
+          "9d40b8f34abd8fd112cbd85c1389a29e780104697138e1c990cb608433f3cf27",
+          "f13e31ed13659778c5e228390dd56aef4546990bd0b8b2d1edf736560cc743ee",
+          "eeded74f2154b907fc0510cf0a31184fece80f4d8e23e92a300d5481a4818ff6",
+          "c782baadb406ee6bd10ced6df9629256cf66293b708bca89b3f81d52ce2f282c",
+          "618d4887e0cca735bf7c016782fe2bd8232428b7e2be86b0e400a3657d320ee4",
+          "1de91a1bc1a93ef8de1fcd61f0e1e68f4b1c11558bf82eca2efa589207dfb749",
+          "bc7953188bbbb7022c1845d0e30acc88b46de3442cb4c3f4ad9ec0320a248d12",
+          "e682f4cb0925314d75b975916d207740d606fd198feb2f332e804c8167fad86e",
+          "ede78ec688cbd7ab5b53b0277a7f307047ebfd37092cfcf2c2896642db28d50b",
+          "77790ede917977e348a0e367b15ac4a222604e64c5eaac8c86885080cc146f04",
+          "4e4084a4f87238d05ff2dc3736349d188133ee5f9cb43cffc6bb53e1b4264ac9",
+          "42cd985408826be5c82c1752564d6b83ffda01edfb5d79abd2abc8f5d4f58f4e",
+          "3fa911938a7dff6ec873035967272ea5c0e90c1b7ad848d831ebe4607be44967",
+          "e988dafd87f74754baa657df0d1b7b5088ebc7b62581a777ece07f3e71303259",
+          "d1569742e02e79824ef3e615edcd0bbabbcecec03261f16c90de484086a7b28a",
+          "99d62c33ee7cec8a892f55c86c78fcf251cbe4545c2bd727cb30f0789d9bef29",
+          "3a6eb08cbbc658bf6dd0a1c8122731f2b2e5df04c11ab708eb5b31cebcb09c43",
+          "55c3ff06eb72ed926eaa7416b2594f52f9b963a904559240b8e95890ff212613",
+          "e909303ef0fa60bbad7712812b5147e0a3aba09da11a9d904bc373989b2eb0a3",
+          "831a0c0d6a79b152a3f2d776e7c792fa2c894566cba1d5acea9ac08ea18fff8b",
+          "d1ffe06be1ea1ee999cc4175365eb9d84a869b8fbc2d1d0ef033b7687d651af5",
+          "b6e8cbd73816910f2a3c0a0b487295483066927a8e38a78a9ff2ad364861325b",
+          "7147c953137636771210102cfeb93e7ccf32d2985da685c77108d9bcd5c17986",
+          "a9a5493f028f1307bf4821073a8432de5feaf4b9d337af34854336f8b6ce6e84"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755859891.045151,
+      "end_time": 1755859896.462156,
+      "duration": 5.4170050621032715,
+      "memory_peak_mb": 581.15625,
+      "memory_delta_mb": 195.71875,
+      "cpu_percent": 158.2,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.4375,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755859896.4623601,
+      "end_time": 1755860013.578541,
+      "duration": 117.11618089675903,
+      "memory_peak_mb": 1239.8125,
+      "memory_delta_mb": 658.65625,
+      "cpu_percent": 95.6,
+      "query_count": 120,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 581.15625,
+        "decision": "UNDECIDED"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "af0f04cd05ebfee44ca5c8be543977cb1b067f755fa2e33646ef3a3d55270f6f"
+}
