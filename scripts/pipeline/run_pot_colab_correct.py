@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # RUN YOUR POT CODEBASE IN GOOGLE COLAB - CORRECTED VERSION
 
 import os

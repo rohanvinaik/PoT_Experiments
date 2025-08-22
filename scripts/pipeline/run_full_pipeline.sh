@@ -3,6 +3,9 @@
 # Expected runtime: 8-10 hours on M1 Max
 # Run this script and let it complete overnight
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
+
 echo "=========================================================================="
 echo "COMPLETE POT FRAMEWORK PIPELINE - QWEN 72B"
 echo "=========================================================================="
@@ -30,7 +33,7 @@ echo "✓ Model found: $(du -h "$MODEL_PATH" | cut -f1)"
 echo ""
 
 # Create results directory
-mkdir -p experimental_results
+mkdir -p "$ROOT_DIR/experimental_results"
 
 # Get start time
 START_TIME=$(date +%s)
@@ -45,7 +48,7 @@ echo ""
 echo "=========================================================================="
 
 # Run the complete pipeline
-python3 scripts/run_complete_qwen_pipeline.py
+python3 "$ROOT_DIR/scripts/run_complete_qwen_pipeline.py"
 
 # Get end time and calculate duration
 END_TIME=$(date +%s)
