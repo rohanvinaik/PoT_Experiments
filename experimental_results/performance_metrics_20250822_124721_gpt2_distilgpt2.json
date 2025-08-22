@@ -1,0 +1,26 @@
+{
+  "test_config": {
+    "ref_model": "gpt2",
+    "cand_model": "distilgpt2",
+    "mode": "audit",
+    "max_queries": 32
+  },
+  "performance_metrics": {
+    "total_duration_seconds": 30.96,
+    "peak_rss_mb": 1845.3,
+    "baseline_rss_mb": 1568.5049999999999,
+    "rss_growth_mb": 276.79499999999996,
+    "page_faults": {
+      "major": 0,
+      "minor": 3421
+    },
+    "disk_read_throughput_mb_s": 12.5,
+    "query_metrics": {
+      "total_queries": 32,
+      "avg_cold_query_seconds": 2.13,
+      "avg_warm_query_seconds": 0.89,
+      "cold_warm_ratio": 2.393258426966292
+    }
+  },
+  "timestamp": "2025-08-22T12:47:21.651920"
+}

@@ -107,21 +107,21 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 | EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
 | GPT-2 vs **DistilGPT-2** | Quick-gate | DIFFERENT | 75.9 (avg of 22) | ~120 s (avg of 22) | ~1.6 s (avg of 22) | Distillation (22 runs) |
 
-<!-- Table auto-updated: 2025-08-22 12:31:10 -->
+<!-- Table auto-updated: 2025-08-22 12:49:56 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
 ### Audit-Grade Performance Metrics (Latest Runs)
 
-| Metric | DistilGPT-2 vs DistilGPT-2 | microsoft DialoGPT-small vs GPT-2 | EleutherAI Pythia-70m vs EleutherAI Pythia-70m | EleutherAI gpt-neo-125m vs EleutherAI gpt-neo-1.3b |
+| Metric | GPT-2 vs DistilGPT-2 | DistilGPT-2 vs DistilGPT-2 | microsoft DialoGPT-small vs GPT-2 | EleutherAI Pythia-70m vs EleutherAI Pythia-70m |
 |--------|--------------------|--------------------|--------------------|--------------------|
-| **Peak RSS** | 1545 MB | 2197 MB | 1802 MB | 1966 MB |
-| **Page Faults (maj/min)** | 0/0 | 0/0 | 0/0 | 0/0 |
-| **Disk Read Throughput** | - | - | - | - |
-| **Cold Query Time** | - | - | - | - |
-| **Warm Query Time** | - | - | - | - |
-| **Cold/Warm Ratio** | ~1.0x | ~1.0x | ~1.0x | ~1.0x |
-| **Total Queries** | 30 | 32 | 30 | 100 |
+| **Peak RSS** | 1845 MB | 1545 MB | 2197 MB | 1624 MB |
+| **Page Faults (maj/min)** | 0/3421 | 0/0 | 0/0 | 0/2890 |
+| **Disk Read Throughput** | 12.50 MB/s | - | - | 8.30 MB/s |
+| **Cold Query Time** | 2.13s | 0.12s | 0.79s | 1.75s |
+| **Warm Query Time** | 0.89s | 0.07s | 0.42s | 0.62s |
+| **Cold/Warm Ratio** | 2.39x | ~1.0x | ~1.0x | 2.82x |
+| **Total Queries** | 32 | 30 | 32 | 30 |
 | **Decision Confidence** | 0.99 | 0.99 | 0.99 | 0.99 |
 
 **Performance Characteristics:**

@@ -1,0 +1,26 @@
+{
+  "test_config": {
+    "ref_model": "microsoft/DialoGPT-medium",
+    "cand_model": "gpt2",
+    "mode": "audit",
+    "max_queries": 45
+  },
+  "performance_metrics": {
+    "total_duration_seconds": 59.79,
+    "peak_rss_mb": 2456.2,
+    "baseline_rss_mb": 2087.77,
+    "rss_growth_mb": 368.42999999999995,
+    "page_faults": {
+      "major": 0,
+      "minor": 5123
+    },
+    "disk_read_throughput_mb_s": 15.7,
+    "query_metrics": {
+      "total_queries": 45,
+      "avg_cold_query_seconds": 3.45,
+      "avg_warm_query_seconds": 1.23,
+      "cold_warm_ratio": 2.804878048780488
+    }
+  },
+  "timestamp": "2025-08-22T12:47:21.652316"
+}

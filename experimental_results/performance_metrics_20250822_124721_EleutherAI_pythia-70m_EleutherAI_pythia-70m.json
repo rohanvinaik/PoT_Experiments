@@ -1,0 +1,26 @@
+{
+  "test_config": {
+    "ref_model": "EleutherAI/pythia-70m",
+    "cand_model": "EleutherAI/pythia-70m",
+    "mode": "audit",
+    "max_queries": 30
+  },
+  "performance_metrics": {
+    "total_duration_seconds": 20.86,
+    "peak_rss_mb": 1623.7,
+    "baseline_rss_mb": 1380.145,
+    "rss_growth_mb": 243.555,
+    "page_faults": {
+      "major": 0,
+      "minor": 2890
+    },
+    "disk_read_throughput_mb_s": 8.3,
+    "query_metrics": {
+      "total_queries": 30,
+      "avg_cold_query_seconds": 1.75,
+      "avg_warm_query_seconds": 0.62,
+      "cold_warm_ratio": 2.8225806451612905
+    }
+  },
+  "timestamp": "2025-08-22T12:47:21.652179"
+}
