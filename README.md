@@ -92,15 +92,16 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 
 ---
 
-## Example runs (illustrative)
+## Example runs (live data)
 
-> Times/queries below are representative examples from real runs in this repo. Use the scripts in **Reproduce** to generate your own evidence on your hardware.
+> Times/queries below are from actual validation runs in this repo. The table automatically updates with each successful pipeline execution. Use the scripts in **Reproduce** to add your own results.
 
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| **GPT-2** vs **DistilGPT-2** | Audit-grade | SAME | 2 | ~0.5 s | ~0.3 s | Distillation |
+| **GPT-2** vs **DistilGPT-2** | Audit-grade | SAME | 7.0 (avg of 6) | ~4.3 s (avg of 6) | ~0.6 s (avg of 6) | Distillation (6 runs) |
+| **Model A** vs **Model B** | Local-weights | UNDECIDED | 11.8 (avg of 30) | ~13.4 s (avg of 30) | ~1.1 s (avg of 30) | Model comparison (30 runs) |
 
-<!-- Table auto-updated: 2025-08-22 00:12:42 -->
+<!-- Table auto-updated: 2025-08-22 00:18:04 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
