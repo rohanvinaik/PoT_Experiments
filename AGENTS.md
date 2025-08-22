@@ -7,7 +7,12 @@ This is the **Proof-of-Training (PoT)** framework - a comprehensive system for c
 ### Directory Structure
 ```
 PoT_Experiments/
-├── pot/                        # Core framework implementation
+├── pot/                       # Partial framework (some modules)
+│   └── verifier/              # New clean verifier implementation
+│       ├── core/              # Statistical testing and decision logic
+│       ├── lm/                # Model interfaces (HF, API, echo)
+│       └── logging/           # Audit trail generation
+├── src/pot/                   # Main framework implementation (moved here)
 │   ├── core/                  # Statistical verification & challenges
 │   ├── security/              # Cryptographic protocols
 │   ├── zk/                    # Zero-knowledge proof system
@@ -19,36 +24,49 @@ PoT_Experiments/
 │   ├── lm/                    # Language model verification
 │   ├── vision/                # Vision model verification
 │   └── prototypes/            # Training provenance auditor
-├── scripts/                   # Test runners and utilities
+├── scripts/                   # All executable scripts (organized)
 │   ├── run_all.sh            # Main validation pipeline
 │   ├── run_zk_validation.py  # ZK system validation
-│   └── benchmark_*.py        # Performance benchmarks
+│   ├── benchmark_*.py        # Performance benchmarks
+│   ├── analysis/             # Analysis and debugging tools
+│   ├── attack/               # Attack testing framework
+│   ├── colab/                # Google Colab scripts (30+ files)
+│   ├── monitoring/           # System monitoring tools
+│   ├── pipeline/             # Pipeline execution scripts
+│   └── utilities/            # Helper and utility scripts
+├── docs/                      # All documentation (organized)
+│   ├── analysis/             # Technical analysis reports
+│   ├── reports/              # Debug and test reports
+│   ├── validation/           # Validation evidence
+│   └── ablation_plots/       # Visualizations
+├── tests/                     # All test files (centralized)
+│   └── archived/             # Legacy test files
 ├── configs/                   # YAML configurations
-│   └── zk_config.yaml        # ZK system configuration
+├── manifests/                 # Experiment manifests
 ├── experimental_results/      # Test outputs and reports
-├── examples/                  # Usage examples
-└── tests/                     # Unit and integration tests
+├── data/                      # Data files
+└── src/pot/                   # Duplicate copy (can be ignored)
 ```
 
 ### Key Components
 
-1. **Statistical Verification** (`pot/core/`)
+1. **Statistical Verification** (`src/pot/core/`)
    - Challenge generation with KDF
    - Sequential testing with Empirical-Bernstein bounds
    - Enhanced diff decision framework
 
-2. **Zero-Knowledge Proofs** (`pot/zk/`)
+2. **Zero-Knowledge Proofs** (`src/pot/zk/`)
    - SGD training step proofs
    - LoRA fine-tuning proofs (7.9× faster)
    - Proof aggregation and compression
    - Dual commitment schemes (SHA-256 + Poseidon)
 
-3. **Security Features** (`pot/security/`)
+3. **Security Features** (`src/pot/security/`)
    - Fuzzy hashing (TLSH, SSDEEP)
    - Merkle tree provenance
    - Tamper detection
 
-4. **Monitoring & Health** (`pot/zk/monitoring.py`, `diagnostic.py`)
+4. **Monitoring & Health** (`src/pot/zk/monitoring.py`, `diagnostic.py`)
    - Real-time metrics collection
    - System health scoring
    - Alert management
@@ -58,7 +76,7 @@ PoT_Experiments/
 
 The codebase now includes an enhanced statistical difference testing framework with separate SAME/DIFFERENT decision rules. When working with model verification:
 
-1. **USE THE ENHANCED FRAMEWORK** - Located in `pot/core/diff_decision.py`:
+1. **USE THE ENHANCED FRAMEWORK** - Located in `src/pot/core/diff_decision.py`:
    - `EnhancedSequentialTester` - Separate SAME/DIFFERENT decision logic
    - `TestingMode.QUICK_GATE` - Fast initial checks (97.5% confidence, n_max=120)
    - `TestingMode.AUDIT_GRADE` - High precision (99% confidence, n_max=400)
@@ -89,13 +107,13 @@ The codebase now includes an enhanced statistical difference testing framework w
 When the user asks for Google Colab code or any test runners:
 
 1. **USE THE ACTUAL POT FRAMEWORK** - The codebase contains real verification algorithms in:
-   - `pot/core/` - Core verification logic
-   - `pot/security/` - Security components (fuzzy hash, provenance)
-   - `pot/lm/` - Language model verification
+   - `src/pot/core/` - Core verification logic
+   - `src/pot/security/` - Security components (fuzzy hash, provenance)
+   - `src/pot/lm/` - Language model verification
    - `scripts/` - Actual test scripts that run the framework
 
 2. **DO NOT CREATE SIMPLIFIED/MOCK VERSIONS** - The user needs to verify paper claims with real tests:
-   - Statistical identity verification must use `pot.core.diff_decision.EnhancedSequentialTester`
+   - Statistical identity verification must use `src.pot.core.diff_decision.EnhancedSequentialTester`
    - LLM verification must actually load and test models
    - Fuzzy hashing must use real algorithms (TLSH, SSDEEP)
    - Provenance must build actual Merkle trees
