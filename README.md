@@ -250,6 +250,35 @@ logs/                  # per-run summaries and metrics
 
 ---
 
+## Enhanced Decision Framework with Variance-Based Relationship Inference
+
+The framework now includes sophisticated variance analysis to identify structural model relationships rather than returning generic UNDECIDED results:
+
+### Model Relationship Categories
+
+| Relationship | Description | Statistical Signature |
+|--------------|-------------|----------------------|
+| **IDENTICAL** | Same model, same weights | Near-zero mean effect (<1e-6), minimal variance |
+| **SAME_ARCH_DIFFERENT_SCALE** | Same architecture, different parameter count (e.g., 125M vs 1.3B) | Moderate mean (0.001-0.5), moderate variance, stable CV<2.0 |
+| **SAME_ARCH_FINE_TUNED** | Fine-tuned or domain-adapted variant | Small mean (0.01-0.1), low-moderate variance |
+| **SAME_ARCH_QUANTIZED** | Same model with quantization | Specific variance patterns consistent with precision loss |
+| **DISTILLED** | Student-teacher relationship | Large stable difference (>0.5), low CV (<1.0) |
+| **DIFFERENT_ARCHITECTURE** | Fundamentally different models | High variance, unstable CV (>2.0) |
+| **NEAR_CLONE** | Almost identical with minor differences | Tiny differences (<0.001), very low variance |
+| **INCONCLUSIVE** | Cannot determine (reserved for true errors) | Patterns don't match known relationships |
+
+### Variance Signature Analysis
+
+The enhanced framework computes a comprehensive variance signature including:
+- **Coefficient of Variation (CV)**: std_dev/mean - stability metric
+- **Variance Ratio**: Comparison to expected baseline variance
+- **Normalized Variance**: Variance normalized by effect size squared
+- **Stability Score**: CV × √n - convergence metric
+
+This approach transforms UNDECIDED results into actionable insights about model relationships, providing a statistical "birth certificate" that reveals training lineage.
+
+---
+
 ## Roadmap
 
 - **Adversarial/robustness test suite** with named conditions and CI-backed error rates  
@@ -257,12 +286,8 @@ logs/                  # per-run summaries and metrics
 - **Evidence UX**: single-file signed bundle + verifier tool  
 - **Active-learning challenge selection** to further reduce queries  
 - **Multi-modal** extensions (vision/audio) where applicable
-- **Variance-based model relationship inference** ("Birth Certificate" analysis):
-  - When observed variance differs from expected statistical properties, this reveals underlying model relationships
-  - Higher-than-expected variance may indicate architectural differences, quantization, or distillation
-  - Lower-than-expected variance could suggest fine-tuning or near-clone relationships
-  - Multiple runs with convergence analysis (similar to GenomeVault's repetition-based certainty) could amplify confidence from 99% to 99.99%+ through mathematical error convergence
-  - This variance signature acts as a statistical "birth certificate" revealing the model's training lineage
+- **Production deployment** of enhanced variance-based relationship inference
+- **Calibration framework** for expected variance baselines per architecture family
 
 ---
 
