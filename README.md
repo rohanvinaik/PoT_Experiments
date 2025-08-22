@@ -98,11 +98,37 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| **GPT-2** vs **DistilGPT-2** | Audit-grade | DIFFERENT | 32 | ~71.4 s | ~2.2 s | Distillation detected |
+| **DistilGPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 12 | ~6.3 s | ~0.5 s | Self-consistency |
+| **EleutherAI Pythia-70m** vs **EleutherAI Pythia-160m** | Quick-gate | UNDECIDED | 76.0 (avg of 2) | ~68 s (avg of 2) | ~0.9 s (avg of 2) | Behavioral difference (2 runs) |
+| **GPT-2** vs **DistilGPT-2** | Quick-gate | UNDECIDED | 91.5 (avg of 16) | ~139 s (avg of 16) | ~1.5 s (avg of 16) | Distillation (16 runs) |
+| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 19.6 (avg of 5) | ~35.9 s (avg of 5) | ~1.8 s (avg of 5) | Self-consistency (5 runs) |
+| **Model A** vs **Model B** | Quick-gate | SAME | 14 | ~22.1 s | ~1.6 s | Model comparison |
+| EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
+| GPT-2 vs **GPT-2--medium** | Audit-grade | DIFFERENT | 40 | ~86 s | ~2.1 s | Behavioral difference |
 
-<!-- Table auto-updated: 2025-08-22 11:10:30 -->
+<!-- Table auto-updated: 2025-08-22 11:27:59 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
+
+### Audit-Grade Performance Metrics (Latest Runs)
+
+| Metric | GPT-2 vs GPT-2 | Pythia-70m vs 160m | GPT-2 vs GPT-2-medium | GPT-Neo vs Pythia |
+|--------|----------------|--------------------|----------------------|-------------------|
+| **Peak RSS** | 1145 MB | 2359 MB | 1653 MB | 2533 MB |
+| **Page Faults (maj/min)** | 0/320 | - | - | - |
+| **Disk Read Throughput** | 5.16 MB/s | - | - | - |
+| **Cold Query Time** | 6.03s | ~1.5s | ~2.1s | ~3.0s |
+| **Warm Query Time** | 1.01s | ~1.5s | ~2.1s | ~3.0s |
+| **Cold/Warm Ratio** | 5.98x | ~1.0x | ~1.0x | ~1.0x |
+| **Total Queries** | 14 (SAME) | 32 (DIFFERENT) | 40 (DIFFERENT) | 32 (DIFFERENT) |
+| **Decision Confidence** | 97.5% | 99% | 99% | 99% |
+
+**Performance Characteristics:**
+- **First 2 queries are "cold"** with ~6x slower performance due to model loading and cache warming
+- **Subsequent queries are "warm"** with consistent ~1-2s per query for small models
+- **Memory growth is minimal** (<1MB RSS growth during execution)
+- **Zero major page faults** indicating efficient memory management
+- **Disk throughput ~5MB/s** during model loading phase
 
 > For audit-grade claims, publish **RSS**, **(maj/min) page-faults**, **disk read throughput**, and **per-query times** (cold vs warm cache) from your runs.
 

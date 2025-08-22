@@ -140,6 +140,7 @@ ls -la /Users/rohanvinaik/LLM_Models/  # Verify models exist
 | ZK tests fail | Use `--skip-zk` flag or install Rust |
 | Out of memory | Use smaller models or `--skip-zk` |
 | Models not found | Use open models (gpt2, distilgpt2) |
+| CI/CD components warnings | Normal if `tests.fixtures` not installed - core PoT still works |
 
 ### Emergency Reset
 ```bash
@@ -156,9 +157,14 @@ bash scripts/run_all.sh --skip-zk
 - **Security Tests**: 80%+ accuracy for fuzzy hashing
 - **ZK Tests**: Health score >70/100
 - **Performance**: 
-  - Small models: 1-2 sec/query
+  - Small models (GPT-2, DistilGPT-2): ~2.2 sec/query
   - Medium (Pythia): ~1 sec/query
   - Large (7B+): 8-10 sec/query
+- **Self-consistency (SAME model)**: 
+  - Audit mode: ~30 queries, 99% confidence
+  - Decision time: ~65 seconds for GPT-2
+- **Distillation detection (DIFFERENT models)**:
+  - GPT-2 vs DistilGPT-2: ~32 queries, effect size ~13
 
 ## Dependencies
 
@@ -187,6 +193,8 @@ The main `run_e2e_validation.py` script now includes:
 - **Evidence bundle generation** with cryptographic signing
 - **Performance dashboards** with metrics visualization
 - **Test data management** for CI testing environments
+- **Automatic README table updates** with rolling metrics tracking
+- **HTML report generation** for human-readable validation results
 
 ## Creating Custom Manifests
 

@@ -1,0 +1,26 @@
+{
+  "test_config": {
+    "ref_model": "gpt2",
+    "cand_model": "gpt2",
+    "mode": "quick",
+    "max_challenges": 10
+  },
+  "performance_metrics": {
+    "total_duration_seconds": 3.3342809677124023,
+    "peak_rss_mb": 20.15625,
+    "baseline_rss_mb": 19.53125,
+    "rss_growth_mb": 0.625,
+    "page_faults": {
+      "minor": 244,
+      "major": 0
+    },
+    "disk_read_throughput_mb_s": 0.0,
+    "query_metrics": {
+      "total_queries": 0,
+      "avg_cold_query_seconds": 0,
+      "avg_warm_query_seconds": 0,
+      "cold_warm_ratio": 0
+    }
+  },
+  "timestamp": "2025-08-22T11:26:56.186310"
+}

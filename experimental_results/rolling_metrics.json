@@ -1,6 +1,6 @@
 {
-  "total_runs": 2,
-  "successful_runs": 2,
+  "total_runs": 7,
+  "successful_runs": 7,
   "timing_samples": [
     {
       "t_per_query": 2.285130023956299,
@@ -11,6 +11,31 @@
       "t_per_query": 2.18,
       "t_total": 69.76,
       "hardware": "mps"
+    },
+    {
+      "t_per_query": 2.1749228636423745,
+      "t_total": 65.24768590927124,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 1.5163802802562714,
+      "t_total": 48.524168968200684,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 2.1410890460014342,
+      "t_total": 85.64356184005737,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 3.000086970627308,
+      "t_total": 96.00278306007385,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 1.5787439005715507,
+      "t_total": 22.10241460800171,
+      "hardware": "unknown"
     }
   ],
   "statistical_samples": [
@@ -29,7 +54,37 @@
       "effect_size": 12.57,
       "model_a": "gpt2",
       "model_b": "distilgpt2"
+    },
+    {
+      "decision": "SAME",
+      "confidence": 0.99,
+      "n_used": 30,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 40,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "SAME",
+      "confidence": 0.975,
+      "n_used": 14,
+      "effect_size": 0.0
     }
   ],
-  "last_updated": "2025-08-22T11:10:04.951001"
+  "last_updated": "2025-08-22T11:27:59.641334"
 }
