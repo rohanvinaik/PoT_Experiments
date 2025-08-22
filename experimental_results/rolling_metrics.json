@@ -1,6 +1,6 @@
 {
-  "total_runs": 48,
-  "successful_runs": 48,
+  "total_runs": 50,
+  "successful_runs": 50,
   "zk_pipeline_runs": 1,
   "interface_test_runs": 1,
   "timing_samples": [
@@ -233,6 +233,16 @@
       "t_per_query": 0.7336965004603068,
       "t_total": 8.805124998092651,
       "hardware": "mps"
+    },
+    {
+      "t_per_query": 3.9157104094823203,
+      "t_total": 46.98852491378784,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 0.5821104844411215,
+      "t_total": 6.985325813293457,
+      "hardware": "unknown"
     }
   ],
   "statistical_samples": [
@@ -511,6 +521,18 @@
       "confidence": 0.0,
       "n_used": 12,
       "effect_size": 11.90629768371582
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.975,
+      "n_used": 12,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.975,
+      "n_used": 12,
+      "effect_size": 0.0
     }
   ],
   "zk_proof_samples": [
@@ -527,5 +549,5 @@
       "verified": true
     }
   ],
-  "last_updated": "2025-08-21T11:43:09.857761"
+  "last_updated": "2025-08-22T06:31:36.361901"
 }

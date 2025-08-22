@@ -10,7 +10,9 @@ class LM:
 
     @torch.no_grad()
     def generate(self, prompt: str, max_new_tokens: int = 64):
-        ids = self.tok(prompt, return_tensors="pt").to(self.device)
+        ids = self.tok(prompt, return_tensors="pt")
+        # Move input tensors to device
+        ids = {k: v.to(self.device) for k, v in ids.items()}
         out = self.m.generate(
             **ids, 
             do_sample=False, 

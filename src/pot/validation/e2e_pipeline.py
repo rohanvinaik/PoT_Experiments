@@ -276,11 +276,13 @@ class PipelineOrchestrator:
             else:
                 if self.config.verification_mode == VerificationMode.LOCAL_WEIGHTS:
                     # Load real local models via LM wrapper
+                    import torch
+                    device = "mps" if torch.backends.mps.is_available() else "cpu"
                     self._log(
-                        f"Loading local models: {ref_model_path}, {cand_model_path}"
+                        f"Loading local models on {device}: {ref_model_path}, {cand_model_path}"
                     )
-                    ref_model = LM(ref_model_path, device="cpu")
-                    cand_model = LM(cand_model_path, device="cpu")
+                    ref_model = LM(ref_model_path, device=device)
+                    cand_model = LM(cand_model_path, device=device)
                 else:
                     # API mode - create simple client objects
                     self._log("Connecting to API endpoints")
@@ -343,8 +345,10 @@ class PipelineOrchestrator:
                 prompts = []
                 challenge_metadata = []  # Store minimal metadata
                 
-                self._log(f"Generating {len(challenge_seeds)} challenge prompts...")
+                self._log(f"Starting challenge generation for {len(challenge_seeds)} seeds...")
                 for i, seed in enumerate(challenge_seeds):
+                    if i % 10 == 0:
+                        self._log(f"  Generated {i}/{len(challenge_seeds)} challenges...")
                     cfg = ChallengeConfig(
                         master_key_hex=self.config.hmac_key,
                         session_nonce_hex=session_nonce,
@@ -386,18 +390,66 @@ class PipelineOrchestrator:
                         # Shouldn't happen with proper n_max
                         return prompts[0]
                 
-                # Scoring function using fuzzy distance between model outputs
+                # Proper cross-entropy scoring function with K positions
                 def score_fn(ref, cand, prompt, K=32):
+                    """
+                    Compute cross-entropy difference at K random positions
+                    Following the PoT paper methodology
+                    """
                     try:
-                        ref_out = ref.generate(prompt, max_new_tokens=64)
-                        cand_out = cand.generate(prompt, max_new_tokens=64)
-                        # Simple normalized edit distance as score
-                        import difflib
-                        score = 1.0 - difflib.SequenceMatcher(None, ref_out, cand_out).ratio()
-                        return min(max(score, 0.0), 1.0)
+                        import torch
+                        import torch.nn.functional as F
+                        import random
+                        
+                        # Tokenize prompt
+                        ref_inputs = ref.tok(prompt, return_tensors="pt")
+                        ref_input_ids = ref_inputs.input_ids.to(ref.device)
+                        
+                        # Get logits from both models
+                        with torch.no_grad():
+                            ref_outputs = ref.m(ref_input_ids)
+                            ref_logits = ref_outputs.logits[0]  # [seq_len, vocab_size]
+                            
+                            cand_outputs = cand.m(ref_input_ids.to(cand.device))
+                            cand_logits = cand_outputs.logits[0]  # [seq_len, vocab_size]
+                        
+                        # Sample K random positions (excluding first token)
+                        seq_len = ref_logits.shape[0]
+                        if seq_len <= 1:
+                            return 0.0
+                        
+                        # Sample min(K, seq_len-1) positions
+                        n_positions = min(K, seq_len - 1)
+                        positions = random.sample(range(1, seq_len), n_positions)
+                        
+                        # Compute cross-entropy at sampled positions
+                        ce_scores = []
+                        for pos in positions:
+                            # Get target token at this position
+                            target_token = ref_input_ids[0, pos]
+                            
+                            # Get distributions at position pos-1 (predicting token at pos)
+                            ref_dist = F.softmax(ref_logits[pos-1], dim=-1)
+                            cand_dist = F.softmax(cand_logits[pos-1], dim=-1)
+                            
+                            # Cross-entropy: -log(p_cand(target_token))
+                            # Higher CE means model assigns lower probability to target
+                            cand_ce = -torch.log(cand_dist[target_token] + 1e-10)
+                            ref_ce = -torch.log(ref_dist[target_token] + 1e-10)
+                            
+                            # Difference: positive if candidate is worse at predicting
+                            ce_diff = (cand_ce - ref_ce).item()
+                            ce_scores.append(ce_diff)
+                        
+                        # Return mean cross-entropy difference
+                        # Positive score = candidate worse than reference
+                        # Negative score = candidate better than reference
+                        # Near zero = similar models
+                        return sum(ce_scores) / len(ce_scores) if ce_scores else 0.0
+                        
                     except Exception as e:
-                        self._log(f"Warning: Score computation failed: {e}", level="WARNING")
-                        return 0.5  # Neutral score on error
+                        self._log(f"Warning: CE score computation failed: {e}", level="WARNING")
+                        return 0.0  # Neutral score on error
                 
                 # Create and run verifier
                 verifier = DifferenceVerifier(
@@ -424,6 +476,33 @@ class PipelineOrchestrator:
                 
                 self.evidence_bundle["challenges"] = challenges_used
                 self.evidence_bundle["challenges_used"] = prompts_used
+                
+                # Add fuzzy hashing as secondary verification
+                try:
+                    from pot.lm.fuzzy_hash import FuzzyHasher
+                    hasher = FuzzyHasher()
+                    
+                    # Generate sample outputs for fuzzy hashing
+                    sample_prompts = prompts[:min(5, len(prompts))]
+                    ref_outputs = []
+                    cand_outputs = []
+                    
+                    for sp in sample_prompts:
+                        ref_out = ref_model.generate(sp, max_new_tokens=50)
+                        cand_out = cand_model.generate(sp, max_new_tokens=50)
+                        ref_outputs.append(ref_out)
+                        cand_outputs.append(cand_out)
+                    
+                    # Compute fuzzy similarity
+                    ref_hash = hasher.hash(" ".join(ref_outputs))
+                    cand_hash = hasher.hash(" ".join(cand_outputs))
+                    fuzzy_similarity = hasher.similarity(ref_hash, cand_hash)
+                    
+                    self.evidence_bundle["fuzzy_similarity"] = fuzzy_similarity
+                    self._log(f"Fuzzy hash similarity: {fuzzy_similarity:.3f}")
+                except Exception as e:
+                    self._log(f"Warning: Fuzzy hashing failed: {e}", level="WARNING")
+                    self.evidence_bundle["fuzzy_similarity"] = None
                 
                 result = {
                     "decision": report["results"]["decision"],
