@@ -1,5 +1,64 @@
 # PoT Framework - Critical Instructions for Claude
 
+## CRITICAL MISTAKES TO AVOID ("Sin Bucket") - READ THIS FIRST!
+
+### 1. NEVER Run Large/Multiple Tests Concurrently
+**WRONG:**
+```bash
+# Running multiple huge tests at once - CAUSES OOM AND SYSTEM CRASHES
+python test1.py & python test2.py & python test3.py &  # WRONG
+parallel -j4 python test.py ::: model1 model2 model3 model4  # WRONG
+```
+
+**CORRECT:**
+```bash
+# Run tests sequentially, especially for large models
+python scripts/run_memory_safe_validation.py --enforce-sequential
+python test1.py && python test2.py && python test3.py  # Sequential execution
+```
+
+### 2. NEVER Create Simplified/Mock Tests When Encountering Issues
+**WRONG:**
+```python
+# Creating a "simpler" test when the real test fails
+def simple_mock_test():  # WRONG - defeats the purpose
+    return {"result": "passed", "confidence": 0.99}
+```
+
+**CORRECT:**
+```python
+# Use the actual framework, fix the root cause
+# If OOM: Use memory-safe runner with --max-memory 25
+# If timeout: Increase timeout or use --skip-zk
+# If missing deps: Install them, don't mock them
+```
+
+### 3. NEVER Use Fixed Query Limits
+**WRONG:**
+```bash
+python scripts/run_e2e_validation.py --max-queries 10  # WRONG - defeats sequential testing
+python scripts/run_e2e_validation.py --max-queries 50  # WRONG - hardcoded limit
+```
+
+**CORRECT:**
+```bash
+python scripts/run_e2e_validation.py --mode quick    # Let framework decide queries dynamically
+python scripts/run_e2e_validation.py --mode audit    # Framework uses statistical confidence
+```
+
+The entire point of the sequential testing framework is to **dynamically determine** the number of queries needed based on statistical confidence. The framework will:
+- Stop early (10-30 queries) when models are clearly SAME or DIFFERENT
+- Continue longer (up to mode limits) when confidence is insufficient
+- Use mode-specific limits: QUICK (120), AUDIT (400), EXTENDED (800)
+
+**DO NOT** override this with --max-queries unless explicitly testing edge cases.
+
+### 4. NEVER Create Mock/Simplified Tests
+Always use the real PoT framework - tests should take minutes and generate real metrics.
+
+### 5. NEVER Run Large Models in Parallel
+Models >5GB must run sequentially with proper memory management.
+
 ## Overview
 **Proof-of-Training (PoT)** - Cryptographic verification framework for neural network training integrity with black-box behavioral verification and zero-knowledge proof generation.
 
@@ -295,33 +354,6 @@ experiments:
       model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
 ```
 
-## CRITICAL MISTAKES TO AVOID ("Sin Bucket")
-
-### 1. NEVER Use Fixed Query Limits
-**WRONG:**
-```bash
-python scripts/run_e2e_validation.py --max-queries 10  # WRONG - defeats sequential testing
-python scripts/run_e2e_validation.py --max-queries 50  # WRONG - hardcoded limit
-```
-
-**CORRECT:**
-```bash
-python scripts/run_e2e_validation.py --mode quick    # Let framework decide queries dynamically
-python scripts/run_e2e_validation.py --mode audit    # Framework uses statistical confidence
-```
-
-The entire point of the sequential testing framework is to **dynamically determine** the number of queries needed based on statistical confidence. The framework will:
-- Stop early (10-30 queries) when models are clearly SAME or DIFFERENT
-- Continue longer (up to mode limits) when confidence is insufficient
-- Use mode-specific limits: QUICK (120), AUDIT (400), EXTENDED (800)
-
-**DO NOT** override this with --max-queries unless explicitly testing edge cases.
-
-### 2. NEVER Create Mock/Simplified Tests
-Always use the real PoT framework - tests should take minutes and generate real metrics.
-
-### 3. NEVER Run Large Models in Parallel
-Models >5GB must run sequentially with proper memory management.
 
 ## Remember
 This framework validates academic paper claims. **Never create mock tests** - always use the real PoT framework code. Tests should be comprehensive and take several minutes to run, generating real metrics and evidence bundles.
