@@ -6,6 +6,13 @@ Tests GPT-2 vs DistilGPT-2 and GPT-2 vs GPT-2-medium using your existing framewo
 No HuggingFace tokens required - all models are public.
 """
 
+import pytest
+
+pytest.skip(
+    "colab environment test script – skipped in automated test runs",
+    allow_module_level=True,
+)
+
 import os
 import sys
 import subprocess

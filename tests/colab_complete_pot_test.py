@@ -10,6 +10,13 @@ To run in Google Colab:
 2. Run: !python colab_complete_pot_test.py
 """
 
+import pytest
+
+pytest.skip(
+    "colab environment test script – skipped in automated test runs",
+    allow_module_level=True,
+)
+
 import os
 import sys
 import json
