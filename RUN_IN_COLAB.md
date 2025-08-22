@@ -1,5 +1,8 @@
 # Running PoT Tests in Google Colab
 
+All Colab-specific helper scripts live in `scripts/colab/`, and associated notebooks
+are stored in `notebooks/colab/`.
+
 ## Quick Start (One-Click Setup)
 
 1. **Open Google Colab**: https://colab.research.google.com/
@@ -10,7 +13,7 @@
 # One-click PoT Test Suite for Google Colab
 !rm -rf PoT_Experiments  # Clean any previous clone
 !git clone https://github.com/rohanvinaik/PoT_Experiments.git
-!cd PoT_Experiments && python colab_all_pot_tests.py
+!cd PoT_Experiments && python scripts/colab/run_all_colab.py
 ```
 
 ## That's it! The notebook will:
@@ -21,9 +24,9 @@
 
 ## Using the Full Notebook
 
-For more control and visibility, you can use the complete notebook:
+For more control and visibility, you can use the comprehensive runner script:
 
-1. **Download**: `colab_all_pot_tests.py` from this repository
+1. **Download**: `scripts/colab/colab_run_all.py` from this repository
 2. **Upload to Colab**: File → Upload notebook
 3. **Run all cells**: Runtime → Run all
 
