@@ -16,7 +16,20 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
-import numpy as np# Import core PoT modules with proper fallback handling
+import numpy as np
+
+# Import performance monitoring
+try:
+    from src.pot.utils.performance_metrics import PerformanceMonitor, create_performance_monitor
+except ImportError:
+    try:
+        from pot.utils.performance_metrics import PerformanceMonitor, create_performance_monitor
+    except ImportError:
+        # Fallback if performance monitoring not available
+        PerformanceMonitor = None
+        create_performance_monitor = None
+
+# Import core PoT modules with proper fallback handling
 try:
     # Try absolute imports from src path first
     from src.pot.core.diff_decision import (
@@ -180,6 +193,15 @@ class PipelineOrchestrator:
         self.current_stage = PipelineStage.INITIALIZATION
         self.stage_metrics: Dict[PipelineStage, StageMetrics] = {}
         self.run_id = f"validation_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Initialize performance monitor if available
+        self.performance_monitor = None
+        if create_performance_monitor and self.config.enable_memory_tracking:
+            try:
+                self.performance_monitor = create_performance_monitor()
+                self._log(f"Performance monitor initialized successfully", level="DEBUG")
+            except Exception as e:
+                print(f"Warning: Could not initialize performance monitor: {e}")
         self.evidence_bundle = {}
         self.process = psutil.Process()
         
@@ -567,7 +589,7 @@ class PipelineOrchestrator:
                         return prompts[0]
                 
                 # Proper cross-entropy scoring function with generation
-                def score_fn(ref, cand, prompt, K=32):
+                def score_fn_base(ref, cand, prompt, K=32):
                     """
                     Generate K tokens and compute cross-entropy difference
                     Following the cryptographic PoT paper methodology
@@ -624,6 +646,21 @@ class PipelineOrchestrator:
                     except Exception as e:
                         self._log(f"Warning: CE score computation failed: {e}", level="WARNING")
                         return 0.0  # Neutral score on error
+                
+                # Wrap score function with performance monitoring
+                def score_fn(ref, cand, prompt, K=32):
+                    """Wrapper that adds performance monitoring to score computation"""
+                    if self.performance_monitor:
+                        self.performance_monitor.start_query()
+                    
+                    result = score_fn_base(ref, cand, prompt, K)
+                    
+                    if self.performance_monitor:
+                        self.performance_monitor.end_query()
+                        # Record checkpoint after each query
+                        self.performance_monitor.record_checkpoint(f"query_{self.performance_monitor.query_count}")
+                    
+                    return result
                 
                 # Use adaptive verification if enabled
                 if self.config.enable_adaptive:
@@ -774,6 +811,16 @@ class PipelineOrchestrator:
         metrics = self._start_stage(PipelineStage.EVIDENCE_GENERATION)
         
         try:
+            # Add performance metrics to evidence bundle if available
+            if self.performance_monitor:
+                perf_metrics = self.performance_monitor.get_evidence_metrics()
+                self.evidence_bundle["performance_metrics"] = perf_metrics
+                self._log(f"Added performance metrics to evidence bundle: {perf_metrics.get('performance', {}).get('total_queries', 0)} queries tracked", level="DEBUG")
+                
+                # Also add to stage metrics for visibility
+                if "verification" in self.stage_metrics:
+                    self.stage_metrics["verification"].metadata["performance"] = perf_metrics["performance"]
+            
             # Compile all evidence
             # Convert config to dictionary, handling Path objects
             config_dict = {}
@@ -798,6 +845,7 @@ class PipelineOrchestrator:
                 'verification': self.evidence_bundle.get('verification', {}),
                 'transcript_merkle_root': self.evidence_bundle.get('transcript_merkle_root', ''),
                 'transcript_entries': self.evidence_bundle.get('transcript_entries', 0),
+                'performance_metrics': self.evidence_bundle.get('performance_metrics', {}),
                 'metrics': {
                     stage.value: metrics.to_dict() 
                     for stage, metrics in self.stage_metrics.items()

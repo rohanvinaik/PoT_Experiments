@@ -583,9 +583,17 @@ class ReadmeTableUpdater:
                         except Exception as e:
                             logger.debug(f"Could not read evidence bundle {evidence_path}: {e}")
                     
-                    # Check evidence for performance metrics
-                    if evidence and 'performance' in evidence.get('metrics', {}):
-                        perf = evidence['metrics']['performance']
+                    # Check evidence for performance metrics (try both locations)
+                    perf = None
+                    if evidence:
+                        # Check new location first
+                        if 'performance_metrics' in evidence and 'performance' in evidence['performance_metrics']:
+                            perf = evidence['performance_metrics']['performance']
+                        # Fall back to old location
+                        elif 'metrics' in evidence and 'performance' in evidence['metrics']:
+                            perf = evidence['metrics']['performance']
+                    
+                    if perf:
                         if pair_key not in perf_metrics:
                             perf_metrics[pair_key] = {}
                         

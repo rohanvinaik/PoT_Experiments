@@ -99,15 +99,15 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
 | **DistilGPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 21.0 (avg of 2) | ~23.7 s (avg of 2) | ~1.1 s (avg of 2) | Self-consistency (2 runs) |
-| **EleutherAI Pythia-70m** vs **EleutherAI Pythia-160m** | Quick-gate | UNDECIDED | 76.0 (avg of 2) | ~68 s (avg of 2) | ~0.9 s (avg of 2) | Behavioral difference (2 runs) |
 | **EleutherAI Pythia-70m** vs **EleutherAI Pythia-70m** | Audit-grade | SAME | 30 | ~43.7 s | ~1.5 s | Self-consistency |
 | **EleutherAI gpt-neo-125m** vs **EleutherAI gpt-neo-1.3b** | Audit-grade | UNDECIDED | 100 | ~287 s | ~2.9 s | Model comparison |
-| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 22.6 (avg of 7) | ~37.8 s (avg of 7) | ~1.7 s (avg of 7) | Self-consistency (7 runs) |
-| **Model A** vs **Model B** | Quick-gate | UNDECIDED | 57.0 (avg of 2) | ~155 s (avg of 2) | ~2.7 s (avg of 2) | Model comparison (2 runs) |
+| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 25.3 (avg of 11) | ~45.2 s (avg of 11) | ~1.8 s (avg of 11) | Self-consistency (11 runs) |
 | DistilGPT-2 vs **GPT-2** | Audit-grade | DIFFERENT | 30 | ~42.8 s | ~1.4 s | Distillation |
+| EleutherAI Pythia-70m vs **EleutherAI Pythia-160m** | Quick-gate | DIFFERENT | 76.0 (avg of 2) | ~68 s (avg of 2) | ~0.9 s (avg of 2) | Behavioral difference (2 runs) |
 | EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
+| GPT-2 vs **DistilGPT-2** | Quick-gate | DIFFERENT | 75.9 (avg of 22) | ~120 s (avg of 22) | ~1.6 s (avg of 22) | Distillation (22 runs) |
 
-<!-- Table auto-updated: 2025-08-22 12:02:23 -->
+<!-- Table auto-updated: 2025-08-22 12:31:10 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 

@@ -70,8 +70,8 @@ class PerformanceMonitor:
         
         # Baseline metrics
         self.start_time = time.time()
+        self.peak_rss = 0.0  # Initialize before calling _capture_system_metrics
         self.baseline_metrics = self._capture_system_metrics()
-        self.peak_rss = 0.0
         
         # Query tracking
         self.query_count = 0
