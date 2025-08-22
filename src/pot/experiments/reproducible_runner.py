@@ -436,7 +436,7 @@ class ReproducibleExperimentRunner:
         else:
             return {}
     
-    def _execute_single_challenge(self, challenge: Challenge, family_name: str) -> ExperimentResult:
+    def _execute_single_challenge(self, challenge: 'Challenge', family_name: str) -> 'ExperimentResult':
         """Execute a single challenge and return result."""
         start_time = time.time()
         
@@ -482,7 +482,7 @@ class ReproducibleExperimentRunner:
         
         return result
     
-    def perform_sequential_decision(self, challenges: List[Challenge]) -> SPRTResult:
+    def perform_sequential_decision(self, challenges: List['Challenge']) -> 'SPRTResult':
         """
         Implement sequential testing across multiple challenges.
         

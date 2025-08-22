@@ -1,0 +1,708 @@
+{
+  "run_id": "validation_20250822_002315",
+  "timestamp": "2025-08-22T00:23:25.988818",
+  "config": {
+    "testing_mode": "AUDIT",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": false,
+    "benchmark_mode": false,
+    "max_queries": 400,
+    "hmac_key": "8391a613a77674b41f408d7428a1175f3c11d9e9b1fec942dc60881f998f78d8",
+    "verbose": false
+  },
+  "pre_commit": {
+    "n_challenges": 32,
+    "hmac_key": "8391a613a77674b41f408d7428a1175f3c11d9e9b1fec942dc60881f998f78d8",
+    "run_id": "validation_20250822_002315",
+    "commitment": "b49244d19720460ec25876d7f564568d39e00dea02ecdd53ac04a8ca3d9fbb4c",
+    "seeds": [
+      "6c32bfb5fa44c44f573d795ae98c14c61457576a5b5c1c24b98f1543400e6086",
+      "da441d27f81775fdf6e28281b4dbc5de2464945cd1f74e2c37bc3d436203c986",
+      "f7c1eb8e86d7acbd7b7287a8258d23f70acbad5ff9a20fa788107bc2188eec54",
+      "88efe13811e4863c419b1c71d5c9305264f7e9cabcac5a55c763d4bad9cabf17",
+      "8a16a45d1adea41ccd6f3f965298d54a705ed467e85f399afd5a2ed18423874d",
+      "13e54d782b75954c6696a1a8fa9cb500c36744e051b51c5f304474b4525053bc",
+      "54f3e5e996b01ccff0bced48fb7dd6640b5acec2822ae11b3d142d08b38c92cc",
+      "17ae06afc7c231331d7e920159f35b7580aeae590bfbd8d7387eb04df2445a5a",
+      "017ccc19a46f0a52cdacfaea2593f8371fdc4452625108e62d0beaa778bad358",
+      "d96e66194be6fbb3b2c08443964b4f2ab9417883d1c95219941d470549931b41",
+      "8e754ef4571a97c8ecb68376bcbfb978ec919b344b6931350de92150a76bbf8a",
+      "8fd655d4e9526f29f68cd85ed7a0f482c6f633efe723868f73479f5e511baea6",
+      "0b385c071aba6f44121534515dac9182cff3602e568aaf1acdfa11cde11c060c",
+      "4376c7363f51404c2629f38edcc2fb4335dc2650ac9a1bcd7d67cfa6c1d64c43",
+      "109b4161eed2f099003b4eaf2718079c1456674fcd013a0070d3a1102dec0d10",
+      "f6c9637ba59aa56a9f10050c50216b3e0094a860392f521ead05b17ecd86d6b3",
+      "bbf2d01b8c2b8f5f8ef43fc9d957c97b0f39eb797a91edb47138682abf5eab75",
+      "3cfba443ef09aa44091ef48be367583e7a9a2065fb4f02d13d7114b9c6fb5461",
+      "0f6cf51b9d0d14f73ec9adf6f4436b40aca58d25f233ffce050e34865b9753ad",
+      "e6a6d28fa08a8c35d1cfeef14e793b74807302cc3ba2838260bf6cf7af6f6927",
+      "1f4566d628069ec0a4756ecbb86b327299621583787883b6a7cef561d46d1e12",
+      "e0dedcba4f0c9d9a8b2c8aa5d86e8585c06ceb80959dba17bb9b312bfbdc1fc7",
+      "1f16fe832ffb4a8752df9965fa9d6cea694f58d8b6830ef7043ae616ca3f530b",
+      "20adfabbad8d1d51f7a1d3cb9dece52148b56bad56cbc431ad98a1c729d34c46",
+      "60cae2f4e3aa2a26b2d3f94b4163988be40482e811cb702d983e2cc6921f7915",
+      "d8e63ad34c230bbae41d18ece61658add679c34f7332079340a3e94ee2617136",
+      "e7247c226b8d3be6a72638582db80cf247d6570bb657844b99b021e210885263",
+      "1a7dbbaf799fe579590b4b77973bbc77a2c742ff8829d3955d0ddc08e5c8d3f4",
+      "0764a43423497892f6a82bd9f073980114bccc3766f08aa51e4b1c642a7f16e9",
+      "676f611fbc0d730d9b82bb4e55ff7903b82122159aad0eb65da8afb9a85b90df",
+      "ae0bf86fb0ea0383b818b82a948a631ced570442b99d2f94583f490d1e6a0385",
+      "b105d772ea986b409544a923ea323d0c22167f8c72ab3ab8185f23f547cfdb68"
+    ]
+  },
+  "challenges": [
+    {
+      "id": "challenge_000",
+      "seed": "6c32bfb5fa44c44f573d795ae98c14c61457576a5b5c1c24b98f1543400e6086",
+      "prompt": "Challenge prompt generated from seed 6c32bfb5...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 0
+      }
+    },
+    {
+      "id": "challenge_001",
+      "seed": "da441d27f81775fdf6e28281b4dbc5de2464945cd1f74e2c37bc3d436203c986",
+      "prompt": "Challenge prompt generated from seed da441d27...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 1
+      }
+    },
+    {
+      "id": "challenge_002",
+      "seed": "f7c1eb8e86d7acbd7b7287a8258d23f70acbad5ff9a20fa788107bc2188eec54",
+      "prompt": "Challenge prompt generated from seed f7c1eb8e...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 2
+      }
+    },
+    {
+      "id": "challenge_003",
+      "seed": "88efe13811e4863c419b1c71d5c9305264f7e9cabcac5a55c763d4bad9cabf17",
+      "prompt": "Challenge prompt generated from seed 88efe138...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 3
+      }
+    },
+    {
+      "id": "challenge_004",
+      "seed": "8a16a45d1adea41ccd6f3f965298d54a705ed467e85f399afd5a2ed18423874d",
+      "prompt": "Challenge prompt generated from seed 8a16a45d...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 4
+      }
+    },
+    {
+      "id": "challenge_005",
+      "seed": "13e54d782b75954c6696a1a8fa9cb500c36744e051b51c5f304474b4525053bc",
+      "prompt": "Challenge prompt generated from seed 13e54d78...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 5
+      }
+    },
+    {
+      "id": "challenge_006",
+      "seed": "54f3e5e996b01ccff0bced48fb7dd6640b5acec2822ae11b3d142d08b38c92cc",
+      "prompt": "Challenge prompt generated from seed 54f3e5e9...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 6
+      }
+    },
+    {
+      "id": "challenge_007",
+      "seed": "17ae06afc7c231331d7e920159f35b7580aeae590bfbd8d7387eb04df2445a5a",
+      "prompt": "Challenge prompt generated from seed 17ae06af...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 7
+      }
+    },
+    {
+      "id": "challenge_008",
+      "seed": "017ccc19a46f0a52cdacfaea2593f8371fdc4452625108e62d0beaa778bad358",
+      "prompt": "Challenge prompt generated from seed 017ccc19...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 8
+      }
+    },
+    {
+      "id": "challenge_009",
+      "seed": "d96e66194be6fbb3b2c08443964b4f2ab9417883d1c95219941d470549931b41",
+      "prompt": "Challenge prompt generated from seed d96e6619...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 9
+      }
+    },
+    {
+      "id": "challenge_010",
+      "seed": "8e754ef4571a97c8ecb68376bcbfb978ec919b344b6931350de92150a76bbf8a",
+      "prompt": "Challenge prompt generated from seed 8e754ef4...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 10
+      }
+    },
+    {
+      "id": "challenge_011",
+      "seed": "8fd655d4e9526f29f68cd85ed7a0f482c6f633efe723868f73479f5e511baea6",
+      "prompt": "Challenge prompt generated from seed 8fd655d4...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 11
+      }
+    },
+    {
+      "id": "challenge_012",
+      "seed": "0b385c071aba6f44121534515dac9182cff3602e568aaf1acdfa11cde11c060c",
+      "prompt": "Challenge prompt generated from seed 0b385c07...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 12
+      }
+    },
+    {
+      "id": "challenge_013",
+      "seed": "4376c7363f51404c2629f38edcc2fb4335dc2650ac9a1bcd7d67cfa6c1d64c43",
+      "prompt": "Challenge prompt generated from seed 4376c736...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 13
+      }
+    },
+    {
+      "id": "challenge_014",
+      "seed": "109b4161eed2f099003b4eaf2718079c1456674fcd013a0070d3a1102dec0d10",
+      "prompt": "Challenge prompt generated from seed 109b4161...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 14
+      }
+    },
+    {
+      "id": "challenge_015",
+      "seed": "f6c9637ba59aa56a9f10050c50216b3e0094a860392f521ead05b17ecd86d6b3",
+      "prompt": "Challenge prompt generated from seed f6c9637b...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 15
+      }
+    },
+    {
+      "id": "challenge_016",
+      "seed": "bbf2d01b8c2b8f5f8ef43fc9d957c97b0f39eb797a91edb47138682abf5eab75",
+      "prompt": "Challenge prompt generated from seed bbf2d01b...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 16
+      }
+    },
+    {
+      "id": "challenge_017",
+      "seed": "3cfba443ef09aa44091ef48be367583e7a9a2065fb4f02d13d7114b9c6fb5461",
+      "prompt": "Challenge prompt generated from seed 3cfba443...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 17
+      }
+    },
+    {
+      "id": "challenge_018",
+      "seed": "0f6cf51b9d0d14f73ec9adf6f4436b40aca58d25f233ffce050e34865b9753ad",
+      "prompt": "Challenge prompt generated from seed 0f6cf51b...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 18
+      }
+    },
+    {
+      "id": "challenge_019",
+      "seed": "e6a6d28fa08a8c35d1cfeef14e793b74807302cc3ba2838260bf6cf7af6f6927",
+      "prompt": "Challenge prompt generated from seed e6a6d28f...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 19
+      }
+    },
+    {
+      "id": "challenge_020",
+      "seed": "1f4566d628069ec0a4756ecbb86b327299621583787883b6a7cef561d46d1e12",
+      "prompt": "Challenge prompt generated from seed 1f4566d6...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 20
+      }
+    },
+    {
+      "id": "challenge_021",
+      "seed": "e0dedcba4f0c9d9a8b2c8aa5d86e8585c06ceb80959dba17bb9b312bfbdc1fc7",
+      "prompt": "Challenge prompt generated from seed e0dedcba...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 21
+      }
+    },
+    {
+      "id": "challenge_022",
+      "seed": "1f16fe832ffb4a8752df9965fa9d6cea694f58d8b6830ef7043ae616ca3f530b",
+      "prompt": "Challenge prompt generated from seed 1f16fe83...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 22
+      }
+    },
+    {
+      "id": "challenge_023",
+      "seed": "20adfabbad8d1d51f7a1d3cb9dece52148b56bad56cbc431ad98a1c729d34c46",
+      "prompt": "Challenge prompt generated from seed 20adfabb...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 23
+      }
+    },
+    {
+      "id": "challenge_024",
+      "seed": "60cae2f4e3aa2a26b2d3f94b4163988be40482e811cb702d983e2cc6921f7915",
+      "prompt": "Challenge prompt generated from seed 60cae2f4...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 24
+      }
+    },
+    {
+      "id": "challenge_025",
+      "seed": "d8e63ad34c230bbae41d18ece61658add679c34f7332079340a3e94ee2617136",
+      "prompt": "Challenge prompt generated from seed d8e63ad3...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 25
+      }
+    },
+    {
+      "id": "challenge_026",
+      "seed": "e7247c226b8d3be6a72638582db80cf247d6570bb657844b99b021e210885263",
+      "prompt": "Challenge prompt generated from seed e7247c22...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 26
+      }
+    },
+    {
+      "id": "challenge_027",
+      "seed": "1a7dbbaf799fe579590b4b77973bbc77a2c742ff8829d3955d0ddc08e5c8d3f4",
+      "prompt": "Challenge prompt generated from seed 1a7dbbaf...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 27
+      }
+    },
+    {
+      "id": "challenge_028",
+      "seed": "0764a43423497892f6a82bd9f073980114bccc3766f08aa51e4b1c642a7f16e9",
+      "prompt": "Challenge prompt generated from seed 0764a434...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 28
+      }
+    },
+    {
+      "id": "challenge_029",
+      "seed": "676f611fbc0d730d9b82bb4e55ff7903b82122159aad0eb65da8afb9a85b90df",
+      "prompt": "Challenge prompt generated from seed 676f611f...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 29
+      }
+    },
+    {
+      "id": "challenge_030",
+      "seed": "ae0bf86fb0ea0383b818b82a948a631ced570442b99d2f94583f490d1e6a0385",
+      "prompt": "Challenge prompt generated from seed ae0bf86f...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 30
+      }
+    },
+    {
+      "id": "challenge_031",
+      "seed": "b105d772ea986b409544a923ea323d0c22167f8c72ab3ab8185f23f547cfdb68",
+      "prompt": "Challenge prompt generated from seed b105d772...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 31
+      }
+    }
+  ],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 32,
+    "ci_progression": [
+      [
+        0.010877563011505803,
+        0.0851007849813969
+      ],
+      [
+        -0.09674512976303226,
+        0.1223312375709952
+      ],
+      [
+        -0.06118057639025852,
+        0.06332713033519226
+      ],
+      [
+        -0.07040044151758687,
+        0.12164835594951388
+      ],
+      [
+        0.0078107904958124585,
+        0.06267184852546401
+      ],
+      [
+        0.038753354361508535,
+        0.07178191725962095
+      ]
+    ],
+    "responses": [
+      {
+        "challenge_id": "challenge_000",
+        "ref_response": "ref_response_0",
+        "cand_response": "cand_response_0"
+      },
+      {
+        "challenge_id": "challenge_001",
+        "ref_response": "ref_response_1",
+        "cand_response": "cand_response_1"
+      },
+      {
+        "challenge_id": "challenge_002",
+        "ref_response": "ref_response_2",
+        "cand_response": "cand_response_2"
+      },
+      {
+        "challenge_id": "challenge_003",
+        "ref_response": "ref_response_3",
+        "cand_response": "cand_response_3"
+      },
+      {
+        "challenge_id": "challenge_004",
+        "ref_response": "ref_response_4",
+        "cand_response": "cand_response_4"
+      },
+      {
+        "challenge_id": "challenge_005",
+        "ref_response": "ref_response_5",
+        "cand_response": "cand_response_5"
+      },
+      {
+        "challenge_id": "challenge_006",
+        "ref_response": "ref_response_6",
+        "cand_response": "cand_response_6"
+      },
+      {
+        "challenge_id": "challenge_007",
+        "ref_response": "ref_response_7",
+        "cand_response": "cand_response_7"
+      },
+      {
+        "challenge_id": "challenge_008",
+        "ref_response": "ref_response_8",
+        "cand_response": "cand_response_8"
+      },
+      {
+        "challenge_id": "challenge_009",
+        "ref_response": "ref_response_9",
+        "cand_response": "cand_response_9"
+      },
+      {
+        "challenge_id": "challenge_010",
+        "ref_response": "ref_response_10",
+        "cand_response": "cand_response_10"
+      },
+      {
+        "challenge_id": "challenge_011",
+        "ref_response": "ref_response_11",
+        "cand_response": "cand_response_11"
+      },
+      {
+        "challenge_id": "challenge_012",
+        "ref_response": "ref_response_12",
+        "cand_response": "cand_response_12"
+      },
+      {
+        "challenge_id": "challenge_013",
+        "ref_response": "ref_response_13",
+        "cand_response": "cand_response_13"
+      },
+      {
+        "challenge_id": "challenge_014",
+        "ref_response": "ref_response_14",
+        "cand_response": "cand_response_14"
+      },
+      {
+        "challenge_id": "challenge_015",
+        "ref_response": "ref_response_15",
+        "cand_response": "cand_response_15"
+      },
+      {
+        "challenge_id": "challenge_016",
+        "ref_response": "ref_response_16",
+        "cand_response": "cand_response_16"
+      },
+      {
+        "challenge_id": "challenge_017",
+        "ref_response": "ref_response_17",
+        "cand_response": "cand_response_17"
+      },
+      {
+        "challenge_id": "challenge_018",
+        "ref_response": "ref_response_18",
+        "cand_response": "cand_response_18"
+      },
+      {
+        "challenge_id": "challenge_019",
+        "ref_response": "ref_response_19",
+        "cand_response": "cand_response_19"
+      },
+      {
+        "challenge_id": "challenge_020",
+        "ref_response": "ref_response_20",
+        "cand_response": "cand_response_20"
+      },
+      {
+        "challenge_id": "challenge_021",
+        "ref_response": "ref_response_21",
+        "cand_response": "cand_response_21"
+      },
+      {
+        "challenge_id": "challenge_022",
+        "ref_response": "ref_response_22",
+        "cand_response": "cand_response_22"
+      },
+      {
+        "challenge_id": "challenge_023",
+        "ref_response": "ref_response_23",
+        "cand_response": "cand_response_23"
+      },
+      {
+        "challenge_id": "challenge_024",
+        "ref_response": "ref_response_24",
+        "cand_response": "cand_response_24"
+      },
+      {
+        "challenge_id": "challenge_025",
+        "ref_response": "ref_response_25",
+        "cand_response": "cand_response_25"
+      },
+      {
+        "challenge_id": "challenge_026",
+        "ref_response": "ref_response_26",
+        "cand_response": "cand_response_26"
+      },
+      {
+        "challenge_id": "challenge_027",
+        "ref_response": "ref_response_27",
+        "cand_response": "cand_response_27"
+      },
+      {
+        "challenge_id": "challenge_028",
+        "ref_response": "ref_response_28",
+        "cand_response": "cand_response_28"
+      },
+      {
+        "challenge_id": "challenge_029",
+        "ref_response": "ref_response_29",
+        "cand_response": "cand_response_29"
+      },
+      {
+        "challenge_id": "challenge_030",
+        "ref_response": "ref_response_30",
+        "cand_response": "cand_response_30"
+      },
+      {
+        "challenge_id": "challenge_031",
+        "ref_response": "ref_response_31",
+        "cand_response": "cand_response_31"
+      }
+    ]
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755836595.0360022,
+      "end_time": 1755836595.036252,
+      "duration": 0.0002498626708984375,
+      "memory_peak_mb": 327.765625,
+      "memory_delta_mb": 0.015625,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 327.75,
+        "n_challenges": 32,
+        "hmac_key": "8391a613a77674b41f408d7428a1175f3c11d9e9b1fec942dc60881f998f78d8",
+        "run_id": "validation_20250822_002315",
+        "commitment": "b49244d19720460ec25876d7f564568d39e00dea02ecdd53ac04a8ca3d9fbb4c",
+        "seeds": [
+          "6c32bfb5fa44c44f573d795ae98c14c61457576a5b5c1c24b98f1543400e6086",
+          "da441d27f81775fdf6e28281b4dbc5de2464945cd1f74e2c37bc3d436203c986",
+          "f7c1eb8e86d7acbd7b7287a8258d23f70acbad5ff9a20fa788107bc2188eec54",
+          "88efe13811e4863c419b1c71d5c9305264f7e9cabcac5a55c763d4bad9cabf17",
+          "8a16a45d1adea41ccd6f3f965298d54a705ed467e85f399afd5a2ed18423874d",
+          "13e54d782b75954c6696a1a8fa9cb500c36744e051b51c5f304474b4525053bc",
+          "54f3e5e996b01ccff0bced48fb7dd6640b5acec2822ae11b3d142d08b38c92cc",
+          "17ae06afc7c231331d7e920159f35b7580aeae590bfbd8d7387eb04df2445a5a",
+          "017ccc19a46f0a52cdacfaea2593f8371fdc4452625108e62d0beaa778bad358",
+          "d96e66194be6fbb3b2c08443964b4f2ab9417883d1c95219941d470549931b41",
+          "8e754ef4571a97c8ecb68376bcbfb978ec919b344b6931350de92150a76bbf8a",
+          "8fd655d4e9526f29f68cd85ed7a0f482c6f633efe723868f73479f5e511baea6",
+          "0b385c071aba6f44121534515dac9182cff3602e568aaf1acdfa11cde11c060c",
+          "4376c7363f51404c2629f38edcc2fb4335dc2650ac9a1bcd7d67cfa6c1d64c43",
+          "109b4161eed2f099003b4eaf2718079c1456674fcd013a0070d3a1102dec0d10",
+          "f6c9637ba59aa56a9f10050c50216b3e0094a860392f521ead05b17ecd86d6b3",
+          "bbf2d01b8c2b8f5f8ef43fc9d957c97b0f39eb797a91edb47138682abf5eab75",
+          "3cfba443ef09aa44091ef48be367583e7a9a2065fb4f02d13d7114b9c6fb5461",
+          "0f6cf51b9d0d14f73ec9adf6f4436b40aca58d25f233ffce050e34865b9753ad",
+          "e6a6d28fa08a8c35d1cfeef14e793b74807302cc3ba2838260bf6cf7af6f6927",
+          "1f4566d628069ec0a4756ecbb86b327299621583787883b6a7cef561d46d1e12",
+          "e0dedcba4f0c9d9a8b2c8aa5d86e8585c06ceb80959dba17bb9b312bfbdc1fc7",
+          "1f16fe832ffb4a8752df9965fa9d6cea694f58d8b6830ef7043ae616ca3f530b",
+          "20adfabbad8d1d51f7a1d3cb9dece52148b56bad56cbc431ad98a1c729d34c46",
+          "60cae2f4e3aa2a26b2d3f94b4163988be40482e811cb702d983e2cc6921f7915",
+          "d8e63ad34c230bbae41d18ece61658add679c34f7332079340a3e94ee2617136",
+          "e7247c226b8d3be6a72638582db80cf247d6570bb657844b99b021e210885263",
+          "1a7dbbaf799fe579590b4b77973bbc77a2c742ff8829d3955d0ddc08e5c8d3f4",
+          "0764a43423497892f6a82bd9f073980114bccc3766f08aa51e4b1c642a7f16e9",
+          "676f611fbc0d730d9b82bb4e55ff7903b82122159aad0eb65da8afb9a85b90df",
+          "ae0bf86fb0ea0383b818b82a948a631ced570442b99d2f94583f490d1e6a0385",
+          "b105d772ea986b409544a923ea323d0c22167f8c72ab3ab8185f23f547cfdb68"
+        ]
+      }
+    },
+    "challenge_generation": {
+      "stage": "challenge_generation",
+      "start_time": 1755836595.036299,
+      "end_time": 1755836595.0364301,
+      "duration": 0.00013113021850585938,
+      "memory_peak_mb": 327.765625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 99.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 327.765625,
+        "n_challenges": 32
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755836595.03647,
+      "end_time": 1755836605.987958,
+      "duration": 10.951488018035889,
+      "memory_peak_mb": 1388.625,
+      "memory_delta_mb": 1060.859375,
+      "cpu_percent": 117.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 327.765625,
+        "ref_model": "EleutherAI/pythia-70m",
+        "cand_model": "EleutherAI/pythia-160m"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755836605.988066,
+      "end_time": 1755836605.988723,
+      "duration": 0.0006570816040039062,
+      "memory_peak_mb": 1388.65625,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 99.2,
+      "query_count": 32,
+      "ci_progression": [
+        [
+          0.010877563011505803,
+          0.0851007849813969
+        ],
+        [
+          -0.09674512976303226,
+          0.1223312375709952
+        ],
+        [
+          -0.06118057639025852,
+          0.06332713033519226
+        ],
+        [
+          -0.07040044151758687,
+          0.12164835594951388
+        ],
+        [
+          0.0078107904958124585,
+          0.06267184852546401
+        ],
+        [
+          0.038753354361508535,
+          0.07178191725962095
+        ]
+      ],
+      "errors": [],
+      "metadata": {
+        "memory_start": 1388.625,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "f940a96172bfbce36eed0da27d2e4ee0ec6fda925412abf386efd28e7080683d"
+}

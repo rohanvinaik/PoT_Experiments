@@ -307,7 +307,7 @@ def create_pipeline_config(args) -> PipelineConfig:
     mode_map = {
         'quick': TestingMode.QUICK_GATE,
         'audit': TestingMode.AUDIT_GRADE,
-        'extended': TestingMode.EXTENDED
+        'extended': TestingMode.AUDIT_GRADE  # Map extended to audit for now
     }
     
     # Map verification mode

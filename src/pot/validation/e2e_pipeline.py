@@ -23,7 +23,8 @@ try:
         TestingMode,
         EnhancedSequentialTester,
         DiffDecisionConfig,
-        DifferenceVerifier
+        DifferenceVerifier,
+        create_enhanced_verifier
     )
     from src.pot.core.challenge import (
         ChallengeConfig, 
@@ -32,6 +33,9 @@ try:
     )
     from src.pot.lm.verifier import LMVerifier
     from src.pot.lm.models import LM
+    from src.pot.validation.reporting import ReportGenerator
+    from src.pot.experiments.metrics_calculator import MetricsCalculator
+    from src.pot.experiments.result_validator import ValidationReport
 except ImportError:
     try:
         # Fallback to pot.* imports for different package layouts
@@ -39,7 +43,8 @@ except ImportError:
             TestingMode,
             EnhancedSequentialTester,
             DiffDecisionConfig,
-            DifferenceVerifier
+            DifferenceVerifier,
+            create_enhanced_verifier
         )
         from pot.core.challenge import (
             ChallengeConfig,
@@ -48,6 +53,9 @@ except ImportError:
         )
         from pot.lm.verifier import LMVerifier
         from pot.lm.models import LM
+        from pot.validation.reporting import ReportGenerator
+        from pot.experiments.metrics_calculator import MetricsCalculator
+        from pot.experiments.result_validator import ValidationReport
     except ImportError:
         # If both fail, provide informative error
         import sys
@@ -282,10 +290,6 @@ class PipelineOrchestrator:
                     if seeds and i < len(seeds):
                         challenge_dict["seed"] = seeds[i]
                     challenges.append(challenge_dict)
-                        "prompt": ch.parameters.get("prompt", ""),
-                        "metadata": ch.parameters,
-                    }
-                )
 
             metrics.metadata["n_challenges"] = len(challenges)
             self.evidence_bundle["challenges"] = challenges
@@ -616,6 +620,18 @@ class PipelineOrchestrator:
             with open(results_path, 'w') as f:
                 json.dump(results, f, indent=2)
             
+            # Generate HTML report
+            try:
+                report_generator = ReportGenerator(self.config.output_dir)
+                report_path = report_generator.generate_html_report(
+                    pipeline_results=results,
+                    evidence_bundle=evidence_bundle
+                )
+                results['html_report_path'] = str(report_path)
+                self._log(f"HTML report generated: {report_path}")
+            except Exception as e:
+                self._log(f"Warning: Failed to generate HTML report: {e}", level="WARNING")
+            
             self._log(f"Pipeline completed successfully!")
             self._log(f"Decision: {results['decision']} (confidence: {results['confidence']:.3f})")
             self._log(f"Results saved to: {results_path}")
@@ -639,6 +655,21 @@ class PipelineOrchestrator:
             error_path = self.config.output_dir / f"pipeline_error_{self.run_id}.json"
             with open(error_path, 'w') as f:
                 json.dump(error_results, f, indent=2)
+            
+            # Generate summary report even for errors
+            try:
+                summary_path = self.config.output_dir / f"summary_{self.run_id}.json"
+                summary = {
+                    'run_id': self.run_id,
+                    'status': 'failed',
+                    'error': str(e),
+                    'stage_failed': self.current_stage.value,
+                    'timestamp': datetime.now().isoformat()
+                }
+                with open(summary_path, 'w') as f:
+                    json.dump(summary, f, indent=2)
+            except:
+                pass  # Don't fail on summary generation
             
             raise
         

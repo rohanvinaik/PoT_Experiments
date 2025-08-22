@@ -1,0 +1,202 @@
+version: '3.8'
+
+services:
+  # Main PoT API service
+  pot-api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: production
+    container_name: pot-api
+    command: ["api"]
+    ports:
+      - "8000:8000"
+      - "8080:8080"
+    volumes:
+      - pot-data:/data
+      - pot-logs:/logs
+      - ./configs:/app/configs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # For container management
+    environment:
+      - POT_API_PORT=8000
+      - POT_LOG_LEVEL=info
+      - POT_ENABLE_MONITORING=true
+      - POT_MAX_WORKERS=4
+    networks:
+      - pot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "scripts/health_check.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - pot-db
+      - pot-redis
+
+  # Verification worker service
+  pot-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+      target: production
+    container_name: pot-worker
+    command: ["worker"]
+    volumes:
+      - pot-data:/data
+      - pot-logs:/logs
+      - ./configs:/app/configs:ro
+    environment:
+      - POT_WORKER_ID=worker-1
+      - POT_LOG_LEVEL=info
+      - POT_WORKER_CONCURRENCY=2
+    networks:
+      - pot-network
+    restart: unless-stopped
+    depends_on:
+      - pot-db
+      - pot-redis
+    scale: 2  # Run 2 worker instances
+
+  # Database service (PostgreSQL for production, SQLite for development)
+  pot-db:
+    image: postgres:15-alpine
+    container_name: pot-db
+    volumes:
+      - pot-db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      - POSTGRES_DB=pot_framework
+      - POSTGRES_USER=pot_user
+      - POSTGRES_PASSWORD=${POT_DB_PASSWORD:-pot_secure_password}
+    networks:
+      - pot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pot_user -d pot_framework"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for caching and task queues
+  pot-redis:
+    image: redis:7-alpine
+    container_name: pot-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - pot-redis-data:/data
+    networks:
+      - pot-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Monitoring and metrics (Prometheus + Grafana)
+  pot-prometheus:
+    image: prom/prometheus:latest
+    container_name: pot-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - pot-prometheus-data:/prometheus
+    networks:
+      - pot-network
+    restart: unless-stopped
+
+  pot-grafana:
+    image: grafana/grafana:latest
+    container_name: pot-grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - pot-grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - pot-network
+    restart: unless-stopped
+    depends_on:
+      - pot-prometheus
+
+  # Nginx reverse proxy and load balancer
+  pot-proxy:
+    image: nginx:alpine
+    container_name: pot-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - pot-logs:/var/log/nginx
+    networks:
+      - pot-network
+    restart: unless-stopped
+    depends_on:
+      - pot-api
+
+  # Log aggregation (ELK stack alternative - Loki)
+  pot-loki:
+    image: grafana/loki:latest
+    container_name: pot-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - pot-loki-data:/loki
+    networks:
+      - pot-network
+    restart: unless-stopped
+
+  pot-promtail:
+    image: grafana/promtail:latest
+    container_name: pot-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - pot-logs:/var/log/pot:ro
+      - /var/log:/var/log/host:ro
+    networks:
+      - pot-network
+    restart: unless-stopped
+    depends_on:
+      - pot-loki
+
+# Named volumes for data persistence
+volumes:
+  pot-data:
+    driver: local
+  pot-logs:
+    driver: local
+  pot-db-data:
+    driver: local
+  pot-redis-data:
+    driver: local
+  pot-prometheus-data:
+    driver: local
+  pot-grafana-data:
+    driver: local
+  pot-loki-data:
+    driver: local
+
+# Network configuration
+networks:
+  pot-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

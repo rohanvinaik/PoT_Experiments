@@ -1,0 +1,314 @@
+name: Nightly Benchmarks
+
+on:
+  schedule:
+    # Run every night at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Models to benchmark (comma-separated)'
+        required: false
+        default: 'gpt2,distilgpt2'
+      
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: '3.11'
+  BENCHMARK_RESULTS_BRANCH: 'benchmark-results'
+
+jobs:
+  setup:
+    name: Setup Benchmark Environment
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Determine benchmark matrix
+        id: set-matrix
+        run: |
+          if [ "${{ github.event.inputs.models }}" ]; then
+            MODELS="${{ github.event.inputs.models }}"
+          else
+            MODELS="gpt2,distilgpt2,pythia-70m"
+          fi
+          
+          # Convert to JSON array
+          JSON_ARRAY=$(echo $MODELS | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
+          echo "matrix={\"model\":$JSON_ARRAY}" >> $GITHUB_OUTPUT
+
+  benchmark-models:
+    name: Benchmark ${{ matrix.model }}
+    runs-on: ubuntu-latest
+    needs: setup
+    strategy:
+      matrix: ${{fromJson(needs.setup.outputs.matrix)}}
+      fail-fast: false
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Cache dependencies and models
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/huggingface
+            ~/benchmark_models
+          key: ${{ runner.os }}-benchmark-${{ matrix.model }}-${{ hashFiles('**/requirements*.txt') }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers numpy scipy scikit-learn psutil
+          pip install -e .
+          
+      - name: Run verification benchmark
+        run: |
+          python scripts/run_e2e_validation.py \
+            --ref-model ${{ matrix.model }} \
+            --cand-model ${{ matrix.model }} \
+            --mode quick \
+            --benchmark \
+            --benchmark-runs 5 \
+            --output-dir benchmarks/results/${{ matrix.model }}
+            
+      - name: Run statistical tests benchmark
+        run: |
+          python scripts/benchmark_statistical_tests.py \
+            --model ${{ matrix.model }} \
+            --n-runs 10 \
+            --output benchmarks/results/${{ matrix.model }}/statistical.json
+            
+      - name: Run memory benchmark
+        run: |
+          python scripts/benchmark_memory_usage.py \
+            --model ${{ matrix.model }} \
+            --output benchmarks/results/${{ matrix.model }}/memory.json
+            
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-${{ matrix.model }}-${{ github.run_id }}
+          path: benchmarks/results/${{ matrix.model }}
+
+  benchmark-sharding:
+    name: Benchmark Sharding
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers numpy scipy scikit-learn psutil
+          pip install -e .
+          
+      - name: Run sharding benchmarks
+        run: |
+          # Test various model sizes
+          for size in 10 30 70 140; do
+            python scripts/sharding/benchmark_large_models.py generic \
+              --model-size-gb $size \
+              --dry-run \
+              --output benchmarks/results/sharding/size_${size}gb.json
+          done
+          
+      - name: Run Yi-34B simulation
+        run: |
+          python scripts/sharding/benchmark_large_models.py yi-34b \
+            --dry-run \
+            --output benchmarks/results/sharding/yi_34b.json
+            
+      - name: Upload sharding results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-sharding-${{ github.run_id }}
+          path: benchmarks/results/sharding
+
+  benchmark-security:
+    name: Security Benchmark
+    runs-on: ubuntu-latest
+    needs: setup
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install transformers numpy scipy scikit-learn
+          pip install -e .
+          
+      - name: Run adversarial attack benchmarks
+        run: |
+          python scripts/benchmark_adversarial_attacks.py \
+            --attack-types all \
+            --n-iterations 100 \
+            --output benchmarks/results/security/attacks.json
+            
+      - name: Run leakage detection benchmarks
+        run: |
+          python scripts/benchmark_leakage_detection.py \
+            --sensitivity-levels 0.1 0.5 0.9 \
+            --output benchmarks/results/security/leakage.json
+            
+      - name: Upload security results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-security-${{ github.run_id }}
+          path: benchmarks/results/security
+
+  analyze-results:
+    name: Analyze Benchmark Results
+    runs-on: ubuntu-latest
+    needs: [benchmark-models, benchmark-sharding, benchmark-security]
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install analysis tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pandas matplotlib seaborn plotly
+          pip install -e .
+          
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: benchmarks/artifacts
+          
+      - name: Checkout results branch
+        run: |
+          git fetch origin ${{ env.BENCHMARK_RESULTS_BRANCH }} || true
+          git checkout ${{ env.BENCHMARK_RESULTS_BRANCH }} || git checkout -b ${{ env.BENCHMARK_RESULTS_BRANCH }}
+          
+      - name: Analyze and compare results
+        run: |
+          python scripts/ci/analyze_benchmarks.py \
+            --input benchmarks/artifacts \
+            --historical benchmarks/historical \
+            --output benchmarks/analysis
+            
+      - name: Generate performance report
+        run: |
+          python scripts/ci/generate_benchmark_report.py \
+            --input benchmarks/analysis \
+            --output benchmarks/report.html
+            
+      - name: Check for regressions
+        id: regression
+        run: |
+          python scripts/ci/detect_regressions.py \
+            --current benchmarks/analysis/summary.json \
+            --historical benchmarks/historical/latest.json \
+            --threshold 5 \
+            --output regression_report.json
+            
+      - name: Update historical data
+        run: |
+          cp -r benchmarks/artifacts/* benchmarks/historical/
+          cp benchmarks/analysis/summary.json benchmarks/historical/latest.json
+          echo "$(date -u +%Y%m%d_%H%M%S)" > benchmarks/historical/timestamp.txt
+          
+      - name: Commit results
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add benchmarks/
+          git commit -m "Benchmark results for ${{ github.run_id }}" || true
+          git push origin ${{ env.BENCHMARK_RESULTS_BRANCH }} || true
+          
+      - name: Create issue if regression detected
+        if: steps.regression.outputs.regression_detected == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('regression_report.json', 'utf8'));
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Performance Regression Detected - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Performance Regression Report
+              
+              Regressions detected in nightly benchmark run.
+              
+              ### Affected Metrics:
+              ${report.regressions.map(r => `- **${r.metric}**: ${r.change}% change (threshold: ${r.threshold}%)`).join('\n')}
+              
+              ### Full Report:
+              See [benchmark results](https://github.com/${context.repo.owner}/${context.repo.repo}/tree/${process.env.BENCHMARK_RESULTS_BRANCH}/benchmarks)
+              
+              Run ID: ${context.runId}`,
+              labels: ['performance', 'regression']
+            });
+
+  publish-dashboard:
+    name: Publish Performance Dashboard
+    runs-on: ubuntu-latest
+    needs: analyze-results
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ env.BENCHMARK_RESULTS_BRANCH }}
+          
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: Install dashboard tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install dash plotly pandas
+          
+      - name: Generate dashboard
+        run: |
+          python scripts/ci/generate_dashboard.py \
+            --data benchmarks/historical \
+            --output dashboard/
+            
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dashboard
+          publish_branch: gh-pages
+          destination_dir: benchmarks

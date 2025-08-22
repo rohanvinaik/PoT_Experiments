@@ -1,0 +1,533 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pot-framework
+  labels:
+    name: pot-framework
+    app.kubernetes.io/name: pot-framework
+    app.kubernetes.io/version: "1.0.0"
+
+---
+# ConfigMap for application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pot-config
+  namespace: pot-framework
+data:
+  POT_LOG_LEVEL: "info"
+  POT_ENABLE_MONITORING: "true"
+  POT_MAX_WORKERS: "4"
+  POT_WORKER_CONCURRENCY: "2"
+  POT_API_PORT: "8000"
+  PYTHONPATH: "/app"
+  PYTHONUNBUFFERED: "1"
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pot-secrets
+  namespace: pot-framework
+type: Opaque
+data:
+  # Base64 encoded values
+  POT_DB_PASSWORD: cG90X3NlY3VyZV9wYXNzd29yZA==  # pot_secure_password
+  POT_API_SECRET_KEY: c3VwZXJfc2VjcmV0X2tleV9mb3JfcHJvZHVjdGlvbg==  # super_secret_key_for_production
+
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pot-data-pvc
+  namespace: pot-framework
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pot-logs-pvc
+  namespace: pot-framework
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+# PostgreSQL Database Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pot-db
+  namespace: pot-framework
+  labels:
+    app: pot-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pot-db
+  template:
+    metadata:
+      labels:
+        app: pot-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: "pot_framework"
+        - name: POSTGRES_USER
+          value: "pot_user"
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: pot-secrets
+              key: POT_DB_PASSWORD
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - pot_user
+            - -d
+            - pot_framework
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: pot-db-data-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pot-db-data-pvc
+  namespace: pot-framework
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: fast-ssd
+
+---
+# Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pot-db-service
+  namespace: pot-framework
+spec:
+  selector:
+    app: pot-db
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP
+
+---
+# Redis Cache Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pot-redis
+  namespace: pot-framework
+  labels:
+    app: pot-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pot-redis
+  template:
+    metadata:
+      labels:
+        app: pot-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        command:
+        - redis-server
+        - --appendonly
+        - "yes"
+        - --maxmemory
+        - "512mb"
+        - --maxmemory-policy
+        - "allkeys-lru"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: pot-redis-data-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pot-redis-data-pvc
+  namespace: pot-framework
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+# Redis Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pot-redis-service
+  namespace: pot-framework
+spec:
+  selector:
+    app: pot-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+
+---
+# PoT API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pot-api
+  namespace: pot-framework
+  labels:
+    app: pot-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: pot-api
+  template:
+    metadata:
+      labels:
+        app: pot-api
+    spec:
+      containers:
+      - name: pot-api
+        image: pot-framework:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        - containerPort: 8080
+        env:
+        - name: POT_DB_HOST
+          value: "pot-db-service"
+        - name: POT_REDIS_HOST
+          value: "pot-redis-service"
+        envFrom:
+        - configMapRef:
+            name: pot-config
+        - secretRef:
+            name: pot-secrets
+        volumeMounts:
+        - name: pot-data
+          mountPath: /data
+        - name: pot-logs
+          mountPath: /logs
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: pot-data
+        persistentVolumeClaim:
+          claimName: pot-data-pvc
+      - name: pot-logs
+        persistentVolumeClaim:
+          claimName: pot-logs-pvc
+
+---
+# API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pot-api-service
+  namespace: pot-framework
+  labels:
+    app: pot-api
+spec:
+  selector:
+    app: pot-api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+
+---
+# PoT Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pot-worker
+  namespace: pot-framework
+  labels:
+    app: pot-worker
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: pot-worker
+  template:
+    metadata:
+      labels:
+        app: pot-worker
+    spec:
+      containers:
+      - name: pot-worker
+        image: pot-framework:latest
+        imagePullPolicy: Always
+        command: ["./entrypoint.sh", "worker"]
+        env:
+        - name: POT_DB_HOST
+          value: "pot-db-service"
+        - name: POT_REDIS_HOST
+          value: "pot-redis-service"
+        - name: POT_WORKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: pot-config
+        - secretRef:
+            name: pot-secrets
+        volumeMounts:
+        - name: pot-data
+          mountPath: /data
+        - name: pot-logs
+          mountPath: /logs
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        livenessProbe:
+          exec:
+            command:
+            - python
+            - scripts/health_check.py
+            - --worker
+          initialDelaySeconds: 60
+          periodSeconds: 60
+      volumes:
+      - name: pot-data
+        persistentVolumeClaim:
+          claimName: pot-data-pvc
+      - name: pot-logs
+        persistentVolumeClaim:
+          claimName: pot-logs-pvc
+
+---
+# Horizontal Pod Autoscaler for API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pot-api-hpa
+  namespace: pot-framework
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pot-api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Horizontal Pod Autoscaler for Workers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pot-worker-hpa
+  namespace: pot-framework
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pot-worker
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pot-ingress
+  namespace: pot-framework
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+spec:
+  tls:
+  - hosts:
+    - pot-api.yourdomain.com
+    secretName: pot-api-tls
+  rules:
+  - host: pot-api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: pot-api-service
+            port:
+              number: 8000
+
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pot-network-policy
+  namespace: pot-framework
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: pot-framework
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: pot-framework
+  - to: {}  # Allow external egress for model downloads, etc.
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+---
+# Service Monitor for Prometheus (if using Prometheus Operator)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: pot-metrics
+  namespace: pot-framework
+  labels:
+    app: pot-framework
+spec:
+  selector:
+    matchLabels:
+      app: pot-api
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
