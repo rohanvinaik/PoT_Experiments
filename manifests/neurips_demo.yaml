@@ -1,0 +1,84 @@
+run_id: "neurips-2025-aug21"
+hmac_key_hex: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+
+global:
+  n_challenges: 32
+  out_root: "runs/neurips_demo"
+  mode: "AUDIT"
+  robustness:
+    wrapper: false          # paraphrase stub on candidate outputs
+    temperature: 0.0        # wire into your adapters if supported
+    tokenizer_overlap: 1.0  # 0.6..1.0; crude downsampling shim
+
+experiments:
+  # Echo test for validation
+  - id: exp_001
+    mode: AUDIT
+    ref:  { type: echo }
+    cand: { type: echo }
+
+  # GPT-2 vs DistilGPT-2 (distillation detection)
+  - id: exp_002
+    mode: AUDIT
+    ref:
+      type: hf_local
+      model_name: gpt2
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+    cand:
+      type: hf_local
+      model_name: distilgpt2
+      model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
+
+  # Pythia-70M self-consistency check
+  - id: exp_003
+    mode: QUICK
+    n_challenges: 20
+    ref:
+      type: hf_local
+      model_name: EleutherAI/pythia-70m
+      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+    cand:
+      type: hf_local
+      model_name: EleutherAI/pythia-70m
+      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+
+  # Pythia-70M vs Pythia-160M (size difference)
+  - id: exp_004
+    mode: AUDIT
+    ref:
+      type: hf_local
+      model_name: EleutherAI/pythia-70m
+      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+    cand:
+      type: hf_local
+      model_name: EleutherAI/pythia-160m
+      model_path: /Users/rohanvinaik/LLM_Models/pythia-160m
+
+  # Example API comparison (requires endpoint setup)
+  - id: exp_005
+    mode: EXTENDED
+    n_challenges: 50
+    ref:
+      type: api
+      endpoint: "https://api.openai.com/v1/completions"
+      model: "gpt-3.5-turbo"
+      api_key_env: "OPENAI_API_KEY"
+    cand:
+      type: api
+      endpoint: "https://api.anthropic.com/v1/messages"
+      model: "claude-3-haiku"
+      api_key_env: "ANTHROPIC_API_KEY"
+
+  # Robustness test with wrapper attack
+  - id: exp_006
+    mode: AUDIT
+    ref:
+      type: hf_local
+      model_name: gpt2
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+    cand:
+      type: hf_local
+      model_name: gpt2
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+    robustness:
+      wrapper: true  # Enable paraphrase wrapper

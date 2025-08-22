@@ -1,0 +1,15 @@
+mode: AUDIT  # QUICK | AUDIT | EXTENDED
+run_id: "demo-2025-08-21"
+hmac_key_hex: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+num_challenges: 64
+
+ref:
+  type: hf_local      # hf_local | echo
+  model_name: gpt2
+
+cand:
+  type: hf_local      # hf_local | echo
+  model_name: distilgpt2
+
+output:
+  dir: runs/demo_local

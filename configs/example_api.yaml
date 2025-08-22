@@ -1,0 +1,15 @@
+mode: QUICK
+run_id: "api-demo-2025-08-21"
+hmac_key_hex: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+num_challenges: 40
+
+ref:
+  type: api
+  model_id: "ref-endpoint"
+
+cand:
+  type: api
+  model_id: "cand-endpoint"
+
+output:
+  dir: runs/demo_api

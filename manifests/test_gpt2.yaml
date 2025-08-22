@@ -1,0 +1,21 @@
+run_id: "test-gpt2"
+hmac_key_hex: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+
+global:
+  n_challenges: 5
+  out_root: "runs/test_gpt2"
+  mode: "QUICK"
+
+experiments:
+  # GPT-2 self-consistency check
+  - id: exp_001
+    mode: QUICK
+    n_challenges: 5
+    ref:
+      type: hf_local
+      model_name: gpt2
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+    cand:
+      type: hf_local
+      model_name: gpt2
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2

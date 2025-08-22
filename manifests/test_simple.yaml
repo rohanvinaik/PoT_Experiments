@@ -1,0 +1,14 @@
+run_id: "test-simple"
+hmac_key_hex: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+
+global:
+  n_challenges: 10
+  out_root: "runs/test_simple"
+  mode: "QUICK"
+
+experiments:
+  # Echo test only - no model loading
+  - id: exp_001
+    mode: QUICK
+    ref:  { type: echo }
+    cand: { type: echo }

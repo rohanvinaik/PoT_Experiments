@@ -131,83 +131,101 @@ When creating Colab runners:
 4. DO NOT create new test logic - use what exists in the codebase
 5. The tests should take 2-5 minutes total, not seconds
 
-## MAIN VALIDATION PIPELINE
+## POT_VERIFIER: CLEAN SKELETON IMPLEMENTATION
 
-The primary validation pipeline is `scripts/run_all.sh` which:
+### Overview
 
-1. **Checks Dependencies** - Python packages, system requirements
-2. **Builds ZK Binaries** - Compiles Rust provers if needed (`--rebuild-zk` flag)
-3. **Runs Core Tests**:
-   - Deterministic validation (100% success rate expected)
-   - Statistical identity verification
-   - Enhanced diff decision tests
-   - Fuzzy hash testing
-   - ZK proof validation (can skip with `--skip-zk`)
-4. **Generates Reports**:
-   - JSON results in `experimental_results/`
-   - Performance metrics
-   - Health scores
-   - Success rates
+A minimal, production-ready scaffold of the PoT verifier with:
+- **HMAC challenge generation** (pre-commitment)
+- **Empirical-Bernstein (EB) confidence sequences**
+- **SAME/DIFFERENT decision rules** with early stopping
+- **Transcript logging + evidence bundles** (ZIP)
+- **Modular design** for easy extension
 
-### Running the Complete Validation Pipeline
-
-**IMPORTANT: Follow this sequence for comprehensive validation testing.**
-
-#### 1. Main Pipeline (All Components)
+### Quick Start
 
 ```bash
-# Full validation pipeline with all tests
-bash scripts/run_all.sh
+# 1. Install base dependencies
+pip install -e .
 
-# Skip ZK tests for faster runs
-bash scripts/run_all.sh --skip-zk
+# 2. (Optional) Install HuggingFace support
+pip install ".[hf]"
 
-# Rebuild ZK binaries if needed
-bash scripts/run_all.sh --rebuild-zk
+# 3. Run with echo models (no dependencies)
+python -m scripts.run_diff --config configs/example_api.yaml
+
+# 4. Run with local HF models (requires transformers)
+python -m scripts.run_diff --config configs/example_local.yaml
 ```
 
-#### 2. Statistical Verification (Enhanced Framework)
+### Directory Structure
+
+```
+pot_verifier/
+├── core/           # Statistical testing and decision logic
+├── lm/             # Model interfaces (HF, API, echo)
+└── logging/        # Audit trail generation
+scripts/
+└── run_diff.py     # Main runner
+configs/            # YAML configurations
+```
+
+### Extension Points
+
+- **Prompt family** (`core/challenges.py`): Replace `iter_prompt_from_seed` with real templates
+- **Scoring** (`core/scoring.py`): Swap difflib for token-level distance or fuzzy hash
+- **HF loader** (`lm/hf_local.py`): Add sharded loading for large models
+- **API client** (`lm/api_client.py`): Implement real deterministic clients
+- **Security**: Add weight hashing (local) or TEE attestation (API)
+
+## MAIN VALIDATION PIPELINE (MANIFEST-DRIVEN)
+
+The primary validation pipeline now uses a **manifest-driven runner** for reproducibility:
 
 ```bash
-# Test specific model pairs with enhanced diff decision
+# Run experiments defined in a YAML manifest
+bash scripts/run_all.sh manifests/neurips_demo.yaml
+
+# Or specify custom output directory
+bash scripts/run_all.sh manifests/neurips_demo.yaml runs/custom_output
+```
+
+This new pipeline:
+1. **Reads YAML manifest** - Defines experiments, models, and parameters
+2. **Runs sequential tests** - Using EnhancedSequentialTester with EB bounds
+3. **Generates evidence** - Transcripts, summaries, metrics, and bundles
+4. **Bootstrap analysis** - Optional power analysis from transcripts
+
+### Running Experiments
+
+#### Individual Experiments
+
+```bash
+# Run a specific experiment from manifest
+python tools/pot_runner.py run --manifest manifests/neurips_demo.yaml --id exp_002
+
+# Run bootstrap power analysis
+python tools/pot_runner.py power --run runs/neurips_demo --B 1000
+
+# Create evidence bundle for an experiment
+python tools/pot_runner.py bundle --run runs/neurips_demo/exp_001
+```
+
+#### Legacy Scripts (Still Available)
+
+The following scripts from the original pipeline are still available for direct use:
+
+```bash
+# Enhanced diff decision tests
 python scripts/run_enhanced_diff_test.py \
-    --mode quick \
-    --ref-model /Users/rohanvinaik/LLM_Models/gpt2 \
-    --cand-model /Users/rohanvinaik/LLM_Models/distilgpt2 \
-    --prf-key deadbeefcafebabe1234567890abcdef
+    --ref-model gpt2 --cand-model distilgpt2 --mode audit
 
-# Run comprehensive model tests
-python /tmp/run_model_tests.py  # Tests multiple pairs automatically
-```
-
-#### 3. Security Verification Suite
-
-```bash
-# Run security tests on all model pairs
+# Security verification
 python scripts/run_security_tests_simple.py
 
-# This runs three security checks:
-# - Config Hash: SHA-256 of config.json (100% accuracy)
-# - TLSH Fuzzy Hash: Locality-sensitive hashing for similarity
-# - Tokenizer Compatibility: Checks if models are drop-in replaceable
-```
-
-#### 4. Zero-Knowledge Proof Validation
-
-```bash
-# Run ZK proof generation and verification
+# ZK proof validation
 python scripts/run_zk_validation.py
-
-# Test specific proof types
-cd pot/zk/prover_halo2
-cargo test --release  # Run Rust ZK circuit tests
 ```
-
-**Complete Test Sequence Summary:**
-1. Statistical tests → SAME/DIFFERENT decision with confidence
-2. Security tests → Config/fuzzy hash verification  
-3. ZK proofs → Cryptographic training verification
-4. Reports → Auto-generated in `experimental_results/`
 
 ### Model Loading Pipeline for Custom Tests
 
@@ -501,6 +519,88 @@ du -sh /Users/rohanvinaik/LLM_Models/*
    df -h /Users/rohanvinaik/LLM_Models
    # Clean up if needed
    ```
+
+### Creating Your Own Manifest
+
+Create a YAML file in `manifests/` with your experiment configuration:
+
+```yaml
+run_id: "my-experiment"
+hmac_key_hex: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f"
+
+global:
+  n_challenges: 32
+  out_root: "runs/my_experiment"
+  mode: "AUDIT"  # QUICK, AUDIT, or EXTENDED
+
+experiments:
+  - id: exp_001
+    ref:
+      type: hf_local
+      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+    cand:
+      type: hf_local
+      model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
+```
+
+### Output Structure
+
+After running experiments, find results in:
+```
+runs/neurips_demo/
+├── exp_001/
+│   ├── transcript.ndjson      # Step-by-step verification log
+│   ├── summary.json           # Final verdict and statistics
+│   ├── metrics.json           # RSS/CPU/IO measurements
+│   ├── manifest.json          # Experiment configuration
+│   └── evidence_bundle.zip    # Complete audit package
+└── batch_summary.json         # Overview of all experiments
+```
+
+### Pipeline Features
+
+**1. Model Support:**
+- **Local HuggingFace models**: Automatically loads from `/Users/rohanvinaik/LLM_Models/`
+- **Echo stubs**: For testing without models
+- **API endpoints**: Extensible for remote model verification
+
+**2. Verification Modes:**
+- **QUICK**: 10-120 queries, 97.5% confidence
+- **AUDIT**: 30-400 queries, 99% confidence (default)
+- **EXTENDED**: 50-800 queries, 99.9% confidence
+
+**3. Evidence Generation:**
+- Cryptographic challenge generation via HMAC-SHA256
+- Complete transcripts with inputs/outputs
+- Performance metrics (memory, CPU, I/O)
+- Reproducible evidence bundles for review
+
+### Integration with Existing Pipeline
+
+The new runner seamlessly integrates with the existing PoT framework:
+- Uses `pot.core.diff_decision.EnhancedSequentialTester` when available
+- Falls back to minimal implementation if imports fail
+- Compatible with all existing model verification features
+
+### Example Experiments in neurips_demo.yaml
+
+The included `manifests/neurips_demo.yaml` demonstrates various verification scenarios:
+
+1. **exp_001**: Echo test for pipeline validation
+2. **exp_002**: GPT-2 vs DistilGPT-2 (distillation detection)
+3. **exp_003**: Pythia-70M self-consistency check
+4. **exp_004**: Pythia-70M vs Pythia-160M (size difference detection)
+5. **exp_005**: API endpoint comparison example
+6. **exp_006**: Robustness test with wrapper attack
+
+To run specific experiments:
+```bash
+# Run just the GPT-2 vs DistilGPT-2 comparison
+python tools/pot_runner.py run --manifest manifests/neurips_demo.yaml --id exp_002
+
+# Run with custom output directory
+bash scripts/run_all.sh manifests/neurips_demo.yaml runs/custom_output
+```
 
 ### Error Handling & Common Issues
 
