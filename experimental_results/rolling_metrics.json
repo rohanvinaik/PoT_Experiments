@@ -1,1 +1,35 @@
-{"total_runs": 0, "successful_runs": 0, "timing_samples": [], "statistical_samples": [], "last_updated": "2025-08-22T10:55:00.000000"}
+{
+  "total_runs": 2,
+  "successful_runs": 2,
+  "timing_samples": [
+    {
+      "t_per_query": 2.285130023956299,
+      "t_total": 73.12416076660156,
+      "hardware": "mps"
+    },
+    {
+      "t_per_query": 2.18,
+      "t_total": 69.76,
+      "hardware": "mps"
+    }
+  ],
+  "statistical_samples": [
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 13.51,
+      "model_a": "gpt2",
+      "model_b": "distilgpt2"
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 12.57,
+      "model_a": "gpt2",
+      "model_b": "distilgpt2"
+    }
+  ],
+  "last_updated": "2025-08-22T11:10:04.951001"
+}
