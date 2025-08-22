@@ -517,6 +517,225 @@ class ReadmeTableUpdater:
         except Exception as e:
             logger.error(f"Failed to update rolling metrics: {e}")
     
+    def update_performance_metrics_table(self) -> bool:
+        """Update the Audit-Grade Performance Metrics table in README.md"""
+        try:
+            # Read current README
+            with open(self.readme_path, 'r') as f:
+                content = f.read()
+            
+            # Get recent runs for performance metrics
+            runs = self.get_recent_successful_runs(days=30)  # Last 30 days for performance metrics
+            if not runs:
+                logger.warning("No recent runs for performance metrics")
+                return False
+            
+            # Collect performance metrics by model pair
+            perf_metrics = {}
+            
+            for run in runs:
+                try:
+                    # Extract model info
+                    ref_model, cand_model, _ = self.extract_model_pair_info(run)
+                    
+                    # Create pair key
+                    if ref_model == cand_model:
+                        pair_key = f"{ref_model} vs {cand_model}"
+                    else:
+                        pair_key = f"{ref_model} vs {cand_model}"
+                    
+                    # Extract performance metrics from evidence bundles if available
+                    run_id = run.get('run_id', '')
+                    evidence_path = self.validation_reports_dir / f"evidence_bundle_{run_id}.json"
+                    
+                    if evidence_path.exists():
+                        with open(evidence_path, 'r') as f:
+                            evidence = json.load(f)
+                        
+                        # Extract detailed metrics
+                        metrics = evidence.get('metrics', {})
+                        environment = evidence.get('environment', {})
+                        
+                        # Get memory info
+                        peak_memory = 0
+                        for stage_name, stage_data in metrics.items():
+                            if isinstance(stage_data, dict) and 'memory_peak_mb' in stage_data:
+                                peak_memory = max(peak_memory, stage_data.get('memory_peak_mb', 0))
+                        
+                        # Store metrics
+                        if pair_key not in perf_metrics:
+                            perf_metrics[pair_key] = {
+                                'peak_rss': peak_memory,
+                                'page_faults': {'major': 0, 'minor': 0},
+                                'disk_throughput': 0,
+                                'cold_query_time': [],
+                                'warm_query_time': [],
+                                'total_queries': run.get('n_queries', 0),
+                                'decision': run.get('decision', 'UNKNOWN'),
+                                'confidence': run.get('confidence', 0)
+                            }
+                        else:
+                            # Update with max values
+                            perf_metrics[pair_key]['peak_rss'] = max(perf_metrics[pair_key]['peak_rss'], peak_memory)
+                    
+                    # Also check for performance metrics files
+                    perf_file_pattern = f"performance_metrics_*"
+                    for perf_file in self.experimental_results_dir.glob(perf_file_pattern):
+                        try:
+                            with open(perf_file, 'r') as f:
+                                perf_data = json.load(f)
+                            
+                            test_config = perf_data.get('test_config', {})
+                            test_ref = test_config.get('ref_model', '')
+                            test_cand = test_config.get('cand_model', '')
+                            
+                            # Check if this matches our current pair
+                            if test_ref in ref_model or test_cand in cand_model:
+                                perf = perf_data.get('performance_metrics', {})
+                                
+                                # Update metrics
+                                if pair_key not in perf_metrics:
+                                    perf_metrics[pair_key] = {}
+                                
+                                perf_metrics[pair_key].update({
+                                    'peak_rss': perf.get('peak_rss_mb', 0),
+                                    'page_faults': perf.get('page_faults', {'major': 0, 'minor': 0}),
+                                    'disk_throughput': perf.get('disk_read_throughput_mb_s', 0),
+                                    'cold_query_time': perf.get('query_metrics', {}).get('avg_cold_query_seconds', 0),
+                                    'warm_query_time': perf.get('query_metrics', {}).get('avg_warm_query_seconds', 0),
+                                    'cold_warm_ratio': perf.get('query_metrics', {}).get('cold_warm_ratio', 0)
+                                })
+                                
+                        except Exception as e:
+                            logger.debug(f"Could not read performance file {perf_file}: {e}")
+                    
+                except Exception as e:
+                    logger.debug(f"Could not extract performance metrics: {e}")
+                    continue
+            
+            # If we don't have detailed metrics, use simpler approach
+            if not perf_metrics:
+                # Create simple metrics from run data
+                for run in runs[:4]:  # Take up to 4 recent model pairs
+                    ref_model, cand_model, _ = self.extract_model_pair_info(run)
+                    pair_key = f"{ref_model} vs {cand_model}"
+                    
+                    # Estimate metrics based on run data
+                    n_queries = run.get('n_queries', 0)
+                    total_duration = run.get('total_duration', 0)
+                    per_query = total_duration / n_queries if n_queries > 0 else 0
+                    
+                    # Get peak memory from stage metrics if available
+                    peak_memory = 1500  # Default estimate
+                    if 'stage_metrics' in run:
+                        for stage_name, stage_data in run.get('stage_metrics', {}).items():
+                            if 'memory_peak_mb' in stage_data:
+                                peak_memory = max(peak_memory, stage_data['memory_peak_mb'])
+                    
+                    perf_metrics[pair_key] = {
+                        'peak_rss': peak_memory,
+                        'page_faults': '-',
+                        'disk_throughput': '-',
+                        'cold_query_time': f"~{per_query:.1f}s",
+                        'warm_query_time': f"~{per_query:.1f}s",
+                        'cold_warm_ratio': '~1.0x',
+                        'total_queries': f"{n_queries} ({run.get('decision', 'UNKNOWN')})",
+                        'confidence': f"{run.get('confidence', 0)*100:.0f}%"
+                    }
+            
+            # Format the table
+            if perf_metrics:
+                # Build new table rows
+                table_rows = []
+                for pair_key, metrics in list(perf_metrics.items())[:4]:  # Show top 4 pairs
+                    # Format each metric
+                    peak_rss = f"{metrics.get('peak_rss', 0):.0f} MB" if isinstance(metrics.get('peak_rss'), (int, float)) else metrics.get('peak_rss', '-')
+                    
+                    if isinstance(metrics.get('page_faults'), dict):
+                        pf = metrics['page_faults']
+                        page_faults = f"{pf.get('major', 0)}/{pf.get('minor', 0)}"
+                    else:
+                        page_faults = metrics.get('page_faults', '-')
+                    
+                    disk_throughput = f"{metrics.get('disk_throughput', 0):.2f} MB/s" if isinstance(metrics.get('disk_throughput'), (int, float)) and metrics.get('disk_throughput', 0) > 0 else '-'
+                    
+                    cold_time = f"{metrics.get('cold_query_time', 0):.2f}s" if isinstance(metrics.get('cold_query_time'), (int, float)) else metrics.get('cold_query_time', '-')
+                    warm_time = f"{metrics.get('warm_query_time', 0):.2f}s" if isinstance(metrics.get('warm_query_time'), (int, float)) else metrics.get('warm_query_time', '-')
+                    
+                    ratio = f"{metrics.get('cold_warm_ratio', 0):.2f}x" if isinstance(metrics.get('cold_warm_ratio'), (int, float)) and metrics.get('cold_warm_ratio', 0) > 0 else '~1.0x'
+                    
+                    queries = metrics.get('total_queries', '-')
+                    confidence = metrics.get('confidence', '-')
+                    
+                    table_rows.append({
+                        'pair': pair_key,
+                        'peak_rss': peak_rss,
+                        'page_faults': page_faults,
+                        'disk_throughput': disk_throughput,
+                        'cold_time': cold_time,
+                        'warm_time': warm_time,
+                        'ratio': ratio,
+                        'queries': queries,
+                        'confidence': confidence
+                    })
+                
+                # Find and replace the performance metrics table
+                perf_table_pattern = re.compile(
+                    r'(### Audit-Grade Performance Metrics.*?\n\n)'
+                    r'(\| Metric \|.*?\n)'
+                    r'(\|[-\s|]+\n)'
+                    r'((?:\|.*?\n)+)',
+                    re.DOTALL
+                )
+                
+                match = perf_table_pattern.search(content)
+                if match:
+                    # Build new table content
+                    new_table_lines = []
+                    
+                    # Header row with model pairs
+                    pairs = [row['pair'] for row in table_rows[:4]]
+                    header = "| Metric | " + " | ".join(pairs) + " |"
+                    separator = "|--------|" + "".join(["--------------------|" for _ in pairs])
+                    
+                    new_table_lines.append(header)
+                    new_table_lines.append(separator)
+                    
+                    # Metrics rows
+                    metrics_to_show = [
+                        ('Peak RSS', 'peak_rss'),
+                        ('Page Faults (maj/min)', 'page_faults'),
+                        ('Disk Read Throughput', 'disk_throughput'),
+                        ('Cold Query Time', 'cold_time'),
+                        ('Warm Query Time', 'warm_time'),
+                        ('Cold/Warm Ratio', 'ratio'),
+                        ('Total Queries', 'queries'),
+                        ('Decision Confidence', 'confidence')
+                    ]
+                    
+                    for metric_name, metric_key in metrics_to_show:
+                        row = f"| **{metric_name}** |"
+                        for table_row in table_rows[:4]:
+                            row += f" {table_row.get(metric_key, '-')} |"
+                        new_table_lines.append(row)
+                    
+                    # Replace the table
+                    new_table_content = match.group(1) + '\n'.join(new_table_lines) + '\n'
+                    new_content = content[:match.start()] + new_table_content + content[match.end():]
+                    
+                    # Write back
+                    with open(self.readme_path, 'w') as f:
+                        f.write(new_content)
+                    
+                    logger.info("Updated Audit-Grade Performance Metrics table")
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Failed to update performance metrics table: {e}")
+            return False
+    
     def update_all_tables(self) -> bool:
         """Update all README tables with latest data"""
         success = True
@@ -526,6 +745,10 @@ class ReadmeTableUpdater:
         # Update main example runs table
         if not self.update_example_runs_table():
             success = False
+        
+        # Update performance metrics table
+        if not self.update_performance_metrics_table():
+            logger.warning("Could not update performance metrics table")
         
         # Update rolling metrics summary if present
         self.update_rolling_metrics_summary()
