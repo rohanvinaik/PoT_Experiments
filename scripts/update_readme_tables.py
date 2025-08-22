@@ -548,63 +548,96 @@ class ReadmeTableUpdater:
                     run_id = run.get('run_id', '')
                     evidence_path = self.validation_reports_dir / f"evidence_bundle_{run_id}.json"
                     
-                    if evidence_path.exists():
-                        with open(evidence_path, 'r') as f:
-                            evidence = json.load(f)
-                        
-                        # Extract detailed metrics
-                        metrics = evidence.get('metrics', {})
-                        environment = evidence.get('environment', {})
-                        
-                        # Get memory info
-                        peak_memory = 0
-                        for stage_name, stage_data in metrics.items():
-                            if isinstance(stage_data, dict) and 'memory_peak_mb' in stage_data:
-                                peak_memory = max(peak_memory, stage_data.get('memory_peak_mb', 0))
-                        
-                        # Store metrics
-                        if pair_key not in perf_metrics:
-                            perf_metrics[pair_key] = {
-                                'peak_rss': peak_memory,
-                                'page_faults': {'major': 0, 'minor': 0},
-                                'disk_throughput': 0,
-                                'cold_query_time': [],
-                                'warm_query_time': [],
-                                'total_queries': run.get('n_queries', 0),
-                                'decision': run.get('decision', 'UNKNOWN'),
-                                'confidence': run.get('confidence', 0)
-                            }
-                        else:
-                            # Update with max values
-                            perf_metrics[pair_key]['peak_rss'] = max(perf_metrics[pair_key]['peak_rss'], peak_memory)
+                    evidence = {}  # Initialize evidence
+                    peak_memory = 0
                     
-                    # Also check for performance metrics files
-                    perf_file_pattern = f"performance_metrics_*"
+                    if evidence_path.exists():
+                        try:
+                            with open(evidence_path, 'r') as f:
+                                evidence = json.load(f)
+                            
+                            # Extract detailed metrics
+                            metrics = evidence.get('metrics', {})
+                            environment = evidence.get('environment', {})
+                            
+                            # Get memory info
+                            for stage_name, stage_data in metrics.items():
+                                if isinstance(stage_data, dict) and 'memory_peak_mb' in stage_data:
+                                    peak_memory = max(peak_memory, stage_data.get('memory_peak_mb', 0))
+                            
+                            # Store metrics
+                            if pair_key not in perf_metrics:
+                                perf_metrics[pair_key] = {
+                                    'peak_rss': peak_memory,
+                                    'page_faults': {'major': 0, 'minor': 0},
+                                    'disk_throughput': 0,
+                                    'cold_query_time': [],
+                                    'warm_query_time': [],
+                                    'total_queries': run.get('n_queries', 0),
+                                    'decision': run.get('decision', 'UNKNOWN'),
+                                    'confidence': run.get('confidence', 0)
+                                }
+                            else:
+                                # Update with max values
+                                perf_metrics[pair_key]['peak_rss'] = max(perf_metrics[pair_key]['peak_rss'], peak_memory)
+                        except Exception as e:
+                            logger.debug(f"Could not read evidence bundle {evidence_path}: {e}")
+                    
+                    # Check evidence for performance metrics
+                    if evidence and 'performance' in evidence.get('metrics', {}):
+                        perf = evidence['metrics']['performance']
+                        if pair_key not in perf_metrics:
+                            perf_metrics[pair_key] = {}
+                        
+                        perf_metrics[pair_key].update({
+                            'peak_rss': perf.get('peak_rss_mb', peak_memory),
+                            'page_faults': {
+                                'major': perf.get('page_faults_major', 0),
+                                'minor': perf.get('page_faults_minor', 0)
+                            },
+                            'disk_throughput': perf.get('disk_throughput_mb_s', 0),
+                            'cold_query_time': perf.get('avg_cold_query_seconds', 0),
+                            'warm_query_time': perf.get('avg_warm_query_seconds', 0),
+                            'cold_warm_ratio': perf.get('cold_warm_ratio', 0),
+                            'total_queries': run.get('n_queries', 0),
+                            'decision': run.get('decision', 'UNKNOWN'),
+                            'confidence': run.get('confidence', 0)
+                        })
+                    
+                    # Check for matching standalone performance metrics files
+                    perf_file_pattern = "performance_metrics_*.json"
                     for perf_file in self.experimental_results_dir.glob(perf_file_pattern):
                         try:
                             with open(perf_file, 'r') as f:
                                 perf_data = json.load(f)
                             
+                            # Check if this file matches the current model pair
                             test_config = perf_data.get('test_config', {})
-                            test_ref = test_config.get('ref_model', '')
-                            test_cand = test_config.get('cand_model', '')
+                            test_ref = self.format_model_name(test_config.get('ref_model', ''))
+                            test_cand = self.format_model_name(test_config.get('cand_model', ''))
                             
-                            # Check if this matches our current pair
-                            if test_ref in ref_model or test_cand in cand_model:
-                                perf = perf_data.get('performance_metrics', {})
+                            # Only use if it matches current pair
+                            if test_ref == ref_model and test_cand == cand_model:
+                                perf_metrics_data = perf_data.get('performance_metrics', {})
                                 
-                                # Update metrics
-                                if pair_key not in perf_metrics:
-                                    perf_metrics[pair_key] = {}
-                                
-                                perf_metrics[pair_key].update({
-                                    'peak_rss': perf.get('peak_rss_mb', 0),
-                                    'page_faults': perf.get('page_faults', {'major': 0, 'minor': 0}),
-                                    'disk_throughput': perf.get('disk_read_throughput_mb_s', 0),
-                                    'cold_query_time': perf.get('query_metrics', {}).get('avg_cold_query_seconds', 0),
-                                    'warm_query_time': perf.get('query_metrics', {}).get('avg_warm_query_seconds', 0),
-                                    'cold_warm_ratio': perf.get('query_metrics', {}).get('cold_warm_ratio', 0)
-                                })
+                                if perf_metrics_data:
+                                    # Update metrics for this specific pair
+                                    if pair_key not in perf_metrics:
+                                        perf_metrics[pair_key] = {}
+                                    
+                                    query_metrics = perf_metrics_data.get('query_metrics', {})
+                                    perf_metrics[pair_key].update({
+                                        'peak_rss': perf_metrics_data.get('peak_rss_mb', peak_memory),
+                                        'page_faults': perf_metrics_data.get('page_faults', {'major': 0, 'minor': 0}),
+                                        'disk_throughput': perf_metrics_data.get('disk_throughput_mb_s', 0),
+                                        'cold_query_time': query_metrics.get('avg_cold_query_seconds', 0),
+                                        'warm_query_time': query_metrics.get('avg_warm_query_seconds', 0),
+                                        'cold_warm_ratio': query_metrics.get('cold_warm_ratio', 0),
+                                        'total_queries': run.get('n_queries', 0),
+                                        'decision': run.get('decision', 'UNKNOWN'),
+                                        'confidence': run.get('confidence', 0)
+                                    })
+                                    break  # Found matching file, stop searching
                                 
                         except Exception as e:
                             logger.debug(f"Could not read performance file {perf_file}: {e}")
@@ -659,8 +692,18 @@ class ReadmeTableUpdater:
                     
                     disk_throughput = f"{metrics.get('disk_throughput', 0):.2f} MB/s" if isinstance(metrics.get('disk_throughput'), (int, float)) and metrics.get('disk_throughput', 0) > 0 else '-'
                     
-                    cold_time = f"{metrics.get('cold_query_time', 0):.2f}s" if isinstance(metrics.get('cold_query_time'), (int, float)) else metrics.get('cold_query_time', '-')
-                    warm_time = f"{metrics.get('warm_query_time', 0):.2f}s" if isinstance(metrics.get('warm_query_time'), (int, float)) else metrics.get('warm_query_time', '-')
+                    # Handle cold/warm query times - check for different data types
+                    cold_val = metrics.get('cold_query_time', 0)
+                    warm_val = metrics.get('warm_query_time', 0)
+                    
+                    # Handle lists (empty arrays showing as [])
+                    if isinstance(cold_val, list):
+                        cold_val = cold_val[0] if cold_val else 0
+                    if isinstance(warm_val, list):
+                        warm_val = warm_val[0] if warm_val else 0
+                    
+                    cold_time = f"{cold_val:.2f}s" if isinstance(cold_val, (int, float)) and cold_val > 0 else '-'
+                    warm_time = f"{warm_val:.2f}s" if isinstance(warm_val, (int, float)) and warm_val > 0 else '-'
                     
                     ratio = f"{metrics.get('cold_warm_ratio', 0):.2f}x" if isinstance(metrics.get('cold_warm_ratio'), (int, float)) and metrics.get('cold_warm_ratio', 0) > 0 else '~1.0x'
                     
