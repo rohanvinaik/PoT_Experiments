@@ -12,6 +12,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import re
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+
 def clear_screen():
     os.system('clear')
 
@@ -27,7 +29,7 @@ def format_time(seconds):
 
 def main():
     # Find the latest log file
-    log_dir = Path("experimental_results")
+    log_dir = ROOT_DIR / "experimental_results"
     log_files = list(log_dir.glob("qwen_pipeline_*.log"))
     
     if not log_files:

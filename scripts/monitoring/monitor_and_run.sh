@@ -1,6 +1,9 @@
 #!/bin/bash
 # Monitor download and automatically run test when complete
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")/.."
+
 echo "📡 Monitoring Zephyr download progress..."
 echo "Will automatically run Mistral vs Zephyr test when complete"
 echo "="*60
@@ -18,13 +21,14 @@ while true; do
     
     if [ "$COMPLETE" = true ]; then
         echo "✅ Download complete! Running test..."
-        python3 run_mistral_zephyr.py
+        python3 "$ROOT_DIR/archived_mistral_tests/run_mistral_zephyr.py"
         break
     fi
     
     # Show progress
     SIZE=$(du -sh ~/.cache/huggingface/hub/models--HuggingFaceH4--zephyr-7b-beta/blobs/ 2>/dev/null | cut -f1)
     echo -ne "\r📦 Progress: $SIZE / ~14GB - $(date '+%H:%M:%S')"
-    
+
     sleep 30
 done
+
