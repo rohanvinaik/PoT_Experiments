@@ -26,6 +26,12 @@ try:
         DifferenceVerifier,
         create_enhanced_verifier
     )
+    from src.pot.core.adaptive_sampling import (
+        AdaptiveConfig,
+        AdaptiveSequentialTester,
+        ConvergenceMetrics,
+        VarianceReductionStrategy
+    )
     from src.pot.core.challenge import (
         ChallengeConfig, 
         generate_challenges,
@@ -45,6 +51,12 @@ except ImportError:
             DiffDecisionConfig,
             DifferenceVerifier,
             create_enhanced_verifier
+        )
+        from pot.core.adaptive_sampling import (
+            AdaptiveConfig,
+            AdaptiveSequentialTester,
+            ConvergenceMetrics,
+            VarianceReductionStrategy
         )
         from pot.core.challenge import (
             ChallengeConfig,
@@ -133,6 +145,12 @@ class PipelineConfig:
     max_queries: int = 400
     hmac_key: Optional[str] = None
     verbose: bool = True
+    # Adaptive sampling configuration
+    enable_adaptive: bool = True
+    adaptive_batch_size: int = 8
+    adaptive_switch_threshold: float = 0.5
+    adaptive_noise_margin: float = 2.0
+    adaptive_max_factor: float = 1.5
     
     def __post_init__(self):
         """Ensure output directory exists"""
@@ -300,6 +318,152 @@ class PipelineOrchestrator:
         finally:
             self._end_stage(metrics)
     
+    def _run_adaptive_verification(
+        self,
+        ref_model: Any,
+        cand_model: Any,
+        prompts: List[str],
+        score_fn: callable,
+        adaptive_tester: AdaptiveSequentialTester,
+        diff_config: DiffDecisionConfig
+    ) -> Dict[str, Any]:
+        """
+        Run adaptive verification with dynamic thresholds
+        """
+        differences = []
+        prompt_index = 0
+        n_queries = 0
+        
+        # Get the base tester from adaptive wrapper
+        base_tester = adaptive_tester.base_tester
+        
+        # Store differences in base_tester for adaptive threshold computation
+        if not hasattr(base_tester, 'differences'):
+            base_tester.differences = []
+        
+        # Store config values on base_tester for adaptive threshold computation
+        if not hasattr(base_tester, 'gamma'):
+            base_tester.gamma = diff_config.gamma
+        if not hasattr(base_tester, 'delta_star'):
+            base_tester.delta_star = diff_config.delta_star
+        if not hasattr(base_tester, 'n_min'):
+            base_tester.n_min = diff_config.n_min
+        if not hasattr(base_tester, 'n_max'):
+            base_tester.n_max = diff_config.n_max
+        
+        while prompt_index < len(prompts) and n_queries < diff_config.n_max:
+            # Get current batch size from adaptive tester
+            batch_size = adaptive_tester.adapt_batch_size()
+            batch_end = min(prompt_index + batch_size, len(prompts))
+            
+            # Process batch
+            for i in range(prompt_index, batch_end):
+                if i >= len(prompts):
+                    break
+                    
+                prompt = prompts[i]
+                score = score_fn(ref_model, cand_model, prompt, K=diff_config.positions_per_prompt)
+                
+                # Update base tester
+                base_tester.update(score)
+                differences.append(score)
+                base_tester.differences.append(score)  # Store for adaptive thresholds
+                n_queries += 1
+                
+                # Update convergence metrics
+                if hasattr(base_tester, 'get_state'):
+                    state = base_tester.get_state()
+                    adaptive_tester.convergence.update(
+                        state.get('mean', 0),
+                        state.get('half_width', float('inf')),
+                        state.get('rel_me', 1.0)
+                    )
+            
+            # Check for early stopping with adaptive thresholds
+            if n_queries >= diff_config.n_min:
+                # Compute adaptive thresholds
+                adaptive_gamma = adaptive_tester.compute_adaptive_threshold('gamma')
+                adaptive_delta = adaptive_tester.compute_adaptive_threshold('delta_star')
+                
+                # Get current state
+                state = base_tester.get_state()
+                mean = state.get('mean', 0)
+                ci = state.get('ci', (-float('inf'), float('inf')))
+                half_width = state.get('half_width', float('inf'))
+                rel_me = state.get('rel_me', 1.0)
+                
+                # Apply adaptive decision rules
+                # SAME decision with adaptive gamma
+                eta = 0.5
+                if ci[0] >= -adaptive_gamma and ci[1] <= adaptive_gamma and half_width <= eta * adaptive_gamma:
+                    decision = "SAME"
+                    self._log(f"Adaptive SAME decision at n={n_queries}: CI {ci} ⊂ [-{adaptive_gamma:.3f}, +{adaptive_gamma:.3f}]")
+                    break
+                
+                # DIFFERENT decision - check if CI excludes the equivalence region
+                # This is the correct statistical test: does the CI exclude [-gamma, +gamma]?
+                if ci[0] > adaptive_gamma or ci[1] < -adaptive_gamma:
+                    decision = "DIFFERENT"
+                    self._log(f"Adaptive DIFFERENT decision at n={n_queries}: CI [{ci[0]:.3f}, {ci[1]:.3f}] excludes [-{adaptive_gamma:.3f}, +{adaptive_gamma:.3f}]")
+                    break
+                else:
+                    decision = "UNDECIDED"
+            
+            # Check convergence
+            is_converging, reason = adaptive_tester.convergence.is_converging()
+            if is_converging and n_queries >= diff_config.n_min * 2:
+                self._log(f"Convergence detected at n={n_queries}: {reason}")
+                decision = "UNDECIDED"
+                break
+            
+            # Check for strategy switch
+            should_switch, new_strategy = adaptive_tester.should_switch_strategy()
+            if should_switch:
+                self._log(f"Strategy switch suggested at n={n_queries}: {new_strategy}")
+                # Could implement strategy switching here (e.g., switch to symmetric KL)
+            
+            prompt_index = batch_end
+        
+        # Final state
+        if n_queries >= diff_config.n_max:
+            decision = "UNDECIDED"
+            self._log(f"Reached n_max={diff_config.n_max}")
+        
+        # Build report
+        final_state = base_tester.get_state()
+        diagnostics = adaptive_tester.get_diagnostics()
+        
+        # Format results to match expected structure
+        results = {
+            "decision": decision,
+            "n_used": n_queries,
+            "mean": final_state.get('mean', 0),
+            "variance": final_state.get('variance', 0),
+            "std_dev": final_state.get('std_dev', 0),
+            "ci_99": list(final_state.get('ci', (-float('inf'), float('inf')))),
+            "half_width": final_state.get('half_width', float('inf')),
+            "rel_me": final_state.get('rel_me', 1.0)
+        }
+        
+        return {
+            "results": results,
+            "decision": decision,
+            "confidence": final_state.get('confidence', diff_config.confidence),
+            "n_queries": n_queries,
+            "ci_progression": adaptive_tester.convergence.ci_width_history,
+            "effect_size": abs(final_state.get('mean', 0)),
+            "challenges_used": n_queries,
+            "mean": final_state.get('mean', 0),
+            "ci": final_state.get('ci', (-float('inf'), float('inf'))),
+            "half_width": final_state.get('half_width', float('inf')),
+            "rel_me": final_state.get('rel_me', 1.0),
+            "adaptive_thresholds": {
+                "gamma": adaptive_gamma if 'adaptive_gamma' in locals() else diff_config.gamma,
+                "delta_star": adaptive_delta if 'adaptive_delta' in locals() else diff_config.delta_star
+            },
+            "adaptive_diagnostics": diagnostics
+        }
+    
     def run_verification(
         self,
         ref_model: Any,
@@ -375,6 +539,18 @@ class PipelineOrchestrator:
                 # Create verifier with proper configuration
                 diff_config = DiffDecisionConfig(mode=self.config.testing_mode)
                 
+                # Create adaptive components if enabled
+                adaptive_tester = None
+                if self.config.enable_adaptive:
+                    self._log("Enabling adaptive sampling with dynamic thresholds")
+                    adaptive_config = AdaptiveConfig(
+                        initial_batch_size=self.config.adaptive_batch_size,
+                        switch_threshold=self.config.adaptive_switch_threshold,
+                        noise_margin_factor=self.config.adaptive_noise_margin,
+                        max_adaptive_factor=self.config.adaptive_max_factor
+                    )
+                    # We'll create the adaptive tester wrapper later
+                
                 # Track which prompts were actually used
                 prompts_used = 0
                 prompt_iter = iter(prompts)
@@ -415,32 +591,31 @@ class PipelineOrchestrator:
                         target_text = ref.tok.decode(generated_tokens, skip_special_tokens=True)
                         
                         # Compute cross-entropy for both models on prompt + target
-                        full_text = prompt + target_text
+                        full_text = prompt + " " + target_text  # Add space between prompt and target
                         
-                        # Get CE from reference model
-                        ref_full_inputs = ref.tok(full_text, return_tensors="pt").to(ref.device)
+                        # Tokenize the full text for both models
+                        ref_full_inputs = ref.tok(full_text, return_tensors="pt", truncation=True, max_length=512).to(ref.device)
+                        cand_full_inputs = cand.tok(full_text, return_tensors="pt", truncation=True, max_length=512).to(cand.device)
+                        
+                        # Simpler CE calculation using model's built-in loss
                         with torch.no_grad():
-                            ref_ce_outputs = ref.m(**ref_full_inputs, labels=ref_full_inputs.input_ids)
-                            ref_loss = ref_ce_outputs.loss.item()
+                            # Get CE from reference model
+                            ref_outputs = ref.m(**ref_full_inputs, labels=ref_full_inputs.input_ids)
+                            ref_loss = ref_outputs.loss.item()
+                            
+                            # Get CE from candidate model  
+                            cand_outputs = cand.m(**cand_full_inputs, labels=cand_full_inputs.input_ids)
+                            cand_loss = cand_outputs.loss.item()
                         
-                        # Get CE from candidate model  
-                        cand_full_inputs = cand.tok(full_text, return_tensors="pt").to(cand.device)
-                        with torch.no_grad():
-                            cand_ce_outputs = cand.m(**cand_full_inputs, labels=cand_full_inputs.input_ids)
-                            cand_loss = cand_ce_outputs.loss.item()
-                        
-                        # Normalize by target length for fair comparison
-                        target_length = len(generated_tokens)
-                        if target_length > 0:
-                            ref_ce = ref_loss * target_length
-                            cand_ce = cand_loss * target_length
-                        else:
-                            ref_ce = ref_loss
-                            cand_ce = cand_loss
+                        # Scale by sequence length to get total CE (not average)
+                        seq_length = ref_full_inputs.input_ids.shape[1]
+                        ref_ce = ref_loss * seq_length
+                        cand_ce = cand_loss * seq_length
                         
                         # Return the CE difference (cand - ref)
-                        # Positive: candidate worse at predicting generated text
-                        # Negative: candidate better at predicting generated text
+                        # Following runtime_blackbox_validation.py convention:
+                        # Positive: candidate is worse (distilled model has higher CE)
+                        # Negative: candidate is better (unlikely for distillation)
                         # Near zero: similar models
                         ce_diff = cand_ce - ref_ce
                         
@@ -450,20 +625,37 @@ class PipelineOrchestrator:
                         self._log(f"Warning: CE score computation failed: {e}", level="WARNING")
                         return 0.0  # Neutral score on error
                 
-                # Create and run verifier
-                verifier = DifferenceVerifier(
-                    score_fn=score_fn,
-                    prompt_generator=prompt_generator,
-                    cfg=diff_config,
-                    use_enhanced=True
-                )
-                
-                # Run verification (will stop early on decision)
-                report = verifier.verify_difference(
-                    ref_model=ref_model,
-                    cand_model=cand_model,
-                    verbose=self.config.verbose
-                )
+                # Use adaptive verification if enabled
+                if self.config.enable_adaptive:
+                    # Create enhanced sequential tester with adaptive thresholds
+                    tester = EnhancedSequentialTester(diff_config)
+                    adaptive_tester = AdaptiveSequentialTester(tester, adaptive_config)
+                    
+                    # Run adaptive verification
+                    report = self._run_adaptive_verification(
+                        ref_model=ref_model,
+                        cand_model=cand_model,
+                        prompts=prompts,
+                        score_fn=score_fn,
+                        adaptive_tester=adaptive_tester,
+                        diff_config=diff_config
+                    )
+                    prompts_used = report.get('n_queries', len(prompts))
+                else:
+                    # Use standard verifier
+                    verifier = DifferenceVerifier(
+                        score_fn=score_fn,
+                        prompt_generator=prompt_generator,
+                        cfg=diff_config,
+                        use_enhanced=True
+                    )
+                    
+                    # Run verification (will stop early on decision)
+                    report = verifier.verify_difference(
+                        ref_model=ref_model,
+                        cand_model=cand_model,
+                        verbose=self.config.verbose
+                    )
                 
                 # Track actual challenges used for evidence bundle
                 challenges_used = []

@@ -1,0 +1,7 @@
+{
+  "run_id": "validation_20250822_100232",
+  "status": "failed",
+  "error": "'EnhancedSequentialTester' object has no attribute 'n_min'",
+  "stage_failed": "verification",
+  "timestamp": "2025-08-22T10:02:37.767690"
+}

@@ -189,24 +189,24 @@ class EnhancedSequentialTester:
         alpha = self.config.alpha
         log_term = math.log(3.0 / alpha)
         
-        # Effective sample size (n * K)
-        n_eff = self.n * self.config.positions_per_prompt
+        # Use actual sample size, not multiplied by K
+        # Each score is already computed over K tokens
+        n_eff = self.n
         
         # EB half-width
-        half_width_normalized = (
+        half_width = (
             math.sqrt(2 * clipped_var * log_term / n_eff) + 
             3 * log_term / max(n_eff - 1, 1)
         )
         
-        # Scale back to original range
-        range_scale = self.config.score_clip_high - self.config.score_clip_low
-        half_width = half_width_normalized * range_scale
+        # No scaling needed - we're computing CI for the actual scores
+        # The clipping is just for numerical stability, not normalization
         
         # Apply to raw mean (not clipped mean)
         return ((self.mean - half_width, self.mean + half_width), half_width)
     
     def _compute_ci_t(self) -> Tuple[Tuple[float, float], float]:
-        """T-distribution CI with effective sample size"""
+        """T-distribution CI"""
         if self.n < 2:
             return ((-float("inf"), float("inf")), float("inf"))
         
@@ -215,10 +215,11 @@ class EnhancedSequentialTester:
             # Return tight CI around 0
             return ((0.0, 0.0), 0.0)
         
-        # Effective sample size
-        n_eff = self.n * self.config.positions_per_prompt
+        # Use actual sample size
+        # Each score is already computed over K tokens
+        n_eff = self.n
         
-        # Standard error with effective n
+        # Standard error
         sem = self.std_dev / math.sqrt(n_eff)
         
         # Critical value based on confidence

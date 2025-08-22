@@ -1,0 +1,7 @@
+{
+  "run_id": "validation_20250822_100449",
+  "status": "failed",
+  "error": "'TestingMode' object has no attribute 'score_clip_low'",
+  "stage_failed": "verification",
+  "timestamp": "2025-08-22T10:04:59.614552"
+}

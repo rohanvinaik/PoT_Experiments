@@ -98,13 +98,9 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| **DistilGPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 12 | ~6.3 s | ~0.5 s | Self-consistency |
-| **EleutherAI Pythia-70m** vs **EleutherAI Pythia-160m** | Quick-gate | UNDECIDED | 120 | ~87 s | ~0.7 s | Model comparison |
-| **GPT-2** vs **DistilGPT-2** | Quick-gate | UNDECIDED | 84.0 (avg of 3) | ~47.3 s (avg of 3) | ~0.6 s (avg of 3) | Distillation (3 runs) |
-| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 12.0 (avg of 2) | ~13.5 s (avg of 2) | ~1.1 s (avg of 2) | Self-consistency (2 runs) |
-| **Model A** vs **Model B** | Local-weights | SAME | 58.3 (avg of 7) | ~37.4 s (avg of 7) | ~0.6 s (avg of 7) | Model comparison (7 runs) |
+| *Table cleared - awaiting new runs* | - | - | - | - | - | - |
 
-<!-- Table auto-updated: 2025-08-22 06:56:40 -->
+<!-- Table auto-updated: 2025-08-22 10:55:00 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
@@ -234,6 +230,12 @@ logs/                  # per-run summaries and metrics
 - **Evidence UX**: single-file signed bundle + verifier tool  
 - **Active-learning challenge selection** to further reduce queries  
 - **Multi-modal** extensions (vision/audio) where applicable
+- **Variance-based model relationship inference** ("Birth Certificate" analysis):
+  - When observed variance differs from expected statistical properties, this reveals underlying model relationships
+  - Higher-than-expected variance may indicate architectural differences, quantization, or distillation
+  - Lower-than-expected variance could suggest fine-tuning or near-clone relationships
+  - Multiple runs with convergence analysis (similar to GenomeVault's repetition-based certainty) could amplify confidence from 99% to 99.99%+ through mathematical error convergence
+  - This variance signature acts as a statistical "birth certificate" revealing the model's training lineage
 
 ---
 
