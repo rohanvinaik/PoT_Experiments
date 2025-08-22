@@ -62,7 +62,9 @@ class ShardedVerificationPipeline:
         self.memory_manager = MemoryManager(MemoryPolicy(
             max_memory_percent=self.config.max_memory_usage_percent,
             gc_threshold_percent=self.config.max_memory_usage_percent - 10,
-            emergency_threshold_percent=self.config.max_memory_usage_percent + 10
+            emergency_threshold_percent=self.config.max_memory_usage_percent + 10,
+            swap_limit_mb=2048,  # 2GB swap limit
+            oom_safety_margin_mb=1024  # 1GB safety margin
         ))
         
         self.scheduler = ShardScheduler()

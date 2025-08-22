@@ -162,7 +162,9 @@ class MemorySafeValidator:
                 
                 # Try emergency cleanup
                 logger.info("🚨 Attempting emergency memory cleanup...")
-                self.memory_manager.emergency_cleanup()
+                # Force aggressive garbage collection
+                gc.collect()
+                gc.collect()
                 gc.collect()
                 
                 # Re-check
@@ -208,7 +210,6 @@ class MemorySafeValidator:
             config = PipelineConfig(
                 testing_mode=TestingMode.AUDIT_GRADE,
                 verification_mode=VerificationMode.LOCAL_WEIGHTS,
-                n_challenges=30,  # Use reasonable number for 7B models
                 enable_memory_tracking=True,
                 enable_zk_proof=False,  # Disable ZK for memory efficiency
                 output_dir=Path(f"outputs/memory_safe_{test_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
@@ -228,7 +229,14 @@ class MemorySafeValidator:
             
             # Create and run pipeline
             start_time = time.time()
-            pipeline = PipelineOrchestrator(config)
+            
+            # Use sharded pipeline if enabled, otherwise regular pipeline
+            if enable_sharding and self.sharding_pipeline:
+                logger.info("🧩 Using sharded pipeline for verification...")
+                # The sharded pipeline needs to wrap the regular pipeline
+                pipeline = self.sharding_pipeline
+            else:
+                pipeline = PipelineOrchestrator(config)
             
             # Monitor memory during execution
             memory_samples = []

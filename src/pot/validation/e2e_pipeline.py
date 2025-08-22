@@ -29,6 +29,15 @@ except ImportError:
         PerformanceMonitor = None
         create_performance_monitor = None
 
+# Import sharding support
+try:
+    from src.pot.sharding.pipeline_integration import ShardedVerificationPipeline, ShardedVerificationConfig
+    SHARDING_AVAILABLE = True
+except ImportError:
+    ShardedVerificationPipeline = None
+    ShardedVerificationConfig = None
+    SHARDING_AVAILABLE = False
+
 # Import core PoT modules with proper fallback handling
 try:
     # Try absolute imports from src path first
@@ -164,6 +173,11 @@ class PipelineConfig:
     adaptive_switch_threshold: float = 0.5
     adaptive_noise_margin: float = 2.0
     adaptive_max_factor: float = 1.5
+    # Sharding configuration for large models
+    enable_sharding: bool = True
+    auto_detect_sharding: bool = True
+    sharding_threshold_gb: float = 5.0
+    max_memory_percent: float = 70.0
     
     def __post_init__(self):
         """Ensure output directory exists"""
@@ -208,6 +222,23 @@ class PipelineOrchestrator:
         # Initialize memory tracking if enabled
         if self.config.enable_memory_tracking:
             tracemalloc.start()
+        
+        # Initialize sharding pipeline if enabled and available
+        self.sharding_pipeline = None
+        if self.config.enable_sharding and SHARDING_AVAILABLE:
+            try:
+                shard_config = ShardedVerificationConfig(
+                    enable_sharding=True,
+                    large_model_threshold_gb=self.config.sharding_threshold_gb,
+                    max_memory_usage_percent=self.config.max_memory_percent,
+                    enable_monitoring=True,
+                    enable_checkpointing=True
+                )
+                self.sharding_pipeline = ShardedVerificationPipeline(shard_config)
+                self._log("Sharding pipeline initialized for large model support", level="INFO")
+            except Exception as e:
+                self._log(f"Warning: Could not initialize sharding: {e}", level="WARNING")
+                self.sharding_pipeline = None
     
     def _log(self, message: str, level: str = "INFO"):
         """Internal logging method"""
@@ -315,14 +346,42 @@ class PipelineOrchestrator:
                 cand_model = type("MockModel", (), {"name": cand_model_path})()
             else:
                 if self.config.verification_mode == VerificationMode.LOCAL_WEIGHTS:
-                    # Load real local models via LM wrapper
-                    import torch
-                    device = "mps" if torch.backends.mps.is_available() else "cpu"
-                    self._log(
-                        f"Loading local models on {device}: {ref_model_path}, {cand_model_path}"
-                    )
-                    ref_model = LM(ref_model_path, device=device)
-                    cand_model = LM(cand_model_path, device=device)
+                    # Check if sharding is needed for either model
+                    use_sharding = False
+                    if self.sharding_pipeline and self.config.auto_detect_sharding:
+                        ref_needs_sharding = self.sharding_pipeline.should_use_sharding(ref_model_path)
+                        cand_needs_sharding = self.sharding_pipeline.should_use_sharding(cand_model_path)
+                        use_sharding = ref_needs_sharding or cand_needs_sharding
+                        
+                        if use_sharding:
+                            self._log(f"🧩 Sharding enabled - Ref: {ref_needs_sharding}, Cand: {cand_needs_sharding}")
+                            metrics.metadata['sharding_enabled'] = True
+                            metrics.metadata['ref_sharded'] = ref_needs_sharding
+                            metrics.metadata['cand_sharded'] = cand_needs_sharding
+                    
+                    if use_sharding:
+                        # Store model paths for sharded verification later
+                        # Don't load full models into memory now
+                        self._log("Models will be loaded via sharding during verification")
+                        ref_model = type("ShardedModel", (), {
+                            "path": ref_model_path, 
+                            "is_sharded": True,
+                            "needs_sharding": ref_needs_sharding
+                        })()
+                        cand_model = type("ShardedModel", (), {
+                            "path": cand_model_path,
+                            "is_sharded": True, 
+                            "needs_sharding": cand_needs_sharding
+                        })()
+                    else:
+                        # Load real local models via LM wrapper
+                        import torch
+                        device = "mps" if torch.backends.mps.is_available() else "cpu"
+                        self._log(
+                            f"Loading local models on {device}: {ref_model_path}, {cand_model_path}"
+                        )
+                        ref_model = LM(ref_model_path, device=device)
+                        cand_model = LM(cand_model_path, device=device)
                 else:
                     # API mode - create simple client objects
                     self._log("Connecting to API endpoints")
@@ -588,6 +647,10 @@ class PipelineOrchestrator:
                         # Shouldn't happen with proper n_max
                         return prompts[0]
                 
+                # Check if we're using sharded models
+                is_sharded = (hasattr(ref_model, 'is_sharded') and ref_model.is_sharded) or \
+                           (hasattr(cand_model, 'is_sharded') and cand_model.is_sharded)
+                
                 # Proper cross-entropy scoring function with generation
                 def score_fn_base(ref, cand, prompt, K=32):
                     """
@@ -597,6 +660,50 @@ class PipelineOrchestrator:
                     try:
                         import torch
                         
+                        # Check if models have compatible tokenizers
+                        ref_vocab_size = ref.tok.vocab_size if hasattr(ref.tok, 'vocab_size') else len(ref.tok)
+                        cand_vocab_size = cand.tok.vocab_size if hasattr(cand.tok, 'vocab_size') else len(cand.tok)
+                        
+                        # If tokenizers are very different, use a simpler comparison method
+                        if abs(ref_vocab_size - cand_vocab_size) > 10000:  # Large vocabulary difference
+                            self._log(f"Large vocab difference detected ({ref_vocab_size} vs {cand_vocab_size}), using compatibility mode", level="DEBUG")
+                            
+                            # Use perplexity comparison on the prompt only
+                            ref_inputs = ref.tok(prompt, return_tensors="pt", truncation=True, max_length=512).to(ref.device)
+                            cand_inputs = cand.tok(prompt, return_tensors="pt", truncation=True, max_length=512).to(cand.device)
+                            
+                            with torch.no_grad():
+                                # Get logits from both models
+                                ref_outputs = ref.m(**ref_inputs)
+                                cand_outputs = cand.m(**cand_inputs)
+                                
+                                # Compare perplexity on the prompt
+                                ref_logits = ref_outputs.logits[0, -1, :]
+                                cand_logits = cand_outputs.logits[0, -1, :]
+                                
+                                # Use KL divergence between the output distributions
+                                ref_probs = torch.softmax(ref_logits, dim=-1)
+                                cand_probs = torch.softmax(cand_logits, dim=-1)
+                                
+                                # Truncate to smaller vocab size for comparison
+                                min_vocab = min(ref_vocab_size, cand_vocab_size)
+                                ref_probs_trunc = ref_probs[:min_vocab]
+                                cand_probs_trunc = cand_probs[:min_vocab]
+                                
+                                # Renormalize after truncation
+                                ref_probs_trunc = ref_probs_trunc / ref_probs_trunc.sum()
+                                cand_probs_trunc = cand_probs_trunc / cand_probs_trunc.sum()
+                                
+                                # KL divergence as difference metric
+                                kl_div = torch.nn.functional.kl_div(
+                                    cand_probs_trunc.log(), 
+                                    ref_probs_trunc, 
+                                    reduction='sum'
+                                ).item()
+                                
+                                return kl_div
+                        
+                        # Original path for compatible tokenizers
                         # Generate K tokens using reference model (deterministic)
                         ref_inputs = ref.tok(prompt, return_tensors="pt").to(ref.device)
                         with torch.no_grad():
@@ -647,13 +754,62 @@ class PipelineOrchestrator:
                         self._log(f"Warning: CE score computation failed: {e}", level="WARNING")
                         return 0.0  # Neutral score on error
                 
+                # Define sharded scoring function if needed
+                if is_sharded and self.sharding_pipeline:
+                    self._log("Using sharded verification for large models")
+                    
+                    def score_fn_sharded(ref, cand, prompt, K=32):
+                        """
+                        Scoring function for sharded models
+                        This wraps the verification in sharding logic
+                        """
+                        import torch
+                        import gc
+                        
+                        # Force garbage collection before loading
+                        gc.collect()
+                        torch.cuda.empty_cache() if torch.cuda.is_available() else None
+                        
+                        # Load models if they're just paths
+                        if hasattr(ref, 'path'):
+                            self._log(f"Loading reference model: {ref.path}")
+                            # Force CPU for sharded models to avoid device conflicts
+                            ref_actual = LM(ref.path, device="cpu")
+                        else:
+                            ref_actual = ref
+                            
+                        if hasattr(cand, 'path'):
+                            self._log(f"Loading candidate model: {cand.path}")
+                            # Force CPU for sharded models to avoid device conflicts
+                            cand_actual = LM(cand.path, device="cpu")
+                        else:
+                            cand_actual = cand
+                        
+                        # Run the actual scoring
+                        try:
+                            result = score_fn_base(ref_actual, cand_actual, prompt, K)
+                        finally:
+                            # Always clean up
+                            if hasattr(ref, 'path'):
+                                del ref_actual
+                            if hasattr(cand, 'path'):
+                                del cand_actual
+                            gc.collect()
+                        
+                        return result
+                    
+                    score_fn_inner = score_fn_sharded
+                else:
+                    score_fn_inner = score_fn_base
+                
                 # Wrap score function with performance monitoring
+                
                 def score_fn(ref, cand, prompt, K=32):
                     """Wrapper that adds performance monitoring to score computation"""
                     if self.performance_monitor:
                         self.performance_monitor.start_query()
                     
-                    result = score_fn_base(ref, cand, prompt, K)
+                    result = score_fn_inner(ref, cand, prompt, K)
                     
                     if self.performance_monitor:
                         self.performance_monitor.end_query()

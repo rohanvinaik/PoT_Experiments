@@ -295,5 +295,33 @@ experiments:
       model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
 ```
 
+## CRITICAL MISTAKES TO AVOID ("Sin Bucket")
+
+### 1. NEVER Use Fixed Query Limits
+**WRONG:**
+```bash
+python scripts/run_e2e_validation.py --max-queries 10  # WRONG - defeats sequential testing
+python scripts/run_e2e_validation.py --max-queries 50  # WRONG - hardcoded limit
+```
+
+**CORRECT:**
+```bash
+python scripts/run_e2e_validation.py --mode quick    # Let framework decide queries dynamically
+python scripts/run_e2e_validation.py --mode audit    # Framework uses statistical confidence
+```
+
+The entire point of the sequential testing framework is to **dynamically determine** the number of queries needed based on statistical confidence. The framework will:
+- Stop early (10-30 queries) when models are clearly SAME or DIFFERENT
+- Continue longer (up to mode limits) when confidence is insufficient
+- Use mode-specific limits: QUICK (120), AUDIT (400), EXTENDED (800)
+
+**DO NOT** override this with --max-queries unless explicitly testing edge cases.
+
+### 2. NEVER Create Mock/Simplified Tests
+Always use the real PoT framework - tests should take minutes and generate real metrics.
+
+### 3. NEVER Run Large Models in Parallel
+Models >5GB must run sequentially with proper memory management.
+
 ## Remember
 This framework validates academic paper claims. **Never create mock tests** - always use the real PoT framework code. Tests should be comprehensive and take several minutes to run, generating real metrics and evidence bundles.
