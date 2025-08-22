@@ -161,7 +161,7 @@ python -m scripts.run_diff --config configs/example_local.yaml
 ### Directory Structure
 
 ```
-pot_verifier/
+pot/verifier/
 ├── core/           # Statistical testing and decision logic
 ├── lm/             # Model interfaces (HF, API, echo)
 └── logging/        # Audit trail generation

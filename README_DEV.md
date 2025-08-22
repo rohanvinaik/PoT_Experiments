@@ -21,7 +21,7 @@ pip install ".[hf]"
 
 ## Core modules
 
-### `pot_verifier/core/modes.py`
+### `pot/verifier/core/modes.py`
 
 ```python
 from dataclasses import dataclass
