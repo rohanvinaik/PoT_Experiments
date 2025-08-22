@@ -231,6 +231,19 @@ Examples:
         )
         
         parser.add_argument(
+            '--max-memory-percent',
+            type=float,
+            default=70.0,
+            help='Maximum memory usage percentage (default: 70%%, use 25%% for strict limits)'
+        )
+        
+        parser.add_argument(
+            '--enforce-sequential',
+            action='store_true',
+            help='Force sequential execution for large models'
+        )
+        
+        parser.add_argument(
             '--generate-evidence-bundle',
             action='store_true',
             default=True,
@@ -385,17 +398,27 @@ def run_enhanced_validation(args, logger, config, orchestrator):
         # Check if sharding is needed
         if CI_COMPONENTS_AVAILABLE and getattr(args, 'enable_sharding', False):
             logger.info("🧩 Checking if model sharding is needed...")
-            sharded_pipeline = ShardedVerificationPipeline()
+            
+            # Configure sharding with memory limits
+            from src.pot.sharding.pipeline_integration import ShardedVerificationConfig
+            shard_config = ShardedVerificationConfig(
+                enable_sharding=True,
+                max_memory_usage_percent=getattr(args, 'max_memory_percent', 70.0),
+                auto_detect_large_model=True,
+                large_model_threshold_gb=10.0 if getattr(args, 'enforce_sequential', False) else 30.0
+            )
+            sharded_pipeline = ShardedVerificationPipeline(shard_config)
             
             should_shard_ref = sharded_pipeline.should_use_sharding(args.ref_model)
             should_shard_cand = sharded_pipeline.should_use_sharding(args.cand_model)
             
             if should_shard_ref or should_shard_cand:
-                logger.info("📊 Large models detected - enabling sharding mode")
+                logger.info(f"📊 Large models detected - enabling sharding mode (memory limit: {shard_config.max_memory_usage_percent}%)")
                 results['components_used'].append('model_sharding')
                 
                 if performance_tracker:
                     performance_tracker.record_metric('sharding_enabled', 1, 'boolean', 'config')
+                    performance_tracker.record_metric('memory_limit_percent', shard_config.max_memory_usage_percent, 'float', 'config')
                 
                 # Run sharded verification
                 logger.info("⚙️ Running sharded verification...")
@@ -429,44 +452,105 @@ def run_enhanced_validation(args, logger, config, orchestrator):
 
 def run_sharded_verification(args, sharded_pipeline, logger):
     """Run verification with sharding for large models"""
-    try:
-        # Prepare sharding configurations
-        ref_shard_config, ref_shard_dir = sharded_pipeline.prepare_sharded_verification(
-            args.ref_model, f"temp_shards/ref_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
-        
-        cand_shard_config, cand_shard_dir = sharded_pipeline.prepare_sharded_verification(
-            args.cand_model, f"temp_shards/cand_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        )
-        
-        logger.info(f"📊 Sharding configuration:")
-        logger.info(f"   Reference model: {ref_shard_config.num_shards} shards")
-        logger.info(f"   Candidate model: {cand_shard_config.num_shards} shards")
-        
-        if getattr(args, 'dry_run', False):
+    import gc
+    import psutil
+    
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Check memory before starting
+            process = psutil.Process()
+            mem_before = process.memory_info().rss / (1024**3)  # GB
+            logger.info(f"💾 Memory before sharding: {mem_before:.2f}GB")
+            
+            # Force garbage collection before starting
+            gc.collect()
+            
+            # Prepare sharding configurations with error handling
+            try:
+                ref_shard_config, ref_shard_dir = sharded_pipeline.prepare_sharded_verification(
+                    args.ref_model, f"temp_shards/ref_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to prepare reference model shards: {e}")
+                if retry_count < max_retries - 1:
+                    logger.info("Retrying after memory cleanup...")
+                    gc.collect()
+                    time.sleep(5)
+                    retry_count += 1
+                    continue
+                else:
+                    raise
+            
+            try:
+                cand_shard_config, cand_shard_dir = sharded_pipeline.prepare_sharded_verification(
+                    args.cand_model, f"temp_shards/cand_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                )
+            except Exception as e:
+                logger.error(f"Failed to prepare candidate model shards: {e}")
+                # Clean up reference shards
+                if ref_shard_dir and os.path.exists(ref_shard_dir):
+                    import shutil
+                    shutil.rmtree(ref_shard_dir, ignore_errors=True)
+                
+                if retry_count < max_retries - 1:
+                    logger.info("Retrying after memory cleanup...")
+                    gc.collect()
+                    time.sleep(5)
+                    retry_count += 1
+                    continue
+                else:
+                    raise
+            
+            # Successfully prepared shards
+            logger.info(f"📊 Sharding configuration:")
+            logger.info(f"   Reference model: {ref_shard_config.num_shards} shards")
+            logger.info(f"   Candidate model: {cand_shard_config.num_shards} shards")
+            
+            # Check memory after sharding
+            mem_after = process.memory_info().rss / (1024**3)  # GB
+            logger.info(f"💾 Memory after sharding: {mem_after:.2f}GB (delta: {mem_after - mem_before:+.2f}GB)")
+            
+            if getattr(args, 'dry_run', False):
+                return {
+                    'success': True,
+                    'dry_run': True,
+                    'ref_shards': ref_shard_config.num_shards,
+                    'cand_shards': cand_shard_config.num_shards
+                }
+            
+            # Return success result with sharding metadata
             return {
                 'success': True,
-                'dry_run': True,
-                'ref_shards': ref_shard_config.num_shards,
-                'cand_shards': cand_shard_config.num_shards
+                'ref_shard_config': {
+                    'num_shards': ref_shard_config.num_shards,
+                    'shard_size_mb': ref_shard_config.shard_size_mb
+                },
+                'cand_shard_config': {
+                    'num_shards': cand_shard_config.num_shards,
+                    'shard_size_mb': cand_shard_config.shard_size_mb
+                },
+                'memory_usage': {
+                    'before_gb': mem_before,
+                    'after_gb': mem_after,
+                    'delta_gb': mem_after - mem_before
+                }
             }
-        
-        # Return success result with sharding metadata
-        return {
-            'success': True,
-            'ref_shard_config': {
-                'num_shards': ref_shard_config.num_shards,
-                'shard_size_mb': ref_shard_config.shard_size_mb
-            },
-            'cand_shard_config': {
-                'num_shards': cand_shard_config.num_shards,
-                'shard_size_mb': cand_shard_config.shard_size_mb
-            }
-        }
-        
-    except Exception as e:
-        logger.error(f"❌ Sharded verification failed: {e}")
-        return {'success': False, 'error': str(e)}
+            
+        except Exception as e:
+            logger.error(f"❌ Sharded verification failed on attempt {retry_count + 1}: {e}")
+            retry_count += 1
+            if retry_count < max_retries:
+                logger.info(f"Retrying ({retry_count}/{max_retries})...")
+                gc.collect()
+                time.sleep(5)
+            else:
+                return {'success': False, 'error': str(e), 'attempts': retry_count}
+    
+    # Should not reach here, but handle it
+    return {'success': False, 'error': 'Max retries exceeded', 'attempts': max_retries}
 
 
 def run_audit_validation(output_dir, logger):

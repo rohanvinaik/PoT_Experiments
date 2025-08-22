@@ -26,6 +26,7 @@ This verifier provides an **operational** answer: run **dozens** of pre-committe
 - **Evidence bundle tooling** (logs, configs, transcripts, seeds)  
 - **Prototype ZK proofs** (Halo2) that attest *the verifier ran on the published transcript*  
 - **Sharded verification** to validate **34B-class** models on **commodity RAM** by loading/releasing model slices sequentially
+- **Memory-safe validation** for **7B+ models** with configurable memory limits (25% default), sequential execution, and automatic recovery
 
 > **Note:** ZK artifacts here attest the **process/transcript**. For remote APIs, binding the transcript to **a specific model identity** additionally requires a **TEE attestation** or a **vendor weight commitment** (see **Security model & guarantees**).
 
@@ -160,6 +161,48 @@ Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard
 - End-to-end identity binding for **remote APIs** without TEE or vendor signatures
 
 ---
+
+## Memory-Safe Validation for Large Models
+
+The framework includes specialized support for validating large models (7B+) with strict memory management:
+
+### Quick Start
+```bash
+# Run 7B model permutations with 25% memory limit
+python scripts/run_memory_safe_validation.py \
+    --models yi-6b yi-34b \
+    --permutations all \
+    --max-memory 25
+
+# Or use the test suite
+python scripts/test_7b_models_safe.py
+```
+
+### Features
+- **Memory limits**: Enforces configurable memory caps (default 25% of system RAM)
+- **Sequential execution**: Automatically runs large models one at a time
+- **Automatic sharding**: Enables sharding for models >10GB
+- **Error recovery**: 3x retry with memory cleanup on failures
+- **Real-time monitoring**: Tracks memory usage during execution
+- **Cooldown periods**: 30-second waits between tests for memory recovery
+
+### Model Size Handling
+| Model Size | Classification | Execution Mode | Sharding |
+|------------|---------------|----------------|----------|
+| <1GB | Small | Parallel OK | No |
+| 1-5GB | Medium | Sequential recommended | No |
+| 5-20GB | Large | Sequential required | Recommended |
+| >20GB | XLarge (7B+) | Sequential required | Required |
+
+### Enhanced E2E Pipeline Options
+```bash
+python scripts/run_e2e_validation.py \
+    --ref-model yi-6b \
+    --cand-model yi-34b \
+    --enable-sharding \
+    --max-memory-percent 25 \
+    --enforce-sequential
+```
 
 ## Reproduce
 

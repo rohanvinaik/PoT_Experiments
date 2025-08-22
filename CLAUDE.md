@@ -179,6 +179,8 @@ pip install tlsh  # Fuzzy hashing (SSDeep warnings are normal)
 ## Key Scripts Reference
 
 - `run_e2e_validation.py` - **Unified E2E pipeline with all CI/CD features** (recommended)
+- `run_memory_safe_validation.py` - **Memory-safe runner for large models (7B+)**
+- `test_7b_models_safe.py` - Test suite for 7B model permutations
 - `run_enhanced_diff_test.py` - Statistical verification (legacy)
 - `test_size_fraud_detection.py` - Size fraud detection
 - `run_pipeline_with_models.py` - Custom model testing
@@ -195,6 +197,81 @@ The main `run_e2e_validation.py` script now includes:
 - **Test data management** for CI testing environments
 - **Automatic README table updates** with rolling metrics tracking
 - **HTML report generation** for human-readable validation results
+- **Memory-safe execution** with configurable limits (--max-memory-percent)
+- **Sequential processing** for large models (--enforce-sequential)
+
+## Memory-Safe Validation for Large Models (7B+)
+
+### Problem
+Large language models (7B+ parameters) can consume excessive memory, causing OOM errors when running multiple tests in parallel or without proper memory management.
+
+### Solution
+The framework now includes dedicated memory-safe validation infrastructure:
+
+#### 1. Memory-Safe Runner (`run_memory_safe_validation.py`)
+```bash
+# Run 7B model permutations with 25% memory limit
+python scripts/run_memory_safe_validation.py \
+    --models yi-6b yi-34b \
+    --permutations all \
+    --max-memory 25
+
+# Custom thresholds
+python scripts/run_memory_safe_validation.py \
+    --ref-model meta-llama/Llama-2-7b-hf \
+    --cand-model meta-llama/Llama-2-7b-chat-hf \
+    --max-memory 25 \
+    --sequential-threshold 5.0 \
+    --sharding-threshold 10.0
+```
+
+**Features:**
+- **25% memory limit enforcement** (configurable)
+- **Sequential execution** for models >5GB
+- **Automatic sharding** for models >10GB
+- **3x retry with memory cleanup** on failures
+- **Real-time memory monitoring**
+- **Checkpoint/recovery support**
+
+#### 2. Enhanced E2E Pipeline
+```bash
+# Run with strict memory limits
+python scripts/run_e2e_validation.py \
+    --ref-model yi-6b \
+    --cand-model yi-34b \
+    --mode audit \
+    --enable-sharding \
+    --max-memory-percent 25 \
+    --enforce-sequential
+```
+
+#### 3. 7B Model Test Suite (`test_7b_models_safe.py`)
+```bash
+# Run the standard 3 permutations (A|A, B|B, A|B)
+python scripts/test_7b_models_safe.py
+
+# With memory-safe runner
+python scripts/test_7b_models_safe.py --memory-safe
+```
+
+**Test sequence:**
+1. Model A self-consistency (A|A)
+2. 30-second cooldown
+3. Model B self-consistency (B|B) 
+4. 30-second cooldown
+5. Cross-model comparison (A|B)
+
+### Memory Management Strategy
+- **Small models (<1GB)**: Can run in parallel
+- **Medium models (1-5GB)**: Sequential recommended
+- **Large models (5-20GB)**: Sequential required, sharding recommended
+- **XLarge models (>20GB)**: Sequential required, sharding required
+
+### Error Recovery
+1. **Automatic retry**: Up to 3 attempts with cleanup
+2. **Memory cleanup**: Forced GC between tests
+3. **Timeout protection**: 30-minute limit per test
+4. **Graceful degradation**: Falls back to simpler verification if needed
 
 ## Creating Custom Manifests
 
