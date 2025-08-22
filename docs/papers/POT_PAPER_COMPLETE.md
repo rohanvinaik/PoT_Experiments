@@ -45,10 +45,10 @@ Our adversary model—encompassing wrapper functions, targeted fine-tuning, mode
 
 ### 2.1 Formal Framework
 
-**Definition 1 (Verification Game).** Fix a challenge distribution $\mathcal{C}$, a bounded statistic $Z \in [0,1]$ computed from encoded model responses, and target errors $(\alpha, \beta)$.
+**Definition 1 (Verification Game).** Fix a challenge distribution **C**, a bounded statistic **Z ∈ [0,1]** computed from encoded model responses, and target errors **(α, β)**.
 
-- **Completeness**: The certified model $M^*$ is accepted with probability $\geq 1 - \beta$.
-- **Soundness (Identity)**: Any model $M$ outside the declared equivalence class (e.g., non-identical weights or $>\varepsilon$-perturbed) is accepted with probability $\leq \alpha$ under fresh challenges.
+- **Completeness**: The certified model **M*** is accepted with probability **≥ 1 - β**.
+- **Soundness (Identity)**: Any model **M** outside the declared equivalence class (e.g., non-identical weights or **>ε**-perturbed) is accepted with probability **≤ α** under fresh challenges.
 
 The semantic test operates as a parallel game with its own thresholds, enabling dual verification modes: strict identity verification and behavioral similarity assessment.
 
@@ -180,75 +180,93 @@ The KDF ensures challenges are:
 ### 2.4 Empirical-Bernstein Confidence Bounds (Complete)
 
 #### Connection to Verification Game
-The empirical-Bernstein framework operationalizes Definition 1 by providing finite-sample guarantees for the verification game. The bounded statistic $Z$ from Definition 1 corresponds to our distance metric $d(f(c_i), f^*(c_i))$, and the error bounds $(\alpha, \beta)$ are achieved through the sequential testing procedure described below.
+The empirical-Bernstein framework operationalizes Definition 1 by providing finite-sample guarantees for the verification game. The bounded statistic **Z** from Definition 1 corresponds to our distance metric **d(f(c_i), f*(c_i))**, and the error bounds **(α, β)** are achieved through the sequential testing procedure described below.
 
 #### Setup
-For each challenge $c_i \sim \mathcal{C}$, we compute a bounded distance:
-$$X_i = d(f(c_i), f^*(c_i)) \in [0, B], \quad i = 1, \ldots, n$$
+For each challenge **c_i ~ C**, we compute a bounded distance:
 
-After clipping outputs to [0,1] (so $B \leq 1$ in practice). Let:
-$$\bar{X}_n = \frac{1}{n}\sum_{i=1}^n X_i, \quad S_n^2 = \frac{1}{n-1}\sum_{i=1}^n (X_i - \bar{X}_n)^2$$
+```
+X_i = d(f(c_i), f*(c_i)) ∈ [0, B],    i = 1, ..., n
+```
 
-Assume challenges $c_i$ are sampled i.i.d. from the configured family and generation randomness (if any) is independent across $i$ (temperature = 0 satisfies this automatically). Then $\{X_i\}$ are i.i.d., bounded.
+After clipping outputs to [0,1] (so **B ≤ 1** in practice). Let:
+
+```
+X̄_n = (1/n) Σ(i=1 to n) X_i
+S_n² = 1/(n-1) Σ(i=1 to n) (X_i - X̄_n)²
+```
+
+Assume challenges **c_i** are sampled i.i.d. from the configured family and generation randomness (if any) is independent across **i** (temperature = 0 satisfies this automatically). Then **{X_i}** are i.i.d., bounded.
 
 #### Goal
-We want a data-adaptive, finite-sample deviation bound for $\bar{X}_n - \mathbb{E}[X_i]$ that is tighter than Hoeffding whenever the empirical variance $S_n^2$ is small—this is exactly what EB gives.
+We want a data-adaptive, finite-sample deviation bound for **X̄_n - E[X_i]** that is tighter than Hoeffding whenever the empirical variance **S_n²** is small—this is exactly what EB gives.
 
 ---
 
 **Theorem 2.3 (Fixed-time Empirical-Bernstein)**
 
-Let $X_1, \ldots, X_n$ be i.i.d. in $[0, B]$ with empirical variance $S_n^2$. For any $\delta \in (0,1)$, with probability at least $1-\delta$:
+Let **X_1, ..., X_n** be i.i.d. in **[0, B]** with empirical variance **S_n²**. For any **δ ∈ (0,1)**, with probability at least **1-δ**:
 
-$$|\bar{X}_n - \mathbb{E}[X_1]| \leq \underbrace{\sqrt{\frac{2 S_n^2 \log(2/\delta)}{n}}}_{\text{variance term}} + \underbrace{\frac{7B\log(2/\delta)}{3(n-1)}}_{\text{range correction}}$$
+```
+|X̄_n - E[X_1]| ≤ √(2 S_n² log(2/δ) / n) + 7B log(2/δ) / (3(n-1))
+                   ├────variance term────┤   ├──range correction──┤
+```
 
 *Proof:* See Appendix A.1 (we restate and adapt the empirical-Bernstein inequality to our bounded-distance setting, keeping constants explicit). ■
 
-**One-sided form** (for decisions at threshold $\tau$): For any $\delta$,
-$$\mathbb{P}\left(\bar{X}_n - \mathbb{E}[X_1] \geq \sqrt{\frac{2 S_n^2 \log(1/\delta)}{n}} + \frac{7B\log(1/\delta)}{3(n-1)}\right) \leq \delta$$
+**One-sided form** (for decisions at threshold **τ**): For any **δ**,
+
+```
+P(X̄_n - E[X_1] ≥ √(2 S_n² log(1/δ) / n) + 7B log(1/δ) / (3(n-1))) ≤ δ
+```
 
 and symmetrically for the lower tail.
 
-**Plug-in constants**: We clip distances to [0,1], so take $B = 1$. The bound becomes numerically simple and can be updated online from streaming mean/variance.
+**Plug-in constants**: We clip distances to [0,1], so take **B = 1**. The bound becomes numerically simple and can be updated online from streaming mean/variance.
 
 ---
 
 **Corollary 2.4 (Decision rule with error budgets)**
 
-Fix a decision threshold $\tau$. Let:
-$$U_n(\delta) = \sqrt{\frac{2 S_n^2 \log(1/\delta)}{n}} + \frac{7\log(1/\delta)}{3(n-1)}$$
+Fix a decision threshold **τ**. Let:
+
+```
+U_n(δ) = √(2 S_n² log(1/δ) / n) + 7 log(1/δ) / (3(n-1))
+```
 
 Define the accept and reject stopping conditions:
-- **ACCEPT** $H_0$: $\bar{X}_n + U_n(\delta_{\text{acc}}) \leq \tau$
-- **REJECT** $H_0$: $\bar{X}_n - U_n(\delta_{\text{rej}}) \geq \tau$
+- **ACCEPT** H₀: **X̄_n + U_n(δ_acc) ≤ τ**
+- **REJECT** H₀: **X̄_n - U_n(δ_rej) ≥ τ**
 
-Then under $H_0: \mathbb{E}[X_1] \leq \tau$ the probability of an incorrect reject is $\leq \delta_{\text{rej}}$, and under $H_1: \mathbb{E}[X_1] > \tau$ the probability of an incorrect accept is $\leq \delta_{\text{acc}}$.
+Then under **H₀: E[X_1] ≤ τ** the probability of an incorrect reject is **≤ δ_rej**, and under **H₁: E[X_1] > τ** the probability of an incorrect accept is **≤ δ_acc**.
 
-**Mapping to FAR/FRR**: Allocate $\delta_{\text{acc}} = \alpha$ (FAR budget) and $\delta_{\text{rej}} = \beta$ (FRR budget). This yields calibrated, certificate-style error controls that match the figures in Section 3.
+**Mapping to FAR/FRR**: Allocate **δ_acc = α** (FAR budget) and **δ_rej = β** (FRR budget). This yields calibrated, certificate-style error controls that match the figures in Section 3.
 
 ---
 
 **Theorem 2.5 (Anytime EB via peeling)**
 
-Let $X_i \in [0, B]$ i.i.d. and define $U_n(\cdot)$ as above. Set a spending sequence $\{\delta_n\}$ with $\delta_n = \frac{6\delta}{\pi^2 n^2}$ so that $\sum_{n \geq 2} \delta_n \leq \delta$. Then with probability at least $1-\delta$, simultaneously for all $n \geq 2$:
+Let **X_i ∈ [0, B]** i.i.d. and define **U_n(·)** as above. Set a spending sequence **{δ_n}** with **δ_n = 6δ/(π²n²)** so that **Σ(n≥2) δ_n ≤ δ**. Then with probability at least **1-δ**, simultaneously for all **n ≥ 2**:
 
-$$|\bar{X}_n - \mathbb{E}[X_1]| \leq U_n(\delta_n)$$
+```
+|X̄_n - E[X_1]| ≤ U_n(δ_n)
+```
 
-Consequently, the sequential decision rule that stops at the first $n$ such that:
-- $\bar{X}_n + U_n(\alpha_n) \leq \tau$ (accept), or
-- $\bar{X}_n - U_n(\beta_n) \geq \tau$ (reject)
+Consequently, the sequential decision rule that stops at the first **n** such that:
+- **X̄_n + U_n(α_n) ≤ τ** (accept), or
+- **X̄_n - U_n(β_n) ≥ τ** (reject)
 
-has overall error probabilities $\leq \alpha$ and $\leq \beta$, respectively, where $\sum \alpha_n \leq \alpha$ and $\sum \beta_n \leq \beta$.
+has overall error probabilities **≤ α** and **≤ β**, respectively, where **Σ α_n ≤ α** and **Σ β_n ≤ β**.
 
-*Proof:* Apply (EB) at each $n$ with $\delta_n$, then union bound across all $n$. Optional stopping is valid because we stop the first time a valid confidence bound crosses $\tau$. ■
+*Proof:* Apply (EB) at each **n** with **δ_n**, then union bound across all **n**. Optional stopping is valid because we stop the first time a valid confidence bound crosses **τ**. ■
 
-**Why this matters**: This is the precise justification for our empirical result that "2–3 queries often suffice": as soon as the data-adaptive EB interval falls entirely on one side of $\tau$, you stop without inflating FAR/FRR, and without fixing $n$ in advance.
+**Why this matters**: This is the precise justification for our empirical result that "2–3 queries often suffice": as soon as the data-adaptive EB interval falls entirely on one side of **τ**, you stop without inflating FAR/FRR, and without fixing **n** in advance.
 
 ### 2.5 Practical Implementation Notes
 
-- **Streaming updates**: Maintain $n$, $\bar{X}_n$, and $M_{2,n} = \sum(X_i - \bar{X}_n)^2$ (Welford) to compute $S_n^2 = M_{2,n}/(n-1)$ in $O(1)$ per challenge
-- **Numerical stability**: For $n \leq 2$, fall back to Hoeffding (variance term undefined) or burn in two probes
-- **Two-sided vs one-sided**: Our use case is one-sided around $\tau$. For two-sided certificates, set both accept/reject with the same $\delta_n$ (and halve $\delta$ via Bonferroni)
+- **Streaming updates**: Maintain **n**, **X̄_n**, and **M_{2,n} = Σ(X_i - X̄_n)²** (Welford) to compute **S_n² = M_{2,n}/(n-1)** in **O(1)** per challenge
+- **Numerical stability**: For **n ≤ 2**, fall back to Hoeffding (variance term undefined) or burn in two probes
+- **Two-sided vs one-sided**: Our use case is one-sided around **τ**. For two-sided certificates, set both accept/reject with the same **δ_n** (and halve **δ** via Bonferroni)
 - **LM specifics**: Token-level nondeterminism does not break i.i.d. across challenges if decoding randomness is independent per query
 
 ---
@@ -340,19 +358,25 @@ We consider adversaries who may:
 Under standard cryptographic assumptions (collision-resistant hash functions, secure KDF), the probability of successfully forging a PoT certificate without access to the original model is negligible in the security parameter.
 
 **Theorem 4.2 (Statistical Security)**
-The empirical-Bernstein sequential verification procedure maintains the specified FAR and FRR bounds with probability at least $1 - \alpha - \beta$ over the randomness of challenge generation and model responses.
+The empirical-Bernstein sequential verification procedure maintains the specified FAR and FRR bounds with probability at least **1 - α - β** over the randomness of challenge generation and model responses.
 
 **Theorem 4.3 (Wrapper Detection)**
-For wrapper $g: \mathcal{Y} \rightarrow \mathcal{Y}$, if challenges include compositions $c' = h \circ c$ for random perturbations $h$, then:
-$$P(\text{wrapper undetected}) \leq \exp(-\Omega(n \cdot \text{entropy}(h)))$$
+For wrapper **g: Y → Y**, if challenges include compositions **c' = h ∘ c** for random perturbations **h**, then:
 
-*Proof sketch:* Wrapper must correctly map $f'(h(c))$ to $f^*(h(c))$ without knowing $h$, requiring exponential complexity in entropy of $h$.
+```
+P(wrapper undetected) ≤ exp(-Ω(n · entropy(h)))
+```
+
+*Proof sketch:* Wrapper must correctly map **f'(h(c))** to **f*(h(c))** without knowing **h**, requiring exponential complexity in entropy of **h**.
 
 **Theorem 4.4 (Fine-tuning Separation)**
-For model fine-tuned on distribution $D$ disjoint from challenges $C$:
-$$\mathbb{E}[d(f_{\text{tuned}}(C), f^*(C))] \geq \epsilon \cdot ||\theta_{\text{tuned}} - \theta^*||_2$$
+For model fine-tuned on distribution **D** disjoint from challenges **C**:
 
-where $\epsilon$ depends on gradient alignment between $D$ and $C$.
+```
+E[d(f_tuned(C), f*(C))] ≥ ε · ||θ_tuned - θ*||_2
+```
+
+where **ε** depends on gradient alignment between **D** and **C**.
 
 ---
 
@@ -362,12 +386,15 @@ where $\epsilon$ depends on gradient alignment between $D$ and $C$.
 
 Define two objectives:
 
-* **Coverage**: $\text{Cov}(C) = \min_{x \in \mathcal{X}} \max_{c \in C} \text{sim}(x, c)$  
-* **Separation**: $\text{Sep}(C) = \mathbb{E}_{f \neq f^*}[d(f(C), f^*(C))]$
+* **Coverage**: **Cov(C) = min_{x ∈ X} max_{c ∈ C} sim(x, c)**  
+* **Separation**: **Sep(C) = E_{f ≠ f*}[d(f(C), f*(C))]**
 
 **Theorem 5 (Coverage-Separation Bound):** 
-For fixed budget $|C| = n$: 
-$$\text{Cov}(C) \cdot \text{Sep}(C) \leq O(n/\text{dim}(\mathcal{X}))$$
+For fixed budget **|C| = n**: 
+
+```
+Cov(C) · Sep(C) ≤ O(n/dim(X))
+```
 
 *Proof:* High coverage requires dense sampling, reducing available budget for separation-optimized challenges.
 
@@ -393,9 +420,11 @@ Output: Challenge set C
 
 For sequential verification, select challenges maximizing information gain:
 
-$$c_{n+1} = \arg\max_c I(f \equiv f^*; f(c) | f(c_1), ..., f(c_n))$$
+```
+c_{n+1} = argmax_c I(f ≡ f*; f(c) | f(c_1), ..., f(c_n))
+```
 
-where $I$ is mutual information.
+where **I** is mutual information.
 
 ---
 
@@ -406,26 +435,33 @@ where $I$ is mutual information.
 To handle tokenization variability and minor variations:
 
 **Definition 2 (Token-Level Fuzzy Hash):** 
-For token sequence $s = [t_1, ..., t_k]$: 
-$$H_{\text{fuzzy}}(s) = \{h(n\text{-gram}) : n\text{-gram} \in s, n \in \{2,3,4\}\}$$
+For token sequence **s = [t_1, ..., t_k]**: 
+
+```
+H_fuzzy(s) = {h(n-gram) : n-gram ∈ s, n ∈ {2,3,4}}
+```
 
 Similarity between sequences: 
-$$\text{sim}(s_1, s_2) = \frac{|H_{\text{fuzzy}}(s_1) \cap H_{\text{fuzzy}}(s_2)|}{|H_{\text{fuzzy}}(s_1) \cup H_{\text{fuzzy}}(s_2)|}$$
+```
+sim(s_1, s_2) = |H_fuzzy(s_1) ∩ H_fuzzy(s_2)| / |H_fuzzy(s_1) ∪ H_fuzzy(s_2)|
+```
 
 ### 6.2 Robust Distance for Vision Models
 
 For continuous outputs with quantization effects: 
-$$d_{\text{robust}}(y_1, y_2) = \begin{cases} 
-0 & \text{if } ||y_1 - y_2||_\infty < \epsilon \\ 
-||y_1 - y_2||_2 & \text{otherwise} 
-\end{cases}$$
+```
+d_robust(y_1, y_2) = { 0              if ||y_1 - y_2||_∞ < ε
+                     { ||y_1 - y_2||_2  otherwise
+```
 
 ### 6.3 Handling Version Drift
 
 Define time-aware tolerance: 
-$$\tau(t) = \tau_0 + \lambda \cdot t$$
+```
+τ(t) = τ_0 + λ · t
+```
 
-where $\lambda$ captures acceptable drift rate and $t$ is time since registration.
+where **λ** captures acceptable drift rate and **t** is time since registration.
 
 ---
 
@@ -842,43 +878,58 @@ PoT offers advantages over existing approaches by requiring no training-time mod
 
 ### A.1 Empirical-Bernstein Bound (Derivation)
 
-We restate the result in a self-contained way and adapt constants to our clipping $B \leq 1$.
+We restate the result in a self-contained way and adapt constants to our clipping **B ≤ 1**.
 
 **Lemma A.1 (Centered mgf control for bounded variables)**
-If $Y \in [a,b]$ almost surely, then for any $\lambda \in \mathbb{R}$:
-$$\log \mathbb{E}[\exp(\lambda(Y - \mathbb{E}Y))] \leq \frac{\lambda^2(b-a)^2}{8}\psi(\lambda(b-a))$$
+If **Y ∈ [a,b]** almost surely, then for any **λ ∈ ℝ**:
 
-for a convex $\psi(\cdot)$ satisfying $\psi(u) \leq \frac{2}{u^2}(e^u - u - 1)$.
+```
+log E[exp(λ(Y - E[Y]))] ≤ λ²(b-a)²/8 · ψ(λ(b-a))
+```
+
+for a convex **ψ(·)** satisfying **ψ(u) ≤ 2/u²(e^u - u - 1)**.
 
 *Sketch:* Standard Bennett-type mgf control for bounded random variables.
 
-Now let $X_i \in [0,B]$ i.i.d., $\bar{X}_n$ and $S_n^2$ as above, and write $\sigma^2 = \text{Var}(X_1)$. Consider the self-normalized statistic:
+Now let **X_i ∈ [0,B]** i.i.d., **X̄_n** and **S_n²** as above, and write **σ² = Var(X_1)**. Consider the self-normalized statistic:
 
-$$Z_n = \frac{\sqrt{n}(\bar{X}_n - \mathbb{E}[X_1])}{\sqrt{2S_n^2 + \frac{14B}{3(n-1)}\sqrt{S_n^2\log(2/\delta)} + \frac{49B^2}{9(n-1)^2}\log(2/\delta)}}$$
+```
+Z_n = √n(X̄_n - E[X_1]) / √(2S_n² + 14B/(3(n-1))√(S_n²log(2/δ)) + 49B²/(9(n-1)²)log(2/δ))
+```
 
-Using Lemma A.1 with a leave-one-out variance proxy and a symmetrization/peeling argument, one obtains (for all $\delta \in (0,1)$):
+Using Lemma A.1 with a leave-one-out variance proxy and a symmetrization/peeling argument, one obtains (for all **δ ∈ (0,1)**):
 
-$$\mathbb{P}\left(|\bar{X}_n - \mathbb{E}[X_1]| > \sqrt{\frac{2S_n^2\log(2/\delta)}{n}} + \frac{7B\log(2/\delta)}{3(n-1)}\right) \leq \delta$$
+```
+P(|X̄_n - E[X_1]| > √(2S_n²log(2/δ)/n) + 7Blog(2/δ)/(3(n-1))) ≤ δ
+```
 
 This is the empirical-Bernstein deviation inequality specialized to bounded distances with explicit constants.
 
-**Peeling to anytime validity**: Applying the fixed-n bound with $\delta_n = \frac{6\delta}{\pi^2 n^2}$ and a union bound yields Theorem 2.5.
+**Peeling to anytime validity**: Applying the fixed-n bound with **δ_n = 6δ/(π²n²)** and a union bound yields Theorem 2.5.
 
 ### A.2 Proof of Theorem 3 (Wrapper Detection)
 
-Consider a wrapper function $g: \mathcal{Y} \rightarrow \mathcal{Y}$ that attempts to map outputs from an unauthorized model $f'$ to mimic the authorized model $f^*$.
+Consider a wrapper function **g: Y → Y** that attempts to map outputs from an unauthorized model **f'** to mimic the authorized model **f***.
 
 **Proof:**
-Let $H$ be the set of random perturbations with entropy $\mathcal{H}(H)$. For each challenge $c$ and perturbation $h \in H$, the wrapper must satisfy:
-$$g(f'(h(c))) = f^*(h(c))$$
+Let **H** be the set of random perturbations with entropy **H(H)**. For each challenge **c** and perturbation **h ∈ H**, the wrapper must satisfy:
 
-Without knowledge of $h$, the wrapper must essentially invert the composition, requiring it to correctly predict $f^*(h(c))$ for all possible $h$. The probability of guessing correctly for a single challenge-perturbation pair is at most $2^{-\mathcal{H}(H)}$.
+```
+g(f'(h(c))) = f*(h(c))
+```
 
-For $n$ independent challenges, the probability that the wrapper succeeds on all is:
-$$P(\text{all correct}) \leq (2^{-\mathcal{H}(H)})^n = 2^{-n \cdot \mathcal{H}(H)}$$
+Without knowledge of **h**, the wrapper must essentially invert the composition, requiring it to correctly predict **f*(h(c))** for all possible **h**. The probability of guessing correctly for a single challenge-perturbation pair is at most **2^{-H(H)}**.
+
+For **n** independent challenges, the probability that the wrapper succeeds on all is:
+
+```
+P(all correct) ≤ (2^{-H(H)})^n = 2^{-n·H(H)}
+```
 
 Therefore:
-$$P(\text{wrapper undetected}) \leq \exp(-n \cdot \mathcal{H}(H) \cdot \ln 2) = \exp(-\Omega(n \cdot \text{entropy}(h)))$$
+```
+P(wrapper undetected) ≤ exp(-n·H(H)·ln 2) = exp(-Ω(n·entropy(h)))
+```
 
 ■
 
