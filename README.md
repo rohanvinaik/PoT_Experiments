@@ -98,11 +98,12 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 
 | Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
 |----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| **EleutherAI Pythia-70m** vs **EleutherAI Pythia-160m** | Audit-grade | SAME | 32 | ~11.0 s | ~0.3 s | Model comparison |
-| **GPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 6.2 (avg of 12) | ~6.8 s (avg of 12) | ~1.1 s (avg of 12) | Distillation (12 runs) |
-| **Model A** vs **Model B** | Local-weights | UNDECIDED | 11.8 (avg of 32) | ~14.3 s (avg of 32) | ~1.2 s (avg of 32) | Model comparison (32 runs) |
+| **DistilGPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 12 | ~6.3 s | ~0.5 s | Self-consistency |
+| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 12 | ~7.3 s | ~0.6 s | Self-consistency |
+| **Model A** vs **Model B** | Quick-gate | SAME | 12.0 (avg of 3) | ~6.8 s (avg of 3) | ~0.6 s (avg of 3) | Model comparison (3 runs) |
+| GPT-2 vs **DistilGPT-2** | Quick-gate | DIFFERENT | 12 | ~6.9 s | ~0.6 s | Distillation |
 
-<!-- Table auto-updated: 2025-08-22 06:31:36 -->
+<!-- Table auto-updated: 2025-08-22 06:41:48 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
