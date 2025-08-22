@@ -16,14 +16,14 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
-import numpy as np
-# Import core PoT modules with proper fallback handling
+import numpy as np# Import core PoT modules with proper fallback handling
 try:
     # Try absolute imports from src path first
     from src.pot.core.diff_decision import (
         TestingMode,
         EnhancedSequentialTester,
-        DiffDecisionConfig
+        DiffDecisionConfig,
+        DifferenceVerifier
     )
     from src.pot.core.challenge import (
         ChallengeConfig, 
@@ -38,7 +38,8 @@ except ImportError:
         from pot.core.diff_decision import (
             TestingMode,
             EnhancedSequentialTester,
-            DiffDecisionConfig
+            DiffDecisionConfig,
+            DifferenceVerifier
         )
         from pot.core.challenge import (
             ChallengeConfig,
@@ -52,8 +53,7 @@ except ImportError:
         import sys
         print("Error: Unable to import PoT modules. Please ensure the package is properly installed.", file=sys.stderr)
         print("Try running: pip install -e . from the project root directory.", file=sys.stderr)
-        raises import LM  # type: ignore
- main
+        raise  # Fix: Changed from "raises import LM" to just "raise"
 
 
 class VerificationMode(Enum):
@@ -257,25 +257,31 @@ class PipelineOrchestrator:
                 params={},
             )
 
-            generated = generate_challenges(cfg)
+            generated = generate_challenges(cfg)# Build challenges list with seeds for full traceability
             challenges = []
- # Build challenges list with seeds for full traceability
-            challenges = []
-            for i, ch in enumerate(generated["challenges"]):
-                # Get the corresponding seed if available
-                seed = seeds[i] if i < len(seeds) else None
 
-                challenge_dict = {
-                    "id": ch.challenge_id,
-                    "prompt": ch.parameters.get("prompt", ""),
-                    "metadata": ch.parameters,
-                }
-
-                # Include seed if available (for traceability)
-                if seed is not None:
-                    challenge_dict["seed"] = seed
-
-                challenges.append(challenge_dict)
+            # Ensure we have matching seeds and challenges
+            if seeds and len(seeds) >= len(generated["challenges"]):
+                # Use zip for clean iteration when we have enough seeds
+                for seed, ch in zip(seeds, generated["challenges"]):
+                    challenges.append({
+                        "id": ch.challenge_id,
+                        "seed": seed,
+                        "prompt": ch.parameters.get("prompt", ""),
+                        "metadata": ch.parameters,
+                    })
+            else:
+                # Fallback: handle case where seeds might be missing or insufficient
+                for i, ch in enumerate(generated["challenges"]):
+                    challenge_dict = {
+                        "id": ch.challenge_id,
+                        "prompt": ch.parameters.get("prompt", ""),
+                        "metadata": ch.parameters,
+                    }
+                    # Add seed if available
+                    if seeds and i < len(seeds):
+                        challenge_dict["seed"] = seeds[i]
+                    challenges.append(challenge_dict)
                         "prompt": ch.parameters.get("prompt", ""),
                         "metadata": ch.parameters,
                     }

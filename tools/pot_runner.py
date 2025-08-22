@@ -126,19 +126,17 @@ class HFLocalModel:
         
         # Load model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        # Simplified loading to avoid bus errors
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
-        
+        # Avoid memory-mapped weights; load normally and move to target device
+        self.model = AutoModelForCausalLM.from_pretrained(model_path)
+        self.model.to(self.device)
+        self.model.eval()
+
         # Set pad token if needed
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
     
     def generate(self, prompt: str, temperature: float = 0.0, max_length: int = 100) -> str:
-        inputs = self.tokenizer(prompt, return_tensors="pt", padding=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt", padding=True).to(self.device)
         
         with torch.no_grad():
             if temperature < 0.01:  # Deterministic
