@@ -5,17 +5,25 @@ import json
 import yaml
 from typing import Callable
 
-from pot_verifier.core.modes import TestingMode, ModeParams
-from pot_verifier.core.challenges import gen_challenge_seeds, iter_prompt_from_seed
-from pot_verifier.core.decision import EnhancedSequentialTester, Verdict
-from pot_verifier.logging.audit import write_summary_json, write_transcript_ndjson, pack_evidence_bundle
-from pot_verifier.lm.base import EchoModel
-from pot_verifier.lm.api_client import DummyAPIModel
+from pot.verifier.core import (
+    TestingMode,
+    ModeParams,
+    gen_challenge_seeds,
+    iter_prompt_from_seed,
+    EnhancedSequentialTester,
+    Verdict,
+)
+from pot.verifier.logging import (
+    write_summary_json,
+    write_transcript_ndjson,
+    pack_evidence_bundle,
+)
+from pot.verifier.lm import EchoModel, DummyAPIModel
 
 # Optional HF import guarded
-try:
-    from pot_verifier.lm.hf_local import HFLocalModel
-except Exception:
+try:  # pragma: no cover - optional dependency
+    from pot.verifier.lm import HFLocalModel
+except Exception:  # noqa: BLE001
     HFLocalModel = None
 
 
