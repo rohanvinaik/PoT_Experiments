@@ -125,12 +125,7 @@ Examples:
     )
     
     # Pipeline options
-    parser.add_argument(
-        '--n-challenges',
-        type=int,
-        default=None,
-        help='Max number of challenges (default: auto based on mode)'
-    )
+    # Note: n-challenges removed - now determined automatically by testing mode
     
     parser.add_argument(
         '--max-queries',
@@ -685,10 +680,7 @@ def main():
         logger.info(f"Candidate Model: {args.cand_model}")
         logger.info(f"Testing Mode: {args.mode}")
         logger.info(f"Verification Mode: {args.verification_mode}")
-        if args.n_challenges:
-            logger.info(f"Max Challenges: {args.n_challenges}")
-        else:
-            logger.info(f"Max Challenges: Auto (from {args.mode} mode)")
+        logger.info(f"Max Challenges: Auto-determined (from {args.mode} mode)")
         logger.info(f"Output Directory: {args.output_dir}")
         logger.info(f"🚀 CI/CD Components Available: {CI_COMPONENTS_AVAILABLE}")
         
@@ -750,8 +742,8 @@ def main():
             # Normal mode with enhanced validation
             results = orchestrator.run_complete_pipeline(
                 ref_model_path=args.ref_model,
-                cand_model_path=args.cand_model,
-                n_challenges=args.n_challenges
+                cand_model_path=args.cand_model
+                # n_challenges determined automatically by testing mode
             )
             
             # Integrate enhanced results

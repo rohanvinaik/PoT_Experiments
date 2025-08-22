@@ -1,0 +1,101 @@
+{
+  "run_id": "validation_20250822_061751",
+  "timestamp": "2025-08-22T06:17:51.503508",
+  "config": {
+    "testing_mode": "quick_gate",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": true,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "111eb1105ac82d09cfb03ba7acdf4334735743b22b307f5c971c715d0ebaf97d",
+    "verbose": false
+  },
+  "pre_commit": {
+    "n_challenges": 120,
+    "hmac_key": "111eb1105ac82d09cfb03ba7acdf4334735743b22b307f5c971c715d0ebaf97d",
+    "run_id": "validation_20250822_061751",
+    "commitment": "72f85245d3b7007727f78982c2957af118e354b8786ff0e4789c2f2f940b5e3a",
+    "seeds": [
+      "2f8dd4dd91f809fccb65dc5d640a525181e4b1556ab9f572f4865bd5a13d26bd",
+      "dd6088e723857dc487aa43a8268d65589da84555366884c06b0e16562a15705e"
+    ]
+  },
+  "challenges": [],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 2,
+    "ci_progression": [],
+    "effect_size": 0.0,
+    "challenges_used": 2
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755857871.001045,
+      "end_time": 1755857871.001678,
+      "duration": 0.0006330013275146484,
+      "memory_peak_mb": 385.625,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.59375,
+        "n_challenges": 120,
+        "hmac_key": "111eb1105ac82d09cfb03ba7acdf4334735743b22b307f5c971c715d0ebaf97d",
+        "run_id": "validation_20250822_061751",
+        "commitment": "72f85245d3b7007727f78982c2957af118e354b8786ff0e4789c2f2f940b5e3a",
+        "seeds": [
+          "2f8dd4dd91f809fccb65dc5d640a525181e4b1556ab9f572f4865bd5a13d26bd",
+          "dd6088e723857dc487aa43a8268d65589da84555366884c06b0e16562a15705e"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755857871.001736,
+      "end_time": 1755857871.001774,
+      "duration": 3.814697265625e-05,
+      "memory_peak_mb": 385.625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 97.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.625,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755857871.001815,
+      "end_time": 1755857871.5026,
+      "duration": 0.5007848739624023,
+      "memory_peak_mb": 385.625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 385.625,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "e36bc72dfd4fa3027581252f2962a18ba03b1e2747c7c915bbc2a27e9ed421f0"
+}

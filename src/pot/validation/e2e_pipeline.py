@@ -336,51 +336,54 @@ class PipelineOrchestrator:
                 self.evidence_bundle["challenges_used"] = 2
                 self.evidence_bundle["challenges"] = []  # Empty list for dry run
             else:
-                # Generate all prompts upfront from seeds (following pot_runner pattern)
+                # Generate prompts upfront (like pot_runner) but store only strings to save memory
                 session_nonce = hashlib.sha256(self.run_id.encode()).hexdigest()[:32]
                 
-                # Stage 2.5: Generate all challenges from seeds
-                challenges = []
+                # Generate all prompts as simple strings (memory efficient)
                 prompts = []
+                challenge_metadata = []  # Store minimal metadata
                 
+                self._log(f"Generating {len(challenge_seeds)} challenge prompts...")
                 for i, seed in enumerate(challenge_seeds):
                     cfg = ChallengeConfig(
                         master_key_hex=self.config.hmac_key,
                         session_nonce_hex=session_nonce,
                         n=1,
-                        family="lm:templates",
+                        family="lm:templates", 
                         params={"index": i},
                     )
                     
                     challenge_result = generate_challenges(cfg)
                     challenge = challenge_result["challenges"][0]
                     
-                    challenges.append({
+                    # Store only the prompt string
+                    prompts.append(challenge.parameters.get("prompt", ""))
+                    
+                    # Store minimal metadata for evidence bundle
+                    challenge_metadata.append({
                         "id": challenge.challenge_id,
                         "seed": seed,
-                        "prompt": challenge.parameters.get("prompt", ""),
-                        "metadata": challenge.parameters,
                         "index": i
                     })
-                    prompts.append(challenge.parameters.get("prompt", ""))
-
+                
+                self._log(f"Generated {len(prompts)} prompts, starting verification...")
+                
                 # Create verifier with proper configuration
                 diff_config = DiffDecisionConfig(mode=self.config.testing_mode)
                 
-                # Use iterator for prompts (will stop early on decision)
+                # Track which prompts were actually used
+                prompts_used = 0
                 prompt_iter = iter(prompts)
-                challenges_used = []
                 
                 def prompt_generator():
-                    """Generate next prompt from pre-generated list"""
+                    """Return next pre-generated prompt"""
+                    nonlocal prompts_used
                     try:
                         prompt = next(prompt_iter)
-                        idx = len(challenges_used)
-                        if idx < len(challenges):
-                            challenges_used.append(challenges[idx])
+                        prompts_used += 1
                         return prompt
                     except StopIteration:
-                        # Should not happen as we have n_max prompts
+                        # Shouldn't happen with proper n_max
                         return prompts[0]
                 
                 # Scoring function using fuzzy distance between model outputs
@@ -411,9 +414,16 @@ class PipelineOrchestrator:
                     verbose=self.config.verbose
                 )
                 
-                # Track actual challenges used
+                # Track actual challenges used for evidence bundle
+                challenges_used = []
+                for i in range(prompts_used):
+                    if i < len(challenge_metadata):
+                        challenge_info = challenge_metadata[i].copy()
+                        challenge_info["prompt"] = prompts[i]
+                        challenges_used.append(challenge_info)
+                
                 self.evidence_bundle["challenges"] = challenges_used
-                self.evidence_bundle["challenges_used"] = len(challenges_used)
+                self.evidence_bundle["challenges_used"] = prompts_used
                 
                 result = {
                     "decision": report["results"]["decision"],
