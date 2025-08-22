@@ -1527,12 +1527,12 @@
       "severity": "high",
       "functions": [
         {
-          "file": "/Users/rohanvinaik/PoT_Experiments/scripts/archived_mistral_tests/test_mistral_vs_zephyr.py",
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/archived/test_mistral_vs_zephyr.py",
           "name": "generate",
           "line": 35
         },
         {
-          "file": "/Users/rohanvinaik/PoT_Experiments/archived_mistral_tests/run_mistral_zephyr.py",
+          "file": "/Users/rohanvinaik/PoT_Experiments/tests/archived/run_mistral_zephyr.py",
           "name": "generate",
           "line": 24
         }

@@ -285,9 +285,9 @@ build:
 	@echo "$(GREEN)✅ Container built: $(IMAGE_NAME)$(NC)"
 
 test: build
-	@echo "$(YELLOW)Running containerized tests...$(NC)"
-	docker run --rm $(IMAGE_NAME) pytest -q
-	@echo "$(GREEN)✅ Tests completed$(NC)"
+@echo "$(YELLOW)Running containerized tests...$(NC)"
+docker run --rm $(IMAGE_NAME) pytest tests -q
+@echo "$(GREEN)✅ Tests completed$(NC)"
 
 # ================================
 # HELPER TARGETS
