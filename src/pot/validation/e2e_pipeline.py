@@ -20,27 +20,21 @@ import numpy as np
 
 # Import core PoT modules
 try:
-    from src.pot.core.diff_decision import EnhancedSequentialTester, TestingMode
-    from src.pot.core.challenge import generate_challenges
-    from src.pot.core.prf import compute_hmac_seed
-except ImportError:
-    # Fallback imports for different environments
-    try:
-        from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
-        from pot.core.challenge import generate_challenges
-        from pot.core.prf import compute_hmac_seed
-    except ImportError:
-        # Create mock classes for standalone testing
-        class TestingMode:
-            QUICK_GATE = "QUICK"
-            AUDIT_GRADE = "AUDIT"
-            EXTENDED = "EXTENDED"
-        
-        class EnhancedSequentialTester:
-            def __init__(self, mode):
-                self.mode = mode
-            def test_models(self, model_a, model_b):
-                return type('obj', (object,), {'decision': 'SAME', 'confidence': 0.99})()
+    from src.pot.core.diff_decision import (
+        TestingMode,
+        create_enhanced_verifier,
+    )
+    from src.pot.core.challenge import ChallengeConfig, generate_challenges
+    from src.pot.lm.verifier import LMVerifier
+    from src.pot.lm.models import LM
+except ImportError:  # pragma: no cover - fallback for alt package layout
+    from pot.core.diff_decision import (  # type: ignore
+        TestingMode,
+        create_enhanced_verifier,
+    )
+    from pot.core.challenge import ChallengeConfig, generate_challenges  # type: ignore
+    from pot.lm.verifier import LMVerifier  # type: ignore
+    from pot.lm.models import LM  # type: ignore
 
 
 class VerificationMode(Enum):
@@ -229,39 +223,38 @@ class PipelineOrchestrator:
             self._end_stage(metrics)
     
     def generate_challenges(self, seeds: List[str]) -> List[Dict[str, Any]]:
-        """
-        Generate actual challenges from seeds
-        
-        Args:
-            seeds: List of challenge seeds
-            
-        Returns:
-            List of challenge dictionaries
-        """
+        """Generate cryptographic challenges from the commit seeds"""
+
         metrics = self._start_stage(PipelineStage.CHALLENGE_GENERATION)
-        
+
         try:
+            # Derive session nonce deterministically from run_id
+            session_nonce = hashlib.sha256(self.run_id.encode()).hexdigest()[:32]
+
+            cfg = ChallengeConfig(
+                master_key_hex=self.config.hmac_key,
+                session_nonce_hex=session_nonce,
+                n=len(seeds),
+                family="lm:templates",
+                params={},
+            )
+
+            generated = generate_challenges(cfg)
             challenges = []
-            for i, seed in enumerate(seeds):
-                # Generate challenge from seed
-                # This would normally use the actual challenge generation logic
-                challenge = {
-                    'id': f"challenge_{i:03d}",
-                    'seed': seed,
-                    'prompt': f"Challenge prompt generated from seed {seed[:8]}...",
-                    'metadata': {
-                        'temperature': 0.0,  # Deterministic
-                        'max_tokens': 100,
-                        'index': i
+            for ch in generated["challenges"]:
+                challenges.append(
+                    {
+                        "id": ch.challenge_id,
+                        "prompt": ch.parameters.get("prompt", ""),
+                        "metadata": ch.parameters,
                     }
-                }
-                challenges.append(challenge)
-            
-            metrics.metadata['n_challenges'] = len(challenges)
-            self.evidence_bundle['challenges'] = challenges
-            
+                )
+
+            metrics.metadata["n_challenges"] = len(challenges)
+            self.evidence_bundle["challenges"] = challenges
+
             return challenges
-            
+
         except Exception as e:
             metrics.errors.append(str(e))
             raise
@@ -286,25 +279,25 @@ class PipelineOrchestrator:
         metrics = self._start_stage(PipelineStage.MODEL_LOADING)
         
         try:
+            report: Optional[Dict[str, Any]] = None
             if self.config.dry_run:
-                # Return mock models for dry run
+                # Return simple mock objects in dry run mode
                 self._log("Dry run: Using mock models")
-                ref_model = type('MockModel', (), {'name': ref_model_path})()
-                cand_model = type('MockModel', (), {'name': cand_model_path})()
+                ref_model = type("MockModel", (), {"name": ref_model_path})()
+                cand_model = type("MockModel", (), {"name": cand_model_path})()
             else:
-                # Load actual models based on verification mode
                 if self.config.verification_mode == VerificationMode.LOCAL_WEIGHTS:
-                    # Load from local paths
-                    self._log(f"Loading local models: {ref_model_path}, {cand_model_path}")
-                    # This would use actual model loading logic
-                    from transformers import AutoModelForCausalLM, AutoTokenizer
-                    ref_model = AutoModelForCausalLM.from_pretrained(ref_model_path)
-                    cand_model = AutoModelForCausalLM.from_pretrained(cand_model_path)
+                    # Load real local models via LM wrapper
+                    self._log(
+                        f"Loading local models: {ref_model_path}, {cand_model_path}"
+                    )
+                    ref_model = LM(ref_model_path, device="cpu")
+                    cand_model = LM(cand_model_path, device="cpu")
                 else:
-                    # API mode - create API clients
-                    self._log(f"Connecting to API endpoints")
-                    ref_model = type('APIModel', (), {'endpoint': ref_model_path})()
-                    cand_model = type('APIModel', (), {'endpoint': cand_model_path})()
+                    # API mode - create simple client objects
+                    self._log("Connecting to API endpoints")
+                    ref_model = type("APIModel", (), {"endpoint": ref_model_path})()
+                    cand_model = type("APIModel", (), {"endpoint": cand_model_path})()
             
             metrics.metadata['ref_model'] = str(ref_model_path)
             metrics.metadata['cand_model'] = str(cand_model_path)
@@ -337,76 +330,60 @@ class PipelineOrchestrator:
         metrics = self._start_stage(PipelineStage.VERIFICATION)
         
         try:
+            report: Optional[Dict[str, Any]] = None
             if self.config.dry_run:
                 # Simulate verification for dry run
                 self._log("Dry run: Simulating verification")
-                time.sleep(0.5)  # Simulate processing
-                
-                # Generate mock CI progression
-                n_queries = min(10, len(challenges))
-                ci_progression = []
-                for i in range(n_queries):
-                    lower = np.random.uniform(-0.1, 0.05)
-                    upper = np.random.uniform(lower + 0.05, lower + 0.15)
-                    ci_progression.append((lower, upper))
-                
+                time.sleep(0.5)
                 result = {
-                    'decision': 'SAME',
-                    'confidence': 0.99,
-                    'n_queries': n_queries,
-                    'ci_final': ci_progression[-1] if ci_progression else (0, 0),
-                    'ci_progression': ci_progression,
-                    'effect_size': 0.02,
-                    'p_value': 0.85
+                    "decision": "SAME",
+                    "confidence": 0.99,
+                    "n_queries": min(10, len(challenges)),
+                    "ci_progression": [],
+                    "effect_size": 0.0,
                 }
             else:
-                # Run actual verification
-                tester = EnhancedSequentialTester(self.config.testing_mode)
-                
-                # Track CI progression during verification
-                ci_progression = []
-                responses = []
-                
-                for i, challenge in enumerate(challenges[:self.config.max_queries]):
-                    if i % 10 == 0:
-                        self._log(f"Processing challenge {i+1}/{len(challenges)}")
-                    
-                    # Get model responses (simplified for now)
-                    ref_response = f"ref_response_{i}"
-                    cand_response = f"cand_response_{i}"
-                    
-                    responses.append({
-                        'challenge_id': challenge['id'],
-                        'ref_response': ref_response,
-                        'cand_response': cand_response
-                    })
-                    
-                    # Update CI (mock for now)
-                    if i > 0 and i % 5 == 0:
-                        ci_progression.append((
-                            np.random.uniform(-0.1, 0.05),
-                            np.random.uniform(0.05, 0.15)
-                        ))
-                
-                # Get final decision
-                verification_result = tester.test_models(ref_model, cand_model)
-                
+                # Prepare prompt generator from challenge list
+                from itertools import cycle
+                prompts = [c["prompt"] for c in challenges]
+                prompt_cycle = cycle(prompts)
+
+                def prompt_generator() -> str:
+                    return next(prompt_cycle)
+
+                # Scoring function using fuzzy distance between model outputs
+                lm_verifier = LMVerifier(ref_model, delta=0.01, use_sequential=False)
+
+                def score_fn(ref, cand, prompt, K=32):
+                    ref_out = ref.generate(prompt, max_new_tokens=64)
+                    cand_out = cand.generate(prompt, max_new_tokens=64)
+                    return lm_verifier.compute_output_distance(ref_out, cand_out, method="fuzzy")
+
+                verifier = create_enhanced_verifier(
+                    score_fn,
+                    prompt_generator,
+                    mode=self.config.testing_mode,
+                    n_max=min(len(prompts), self.config.max_queries),
+                )
+                report = verifier.verify_difference(ref_model, cand_model, verbose=self.config.verbose)
+
                 result = {
-                    'decision': verification_result.decision,
-                    'confidence': verification_result.confidence,
-                    'n_queries': len(responses),
-                    'ci_progression': ci_progression,
-                    'responses': responses
+                    "decision": report["results"]["decision"],
+                    "confidence": 1.0 - verifier.cfg.alpha,
+                    "n_queries": report["results"]["n_used"],
+                    "ci_progression": [],
+                    "effect_size": report["results"]["mean"],
                 }
-            
-            metrics.query_count = result['n_queries']
-            metrics.ci_progression = result.get('ci_progression', [])
-            metrics.metadata['decision'] = result['decision']
-            
-            self.evidence_bundle['verification'] = result
-            
+
+            metrics.query_count = result["n_queries"]
+            metrics.ci_progression = result.get("ci_progression", [])
+            metrics.metadata["decision"] = result["decision"]
+
+            # Store detailed verification info in evidence bundle
+            self.evidence_bundle["verification"] = report if report is not None else result
+
             return result
-            
+
         except Exception as e:
             metrics.errors.append(str(e))
             raise
