@@ -1,36 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pot"
 version = "0.1.0"
-description = "Proof-of-Training (PoT) behavioral verifier skeleton"
+description = "Proof-of-Training Framework"
 requires-python = ">=3.9"
-dependencies = [
-  "pyyaml>=6.0.2",
-  "torch>=2.3.1",
-  "torchvision>=0.18.1",
-  "transformers>=4.55.2",
-  "accelerate>=1.10.0",
-  "sentence-transformers>=5.1.0",
-  "numpy>=2.1.2",
-  "scipy>=1.16.1",
-  "scikit-learn>=1.7.1",
-  "einops>=0.8.1",
-  "tqdm>=4.67.1",
-  "matplotlib>=3.10.5",
-  "seaborn>=0.13.2",
-  "xxhash>=3.5.0",
-  "py-tlsh>=4.7.2",
-]
-
-[project.optional-dependencies]
-hf = ["transformers>=4.40.0", "torch>=2.1"]
-dev = ["black", "ruff", "mypy"]
 
 [tool.black]
 line-length = 100
+target-version = ['py39', 'py310', 'py311']
+include = '\.pyi?$'
 
-[tool.ruff]
-line-length = 100
+[tool.isort]
+profile = "black"
+line_length = 100
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-packages = ["pot", "pot_verifier"]
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203", "W503"]
+exclude = [".git", "__pycache__", "build", "dist"]

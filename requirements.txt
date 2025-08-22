@@ -1,16 +1,16 @@
-torch==2.3.1
-torchvision==0.18.1
-transformers==4.55.2
-accelerate==1.10.0
-sentence-transformers==5.1.0
-numpy>=2.1.2
-scipy==1.16.1
-scikit-learn==1.7.1
-einops==0.8.1
-tqdm==4.67.1
-pyyaml==6.0.2
-matplotlib>=3.10.5
-seaborn==0.13.2
+torch>=2.0.0
+torchvision>=0.15.0
+transformers>=4.36.0
+accelerate>=0.25.0
+sentence-transformers>=2.2.0
+numpy>=1.24.0
+scipy>=1.10.0
+scikit-learn>=1.3.0
+einops>=0.7.0
+tqdm>=4.65.0
+pyyaml>=6.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
 
 # Cryptographic and hashing dependencies
 xxhash==3.5.0  # Fast non-cryptographic hash for challenge IDs and performance-critical paths
