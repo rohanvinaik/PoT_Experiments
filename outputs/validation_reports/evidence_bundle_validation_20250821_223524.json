@@ -1,0 +1,160 @@
+{
+  "run_id": "validation_20250821_223524",
+  "timestamp": "2025-08-21T22:35:24.983834",
+  "config": {
+    "testing_mode": "QUICK",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": true,
+    "benchmark_mode": false,
+    "max_queries": 400,
+    "hmac_key": "1b34e19e7785daed537e4569f03ca7aa7e27f678d4481db1aeeea8a16e2fffbf",
+    "verbose": false
+  },
+  "pre_commit": {
+    "n_challenges": 32,
+    "hmac_key": "1b34e19e7785daed537e4569f03ca7aa7e27f678d4481db1aeeea8a16e2fffbf",
+    "run_id": "validation_20250821_223524",
+    "commitment": "1713ed57726fc0dbf6d2e15cb5bb5b1644fa375669601d4ba60d68fcd62ef804",
+    "seeds": [
+      "cc1eb2589f453603d2f07da326f7de54e47b95c9514dd32ad2d65c158f8d589b",
+      "efcd3d0e0d5a1d396810e4c2fa34f90fc2923862ca115a2df8b3c2e19583a785"
+    ]
+  },
+  "challenges": [
+    {
+      "id": "challenge_000",
+      "seed": "cc1eb2589f453603d2f07da326f7de54e47b95c9514dd32ad2d65c158f8d589b",
+      "prompt": "Challenge prompt generated from seed cc1eb258...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 0
+      }
+    },
+    {
+      "id": "challenge_001",
+      "seed": "efcd3d0e0d5a1d396810e4c2fa34f90fc2923862ca115a2df8b3c2e19583a785",
+      "prompt": "Challenge prompt generated from seed efcd3d0e...",
+      "metadata": {
+        "temperature": 0.0,
+        "max_tokens": 100,
+        "index": 1
+      }
+    }
+  ],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 2,
+    "ci_final": [
+      -0.058150222987302116,
+      0.04644729331973434
+    ],
+    "ci_progression": [
+      [
+        0.04613085736072994,
+        0.15994124327106768
+      ],
+      [
+        -0.058150222987302116,
+        0.04644729331973434
+      ]
+    ],
+    "effect_size": 0.02,
+    "p_value": 0.85
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755830124.478446,
+      "end_time": 1755830124.478663,
+      "duration": 0.00021696090698242188,
+      "memory_peak_mb": 205.140625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 205.140625,
+        "n_challenges": 32,
+        "hmac_key": "1b34e19e7785daed537e4569f03ca7aa7e27f678d4481db1aeeea8a16e2fffbf",
+        "run_id": "validation_20250821_223524",
+        "commitment": "1713ed57726fc0dbf6d2e15cb5bb5b1644fa375669601d4ba60d68fcd62ef804",
+        "seeds": [
+          "cc1eb2589f453603d2f07da326f7de54e47b95c9514dd32ad2d65c158f8d589b",
+          "efcd3d0e0d5a1d396810e4c2fa34f90fc2923862ca115a2df8b3c2e19583a785"
+        ]
+      }
+    },
+    "challenge_generation": {
+      "stage": "challenge_generation",
+      "start_time": 1755830124.4787068,
+      "end_time": 1755830124.478733,
+      "duration": 2.6226043701171875e-05,
+      "memory_peak_mb": 205.140625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 98.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 205.140625,
+        "n_challenges": 2
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755830124.478772,
+      "end_time": 1755830124.478807,
+      "duration": 3.504753112792969e-05,
+      "memory_peak_mb": 205.140625,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 98.9,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 205.140625,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755830124.47884,
+      "end_time": 1755830124.983686,
+      "duration": 0.5048458576202393,
+      "memory_peak_mb": 205.171875,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 0.0,
+      "query_count": 2,
+      "ci_progression": [
+        [
+          0.04613085736072994,
+          0.15994124327106768
+        ],
+        [
+          -0.058150222987302116,
+          0.04644729331973434
+        ]
+      ],
+      "errors": [],
+      "metadata": {
+        "memory_start": 205.140625,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "356a9da053442225d14ea1e908d442c8ac6f2d4c895bed58ad603b4295611589"
+}

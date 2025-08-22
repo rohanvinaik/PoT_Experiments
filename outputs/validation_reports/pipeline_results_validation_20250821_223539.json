@@ -1,0 +1,111 @@
+{
+  "run_id": "validation_20250821_223539",
+  "success": true,
+  "decision": "SAME",
+  "confidence": 0.99,
+  "n_queries": 2,
+  "evidence_bundle_path": "outputs/validation_reports/evidence_bundle_validation_20250821_223539.json",
+  "zk_proof_path": null,
+  "total_duration": 0.5084319114685059,
+  "peak_memory_mb": 206.203125,
+  "stage_metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755830139.272743,
+      "end_time": 1755830139.272958,
+      "duration": 0.00021505355834960938,
+      "memory_peak_mb": 206.125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 206.125,
+        "n_challenges": 32,
+        "hmac_key": "f4f2bba65d886e3c8f162451136ec3ba841af2065c01e3cc73cdf78db3363e92",
+        "run_id": "validation_20250821_223539",
+        "commitment": "5bb49468fa7ecc10ea08d2f671008c5f05f26de578ac108d2e9dbf199945ffca",
+        "seeds": [
+          "831a40ae33bbd1a348313f2acd9655761dcc858a341c1ddc51c9abba1caccf69",
+          "85d8692775b7ddc8bbb19fe95a2915fe4a0a90f3e2b43f7ca0451cea6468eaee"
+        ]
+      }
+    },
+    "challenge_generation": {
+      "stage": "challenge_generation",
+      "start_time": 1755830139.2730088,
+      "end_time": 1755830139.273033,
+      "duration": 2.4080276489257812e-05,
+      "memory_peak_mb": 206.125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 97.3,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 206.125,
+        "n_challenges": 2
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755830139.2730722,
+      "end_time": 1755830139.27312,
+      "duration": 4.76837158203125e-05,
+      "memory_peak_mb": 206.125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 99.7,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 206.125,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755830139.273154,
+      "end_time": 1755830139.778372,
+      "duration": 0.5052180290222168,
+      "memory_peak_mb": 206.15625,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [
+        [
+          0.026729938470065773,
+          0.09782555660037534
+        ],
+        [
+          0.0007845632707441375,
+          0.09124460684294732
+        ]
+      ],
+      "errors": [],
+      "metadata": {
+        "memory_start": 206.125,
+        "decision": "SAME"
+      }
+    },
+    "evidence_generation": {
+      "stage": "evidence_generation",
+      "start_time": 1755830139.778514,
+      "end_time": 1755830139.781441,
+      "duration": 0.002927064895629883,
+      "memory_peak_mb": 206.203125,
+      "memory_delta_mb": 0.046875,
+      "cpu_percent": 100.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 206.15625,
+        "bundle_path": "outputs/validation_reports/evidence_bundle_validation_20250821_223539.json",
+        "bundle_hash": "d158f838fc858f82753a3215d48bafaf0cc1e11f15bd1933428a4b0022b70c07"
+      }
+    }
+  }
+}
