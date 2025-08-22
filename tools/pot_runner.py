@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import argparse, os, json, time, math, random, zipfile, sys
+from pathlib import Path
+
+# Ensure the repository's ``src`` directory is importable for the ``pot`` package
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_PATH = REPO_ROOT / "src"
+if str(SRC_PATH) not in sys.path:
+    sys.path.insert(0, str(SRC_PATH))
 
 # --- Optional deps: install if available ---
 try:
@@ -17,9 +24,12 @@ except Exception:
 # --- Try to use your real sequential tester first ---
 USING_LOCAL_TESTER = False
 try:
-    # Your codebase path; adjust if needed
     from pot.core.diff_decision import EnhancedSequentialTester, TestingMode  # type: ignore
     HAVE_USER_TESTER = True
+    # The core tester in this repository exposes an update-based interface.
+    # Fall back to the local stub if the convenient `.run` helper is absent.
+    if not hasattr(EnhancedSequentialTester, "run"):
+        raise ImportError("EnhancedSequentialTester lacks run()")
 except Exception:
     HAVE_USER_TESTER = False
     USING_LOCAL_TESTER = True
@@ -116,19 +126,17 @@ class HFLocalModel:
         
         # Load model and tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        # Simplified loading to avoid bus errors
-        self.model = AutoModelForCausalLM.from_pretrained(
-            model_path,
-            torch_dtype=torch.float32,
-            low_cpu_mem_usage=True
-        )
-        
+        # Avoid memory-mapped weights; load normally and move to target device
+        self.model = AutoModelForCausalLM.from_pretrained(model_path)
+        self.model.to(self.device)
+        self.model.eval()
+
         # Set pad token if needed
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
     
     def generate(self, prompt: str, temperature: float = 0.0, max_length: int = 100) -> str:
-        inputs = self.tokenizer(prompt, return_tensors="pt", padding=True)
+        inputs = self.tokenizer(prompt, return_tensors="pt", padding=True).to(self.device)
         
         with torch.no_grad():
             if temperature < 0.01:  # Deterministic
@@ -265,7 +273,16 @@ def pack_bundle(zip_path: str, files: list[str], extra: dict):
 # --- core run ---
 def run_single(exp_cfg: dict, outdir: str) -> dict:
     mode_name = (exp_cfg.get("mode") or "AUDIT").upper()
-    Mode = getattr(TestingMode, mode_name)
+    # Support both modern and legacy mode names
+    alias_map = {
+        "QUICK": ["QUICK_GATE", "QUICK"],
+        "AUDIT": ["AUDIT_GRADE", "AUDIT"],
+    }
+    candidates = alias_map.get(mode_name, [mode_name])
+    mode_attr = next((m for m in candidates if hasattr(TestingMode, m)), None)
+    if mode_attr is None:
+        raise AttributeError(f"Unknown testing mode: {mode_name}")
+    Mode = getattr(TestingMode, mode_attr)
     n_challenges = int(exp_cfg.get("n_challenges"))
     run_id = exp_cfg["run_id"]; key_hex = exp_cfg["hmac_key_hex"]
     robust = exp_cfg.get("robustness", {})
@@ -429,5 +446,5 @@ def main():
         pack_bundle(z, [t,s,m,met], {"repacked": True})
         print(json.dumps({"bundle": z, "exists": os.path.exists(z)}, indent=2))
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
