@@ -1,0 +1,106 @@
+{
+  "run_id": "validation_20250821_215942",
+  "success": false,
+  "error": "Object of type PosixPath is not JSON serializable",
+  "stage_failed": "evidence_generation",
+  "stage_metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755827982.018978,
+      "end_time": 1755827982.0190668,
+      "duration": 8.869171142578125e-05,
+      "memory_peak_mb": 204.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 204.78125,
+        "n_challenges": 5,
+        "hmac_key": "78e5dcb93b6212e4565fe9aad88248ab91db5e5c1189e40d0f98905c0626f0bc",
+        "run_id": "validation_20250821_215942",
+        "commitment": "2b5ae484c54eea4abc1de2ed0b1569108c63cb65749e5773be9e19d6d40cdefc",
+        "seeds": [
+          "74f96073480476ed5bc63ce2a8d36ae8feb997cd3783bdc54587e909330b06f9",
+          "ddbaf095031d1433bca96c87617b4ebfab4991999891881cf8f256645ade6ffe"
+        ]
+      }
+    },
+    "challenge_generation": {
+      "stage": "challenge_generation",
+      "start_time": 1755827982.01911,
+      "end_time": 1755827982.0191329,
+      "duration": 2.288818359375e-05,
+      "memory_peak_mb": 204.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 98.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 204.78125,
+        "n_challenges": 2
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755827982.0191722,
+      "end_time": 1755827982.019213,
+      "duration": 4.076957702636719e-05,
+      "memory_peak_mb": 204.796875,
+      "memory_delta_mb": 0.015625,
+      "cpu_percent": 99.3,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 204.78125,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755827982.0192482,
+      "end_time": 1755827982.52614,
+      "duration": 0.5068917274475098,
+      "memory_peak_mb": 204.859375,
+      "memory_delta_mb": 0.0625,
+      "cpu_percent": 0.2,
+      "query_count": 2,
+      "ci_progression": [
+        [
+          -0.06897417376074583,
+          0.015584157064268411
+        ],
+        [
+          0.006543260045253033,
+          0.14023872540047272
+        ]
+      ],
+      "errors": [],
+      "metadata": {
+        "memory_start": 204.796875,
+        "decision": "SAME"
+      }
+    },
+    "evidence_generation": {
+      "stage": "evidence_generation",
+      "start_time": 1755827982.526623,
+      "end_time": 1755827982.528013,
+      "duration": 0.0013899803161621094,
+      "memory_peak_mb": 204.890625,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 90.5,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [
+        "Object of type PosixPath is not JSON serializable"
+      ],
+      "metadata": {
+        "memory_start": 204.859375
+      }
+    }
+  }
+}

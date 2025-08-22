@@ -78,3 +78,6 @@ Thumbs.db
 *.cache
 temp/
 tmp/
+# Rust
+target/
+Cargo.lock

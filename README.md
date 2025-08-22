@@ -156,8 +156,17 @@ print(result.decision)  # SAME / DIFFERENT / UNDECIDED
 
 ### Basic verification (CLI)
 ```bash
-# Compare two local models
-python scripts/run_enhanced_diff_test.py   --ref-model gpt2   --cand-model distilgpt2   --mode audit
+# NEW: Complete end-to-end validation with reporting
+python scripts/run_e2e_validation.py \
+  --ref-model gpt2 \
+  --cand-model distilgpt2 \
+  --mode audit
+
+# Legacy: Direct statistical testing  
+python scripts/run_enhanced_diff_test.py \
+  --ref-model gpt2 \
+  --cand-model distilgpt2 \
+  --mode audit
 
 # API mode (example; requires endpoint wrapper)
 python scripts/run_api_diff_test.py --config configs/api_example.yaml

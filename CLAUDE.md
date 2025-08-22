@@ -129,75 +129,45 @@ When the user asks for Google Colab code or any test runners:
    - **Download as needed**: Use HuggingFace CLI for any required models
    - See "DOWNLOADING MODELS FROM HUGGINGFACE" section for setup
 
-## EXISTING WORKING SCRIPTS
+## PRIMARY VALIDATION METHOD: E2E PIPELINE
 
-The following scripts in `scripts/` are the REAL tests that should be run:
-- `run_enhanced_diff_test.py` - Enhanced statistical verification with calibration
-- `run_statistical_verification.py` - Statistical identity with confidence intervals
-- `test_llm_verification.py` - LLM verification (updated to use GPT-2/DistilGPT-2)
-- `run_fuzzy_verification.py` - Fuzzy hash testing
-- `run_provenance_verification.py` - Merkle tree provenance
-- `experimental_report_clean.py` - Clean reporting format
+The recommended way to run validation is through the end-to-end pipeline:
+```bash
+# Complete validation with reporting
+python scripts/run_e2e_validation.py \
+    --ref-model gpt2 \
+    --cand-model distilgpt2 \
+    --mode audit
+```
+
+This automatically handles:
+- Challenge generation and pre-commitment
+- Model loading and verification
+- Evidence bundle creation
+- HTML/JSON report generation
+- Optional ZK proof generation
 
 ## FOR GOOGLE COLAB
 
 When creating Colab runners:
 1. Clone the repository
 2. Install dependencies: torch, transformers, numpy, scipy, scikit-learn
-3. Run the ACTUAL scripts from `scripts/` directory
+3. Use the E2E pipeline: `python scripts/run_e2e_validation.py --dry-run`
 4. DO NOT create new test logic - use what exists in the codebase
 5. The tests should take 2-5 minutes total, not seconds
 
-## POT_VERIFIER: CLEAN SKELETON IMPLEMENTATION
+## ALTERNATIVE VALIDATION METHODS
 
-### Overview
+### Legacy Scripts (Still Available)
+For specific testing needs, these individual scripts remain available:
+- `scripts/run_enhanced_diff_test.py` - Direct statistical verification
+- `scripts/run_statistical_verification.py` - Statistical identity testing
+- `scripts/test_llm_verification.py` - LLM-specific verification
+- `scripts/run_fuzzy_verification.py` - Fuzzy hash testing
+- `scripts/run_provenance_verification.py` - Merkle tree provenance
 
-A minimal, production-ready scaffold of the PoT verifier with:
-- **HMAC challenge generation** (pre-commitment)
-- **Empirical-Bernstein (EB) confidence sequences**
-- **SAME/DIFFERENT decision rules** with early stopping
-- **Transcript logging + evidence bundles** (ZIP)
-- **Modular design** for easy extension
-
-### Quick Start
-
-```bash
-# 1. Install base dependencies
-pip install -e .
-
-# 2. (Optional) Install HuggingFace support
-pip install ".[hf]"
-
-# 3. Run with echo models (no dependencies)
-python -m scripts.run_diff --config configs/example_api.yaml
-
-# 4. Run with local HF models (requires transformers)
-python -m scripts.run_diff --config configs/example_local.yaml
-```
-
-### Directory Structure
-
-```
-pot/verifier/
-├── core/           # Statistical testing and decision logic
-├── lm/             # Model interfaces (HF, API, echo)
-└── logging/        # Audit trail generation
-scripts/
-└── run_diff.py     # Main runner
-configs/            # YAML configurations
-```
-
-### Extension Points
-
-- **Prompt family** (`core/challenges.py`): Replace `iter_prompt_from_seed` with real templates
-- **Scoring** (`core/scoring.py`): Swap difflib for token-level distance or fuzzy hash
-- **HF loader** (`lm/hf_local.py`): Add sharded loading for large models
-- **API client** (`lm/api_client.py`): Implement real deterministic clients
-- **Security**: Add weight hashing (local) or TEE attestation (API)
-
-## MAIN VALIDATION PIPELINE (MANIFEST-DRIVEN)
-
-The primary validation pipeline now uses a **manifest-driven runner** for reproducibility:
+### Manifest-Driven Pipeline
+For batch experiments, use the manifest-driven approach:
 
 ```bash
 # Run experiments defined in a YAML manifest
@@ -618,6 +588,7 @@ python tools/pot_runner.py run --manifest manifests/neurips_demo.yaml --id exp_0
 # Run with custom output directory
 bash scripts/run_all.sh manifests/neurips_demo.yaml runs/custom_output
 ```
+
 
 ### Error Handling & Common Issues
 
