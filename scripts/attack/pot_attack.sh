@@ -2,8 +2,10 @@
 # PoT Attack CLI Wrapper Script
 # Provides easy command-line access to attack evaluation tools
 
-# Set Python path
-export PYTHONPATH="${PYTHONPATH}:$(dirname "$0")"
+# Set Python path to repository root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+export PYTHONPATH="${PYTHONPATH}:${REPO_ROOT}"
 
 # Default Python interpreter
 PYTHON=${PYTHON:-python3}
@@ -25,11 +27,11 @@ check_dependencies() {
         print_color "Error: Python not found. Please install Python 3.8+" "$RED"
         exit 1
     fi
-    
+
     if ! $PYTHON -c "import torch" 2>/dev/null; then
         print_color "Warning: PyTorch not installed. Some features may not work." "$YELLOW"
     fi
-    
+
     if ! $PYTHON -c "import click" 2>/dev/null; then
         print_color "Error: Click not installed. Run: pip install click" "$RED"
         exit 1
@@ -41,7 +43,7 @@ show_help() {
     cat << EOF
 PoT Attack Evaluation CLI
 
-Usage: pot-attack [OPTIONS] COMMAND [ARGS]...
+Usage: pot_attack.sh [OPTIONS] COMMAND [ARGS]...
 
 Commands:
   run-attacks      Run attack suite against model
@@ -50,11 +52,11 @@ Commands:
   benchmark       Run standardized benchmark
   verify          Verify model with PoT
   dashboard       Launch interactive dashboard
-  
+
 Quick Examples:
-  pot-attack run-attacks -m model.pth -s standard
-  pot-attack benchmark -c config.yaml -m model.pth
-  pot-attack dashboard -r results/
+  ./pot_attack.sh run-attacks -m model.pth -s standard
+  ./pot_attack.sh benchmark -c config.yaml -m model.pth
+  ./pot_attack.sh dashboard -r results/
 
 Options:
   --help          Show this help message
@@ -68,7 +70,7 @@ Environment Variables:
   POT_RESULTS_DIR       Results directory
 
 For detailed help on any command:
-  pot-attack COMMAND --help
+  ./pot_attack.sh COMMAND --help
 
 EOF
 }
@@ -91,8 +93,9 @@ case "$1" in
     *)
         # Check dependencies before running
         check_dependencies
-        
+
         # Run the Python CLI
         $PYTHON -m pot.cli.attack_cli "$@"
         ;;
 esac
+
