@@ -1,0 +1,863 @@
+{
+  "run_id": "validation_20250822_220730",
+  "timestamp": "2025-08-22T22:08:43.128362",
+  "config": {
+    "testing_mode": "quick_gate",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "experimental_results/fingerprint_test",
+    "dry_run": false,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "bbe73ffa662b5692436722585b2ff3964fed7b2e8fe5519fff76f37c212922c6",
+    "verbose": false,
+    "enable_adaptive": true,
+    "adaptive_batch_size": 8,
+    "adaptive_switch_threshold": 0.5,
+    "adaptive_noise_margin": 2.0,
+    "adaptive_max_factor": 1.5,
+    "enable_sharding": true,
+    "auto_detect_sharding": true,
+    "sharding_threshold_gb": 5.0,
+    "max_memory_percent": 70.0
+  },
+  "pre_commit": {
+    "n_challenges": 120,
+    "hmac_key": "bbe73ffa662b5692436722585b2ff3964fed7b2e8fe5519fff76f37c212922c6",
+    "run_id": "validation_20250822_220730",
+    "commitment": "dce548f113c8ae32e98d8690604f764dc428fa4641b01b84ac6fc33594583c6e",
+    "seeds": [
+      "b74bc9d925bb5a14a9bad813df70a53bc2b322fdc97bcf84aac8a62f0496c1be",
+      "0e71b13f79426c4111d1aeb2c0cf977067b2dd46f29dea4888e90881205aa215",
+      "3b583501a74d7975ba5277b743ed16390726ee41999cc8989a4b66df893110ce",
+      "1acd226a99ab45ca0b759fb3721b503951e9e3cce4d0986ddd50c2dd0d97fa5e",
+      "240a07a23cca5a067559a56de6e06166aaae697022e663c355197171e4cc3ff3",
+      "a5881bc3a51574da613e8eec9ae1b520eda112ccd4c823c4f774bbba2f355f03",
+      "e72d6e9ee2b8b837d272570a042398062876786f65eda18be1ff9ca6e67db50b",
+      "54cb0f201f806c9c1c2f662e2a99e4e62f322f874a9dbb27f69c9d15130cd409",
+      "349c6b5d5e5df72fc03fed5db8f12ca6713020061348419a8b3fb0bbcb7445dc",
+      "212f2c7e67d9dc96d76a533b879f175335b7256326d59cb401b00eb5a9a7e46f",
+      "b511165d07ad70790abbcbbc99a5a7a6841d0412c056df9f909fd98112a55c71",
+      "f55a32d044996eb8a2ce49a3fc5b1df8bcec727b8b78ef44efaab6f15609c357",
+      "9033bc7799f6e2905d4faf121d982f358b315c76424bffd013d0f39842551810",
+      "1370fe1e440b87f450a0ab3c2feab1dd61049f1cf1818dc2074867a7f7cd0bad",
+      "28af5a475ff97d1956aee5304e4515bdca5508b98d441259f5c16e2b77ee0cb1",
+      "b7cdf7775ac26ac19dea3cc1ce1250a8a9f02e5d1230e7ba1d54a3803371e6af",
+      "0da42fb8456a846acc29b69010c339fddd9b7e96a1895a4c645a00ac53002b6e",
+      "bf3e2846c1c252869ead9b2966a7a5991d22fe384467859b025eafa5dacf1752",
+      "fb5b286fd078fbfae7322c0e49098c656f64d5b53fa36248b7fcc0ac33b2e8ad",
+      "dd2b5f3975c9810649bab86e2fb79b6f93662fb1a69c2c91747fa7f1e4a1bfaf",
+      "0f9d45647acb85b40bcfd44a1c03061246959d451c4fa3b40c1e2a908a3ae51c",
+      "2df001f639d78c9e3aaa122e037072189f253bccba62f88b2143d92e3d3cbe04",
+      "55f116b5cf652dd2e7db267f77b7a5ea54a11b9053b1c6128ffbe6744d009937",
+      "316a3fd92949558322d7f081910bbaee26f1e82d3e0d7ce8bdf93df5a339078b",
+      "07c9450a62b84823025953aaf49f805846ffcbe2af10c55b3672460a8c54be6f",
+      "986ec21a44f2c650fff6a1e3d3c9db5c87b1a728733f92cbee2c0d7dc3d1889e",
+      "e0081b25c622211debb9bbbfe59f9a59c001f521a4542b3a367640d07ed59227",
+      "b7b6fdf9cf53c7eeccd868d2485f797683300068df4d53bed0c66854003e2a38",
+      "3240c21ed25cc844f8abc582cf619dd18528ea1265e1d306e30e91c95801f328",
+      "493de9084fda0e5c5595f931c37995e573ccdea649abf2fcc0ec32f59cb29f46",
+      "bde48a38c48e453ec0fe0e64b4bb81aafc507f9a6b1c03ee91e51351cb569783",
+      "38a56f45973938436ccd5ac1117d98da0474993fe7497098d6bee97a0522cb70",
+      "24382ce2931161fd22ca8689fb241cfbd82a54c4f3df66508cdff9777d95ece1",
+      "c6d38786e18760fe23e40a6b0c0c6597a6fd11cb3fa693ec1bdcc9ecaf1b00b1",
+      "5f87515bc5292988491f3f10a6b626ce36f2ea818198023d9095dd631c92a2d9",
+      "5836a242e15617f01ad470f688e1c4eabb4a0c6c5f9986bdb6af73541e14e1d0",
+      "ebe59ae71e1a09f4fb3dd072bee1d807185bf0881b6778195c8cb0b1058cb3b1",
+      "92b028b1a02d12167b9cce8ed6da27e41b9abc136cbf5125c0a81f5b79146c95",
+      "8ed3ddbd9e7966aab2358349ed5a542812ea031bca25fd545df0eea383f94401",
+      "9ecbfafd59fb6daf591aa0ba03f629f85a177f9a4dd52951026eefd6938245bb",
+      "6567a445710754aa0ca7056723863791eac95cd5d5e92a86f962549fa2ef527b",
+      "cadb712e2d10b3e48c28817fe3e9f6cfc675f967c5f953bbc1ccd406bfc49d4d",
+      "20c06417be1f2fd71fd7a1b66879fdfcf4ca92af3aaa84db01c588fe71ed08ae",
+      "f1015987c9c385be657ee0c17260856978bee94a8a97d06c473e26dc637cada8",
+      "ce1abb23d9b6099f6ad8de7800660e0e694a19b5013691f9b7364f36c4dd578c",
+      "32a78bf8f3675197e3915e019f562513056cd9a5af71a6a7dccbdda6dddecf66",
+      "a4ae425822bcb36249bc54bb62aa8e9be5b6913efe30e6d16acd79ca52eb0fcd",
+      "4a61bf7c55b0eb2fc2a463f6c3118216f118a26b13820661ab9ca0f2880cca92",
+      "453badd44bf6fce94fa5373e91914257c7e709f0fdb05baeb51d76446b9d4c9c",
+      "a5997c39f07c0515d338c54e985cdb9214a30f3544231d73bb7aea829165919f",
+      "4aae2c14a07a4caf41a20b8387428c32f76c71bd5a6fa5532069f2eedeff4d09",
+      "b6d16d26a75f6d116dc244a349544027983d735b5c04860b10e102f0f8acb7fa",
+      "3b0000d7a7e60f7b84bbd001cfc2546500320a03a2a4bb821c7e1d44cfd6ad46",
+      "f936aa2afb4786488dfe014c02a0d2f0651e8993abf5960b5c4dbe0c0ea76cb0",
+      "7ec23e91b4bc3aab3eb4b37ea025aa547fe1b00a4e1f9bff784b1927afb0fcd0",
+      "fda479ad4036952ccbf4516be5fe46f842a7e629d42834996f95241b45602a47",
+      "705027409e713e85f38b67ccc5f1888a765f54633b38e2565860eb593d3b7335",
+      "66dfba12020284aecb81df11209d7760b252c2f596b3e2802fab177b0a22a9f0",
+      "4969f8826f6a7829bbff8f4bcca5e6c794fa52eb4d84b13c73ed75c6b9b59d9b",
+      "365cefd5e7763591de4f207ff6baf6ee1a0348163962ddf11ef0ed6180ba9e34",
+      "5b93b00987ab9ab339c4402e5ab3cdbb9780766e5d8f805eba5c9d8ca8ceb255",
+      "ca5d9b64d091d2b828d729afebbb396d345df48e97a62af316d5ae40e9745bcc",
+      "899460d255c41d78cd5573c8ba9531dab6e0470dcbea25ac044d616fcf9581d1",
+      "a7c715e765f342ade97ac8515d2abbf2decfdaaa114be5609ea395974bdaaca8",
+      "0c8bcc0316a5eafbe7c6f5fa36b67c08666db49b083493ec3a0764cfe1b4655a",
+      "efee833b08ca7f06085bbcfe0b1b834ec1f4be41e06428841510337be81b8820",
+      "38b77fd9fd086ba28b56c2a569ef24d302fa7d9d1bbfdab5915f4f14ba8d299c",
+      "aa2b1247dfdcc49254b86591b0dccafbeedbc53098af2b84f89e576941ee289f",
+      "83a56e201f20c7ad0d19efe2e6483638a7e598cf8f87f43b36ae43eaa6355ef8",
+      "99cce8606b975fb6f7fb6e17dc1798d21931f03977b014395bc8ab2b16be5149",
+      "5a29a08568e9643c926980f124b54d2907ec4b32387b6f7028e4bccc31f1ffd5",
+      "943d0cfae7748f3127a2f01ed85a4885b598e29147fe0c9d57732be953cb23fe",
+      "c1a048b09d6815cb0728581152b770a5bc7c19c84976e727c9be6010b75db136",
+      "51e1bdff0fb9288b51ecf8e3f57055dadf1965aa3997e1039ae48c629de2a935",
+      "6c1071aa0ea4b254806275a21f40f149f3109ac19212eafd96d25b27aef2ea6c",
+      "1405b7b1b5d74c60c1e937733d34dfab26d6798d7101cdec37e4f3a306cc54b5",
+      "12c106f9871813fae55e51e12d60542828eae8ecf2f6791160e91913fef5515d",
+      "5b17ced480e91dc77bb5d37b417607e9c4cb6e6993ddda2e3ef5ffb02e7692af",
+      "d426bf20052c2fd7888658441d9a70f11f60f8fc17870ea9e446dac20a832b38",
+      "9310e63ddea768b0094a7155c4be880140e91b1d2deb7e4f1da7df580b81cfc2",
+      "d5197d6a4114318633e967d4adf71ab99fe931d40fe8458abe1f3ece40386d80",
+      "da2fa2f796c320f1897e0d6b43347f10a30b9e561c56360b63f06e080e6ae808",
+      "d0a093c75ae38025eae09a8d2f1dceec5efe4154f529920bb4e052ce2defbe2a",
+      "e945dd099d02601a567e4030469125e3bd0e555bfa3ef630152eca568645bf53",
+      "1610c8f1b46d73e354675ab725a8204f41a741a447606389a4d8442e6b3584a3",
+      "2da95d0a1e10decab0d4a51b9650415687fe344cf44cbda3453ab188c4c06f2d",
+      "aaef60d9a24992ab57e85a67d5ecee316730fc0c5f8c9e9c447e118ea726df31",
+      "1a09f12b3a91bdafa501ef76551f5b316a1f0cc659e41ed0e928687955252695",
+      "f9c52e09cf2cad7ef2a25b660508fc48bb20501e68bcc1264f5deabcdc884525",
+      "21d4665d4b5346554644d3caddd98af68530e69c3b60d1e1187b4c28d7305326",
+      "12f4890588c970d80089c5d2bdc7efaa27c0db023c8693b712db34a6a9299f92",
+      "127272e2dc44581d60d12a088ac441787c156f1776de742ba80946df9294d0c3",
+      "80870ccaf02e638e2db78bb6eaacb1db4e4f8fe4abfa9ebe6eb60e2b02c0f98e",
+      "bcd00a79e120c60ff77aedc7d1fa110518ef85144a42e2e44234b367320441f4",
+      "72fdc1592a342f48f5ef4613716ea28ab1c8907c83e53d1ac33f2e42071da424",
+      "0c9f5a7d70ac75a5db4b71756f27cc0a6925c5aa0cc6aca016d10468709e8d23",
+      "b35ea2aee58a294b2349e2fc950d72239fc7ba8d12ea1eff92ede3dcb2ac437a",
+      "9d27f1f34211525f7357d839fd2b313002f354620da638924ab393e97e1d18cd",
+      "69aa88199e86fd01cab507987455d67c791ad848429320ad3c476b361e6d9f80",
+      "bace561767dbd011441e16a5e5da0887841785b0138bdaa8d0e31d4da672b6f7",
+      "3b53bf9c11a435ee5b831c9079c9b98a0000bc98c5bb4eb666af606efd62cdf3",
+      "b5262ab421ca34882f0b2f514356e14aaf7dc3962eac8b29b0357495c7abbce6",
+      "cd7d0fa2c7934b55350320e2b8fd4f1afc0a8ab4ab5f7de412b8fa686614cc34",
+      "4e94402422035f10865f12d14eb9e5de9c02e1b156489e75a7b2254199622a93",
+      "3206e450cd79af2e1bbbc18134129ed3be5fe85a1c91c9c33844f907ae980124",
+      "4bd483c555c9cad49923e0222d673f61ec3dc04a4a121cea25d7ea0c35df8f9d",
+      "7f3d4055144383bbfb7b7d1c31a9c75fcc0ae96b55bc916ee2daca29c30edfb2",
+      "e119d6e40ae8fb1010e9c75002bcb290c0cff8c290edb094f2a48102f0257be7",
+      "40c4b9b8ed6ca4353a01100b0e6135272c6cf69d768ea0850d3b978036645a51",
+      "f7339e89dec9f7ab19180b0210449e3e80b750493d33e352e59e5e7956e92717",
+      "df5f21ef3f8892918d700cd1c8ec07dca25c8ae2a1945f476a16ce4841d48881",
+      "ccf3821d3a2ba5e72edcc9c40f691033ca1c57d916b15fc557011969a890894e",
+      "0d336cb126eef08884c32e886372f3c2ae45c9031e5a08911c8521ecb76a600c",
+      "2aadf69870645c29af508aa892e7c9ef5aec00840f16fcf42003ca413357e8df",
+      "11e2982b2f75e2bb364b861c11216777956a165459f66d856e630ae7c275bcae",
+      "88082e83fe3844a1ce7c60c086ebe323089ae53bd07605dc011c5e6db94ee7ff",
+      "7e1f7bff933aa570db01d3d97159d1fb7710227f790500a56076626aeae2bd35",
+      "2c5540636776c6599a460ec9bf94f406c53f63c7b76089c50942192d829dc234",
+      "807410cf94036d27979f1327e1340973efb61e1465c209b0935ea0c012fb2693",
+      "c20292ea7594176aa2a5b3c9bcea5bb1ceaee6e16e98cd209c95e8e8fbb488fb"
+    ]
+  },
+  "challenges": [
+    {
+      "id": "7e72d73bc3cc7efc",
+      "seed": "b74bc9d925bb5a14a9bad813df70a53bc2b322fdc97bcf84aac8a62f0496c1be",
+      "index": 0,
+      "prompt": "When the dog observes, the puzzle becomes colorful."
+    },
+    {
+      "id": "dd16bd25ff2b483a",
+      "seed": "0e71b13f79426c4111d1aeb2c0cf977067b2dd46f29dea4888e90881205aa215",
+      "index": 1,
+      "prompt": "cat and musician inspects the curious painting."
+    },
+    {
+      "id": "5fbcafae9f2a5e11",
+      "seed": "3b583501a74d7975ba5277b743ed16390726ee41999cc8989a4b66df893110ce",
+      "index": 2,
+      "prompt": "The puzzle was observed by the clever student."
+    },
+    {
+      "id": "6f852c5f5061e838",
+      "seed": "1acd226a99ab45ca0b759fb3721b503951e9e3cce4d0986ddd50c2dd0d97fa5e",
+      "index": 3,
+      "prompt": "A complex cat will transforms the puzzle."
+    },
+    {
+      "id": "d3cf859f6c21f6e0",
+      "seed": "240a07a23cca5a067559a56de6e06166aaae697022e663c355197171e4cc3ff3",
+      "index": 4,
+      "prompt": "A elegant student will measures the melody."
+    },
+    {
+      "id": "256b54931a31a94a",
+      "seed": "a5881bc3a51574da613e8eec9ae1b520eda112ccd4c823c4f774bbba2f355f03",
+      "index": 5,
+      "prompt": "A mysterious dog will inspects the equation."
+    },
+    {
+      "id": "d04aa9b0104469f8",
+      "seed": "e72d6e9ee2b8b837d272570a042398062876786f65eda18be1ff9ca6e67db50b",
+      "index": 6,
+      "prompt": "The puzzle was analyzed by the simple scientist."
+    },
+    {
+      "id": "178ea751325a4b46",
+      "seed": "54cb0f201f806c9c1c2f662e2a99e4e62f322f874a9dbb27f69c9d15130cd409",
+      "index": 7,
+      "prompt": "The mysterious teacher observes the melody."
+    },
+    {
+      "id": "e7e3eb51ba851da4",
+      "seed": "349c6b5d5e5df72fc03fed5db8f12ca6713020061348419a8b3fb0bbcb7445dc",
+      "index": 8,
+      "prompt": "cat and rabbit discovers the unusual experiment."
+    },
+    {
+      "id": "be04f00ad2c73c10",
+      "seed": "212f2c7e67d9dc96d76a533b879f175335b7256326d59cb401b00eb5a9a7e46f",
+      "index": 9,
+      "prompt": "artist chases complex story."
+    },
+    {
+      "id": "c5b82e422874d3ca",
+      "seed": "b511165d07ad70790abbcbbc99a5a7a6841d0412c056df9f909fd98112a55c71",
+      "index": 10,
+      "prompt": "The scientist creates equation precisely."
+    },
+    {
+      "id": "2ff4589032406fd3",
+      "seed": "f55a32d044996eb8a2ce49a3fc5b1df8bcec727b8b78ef44efaab6f15609c357",
+      "index": 11,
+      "prompt": "teacher measures colorful ball."
+    },
+    {
+      "id": "3a3a7486ee754544",
+      "seed": "9033bc7799f6e2905d4faf121d982f358b315c76424bffd013d0f39842551810",
+      "index": 12,
+      "prompt": "A clever student will inspects the painting."
+    },
+    {
+      "id": "ee3568e8d718dc82",
+      "seed": "1370fe1e440b87f450a0ab3c2feab1dd61049f1cf1818dc2074867a7f7cd0bad",
+      "index": 13,
+      "prompt": "The simple teacher analyzes the equation."
+    },
+    {
+      "id": "ab14d1e3650762e2",
+      "seed": "28af5a475ff97d1956aee5304e4515bdca5508b98d441259f5c16e2b77ee0cb1",
+      "index": 14,
+      "prompt": "A simple artist will inspects the painting."
+    },
+    {
+      "id": "68b8410198263794",
+      "seed": "b7cdf7775ac26ac19dea3cc1ce1250a8a9f02e5d1230e7ba1d54a3803371e6af",
+      "index": 15,
+      "prompt": "The experiment was observed by the complex scientist."
+    },
+    {
+      "id": "460b241d83e1eddc",
+      "seed": "0da42fb8456a846acc29b69010c339fddd9b7e96a1895a4c645a00ac53002b6e",
+      "index": 16,
+      "prompt": "The robot inspects story gracefully."
+    },
+    {
+      "id": "f6d0171b05d1ed4c",
+      "seed": "bf3e2846c1c252869ead9b2966a7a5991d22fe384467859b025eafa5dacf1752",
+      "index": 17,
+      "prompt": "dog and engineer inspects the complex pattern."
+    },
+    {
+      "id": "4cbaf29b5f2efd92",
+      "seed": "fb5b286fd078fbfae7322c0e49098c656f64d5b53fa36248b7fcc0ac33b2e8ad",
+      "index": 18,
+      "prompt": "When the student creates, the experiment becomes clever."
+    },
+    {
+      "id": "46944389edf053a1",
+      "seed": "dd2b5f3975c9810649bab86e2fb79b6f93662fb1a69c2c91747fa7f1e4a1bfaf",
+      "index": 19,
+      "prompt": "The melody was observed by the colorful scientist."
+    },
+    {
+      "id": "db1ef3d9fa71e6e9",
+      "seed": "0f9d45647acb85b40bcfd44a1c03061246959d451c4fa3b40c1e2a908a3ae51c",
+      "index": 20,
+      "prompt": "The complex dog inspects the equation."
+    },
+    {
+      "id": "27b7d0e47139bada",
+      "seed": "2df001f639d78c9e3aaa122e037072189f253bccba62f88b2143d92e3d3cbe04",
+      "index": 21,
+      "prompt": "mysterious artist gracefully inspects puzzle."
+    },
+    {
+      "id": "c8e6bf04bd07617d",
+      "seed": "55f116b5cf652dd2e7db267f77b7a5ea54a11b9053b1c6128ffbe6744d009937",
+      "index": 22,
+      "prompt": "The pattern was measured by the elegant bird."
+    },
+    {
+      "id": "5ede1876a9771fa3",
+      "seed": "316a3fd92949558322d7f081910bbaee26f1e82d3e0d7ce8bdf93df5a339078b",
+      "index": 23,
+      "prompt": "When the dog observes, the painting becomes elegant."
+    },
+    {
+      "id": "aa30b42d3c4eda82",
+      "seed": "07c9450a62b84823025953aaf49f805846ffcbe2af10c55b3672460a8c54be6f",
+      "index": 24,
+      "prompt": "The equation was analyzed by the clever artist."
+    },
+    {
+      "id": "42ebb0511090a31d",
+      "seed": "986ec21a44f2c650fff6a1e3d3c9db5c87b1a728733f92cbee2c0d7dc3d1889e",
+      "index": 25,
+      "prompt": "When the dog observes, the pattern becomes curious."
+    },
+    {
+      "id": "034e6a4287ab03c0",
+      "seed": "e0081b25c622211debb9bbbfe59f9a59c001f521a4542b3a367640d07ed59227",
+      "index": 26,
+      "prompt": "dog and engineer measures the colorful painting."
+    },
+    {
+      "id": "067f28e502becdc2",
+      "seed": "b7b6fdf9cf53c7eeccd868d2485f797683300068df4d53bed0c66854003e2a38",
+      "index": 27,
+      "prompt": "The mysterious artist measures the painting."
+    },
+    {
+      "id": "b106f8b2e7f5b865",
+      "seed": "3240c21ed25cc844f8abc582cf619dd18528ea1265e1d306e30e91c95801f328",
+      "index": 28,
+      "prompt": "When the artist observes, the story becomes curious."
+    },
+    {
+      "id": "c9617b2f61c79838",
+      "seed": "493de9084fda0e5c5595f931c37995e573ccdea649abf2fcc0ec32f59cb29f46",
+      "index": 29,
+      "prompt": "robot discovers complex equation."
+    },
+    {
+      "id": "f7da1e3603811bfe",
+      "seed": "bde48a38c48e453ec0fe0e64b4bb81aafc507f9a6b1c03ee91e51351cb569783",
+      "index": 30,
+      "prompt": "artist and mouse creates the curious experiment."
+    },
+    {
+      "id": "68a53df70ccfbba8",
+      "seed": "38a56f45973938436ccd5ac1117d98da0474993fe7497098d6bee97a0522cb70",
+      "index": 31,
+      "prompt": "The pattern was measured by the complex scientist."
+    },
+    {
+      "id": "3bfb6f711f8f6765",
+      "seed": "24382ce2931161fd22ca8689fb241cfbd82a54c4f3df66508cdff9777d95ece1",
+      "index": 32,
+      "prompt": "clever teacher suddenly observes pattern."
+    },
+    {
+      "id": "40da8671cc762725",
+      "seed": "c6d38786e18760fe23e40a6b0c0c6597a6fd11cb3fa693ec1bdcc9ecaf1b00b1",
+      "index": 33,
+      "prompt": "A elegant artist will discovers the ball."
+    },
+    {
+      "id": "231e9a01d1fb07b0",
+      "seed": "5f87515bc5292988491f3f10a6b626ce36f2ea818198023d9095dd631c92a2d9",
+      "index": 34,
+      "prompt": "The scientist inspects experiment quietly."
+    },
+    {
+      "id": "5ba74d6a54d82cfe",
+      "seed": "5836a242e15617f01ad470f688e1c4eabb4a0c6c5f9986bdb6af73541e14e1d0",
+      "index": 35,
+      "prompt": "The artist observes melody suddenly."
+    },
+    {
+      "id": "9296deaca92820a8",
+      "seed": "ebe59ae71e1a09f4fb3dd072bee1d807185bf0881b6778195c8cb0b1058cb3b1",
+      "index": 36,
+      "prompt": "When the artist transforms, the melody becomes elegant."
+    },
+    {
+      "id": "26947c3712ec2d66",
+      "seed": "92b028b1a02d12167b9cce8ed6da27e41b9abc136cbf5125c0a81f5b79146c95",
+      "index": 37,
+      "prompt": "A mysterious robot will creates the experiment."
+    },
+    {
+      "id": "93d64581666498ab",
+      "seed": "8ed3ddbd9e7966aab2358349ed5a542812ea031bca25fd545df0eea383f94401",
+      "index": 38,
+      "prompt": "A clever student will creates the puzzle."
+    },
+    {
+      "id": "02e7477af1b4d132",
+      "seed": "9ecbfafd59fb6daf591aa0ba03f629f85a177f9a4dd52951026eefd6938245bb",
+      "index": 39,
+      "prompt": "cat and rabbit creates the complex experiment."
+    },
+    {
+      "id": "c3fb849575ac3de9",
+      "seed": "6567a445710754aa0ca7056723863791eac95cd5d5e92a86f962549fa2ef527b",
+      "index": 40,
+      "prompt": "The mysterious cat measures the puzzle."
+    },
+    {
+      "id": "f0c944fcaff8316e",
+      "seed": "cadb712e2d10b3e48c28817fe3e9f6cfc675f967c5f953bbc1ccd406bfc49d4d",
+      "index": 41,
+      "prompt": "The elegant artist transforms the puzzle."
+    },
+    {
+      "id": "3338b5d169c26209",
+      "seed": "20c06417be1f2fd71fd7a1b66879fdfcf4ca92af3aaa84db01c588fe71ed08ae",
+      "index": 42,
+      "prompt": "The painting was observed by the curious scientist."
+    },
+    {
+      "id": "1d2464b694cff193",
+      "seed": "f1015987c9c385be657ee0c17260856978bee94a8a97d06c473e26dc637cada8",
+      "index": 43,
+      "prompt": "robot inspects curious melody."
+    },
+    {
+      "id": "4e3df16bb08674d6",
+      "seed": "ce1abb23d9b6099f6ad8de7800660e0e694a19b5013691f9b7364f36c4dd578c",
+      "index": 44,
+      "prompt": "A simple teacher will observes the experiment."
+    },
+    {
+      "id": "af1ff6c2edfde9df",
+      "seed": "32a78bf8f3675197e3915e019f562513056cd9a5af71a6a7dccbdda6dddecf66",
+      "index": 45,
+      "prompt": "teacher measures complex experiment."
+    },
+    {
+      "id": "8877ca2e08e5b6e8",
+      "seed": "a4ae425822bcb36249bc54bb62aa8e9be5b6913efe30e6d16acd79ca52eb0fcd",
+      "index": 46,
+      "prompt": "artist measures mysterious puzzle."
+    },
+    {
+      "id": "b091920273b3f7c5",
+      "seed": "4a61bf7c55b0eb2fc2a463f6c3118216f118a26b13820661ab9ca0f2880cca92",
+      "index": 47,
+      "prompt": "artist and musician chases the clever melody."
+    },
+    {
+      "id": "56af9048c1f60164",
+      "seed": "453badd44bf6fce94fa5373e91914257c7e709f0fdb05baeb51d76446b9d4c9c",
+      "index": 48,
+      "prompt": "bird transforms complex experiment."
+    },
+    {
+      "id": "44933714357def62",
+      "seed": "a5997c39f07c0515d338c54e985cdb9214a30f3544231d73bb7aea829165919f",
+      "index": 49,
+      "prompt": "cat measures complex puzzle."
+    },
+    {
+      "id": "242c743550e16536",
+      "seed": "4aae2c14a07a4caf41a20b8387428c32f76c71bd5a6fa5532069f2eedeff4d09",
+      "index": 50,
+      "prompt": "The teacher inspects experiment slowly."
+    },
+    {
+      "id": "6c9729fb1e9ff574",
+      "seed": "b6d16d26a75f6d116dc244a349544027983d735b5c04860b10e102f0f8acb7fa",
+      "index": 51,
+      "prompt": "The artist creates story precisely."
+    },
+    {
+      "id": "305630073a9f03f3",
+      "seed": "3b0000d7a7e60f7b84bbd001cfc2546500320a03a2a4bb821c7e1d44cfd6ad46",
+      "index": 52,
+      "prompt": "scientist and rabbit measures the unusual melody."
+    },
+    {
+      "id": "e72772e4f1be1c7d",
+      "seed": "f936aa2afb4786488dfe014c02a0d2f0651e8993abf5960b5c4dbe0c0ea76cb0",
+      "index": 53,
+      "prompt": "simple robot methodically discovers pattern."
+    },
+    {
+      "id": "ec9d6068e075976a",
+      "seed": "7ec23e91b4bc3aab3eb4b37ea025aa547fe1b00a4e1f9bff784b1927afb0fcd0",
+      "index": 54,
+      "prompt": "The cat inspects melody quietly."
+    },
+    {
+      "id": "b7a810b266652b91",
+      "seed": "fda479ad4036952ccbf4516be5fe46f842a7e629d42834996f95241b45602a47",
+      "index": 55,
+      "prompt": "artist transforms curious ball."
+    },
+    {
+      "id": "38358d161fef0d3a",
+      "seed": "705027409e713e85f38b67ccc5f1888a765f54633b38e2565860eb593d3b7335",
+      "index": 56,
+      "prompt": "A simple artist will observes the experiment."
+    },
+    {
+      "id": "77c6f4f3f1b297e3",
+      "seed": "66dfba12020284aecb81df11209d7760b252c2f596b3e2802fab177b0a22a9f0",
+      "index": 57,
+      "prompt": "dog and engineer discovers the simple pattern."
+    },
+    {
+      "id": "4b3285d3e549a35d",
+      "seed": "4969f8826f6a7829bbff8f4bcca5e6c794fa52eb4d84b13c73ed75c6b9b59d9b",
+      "index": 58,
+      "prompt": "simple student quickly inspects experiment."
+    },
+    {
+      "id": "587f1429bf0bbba4",
+      "seed": "365cefd5e7763591de4f207ff6baf6ee1a0348163962ddf11ef0ed6180ba9e34",
+      "index": 59,
+      "prompt": "bird and doctor measures the elegant equation."
+    },
+    {
+      "id": "17d139ca6a5fc1f5",
+      "seed": "5b93b00987ab9ab339c4402e5ab3cdbb9780766e5d8f805eba5c9d8ca8ceb255",
+      "index": 60,
+      "prompt": "unusual cat suddenly analyzes ball."
+    },
+    {
+      "id": "b565b47a24f6b267",
+      "seed": "ca5d9b64d091d2b828d729afebbb396d345df48e97a62af316d5ae40e9745bcc",
+      "index": 61,
+      "prompt": "The scientist creates ball quickly."
+    },
+    {
+      "id": "8fc0023b9484990b",
+      "seed": "899460d255c41d78cd5573c8ba9531dab6e0470dcbea25ac044d616fcf9581d1",
+      "index": 62,
+      "prompt": "student and writer observes the simple melody."
+    },
+    {
+      "id": "1626878e42f30538",
+      "seed": "a7c715e765f342ade97ac8515d2abbf2decfdaaa114be5609ea395974bdaaca8",
+      "index": 63,
+      "prompt": "The robot measures experiment gracefully."
+    }
+  ],
+  "verification": {
+    "results": {
+      "decision": "DIFFERENT",
+      "n_used": 64,
+      "mean": 1.7279670704156156,
+      "variance": 13.732618227572024,
+      "std_dev": 3.7057547446602594,
+      "ci_99": [
+        0.06662987886370875,
+        3.3893042619675224
+      ],
+      "half_width": 1.6613371915519068,
+      "rel_me": 0.9614403075125253
+    },
+    "decision": "DIFFERENT",
+    "confidence": 0.975,
+    "n_queries": 64,
+    "ci_progression": [
+      Infinity,
+      16.654071136990414,
+      8.504534890319945,
+      6.044801508163447,
+      6.927620152494063,
+      5.6809625136116395,
+      4.816326800427776,
+      4.389971355611449,
+      4.337090540740206,
+      4.037293277047173,
+      3.8453486919899307,
+      3.538182738416725,
+      3.417739085197791,
+      3.1624845002792243,
+      2.948411210329802,
+      3.0744810793841424,
+      2.886392657793178,
+      2.941443342504478,
+      3.0893023991218915,
+      3.14123720777486,
+      3.1670735692065786,
+      3.080677880545808,
+      2.943239869837102,
+      2.835921778916352,
+      2.804039119507846,
+      2.750587099964698,
+      2.657861514255332,
+      2.5724302491805595,
+      2.4937896509586728,
+      2.4093017830348233,
+      2.3349466419811975,
+      2.312492691584955,
+      2.3614709335722726,
+      2.2948145794503367,
+      2.3044178714196857,
+      2.297106555002116,
+      2.2340543972340745,
+      2.2069219782643676,
+      2.193182913587182,
+      2.1811848434127397,
+      2.1465882553668947,
+      2.0955629328604224,
+      2.0507569159183974,
+      2.0127328824158948,
+      1.9724100621528282,
+      1.9334730281155594,
+      1.9386626137606902,
+      1.8998357638379502,
+      1.9287403284477105,
+      1.9150957157620225,
+      1.9350269954796526,
+      1.9704709393337616,
+      1.9343974859365574,
+      1.8987843057292617,
+      1.8851051659280447,
+      1.8654768786200993,
+      1.8332179778739197,
+      1.8013853860183404,
+      1.7743563522104118,
+      1.744549551719649,
+      1.7289987668301958,
+      1.7008588445041155,
+      1.6736170924695775,
+      1.6613371915519068
+    ],
+    "effect_size": 1.7279670704156156,
+    "challenges_used": 64,
+    "mean": 1.7279670704156156,
+    "ci": [
+      0.06662987886370875,
+      3.3893042619675224
+    ],
+    "half_width": 1.6613371915519068,
+    "rel_me": 0.9614403075125253,
+    "adaptive_thresholds": {
+      "gamma": 0.0225,
+      "delta_star": 0.15000000000000002
+    },
+    "adaptive_diagnostics": {
+      "current_batch_size": 8,
+      "batch_size_history": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "convergence_rate": NaN,
+      "strategy_switches": [],
+      "mean_stability": 0.0575971725391899,
+      "ci_improvement": 0.11870317816776868,
+      "suggested_adjustments": {
+        "increase_k": true,
+        "use_variance_reduction": true
+      }
+    }
+  },
+  "transcript_merkle_root": "9b2438f48f4d2c14a24dd00d47ac5416eef22d4f69d7ed140fca35cfb91673b2",
+  "transcript_entries": 64,
+  "performance_metrics": {
+    "performance": {
+      "peak_rss_mb": 1335.546875,
+      "baseline_rss_mb": 384.234375,
+      "rss_growth_mb": 951.3125,
+      "page_faults_major": 9,
+      "page_faults_minor": 65313,
+      "disk_throughput_mb_s": 8.570629546542095,
+      "total_queries": 64,
+      "avg_cold_query_seconds": 2.031123161315918,
+      "avg_warm_query_seconds": 1.0018474325056999,
+      "cold_warm_ratio": 2.027377717818688,
+      "query_time_range": {
+        "min": 0.9288601875305176,
+        "max": 2.7001841068267822
+      }
+    },
+    "system_timeline_samples": 128,
+    "measurement_duration": 72.57986402511597
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1755914850.610987,
+      "end_time": 1755914850.6116512,
+      "duration": 0.0006642341613769531,
+      "memory_peak_mb": 384.328125,
+      "memory_delta_mb": 0.046875,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 384.28125,
+        "n_challenges": 120,
+        "hmac_key": "bbe73ffa662b5692436722585b2ff3964fed7b2e8fe5519fff76f37c212922c6",
+        "run_id": "validation_20250822_220730",
+        "commitment": "dce548f113c8ae32e98d8690604f764dc428fa4641b01b84ac6fc33594583c6e",
+        "seeds": [
+          "b74bc9d925bb5a14a9bad813df70a53bc2b322fdc97bcf84aac8a62f0496c1be",
+          "0e71b13f79426c4111d1aeb2c0cf977067b2dd46f29dea4888e90881205aa215",
+          "3b583501a74d7975ba5277b743ed16390726ee41999cc8989a4b66df893110ce",
+          "1acd226a99ab45ca0b759fb3721b503951e9e3cce4d0986ddd50c2dd0d97fa5e",
+          "240a07a23cca5a067559a56de6e06166aaae697022e663c355197171e4cc3ff3",
+          "a5881bc3a51574da613e8eec9ae1b520eda112ccd4c823c4f774bbba2f355f03",
+          "e72d6e9ee2b8b837d272570a042398062876786f65eda18be1ff9ca6e67db50b",
+          "54cb0f201f806c9c1c2f662e2a99e4e62f322f874a9dbb27f69c9d15130cd409",
+          "349c6b5d5e5df72fc03fed5db8f12ca6713020061348419a8b3fb0bbcb7445dc",
+          "212f2c7e67d9dc96d76a533b879f175335b7256326d59cb401b00eb5a9a7e46f",
+          "b511165d07ad70790abbcbbc99a5a7a6841d0412c056df9f909fd98112a55c71",
+          "f55a32d044996eb8a2ce49a3fc5b1df8bcec727b8b78ef44efaab6f15609c357",
+          "9033bc7799f6e2905d4faf121d982f358b315c76424bffd013d0f39842551810",
+          "1370fe1e440b87f450a0ab3c2feab1dd61049f1cf1818dc2074867a7f7cd0bad",
+          "28af5a475ff97d1956aee5304e4515bdca5508b98d441259f5c16e2b77ee0cb1",
+          "b7cdf7775ac26ac19dea3cc1ce1250a8a9f02e5d1230e7ba1d54a3803371e6af",
+          "0da42fb8456a846acc29b69010c339fddd9b7e96a1895a4c645a00ac53002b6e",
+          "bf3e2846c1c252869ead9b2966a7a5991d22fe384467859b025eafa5dacf1752",
+          "fb5b286fd078fbfae7322c0e49098c656f64d5b53fa36248b7fcc0ac33b2e8ad",
+          "dd2b5f3975c9810649bab86e2fb79b6f93662fb1a69c2c91747fa7f1e4a1bfaf",
+          "0f9d45647acb85b40bcfd44a1c03061246959d451c4fa3b40c1e2a908a3ae51c",
+          "2df001f639d78c9e3aaa122e037072189f253bccba62f88b2143d92e3d3cbe04",
+          "55f116b5cf652dd2e7db267f77b7a5ea54a11b9053b1c6128ffbe6744d009937",
+          "316a3fd92949558322d7f081910bbaee26f1e82d3e0d7ce8bdf93df5a339078b",
+          "07c9450a62b84823025953aaf49f805846ffcbe2af10c55b3672460a8c54be6f",
+          "986ec21a44f2c650fff6a1e3d3c9db5c87b1a728733f92cbee2c0d7dc3d1889e",
+          "e0081b25c622211debb9bbbfe59f9a59c001f521a4542b3a367640d07ed59227",
+          "b7b6fdf9cf53c7eeccd868d2485f797683300068df4d53bed0c66854003e2a38",
+          "3240c21ed25cc844f8abc582cf619dd18528ea1265e1d306e30e91c95801f328",
+          "493de9084fda0e5c5595f931c37995e573ccdea649abf2fcc0ec32f59cb29f46",
+          "bde48a38c48e453ec0fe0e64b4bb81aafc507f9a6b1c03ee91e51351cb569783",
+          "38a56f45973938436ccd5ac1117d98da0474993fe7497098d6bee97a0522cb70",
+          "24382ce2931161fd22ca8689fb241cfbd82a54c4f3df66508cdff9777d95ece1",
+          "c6d38786e18760fe23e40a6b0c0c6597a6fd11cb3fa693ec1bdcc9ecaf1b00b1",
+          "5f87515bc5292988491f3f10a6b626ce36f2ea818198023d9095dd631c92a2d9",
+          "5836a242e15617f01ad470f688e1c4eabb4a0c6c5f9986bdb6af73541e14e1d0",
+          "ebe59ae71e1a09f4fb3dd072bee1d807185bf0881b6778195c8cb0b1058cb3b1",
+          "92b028b1a02d12167b9cce8ed6da27e41b9abc136cbf5125c0a81f5b79146c95",
+          "8ed3ddbd9e7966aab2358349ed5a542812ea031bca25fd545df0eea383f94401",
+          "9ecbfafd59fb6daf591aa0ba03f629f85a177f9a4dd52951026eefd6938245bb",
+          "6567a445710754aa0ca7056723863791eac95cd5d5e92a86f962549fa2ef527b",
+          "cadb712e2d10b3e48c28817fe3e9f6cfc675f967c5f953bbc1ccd406bfc49d4d",
+          "20c06417be1f2fd71fd7a1b66879fdfcf4ca92af3aaa84db01c588fe71ed08ae",
+          "f1015987c9c385be657ee0c17260856978bee94a8a97d06c473e26dc637cada8",
+          "ce1abb23d9b6099f6ad8de7800660e0e694a19b5013691f9b7364f36c4dd578c",
+          "32a78bf8f3675197e3915e019f562513056cd9a5af71a6a7dccbdda6dddecf66",
+          "a4ae425822bcb36249bc54bb62aa8e9be5b6913efe30e6d16acd79ca52eb0fcd",
+          "4a61bf7c55b0eb2fc2a463f6c3118216f118a26b13820661ab9ca0f2880cca92",
+          "453badd44bf6fce94fa5373e91914257c7e709f0fdb05baeb51d76446b9d4c9c",
+          "a5997c39f07c0515d338c54e985cdb9214a30f3544231d73bb7aea829165919f",
+          "4aae2c14a07a4caf41a20b8387428c32f76c71bd5a6fa5532069f2eedeff4d09",
+          "b6d16d26a75f6d116dc244a349544027983d735b5c04860b10e102f0f8acb7fa",
+          "3b0000d7a7e60f7b84bbd001cfc2546500320a03a2a4bb821c7e1d44cfd6ad46",
+          "f936aa2afb4786488dfe014c02a0d2f0651e8993abf5960b5c4dbe0c0ea76cb0",
+          "7ec23e91b4bc3aab3eb4b37ea025aa547fe1b00a4e1f9bff784b1927afb0fcd0",
+          "fda479ad4036952ccbf4516be5fe46f842a7e629d42834996f95241b45602a47",
+          "705027409e713e85f38b67ccc5f1888a765f54633b38e2565860eb593d3b7335",
+          "66dfba12020284aecb81df11209d7760b252c2f596b3e2802fab177b0a22a9f0",
+          "4969f8826f6a7829bbff8f4bcca5e6c794fa52eb4d84b13c73ed75c6b9b59d9b",
+          "365cefd5e7763591de4f207ff6baf6ee1a0348163962ddf11ef0ed6180ba9e34",
+          "5b93b00987ab9ab339c4402e5ab3cdbb9780766e5d8f805eba5c9d8ca8ceb255",
+          "ca5d9b64d091d2b828d729afebbb396d345df48e97a62af316d5ae40e9745bcc",
+          "899460d255c41d78cd5573c8ba9531dab6e0470dcbea25ac044d616fcf9581d1",
+          "a7c715e765f342ade97ac8515d2abbf2decfdaaa114be5609ea395974bdaaca8",
+          "0c8bcc0316a5eafbe7c6f5fa36b67c08666db49b083493ec3a0764cfe1b4655a",
+          "efee833b08ca7f06085bbcfe0b1b834ec1f4be41e06428841510337be81b8820",
+          "38b77fd9fd086ba28b56c2a569ef24d302fa7d9d1bbfdab5915f4f14ba8d299c",
+          "aa2b1247dfdcc49254b86591b0dccafbeedbc53098af2b84f89e576941ee289f",
+          "83a56e201f20c7ad0d19efe2e6483638a7e598cf8f87f43b36ae43eaa6355ef8",
+          "99cce8606b975fb6f7fb6e17dc1798d21931f03977b014395bc8ab2b16be5149",
+          "5a29a08568e9643c926980f124b54d2907ec4b32387b6f7028e4bccc31f1ffd5",
+          "943d0cfae7748f3127a2f01ed85a4885b598e29147fe0c9d57732be953cb23fe",
+          "c1a048b09d6815cb0728581152b770a5bc7c19c84976e727c9be6010b75db136",
+          "51e1bdff0fb9288b51ecf8e3f57055dadf1965aa3997e1039ae48c629de2a935",
+          "6c1071aa0ea4b254806275a21f40f149f3109ac19212eafd96d25b27aef2ea6c",
+          "1405b7b1b5d74c60c1e937733d34dfab26d6798d7101cdec37e4f3a306cc54b5",
+          "12c106f9871813fae55e51e12d60542828eae8ecf2f6791160e91913fef5515d",
+          "5b17ced480e91dc77bb5d37b417607e9c4cb6e6993ddda2e3ef5ffb02e7692af",
+          "d426bf20052c2fd7888658441d9a70f11f60f8fc17870ea9e446dac20a832b38",
+          "9310e63ddea768b0094a7155c4be880140e91b1d2deb7e4f1da7df580b81cfc2",
+          "d5197d6a4114318633e967d4adf71ab99fe931d40fe8458abe1f3ece40386d80",
+          "da2fa2f796c320f1897e0d6b43347f10a30b9e561c56360b63f06e080e6ae808",
+          "d0a093c75ae38025eae09a8d2f1dceec5efe4154f529920bb4e052ce2defbe2a",
+          "e945dd099d02601a567e4030469125e3bd0e555bfa3ef630152eca568645bf53",
+          "1610c8f1b46d73e354675ab725a8204f41a741a447606389a4d8442e6b3584a3",
+          "2da95d0a1e10decab0d4a51b9650415687fe344cf44cbda3453ab188c4c06f2d",
+          "aaef60d9a24992ab57e85a67d5ecee316730fc0c5f8c9e9c447e118ea726df31",
+          "1a09f12b3a91bdafa501ef76551f5b316a1f0cc659e41ed0e928687955252695",
+          "f9c52e09cf2cad7ef2a25b660508fc48bb20501e68bcc1264f5deabcdc884525",
+          "21d4665d4b5346554644d3caddd98af68530e69c3b60d1e1187b4c28d7305326",
+          "12f4890588c970d80089c5d2bdc7efaa27c0db023c8693b712db34a6a9299f92",
+          "127272e2dc44581d60d12a088ac441787c156f1776de742ba80946df9294d0c3",
+          "80870ccaf02e638e2db78bb6eaacb1db4e4f8fe4abfa9ebe6eb60e2b02c0f98e",
+          "bcd00a79e120c60ff77aedc7d1fa110518ef85144a42e2e44234b367320441f4",
+          "72fdc1592a342f48f5ef4613716ea28ab1c8907c83e53d1ac33f2e42071da424",
+          "0c9f5a7d70ac75a5db4b71756f27cc0a6925c5aa0cc6aca016d10468709e8d23",
+          "b35ea2aee58a294b2349e2fc950d72239fc7ba8d12ea1eff92ede3dcb2ac437a",
+          "9d27f1f34211525f7357d839fd2b313002f354620da638924ab393e97e1d18cd",
+          "69aa88199e86fd01cab507987455d67c791ad848429320ad3c476b361e6d9f80",
+          "bace561767dbd011441e16a5e5da0887841785b0138bdaa8d0e31d4da672b6f7",
+          "3b53bf9c11a435ee5b831c9079c9b98a0000bc98c5bb4eb666af606efd62cdf3",
+          "b5262ab421ca34882f0b2f514356e14aaf7dc3962eac8b29b0357495c7abbce6",
+          "cd7d0fa2c7934b55350320e2b8fd4f1afc0a8ab4ab5f7de412b8fa686614cc34",
+          "4e94402422035f10865f12d14eb9e5de9c02e1b156489e75a7b2254199622a93",
+          "3206e450cd79af2e1bbbc18134129ed3be5fe85a1c91c9c33844f907ae980124",
+          "4bd483c555c9cad49923e0222d673f61ec3dc04a4a121cea25d7ea0c35df8f9d",
+          "7f3d4055144383bbfb7b7d1c31a9c75fcc0ae96b55bc916ee2daca29c30edfb2",
+          "e119d6e40ae8fb1010e9c75002bcb290c0cff8c290edb094f2a48102f0257be7",
+          "40c4b9b8ed6ca4353a01100b0e6135272c6cf69d768ea0850d3b978036645a51",
+          "f7339e89dec9f7ab19180b0210449e3e80b750493d33e352e59e5e7956e92717",
+          "df5f21ef3f8892918d700cd1c8ec07dca25c8ae2a1945f476a16ce4841d48881",
+          "ccf3821d3a2ba5e72edcc9c40f691033ca1c57d916b15fc557011969a890894e",
+          "0d336cb126eef08884c32e886372f3c2ae45c9031e5a08911c8521ecb76a600c",
+          "2aadf69870645c29af508aa892e7c9ef5aec00840f16fcf42003ca413357e8df",
+          "11e2982b2f75e2bb364b861c11216777956a165459f66d856e630ae7c275bcae",
+          "88082e83fe3844a1ce7c60c086ebe323089ae53bd07605dc011c5e6db94ee7ff",
+          "7e1f7bff933aa570db01d3d97159d1fb7710227f790500a56076626aeae2bd35",
+          "2c5540636776c6599a460ec9bf94f406c53f63c7b76089c50942192d829dc234",
+          "807410cf94036d27979f1327e1340973efb61e1465c209b0935ea0c012fb2693",
+          "c20292ea7594176aa2a5b3c9bcea5bb1ceaee6e16e98cd209c95e8e8fbb488fb"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1755914850.6116931,
+      "end_time": 1755914856.8405209,
+      "duration": 6.228827714920044,
+      "memory_peak_mb": 604.15625,
+      "memory_delta_mb": 219.828125,
+      "cpu_percent": 144.5,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 384.328125,
+        "ref_model": "gpt2",
+        "cand_model": "gpt2-medium"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1755914856.8406389,
+      "end_time": 1755914923.124962,
+      "duration": 66.28432321548462,
+      "memory_peak_mb": 1335.546875,
+      "memory_delta_mb": 731.390625,
+      "cpu_percent": 96.2,
+      "query_count": 64,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 604.15625,
+        "decision": "DIFFERENT"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "a2372ea4c812389e74959231dced8e99b7e99028a97e38998f18a9ab3fa5fb92"
+}

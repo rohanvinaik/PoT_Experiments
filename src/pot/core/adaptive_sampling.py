@@ -87,6 +87,10 @@ class ConvergenceMetrics:
             if all(d == "UNDECIDED" for d in recent_decisions):
                 if ci_improvement < 0.01:  # Very little improvement
                     return True, "Stuck in UNDECIDED with no CI improvement"
+            # Also check for UNDECIDED_STABLE (behavioral fingerprinting)
+            if all(d in ["UNDECIDED", "UNDECIDED_STABLE"] for d in recent_decisions):
+                if any("STABLE" in d for d in recent_decisions[-3:]):
+                    return True, "Behavioral fingerprint detected - stable intermediate state"
         
         return False, f"Continuing: mean_std={mean_std:.4f}, ci_imp={ci_improvement:.2f}"
     

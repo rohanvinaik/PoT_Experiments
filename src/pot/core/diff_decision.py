@@ -273,16 +273,22 @@ class EnhancedSequentialTester:
         (ci_lo, ci_hi), half_width = self.compute_ci()
         delta_star = self.config.delta_star
         
-        # Avoid division by zero
-        if abs(self.mean) < 1e-10:
-            return False, None
-        
         # DIFFERENT conditions:
         # 1. |Lower CI bound| ≥ δ* (effect size requirement)
         # 2. RME ≤ ε_diff (precision requirement)
         
         effect_size_met = (abs(ci_lo) >= delta_star or abs(ci_hi) >= delta_star)
-        rme = half_width / abs(self.mean)
+        
+        # Compute RME with numerical stability
+        # Use max(abs(mean), epsilon) to avoid division by near-zero
+        epsilon = 1e-10
+        safe_mean = max(abs(self.mean), epsilon)
+        rme = half_width / safe_mean
+        
+        # If mean is very small, RME is not meaningful - skip this check
+        if abs(self.mean) < 1e-6:
+            return False, None
+            
         precision_met = (rme <= self.config.epsilon_diff)
         
         if effect_size_met and precision_met:
@@ -330,11 +336,50 @@ class EnhancedSequentialTester:
         if diff_met:
             return True, diff_info
         
+        # Check for behavioral fingerprinting (stable intermediate state)
+        if self.n >= max(50, self.config.n_min * 2):
+            (ci_lo, ci_hi), half_width = self.compute_ci()
+            
+            # Detect stable convergence to intermediate value
+            # Conditions: small CI, stable mean, neither SAME nor DIFFERENT
+            ci_converged = half_width < 0.01  # Very narrow CI
+            mean_intermediate = 0.001 < abs(self.mean) < 0.5  # Not near 0, not large
+            variance_stable = self.variance < 0.1  # Low variance
+            
+            if ci_converged and mean_intermediate and variance_stable:
+                # Compute coefficient of variation for fingerprinting
+                cv = math.sqrt(self.variance) / max(abs(self.mean), 1e-10)
+                
+                # Classify the relationship based on statistical signature
+                if abs(self.mean) < 0.01 and cv < 0.5:
+                    relationship = "NEAR_CLONE"
+                elif abs(self.mean) < 0.1 and cv < 1.0:
+                    relationship = "SAME_ARCH_FINE_TUNED"
+                elif abs(self.mean) < 0.5 and cv < 2.0:
+                    relationship = "SAME_ARCH_DIFFERENT_SCALE"
+                else:
+                    relationship = "BEHAVIORAL_VARIANT"
+                
+                return True, {
+                    "decision": "UNDECIDED_STABLE",
+                    "relationship": relationship,
+                    "reason": f"Converged to stable intermediate state (mean={self.mean:.6f}, CV={cv:.3f})",
+                    "ci": (ci_lo, ci_hi),
+                    "half_width": half_width,
+                    "mean": self.mean,
+                    "variance": self.variance,
+                    "coefficient_of_variation": cv,
+                    "n_queries": self.n
+                }
+        
         # Check if we've hit n_max
         if self.n >= self.config.n_max:
             (ci_lo, ci_hi), half_width = self.compute_ci()
             
             # Detailed diagnostics for UNDECIDED
+            epsilon = 1e-10
+            safe_mean = max(abs(self.mean), epsilon)
+            
             diagnostics = {
                 "same_check": {
                     "ci_within_band": (ci_lo >= -self.config.gamma and ci_hi <= self.config.gamma),
@@ -343,7 +388,7 @@ class EnhancedSequentialTester:
                 },
                 "different_check": {
                     "effect_size_met": (abs(ci_lo) >= self.config.delta_star or abs(ci_hi) >= self.config.delta_star),
-                    "rme": half_width / abs(self.mean) if abs(self.mean) > 1e-10 else float('inf'),
+                    "rme": half_width / safe_mean,
                     "rme_target": self.config.epsilon_diff
                 }
             }
