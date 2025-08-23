@@ -247,7 +247,7 @@ The framework includes specialized support for validating large models (7B+) wit
 ```bash
 # Run 7B model permutations with 25% memory limit
 python scripts/run_memory_safe_validation.py \
-    --models yi-6b yi-34b \
+    --models llama-2-7b-hf llama-2-7b-chat-hf \
     --permutations all \
     --max-memory 25
 
@@ -269,13 +269,16 @@ python scripts/test_7b_models_safe.py
 | <1GB | Small | Parallel OK | No |
 | 1-5GB | Medium | Sequential recommended | No |
 | 5-20GB | Large | Sequential required | Recommended |
-| >20GB | XLarge (7B+) | Sequential required | Required |
+| 20-50GB | XLarge (7B+) | Sequential required | Required |
+| >50GB | Beyond typical* | Requires special handling | Required |
+
+*Models exceeding available system RAM require careful memory management and may not complete successfully on consumer hardware.
 
 ### Enhanced E2E Pipeline Options
 ```bash
 python scripts/run_e2e_validation.py \
-    --ref-model yi-6b \
-    --cand-model yi-34b \
+    --ref-model llama-2-7b-hf \
+    --cand-model llama-2-7b-chat-hf \
     --enable-sharding \
     --max-memory-percent 25 \
     --enforce-sequential
