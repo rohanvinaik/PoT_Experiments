@@ -47,7 +47,26 @@ We derive seed \(s_i = \mathrm{HMAC}_{K}(\text{run\_id}\,\|\,i)\) [@rfc2104] and
 
 ### 4.2 Scoring
 
-For each challenge, we compute a bounded score \(X_i \in [0,1]\) that increases with behavioral discrepancy (e.g., normalized edit distance, token‑level divergence, task‑specific criteria). Our default scorer is lightweight and deterministic; we report **scorer‑robustness** ablations (Section 7.4).
+For each challenge, we compute a bounded score \(X_i \in [0,1]\) that increases with behavioral discrepancy. The framework's statistical comparisons are built on a **teacher‑forced scoring mechanism** implemented via the `TeacherForcedScorer` class:
+
+**Configuration.** The scorer is parameterized by `ScoringConfig`, which specifies:
+- **Metric type**: either `delta_ce` (absolute cross‑entropy difference) or `symmetric_kl` (symmetric KL divergence)
+- **Number of positions** \(K\): how many next‑token predictions to compare
+- **Clipping range** \([c_{\min}, c_{\max}]\): bounds to ensure numerical stability
+- **Temperature** \(\tau\): for logit scaling
+- **Stability epsilon** \(\epsilon\): prevents division by zero
+
+**Scoring procedure.** The `score` method:
+1. Runs both models on the same prompt with teacher forcing
+2. Extracts next‑token logits for up to \(K\) positions
+3. Computes either:
+   - **Delta CE**: \(|H(p_{\text{ref}}, p_{\text{cand}}) - H(p_{\text{ref}}, p_{\text{ref}})|\) where \(H\) is cross‑entropy
+   - **Symmetric KL**: \(\frac{1}{2}[D_{KL}(p_{\text{ref}} \| p_{\text{cand}}) + D_{KL}(p_{\text{cand}} \| p_{\text{ref}})]\)
+4. Clips the result to \([c_{\min}, c_{\max}]\) for stability
+
+Both metrics are explicitly **non‑negative** by construction. The `score_batch` method adds a canonical suffix ("The answer is"), tokenizes prompts, and repeatedly calls `score` to produce a list of per‑prompt difference scores. Optimized variants extend this logic with **top‑k approximations** and **caching**, but each ultimately yields a non‑negative per‑prompt difference that serves as the baseline statistic \(X_i\) for the sequential testing procedure.
+
+We report **scorer‑robustness** ablations (Section 7.4) comparing this teacher‑forced approach against token‑level edit distance and task‑specific scoring.
 
 ### 4.3 Anytime Empirical‑Bernstein confidence sequence
 

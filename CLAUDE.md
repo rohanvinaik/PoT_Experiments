@@ -2,7 +2,22 @@
 
 ## CRITICAL MISTAKES TO AVOID ("Sin Bucket") - READ THIS FIRST!
 
-### 1. NEVER Run Large/Multiple Tests Concurrently
+### 1. NEVER Add Timeouts to Experiments
+**WRONG:**
+```bash
+timeout 1200 python scripts/run_e2e_validation.py ...  # WRONG - RUINS EXPERIMENTS
+timeout 3600 python test.py  # WRONG - TRUNCATES RESULTS
+```
+
+**CORRECT:**
+```bash
+python scripts/run_e2e_validation.py ...  # Let it run to completion
+# If you need to stop, use Ctrl+C or kill manually, don't use timeout
+```
+
+Timeouts have RUINED HOURS of experiments by truncating them. Tests need to run to completion for valid results.
+
+### 2. NEVER Run Large/Multiple Tests Concurrently
 **WRONG:**
 ```bash
 # Running multiple huge tests at once - CAUSES OOM AND SYSTEM CRASHES
