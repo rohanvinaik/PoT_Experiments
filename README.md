@@ -412,6 +412,35 @@ This approach transforms UNDECIDED results into actionable insights about model 
 - **Production deployment** of enhanced variance-based relationship inference
 - **Calibration framework** for expected variance baselines per architecture family
 
+### Future Directions: Restriction Enzyme Verification (REV)
+
+A promising extension would implement **Restriction Enzyme Verification** - a novel approach for verifying models that exceed available system memory. Drawing inspiration from biological restriction enzymes that cut DNA at specific recognition sequences, REV would:
+
+#### Core Innovation
+- **Behavioral Cut Sites**: Discover natural "restriction sites" in transformer architectures using mechanistic interpretability (induction heads, attention motifs, circuit boundaries)
+- **Segment-wise Verification**: Load and verify models piece-by-piece, never requiring the full model in memory
+- **Semantic Hypervector Sites**: Replace brittle token-level probes with high-dimensional semantic embeddings (inspired by GenomeVault's HDC architecture)
+
+#### Technical Approach
+```python
+# Discover cut sites without weight access
+cut_sites = discover_restriction_sites(model_api, circuit_probes)
+
+# Verify segments between cut sites
+for segment in segment_model(cut_sites):
+    signature_a = compute_behavioral_signature(model_a, segment)
+    signature_b = compute_behavioral_signature(model_b, segment)
+    verify_segment_equivalence(signature_a, signature_b)
+```
+
+#### Industry-Scale Impact
+- **Memory Democratization**: Verify 100B+ parameter models on consumer hardware
+- **Granular Tampering Detection**: Identify which specific model components were modified
+- **Black-box Compatibility**: Works with API-only model access using behavioral probing
+- **Circuit-aware Verification**: Leverages transformer's natural modular structure
+
+This approach would extend PoT's reach from 7B models (current practical limit) to arbitrary model sizes, enabling verification of industry-scale LLMs on standard hardware. See `docs/papers/REV_whitepaper_with_HDC.md` for detailed technical specifications.
+
 ---
 
 ## License & citation

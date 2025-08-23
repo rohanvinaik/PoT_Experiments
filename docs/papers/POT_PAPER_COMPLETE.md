@@ -185,6 +185,43 @@ While UNDECIDED outcomes are traditionally viewed as inconclusive, we observe th
 
 Future work could transform the verifier into a **model genealogy tool** by tracking coefficient of variation (CV = σ/μ), detecting convergence plateaus, and matching signatures against known relationships. This would enable detection of unauthorized fine-tuning, model compression techniques, and training lineage—providing "statistical birth certificates" for model provenance.
 
+### 8.2 Future Direction: Restriction Enzyme Verification (REV)
+
+A critical limitation of current verification approaches is memory scaling—our framework successfully handles 7B models but encounters hardware limits with industry-scale models (50B+ parameters). We propose **Restriction Enzyme Verification (REV)**, a novel architecture inspired by biological restriction enzymes that cut DNA at specific recognition sequences.
+
+#### Core Innovation
+
+REV addresses the memory barrier through **behavioral segmentation**: discovering natural "cut sites" in transformer architectures using mechanistic interpretability insights from recent circuit discovery research. Rather than loading entire models, REV identifies modular boundaries (induction heads, attention motifs, circuit interfaces) and verifies behavioral equivalence segment-by-segment.
+
+#### Technical Architecture
+
+```python
+# Discover restriction sites without weight access
+circuit_boundaries = discover_behavioral_cut_sites(
+    model_api, 
+    circuit_probes=['induction', 'successor', 'copy_suppression']
+)
+
+# Memory-bounded verification via segmentation  
+for segment in segment_model_at_sites(circuit_boundaries):
+    sig_a = compute_segment_signature(model_a, segment)
+    sig_b = compute_segment_signature(model_b, segment) 
+    verify_behavioral_equivalence(sig_a, sig_b, confidence=0.99)
+```
+
+#### Semantic Hypervector Enhancement
+
+Building on GenomeVault's Hypervector Architecture, REV replaces brittle token-level probes with high-dimensional semantic embeddings (8K-100K dimensions). Model responses are encoded into hypervectors using binding/permutation operations, enabling robust behavioral similarity measurement through Hamming distances rather than exact token matching.
+
+#### Industry Impact
+
+- **Memory Democratization**: Verify 100B+ models on consumer hardware (64GB RAM)
+- **Granular Tampering Detection**: Identify which specific circuits/modules were modified
+- **Black-box Compatibility**: Works through API access using behavioral probing
+- **Circuit-aware Verification**: Leverages transformer modularity discovered by mechanistic interpretability
+
+REV would extend PoT verification from current 7B limits to arbitrary model sizes, democratizing verification of frontier models. The approach maintains cryptographic auditability through segment-wise Merkle commitments while achieving sub-linear memory scaling. Detailed specifications are provided in our companion paper "Restriction Enzyme Verification for Memory-Bounded, Black-Box LLM Comparison."
+
 ---
 
 ## 9 Broader Impacts & Ethics Statement
