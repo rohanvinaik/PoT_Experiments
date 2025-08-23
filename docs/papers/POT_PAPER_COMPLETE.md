@@ -174,6 +174,17 @@ We aggregate observed per‑prompt scores from `transcript.ndjson` and perform *
 - **Distributional sensitivity.** Domain‑specific behavior shifts can increase sample complexity; we report **UNDECIDED** rather than over‑claim.  
 - **Scorer choice.** Results depend on the bounded scorer; we mitigate via ablations and transparently document the default.
 
+### 8.1 Future Direction: Behavioral Fingerprinting
+
+While UNDECIDED outcomes are traditionally viewed as inconclusive, we observe that models often converge to **stable intermediate states** with characteristic statistical signatures. When the confidence interval narrows but stabilizes between thresholds, these patterns may reveal specific model relationships:
+
+- **Near-clones** (<0.001 mean, minimal variance): Nearly identical models with minor training variations
+- **Fine-tuned variants** (0.01-0.1 mean, low CV): Same architecture adapted to different domains  
+- **Quantized models**: Variance patterns consistent with precision loss
+- **Distilled students** (>0.5 mean, low variance): Teacher-student relationships
+
+Future work could transform the verifier into a **model genealogy tool** by tracking coefficient of variation (CV = σ/μ), detecting convergence plateaus, and matching signatures against known relationships. This would enable detection of unauthorized fine-tuning, model compression techniques, and training lineage—providing "statistical birth certificates" for model provenance.
+
 ---
 
 ## 9 Broader Impacts & Ethics Statement
