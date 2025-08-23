@@ -37,8 +37,8 @@ This verifier provides an **operational** answer: run **dozens** of pre-committe
 1) **Pre-commit challenges**  
    Generate challenge seeds via **HMAC-SHA256(key, run_id || i)** → `seed_i`. This creates a large, deterministic challenge space and prevents cherry-picking.
 
-2) **Stream responses and update a statistic**  
-   For each challenge, collect both models’ responses and update a running **effect-size** estimate with an **EB confidence interval**.
+2) **Score behavioral differences**  
+   For each challenge, both models generate responses using **teacher forcing**. The framework computes a normalized difference score using either cross-entropy divergence or symmetric KL divergence between next-token predictions. These scores are bounded to [0,1] and update a running **effect-size** estimate with an **EB confidence interval**.
 
 3) **Stop early when the math is decisive**  
    After each observation, check **explicit decision rules**:
@@ -68,6 +68,19 @@ Let Δ be the mean effect size and CI = [L, U] with half-width `h`.
 | EXTENDED  | .001  | .08  | .40 | 1.1  | .08    | [50, 800] |
 
 > The verifier is **anytime**: it can stop as soon as the decision criteria are met, which is why it typically needs **dozens** of queries—not thousands.
+
+---
+
+## Scoring configuration
+
+The framework uses a **teacher-forced scorer** that compares next-token predictions between models:
+
+- **Metric**: `delta_ce` (cross-entropy difference) or `symmetric_kl` (symmetric KL divergence)
+- **Positions**: Number of tokens to compare (default: varies by mode)
+- **Temperature**: Logit scaling for stability (default: 1.0)
+- **Clipping**: Bounds scores to [0,1] for numerical stability
+
+All metrics are non-negative by construction, with higher scores indicating greater behavioral divergence. The default configuration works well for most use cases, but can be customized via `ScoringConfig` for specific domains.
 
 ---
 
