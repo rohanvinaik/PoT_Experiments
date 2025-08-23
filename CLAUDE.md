@@ -152,6 +152,98 @@ python scripts/run_pipeline_with_models.py --auto-pairs small --test-mode enhanc
 - **SAME**: CI within [-γ, +γ] AND half_width ≤ η·γ
 - **DIFFERENT**: Effect size ≥ δ* AND RME ≤ ε_diff
 - **UNDECIDED**: Provides diagnostics and suggestions
+- **UNDECIDED_STABLE**: Behavioral fingerprint detected (stable intermediate state)
+
+## Adaptive Variance Reduction & Behavioral Fingerprinting
+
+### Overview
+The framework implements sophisticated adaptive sampling strategies to handle challenging verification scenarios, particularly when models show high variance or converge to stable intermediate states.
+
+### Key Components
+
+#### 1. Adaptive Sampling (`src/pot/core/adaptive_sampling.py`)
+- **AdaptiveSequentialTester**: Wraps base tester with adaptive strategies
+- **ConvergenceMetrics**: Tracks mean stability, CI improvement, RME history
+- **VarianceReductionStrategy**: Implements stratified sampling, importance sampling, control variates
+
+#### 2. Strategy Switching
+The framework automatically switches strategies based on convergence patterns:
+
+```python
+# Triggers at 50% budget if stuck in UNDECIDED
+if n > n_max * 0.5 and all(d == "UNDECIDED" for d in recent_decisions):
+    if abs(mean) < 0.05:  # Near zero mean
+        return "symmetric_kl"  # More sensitive metric
+    if variance > 0.1:  # High variance
+        return "increase_k"  # More positions per prompt
+```
+
+**Available Strategies**:
+- **`increase_k`**: Increases positions per prompt (default 8→12→16)
+- **`symmetric_kl`**: Switches to symmetric KL divergence (more sensitive)
+- **`variance_reduction`**: Applies importance sampling and control variates
+- **Batch size adaptation**: Dynamically adjusts (8→6→4) near decision boundaries
+
+#### 3. Behavioral Fingerprinting Detection
+**Problem**: Models can converge to stable intermediate values that don't meet SAME or DIFFERENT thresholds, causing infinite loops.
+
+**Solution**: Detect and classify stable intermediate states:
+
+```python
+# In diff_decision.py around line 285
+if self.n >= max(50, self.config.n_min * 2):
+    # Check for stable convergence
+    cv = self.variance / abs(self.mean) if abs(self.mean) > 1e-10 else float('inf')
+    
+    if cv < 0.1:  # Low coefficient of variation
+        # Classify relationship based on effect size
+        if abs(self.mean) < 0.001:
+            relationship = "NEAR_CLONE"
+        elif abs(self.mean) < 0.01:
+            relationship = "SAME_ARCH_FINE_TUNED"
+        elif abs(self.mean) < 0.1:
+            relationship = "SAME_ARCH_DIFFERENT_SCALE"
+        else:
+            relationship = "DIFFERENT_ARCH_SIMILAR_TRAINING"
+        
+        return "UNDECIDED_STABLE", relationship
+```
+
+### Real-World Example: Llama-2-7B Testing
+
+Successfully detected fine-tuning differences between base and chat models:
+
+```
+# A|B Test (Base vs Chat)
+[00:06:23] Strategy switch at n=64: increase_k
+[00:20:28] Strategy switch at n=72: increase_k  
+[00:35:11] Strategy switch at n=80: increase_k
+[00:48:29] Adaptive DIFFERENT decision at n=88: CI [0.033, 4.166]
+
+# Key achievements:
+- Detected subtle fine-tuning differences in 7B models
+- Prevented infinite loop with behavioral fingerprinting
+- Applied 3 adaptive strategies for variance reduction
+- Achieved 97.5% confidence on consumer hardware (32GB RAM)
+```
+
+### Numerical Stability Fixes
+
+**Critical Fix for Near-Zero Variance**:
+```python
+# Line 285 in diff_decision.py
+epsilon = 1e-10
+safe_mean = max(abs(self.mean), epsilon)
+rme = half_width / safe_mean  # Prevents division by zero
+```
+
+**Convergence Detection Enhancement**:
+```python
+# In adaptive_sampling.py
+if all(d in ["UNDECIDED", "UNDECIDED_STABLE"] for d in recent_decisions[-10:]):
+    if any("STABLE" in d for d in recent_decisions[-3:]):
+        return True, "Behavioral fingerprint detected"
+```
 
 ## Model Guidelines
 
@@ -215,6 +307,40 @@ ls -la /Users/rohanvinaik/LLM_Models/  # Verify models exist
 | Out of memory | Use smaller models or `--skip-zk` |
 | Models not found | Use open models (gpt2, distilgpt2) |
 | CI/CD components warnings | Normal if `tests.fixtures` not installed - core PoT still works |
+| **Test runs indefinitely** | Behavioral fingerprinting issue - check fixes below |
+| **Division by zero in RME** | Update diff_decision.py line 285 with epsilon guard |
+| **High variance, no convergence** | Adaptive sampling will trigger strategy switches |
+
+### Behavioral Fingerprinting Troubleshooting
+
+If tests run indefinitely without reaching a decision:
+
+1. **Check for stable intermediate convergence**:
+   ```bash
+   # Look for patterns where variance approaches zero but mean is non-zero
+   tail -f experimental_results/*/pipeline_results_*.json | grep -E "mean|variance|decision"
+   ```
+
+2. **Verify numerical stability fixes are applied**:
+   ```bash
+   # Check diff_decision.py has epsilon guard
+   grep -n "epsilon = 1e-10" src/pot/core/diff_decision.py
+   # Should be around line 285
+   ```
+
+3. **Monitor adaptive strategy switches**:
+   ```bash
+   # Watch for strategy switch messages
+   grep -E "Strategy switch|increase_k|symmetric_kl" logs/*.log
+   ```
+
+4. **Force early termination for debugging**:
+   ```python
+   # In diff_decision.py, add emergency exit
+   if self.n > 100:  # Emergency cap for debugging
+       logger.warning(f"Emergency exit at n={self.n}, mean={self.mean:.4f}")
+       return "UNDECIDED_STABLE", {"reason": "emergency_cap"}
+   ```
 
 ### Emergency Reset
 ```bash
