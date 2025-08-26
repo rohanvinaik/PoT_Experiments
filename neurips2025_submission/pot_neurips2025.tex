@@ -26,7 +26,9 @@
 
 % Spacing and list control - available in BasicTeX
 
-% Bibliography - use standard style for BasicTeX compatibility
+% Bibliography - NeurIPS-style citations
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{plainnat}
 
 % Hyperlinks - subtle formatting
 \usepackage[colorlinks=true,
@@ -433,7 +435,6 @@ We recommend using PoT as part of a \textbf{defense-in-depth} strategy, combinin
 
 PoT provides a practical, statistically rigorous solution for black-box model verification, achieving~$30{\times}$--$300{\times}$ speedup over existing methods while maintaining controlled error rates. By combining cryptographic pre-commitment, anytime confidence sequences, and behavioral fingerprinting, PoT enables rapid model audits in production environments. The distinction between model verification (fully solved) and provider authentication (requires additional infrastructure) clarifies the security boundaries of black-box verification.
 
-\bibliographystyle{plain}
 \bibliography{references}
 
 \end{document}
