@@ -11,7 +11,7 @@ We present a **post-training behavioral verifier** for model identity. Given two
 
 ## 1 Introduction
 
-Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. Our design targets three constraints common in production:
+Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. For API verification, note that our transcript binds the I/O sequence, not the provider's identity—remote binding requires additional trust roots (Section 4.5). Our design targets three constraints common in production:
 
 1) **Pre-commitment and auditability.** Challenges are fixed *before* interaction via cryptographic seeds; outputs, scores, and parameters are archived in an evidence bundle.
 2) **Sample-efficiency.** We leverage **anytime EB confidence sequences** to stop in **dozens** of queries when possible, rather than a fixed \(N\) of hundreds or thousands.
@@ -49,26 +49,11 @@ We derive seed \(s_i = \mathrm{HMAC}_{K}(\text{run\_id}\,\|\,i)\) [@rfc2104] and
 
 ### 4.2 Scoring
 
-For each challenge, we compute a bounded score \(X_i \in [0,1]\) that increases with behavioral discrepancy. The framework's statistical comparisons are built on a **teacher-forced scoring mechanism** implemented via the `TeacherForcedScorer` class:
+For each challenge, we compute a bounded score \(X_i \in [0,1]\) that increases with behavioral discrepancy. We use **teacher-forced scoring** with **delta cross-entropy** as the default metric:
 
-**Configuration.** The scorer is parameterized by `ScoringConfig`, which specifies:
-- **Metric type**: either `delta_ce` (absolute cross-entropy difference) or `symmetric_kl` (symmetric KL divergence)
-- **Number of positions** \(K\): how many next-token predictions to compare
-- **Clipping range** \([c_{\min}, c_{\max}]\): bounds to ensure numerical stability
-- **Temperature** \(\tau\): for logit scaling
-- **Stability epsilon** \(\epsilon\): prevents division by zero
+\[X_i = \text{clip}(|H(p_{\text{ref}}, p_{\text{cand}}) - H(p_{\text{ref}}, p_{\text{ref}})|, 0, 1)\]
 
-**Scoring procedure.** The `score` method:
-1. Runs both models on the same prompt with teacher forcing
-2. Extracts next-token logits for up to \(K\) positions
-3. Computes either:
-   - **Delta CE**: \(|H(p_{\text{ref}}, p_{\text{cand}}) - H(p_{\text{ref}}, p_{\text{ref}})|\) where \(H\) is cross-entropy
-   - **Symmetric KL**: \(\frac{1}{2}[D_{KL}(p_{\text{ref}} \| p_{\text{cand}}) + D_{KL}(p_{\text{cand}} \| p_{\text{ref}})]\)
-4. Clips the result to \([c_{\min}, c_{\max}]\) for stability
-
-Both metrics are explicitly **non-negative** by construction. The `score_batch` method adds a canonical suffix ("The answer is"), tokenizes prompts, and repeatedly calls `score` to produce a list of per-prompt difference scores. Optimized variants extend this logic with **top-k approximations** and **caching**, but each ultimately yields a non-negative per-prompt difference that serves as the baseline statistic \(X_i\) for the sequential testing procedure.
-
-We report **scorer-robustness** ablations (Section 7.4) comparing this teacher-forced approach against token-level edit distance and task-specific scoring.
+where \(H\) is cross-entropy over next-token distributions at \(K=64\) positions. This metric is non-negative by construction and bounded for numerical stability. Alternative metrics (symmetric KL, token edit distance) are evaluated in ablations (Section 7.4 and Appendix A).
 
 ### 4.3 Anytime Empirical-Bernstein confidence sequence
 
@@ -130,7 +115,7 @@ For models too large for host RAM, we **shard safetensors** and verify layer-by-
 
 ### 7.1 Query Efficiency and Error Rates
 
-From recent experimental runs, verification reaches decisions in **14–32** queries with zero error rates on tested pairs (see **Figure 1** for time-to-decision trajectories). Against a 1000-prompt fixed baseline, this represents **≥96.8%** query reduction.
+From recent experimental runs, verification reaches decisions in **14–48** queries with zero error rates on tested pairs (see **Figure 1** for time-to-decision trajectories). Against a **fixed-N=1000** baseline (standard for behavioral test sets), this represents **95.2–98.6%** query reduction. QUICK mode (α=0.025, n_max=120) averages 15 queries; AUDIT mode (α=0.01, n_max=400) averages 32 queries.
 
 | Pair (ref→cand) | Mode | α | n_used | Decision | Time (s) | Memory (MB) | Bundle Hash |
 |---|---:|---:|---:|---|---:|---:|---|
@@ -358,9 +343,11 @@ python scripts/run_e2e_validation.py \
 
 ## Figures
 
-**Figure 1: Time-to-decision curves.** Early stopping behavior for (a) SAME decision with gpt2→gpt2 converging to zero effect size within 30 queries, and (b) DIFFERENT decision with gpt2→distilgpt2 separating decisively at effect size ≈0.7 within 32 queries. Shaded regions show 95% confidence intervals from Empirical-Bernstein bounds. [Generated via `scripts/generate_paper_figures.py`]
+![Time-to-decision curves](figures/fig1_time_to_decision.png)
+**Figure 1: Time-to-decision curves.** Early stopping behavior for (a) SAME decision with gpt2→gpt2 converging to zero effect size within 30 queries, and (b) DIFFERENT decision with gpt2→distilgpt2 separating decisively at effect size ≈0.7 within 32 queries. Shaded regions show 95% confidence intervals from Empirical-Bernstein bounds.
 
-**Figure 2: Error rate tradeoffs.** False Accept Rate (FAR) and False Reject Rate (FRR) as functions of decision threshold. Operating points for QUICK (α=0.025) and AUDIT (α=0.01) modes marked. Equal Error Rate (EER) ≈0.15 at threshold=0.5. [Generated via `scripts/generate_paper_figures.py`]
+![Error rate tradeoffs](figures/fig2_error_rates.png)
+**Figure 2: Error rate tradeoffs.** False Accept Rate (FAR) and False Reject Rate (FRR) as functions of decision threshold. Operating points for QUICK (α=0.025) and AUDIT (α=0.01) modes marked. Equal Error Rate (EER) ≈0.15 at threshold=0.5.
 
 **Confusion Matrix (inset).** Perfect classification on n=8 test pairs (4 SAME, 4 DIFFERENT) from integrated calibration runs.
 
