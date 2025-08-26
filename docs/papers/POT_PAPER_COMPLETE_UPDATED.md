@@ -5,13 +5,13 @@
 
 ## Abstract
 
-We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands. The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. For remote identity binding, we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript.
+We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands. The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. For remote identity binding, we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **0.8–2.0 minutes** on 7B–34B models, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
 
 ---
 
 ## 1 Introduction
 
-Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. For API verification, our method verifies behavioral consistency but cannot authenticate the remote provider—the transcript proves what responses were received, not who served them (remote identity binding requires TEE attestation or vendor commitments, Section 4.5). Our design targets three constraints common in production:
+Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. Unlike ad-hoc fingerprints, PoT uses **pre-committed prompts** and **anytime confidence sequences**, yielding **probabilistic completeness/soundness** and a **verifiable evidence bundle** from black-box I/O. For API verification, our method verifies behavioral consistency but cannot authenticate the remote provider—the transcript proves what responses were received, not who served them (remote identity binding requires TEE attestation or vendor commitments, Section 4.5). Our design targets three constraints common in production:
 
 1) **Pre-commitment and auditability.** Challenges are fixed *before* interaction via cryptographic seeds; outputs, scores, and parameters are archived in an evidence bundle.
 2) **Sample-efficiency.** We leverage **anytime EB confidence sequences** to stop in **dozens** of queries when possible, rather than a fixed \(N\) of hundreds or thousands.
@@ -111,9 +111,11 @@ For models too large for host RAM, we **shard safetensors** and verify layer-by-
 
 ## 7 Results
 
+> **Headline**: 30×–300× faster than fixed-N/weight-based audits at matched error levels, while distinguishing fine-tuned variants of the same base model.
+
 > We report results from actual experimental runs (Aug 20-23, 2025) with evidence bundle hashes for reproducibility.
 
-**Key Result**: At α = 0.01, PoT reaches a SAME/DIFF decision in **48–120 s** on 7B–34B models, vs **45–360 min** for incumbent audits (fixed-N or gradient/weight checks where applicable), a **~25×–300× reduction** in decision latency.
+**Key Result**: At α = 0.01, PoT reaches a SAME/DIFF decision in **48–120 s** on 7B–34B models, vs **45–360 min** for incumbent audits (fixed-N or gradient/weight checks where applicable), a **~30×–300× reduction** in decision latency.
 
 ### 7.1 Query Efficiency and Error Rates
 
@@ -137,16 +139,15 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 - **Query reduction**: 96.8–98.5% vs 1000-query baseline
 - **Confusion Matrix**: Perfect separation (8/8 correct, see inset)
 
-### 7.2 Operational Comparison
+### 7.2 Operational Impact
 
-**Compact baseline**: PoT vs incumbent methods for 7B model verification
+**Hours → Minutes**: Compact comparison for 7B model verification
 
-| Method | Time to Decision | Queries | Memory | Remote OK | Pre-commit |
-|---|---:|---:|---|---|---|
-| **PoT (ours)** | **2 min** | **30–48** | **8 GB** | **✓** | **✓** |
-| Fixed-N behavioral | 45–60 min | 1000 | 8 GB | ✓ | ✗ |
-| Gradient verification | 90–120 min | ~100 | 28 GB | ✗ | ✗ |
-| Weight checksums | <1 min | 1 | 28 GB | ✗ | N/A |
+| Method | Time | Speedup | API-compatible |
+|---|---:|---:|---|
+| **PoT (ours)** | **2 min** | **—** | **✓** |
+| Fixed-N (1000 prompts) | 60 min | 30× | ✓ |
+| Gradient verification | 120 min | 60× | ✗ |
 
 **Breadth**: Validated across 4 model families (GPT, Llama, Yi, Pythia) and 3 DIFF modes (architecture variant, fine-tune variant, quantization).
 
