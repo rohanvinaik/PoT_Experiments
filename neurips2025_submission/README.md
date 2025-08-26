@@ -6,19 +6,23 @@
 
 ## Contents
 
-### Main Paper
-- `pot_neurips2025.pdf` - **Main submission PDF** (9 pages, 244KB)
-- `pot_neurips2025.tex` - LaTeX source file
-- `pot_neurips2025.bbl` - Bibliography (compiled)
+### Main Submission (Choose One)
+- **`pot_neurips2025_polished.pdf`** - Enhanced typography version (9 pages, 228KB) - RECOMMENDED
+- `pot_neurips2025.pdf` - Standard version (9 pages, 244KB)
+
+### LaTeX Sources
+- `pot_neurips2025_polished.tex` - Enhanced LaTeX with professional formatting
+- `pot_neurips2025.tex` - Standard LaTeX source
 - `references.bib` - Bibliography source
+- `*.bbl` - Compiled bibliography files
 
 ### Figures
 - `figures/fig1_time_to_decision.pdf` - Time-to-decision trajectories 
 - `figures/fig2_error_rates.pdf` - FAR/FRR curves with operating points
-- `figures/confusion_matrix.pdf` - Decision accuracy visualization
+- `figures/confusion_matrix.pdf` - Decision accuracy visualization (optional)
 
-### Supplementary
-- `POT_PAPER_COMPLETE_UPDATED.md` - Extended markdown version with additional details
+### Extended Version
+- `POT_PAPER_COMPLETE_UPDATED.md` - Markdown version with additional details
 
 ## Key Results
 
