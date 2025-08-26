@@ -276,7 +276,7 @@ From recent experimental runs, verification reaches decisions in \textbf{14--48}
 \caption{SAME/DIFFERENT Decisions with Evidence Bundles}
 \label{tab:decisions}
 \small
-\begin{tabular}{lcccccc}
+\begin{tabular}{l c r r c r l}
 \toprule
 \textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{n\_used} & \textbf{Decision} & \textbf{Time (s)} & \textbf{Evidence Hash} \\
 \midrule
@@ -304,7 +304,7 @@ llama-7b $\to$ llama-7b$^{\dagger}$ & QUICK & 0.025 & 14 & SAME & 1356.4$^{\ddag
 \caption{Wall-Time Performance Comparison}
 \label{tab:wall-time}
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{l l r r r}
 \toprule
 \textbf{Hardware} & \textbf{Model Size} & \textbf{End-to-end Time} & \textbf{Verifier-only} & \textbf{Peak Memory} \\
 \midrule
@@ -335,7 +335,7 @@ API (GPT-3.5) & N/A & 48--72\,s & 48--72\,s & <100\,MB \\
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lcccc}
+\begin{tabular}{l r r r c}
 \toprule
 \textbf{Method} & \textbf{Time (GPT-2 class)} & \textbf{Time (API)} & \textbf{Speedup} & \textbf{API-compatible} \\
 \midrule
@@ -359,7 +359,7 @@ Gradient verification & 120\,min & N/A & $60{\times}$--$120{\times}$ & $\times$ 
 \centering
 \caption{Comparison to Prior Verification Methods}
 \small
-\begin{tabular}{lccccc}
+\begin{tabular}{l c r r r c}
 \toprule
 \textbf{Method} & \textbf{Access} & \textbf{Queries} & \textbf{Time} & \textbf{Memory} & \textbf{API Support} \\
 \midrule
