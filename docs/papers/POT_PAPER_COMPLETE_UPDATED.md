@@ -157,7 +157,7 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 | Apple M1 Max (MPS) | GPT-2-medium (355M) | 99s | 25s | 0.48 | 1.7 GB |
 | API (GPT-3.5) | N/A | 48–72s | 48–72s | 0.42–0.67 | <100 MB |
 | Apple M1 Max (MPS) | Llama-7B⁷ | 22.6 min | ~2 min⁵ | 0.01 | 8.0 GB |
-| Apple M2 Pro (CPU) | Yi-34B (sharded)⁶ | 3 min | 3 min | — | 33.9 GB (52% host) |
+| Apple M1 Max (CPU) | Yi-34B (sharded)⁶ | 3 min | 3 min | — | 33.9 GB (52% host) |
 
 ⁵Estimated verifier-only based on API timings ⁶Systems feasibility demo, not core statistical verification
 ⁷Requires sharding: model loads/unloads per query due to 14GB size vs 8GB peak RAM constraint
@@ -455,7 +455,7 @@ To facilitate reproducibility, we provide:
 
 1. **Environment**: 
    - Python 3.8+ with `requirements-pinned.txt`
-   - Hardware: Tested on Apple M2 Pro (64GB RAM), NVIDIA A100, CPU-only
+   - Hardware: Tested on Apple M1 Max (64GB RAM), NVIDIA A100, CPU-only
    - OS: macOS 14.0+, Ubuntu 20.04+
 
 2. **Minimal Test** (5-10 minutes):
