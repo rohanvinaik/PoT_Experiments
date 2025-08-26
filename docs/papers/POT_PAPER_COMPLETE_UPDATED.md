@@ -11,7 +11,7 @@ We present a **post-training behavioral verifier** for model identity. Given two
 
 ## 1 Introduction
 
-Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. For API verification, note that our transcript binds the I/O sequence, not the provider's identity—remote binding requires additional trust roots (Section 4.5). Our design targets three constraints common in production:
+Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. For API verification, our method verifies behavioral consistency but cannot authenticate the remote provider—the transcript proves what responses were received, not who served them (remote identity binding requires TEE attestation or vendor commitments, Section 4.5). Our design targets three constraints common in production:
 
 1) **Pre-commitment and auditability.** Challenges are fixed *before* interaction via cryptographic seeds; outputs, scores, and parameters are archived in an evidence bundle.
 2) **Sample-efficiency.** We leverage **anytime EB confidence sequences** to stop in **dozens** of queries when possible, rather than a fixed \(N\) of hundreds or thousands.
@@ -23,7 +23,7 @@ Deployed LLMs are frequently **opaque**: weights are inaccessible or served behi
 
 ## 2 Related Work
 
-**Model verification approaches.** Prior work falls into three categories: (i) **Weight-based** methods requiring full model access (checksums, watermarking [@uchida2017embedding; @zhang2018protecting]), unsuitable for API-only settings; (ii) **Gradient-based** verification [@jia2021proof] requiring white-box access to compute gradients, with O(model_size) memory; (iii) **Behavioral** approaches using fixed test sets [@geirhos2020shortcut; @hendrycks2021many], but lacking statistical guarantees or pre-commitment. Our method uniquely combines **black-box behavioral testing** with **anytime statistical guarantees** and **cryptographic pre-commitment**, achieving 96.8% query reduction versus fixed-N baselines while maintaining controlled error rates.
+**Model verification approaches.** Prior work falls into three categories: (i) **Weight-based** methods requiring full model access (checksums, watermarking [@uchida2017embedding; @zhang2018protecting]), unsuitable for API-only settings; (ii) **Gradient-based** verification [@jia2021proof] requiring white-box access to compute gradients, with O(model_size) memory; (iii) **Behavioral** approaches using fixed test sets [@geirhos2020shortcut; @hendrycks2021many], but lacking statistical guarantees or pre-commitment. Our method uniquely combines **black-box behavioral testing** with **anytime statistical guarantees** and **cryptographic pre-commitment**, achieving 96.8% query reduction (vs fixed-N = 1000 prompts baseline detailed in §7.1) while maintaining controlled error rates.
 
 **Sequential testing.** Wald's SPRT [@wald1945sprt] established early-stopping binary tests. In bounded/noisy settings, **Empirical-Bernstein** style bounds yield **variance-adaptive** concentration [@maurer2009empiricalbernstein; @audibert2009exploration]. **Anytime-valid** inference produces **time-uniform** confidence sequences that remain valid under optional stopping [@howard2021timeuniform; @howard2021confidenceSequences]. We extend these to model verification with explicit SAME/DIFFERENT decision rules.
 
@@ -70,7 +70,7 @@ With \( \Delta_n = \overline{X}_n \) and EB half-width \( h_n \), we stop and ou
 - **DIFFERENT** if \( \Delta_n \ge \delta^* \) *and* \( h_n/\max(\Delta_n,10^{-12}) \le \varepsilon_{\text{diff}} \).
 - **UNDECIDED** otherwise (continue until \( n_{\max} \), with \( n \ge n_{\min} \)).
 
-We provide mode presets: **QUICK**, **AUDIT**, **EXTENDED**, which set \( \alpha,\gamma,\eta,\delta^*,\varepsilon_{\text{diff}},n_{\min},n_{\max} \). We also ship an **SPRT** alternative [@wald1945sprt], but EB-CS is the **default** due to anytime guarantees and variance adaptivity.
+We provide mode presets: **QUICK** (α=0.025), **AUDIT** (α=0.01), **EXTENDED** (α=0.005), which set \( \alpha,\gamma,\eta,\delta^*,\varepsilon_{\text{diff}},n_{\min},n_{\max} \). We also ship an **SPRT** alternative [@wald1945sprt], but EB-CS is the **default** due to anytime guarantees and variance adaptivity.
 
 ### 4.5 Remote identity binding
 
