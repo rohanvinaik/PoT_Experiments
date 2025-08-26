@@ -225,7 +225,7 @@ Features:
 
 ### Installation
 ```bash
-git clone https://github.com/rohanvinaik/PoT_Experiments.git
+git clone https://github.com/ANONYMOUS/PoT_Experiments.git
 cd PoT_Experiments
 pip install -r requirements.txt
 ```
@@ -1103,7 +1103,7 @@ class VerifiedModel(pl.LightningModule):
 1. **Experiments**: [EXPERIMENTS.md](EXPERIMENTS.md) - Detailed protocols and reproducibility
 2. **Implementation**: [CLAUDE.md](CLAUDE.md) - Complete framework overview
 3. **Integration**: This file (AGENTS.md) - API reference and usage patterns
-4. **Issues**: https://github.com/rohanvinaik/PoT_Experiments - Bug reports and feature requests
+4. **Issues**: https://github.com/ANONYMOUS/PoT_Experiments - Bug reports and feature requests
 
 **Performance Benchmarks** (NEW):
 - **Sample Efficiency**: 70-90% reduction vs fixed-sample methods

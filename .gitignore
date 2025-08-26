@@ -33,6 +33,9 @@ env/
 *.swo
 *~
 
+# Claude local settings
+.claude/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
@@ -42,6 +45,7 @@ env/
 htmlcov/
 .tox/
 .hypothesis/
+.mypy_cache/
 
 # Data and Models
 *.pkl

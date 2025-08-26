@@ -1,7 +1,9 @@
 # Proof-of-Training (PoT) — Behavioral Model Identity Verification
 
+> **Paper:** See [`docs/papers/POT_PAPER_COMPLETE_UPDATED.md`](docs/papers/POT_PAPER_COMPLETE_UPDATED.md) for the full technical paper with experimental results.
+> 
 > **Scope of this repo:** This is the **Verifier (post-training)** half of a unified PoT framework. It decides whether two models are **SAME** or **DIFFERENT** using a **sequential, variance-adaptive behavioral test** with **pre-committed (HMAC) challenges** and an **auditable transcript**. Optional ZK artifacts attest the verification process.  
-> **Out of scope here:** The **Prover (training-time provenance)** half that issues a model’s “birth certificate” (hashes, signed checkpoints, IO evolution) is referenced but not implemented in this repository.
+> **Out of scope here:** The **Prover (training-time provenance)** half that issues a model's "birth certificate" (hashes, signed checkpoints, IO evolution) is referenced but not implemented in this repository.
 
 ---
 

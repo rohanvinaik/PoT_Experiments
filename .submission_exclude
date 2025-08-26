@@ -1,0 +1,67 @@
+# Files and directories to exclude from anonymous submission
+# These contain placeholder code or incomplete implementations
+
+# Test results with issues tracking
+test_results/DETAILED_ISSUES.csv
+test_results/issues_database.json
+test_results/tailchasing_analysis.json
+
+# Experimental/incomplete files with placeholders
+examples/fix_tailchasing_proper.py
+examples/fix_tailchasing_issues.py
+examples/fix_file_references.py
+comprehensive_validation.py
+experimental_report*.py
+
+# Placeholder implementations identified in code review
+pot/eval/baselines.py  # Contains pass-only stubs
+pot/eval/plots.py  # Contains pass-only stubs
+
+# Files with enhanced_placeholder issues (low complexity stubs)
+pot/core/governance.py  # verify_commitment stub
+pot/lm/verifier.py  # compute_output_distance, verify_with_time_tolerance stubs
+pot/security/fuzzy_hash_verifier.py  # verify_model_output stub
+pot/security/training_provenance_auditor.py  # calculate_hash stub
+
+# Local configuration and cache
+.claude/
+.mypy_cache/
+__pycache__/
+*.pyc
+
+# Personal/identifying information
+.git/config
+.git/FETCH_HEAD
+
+# Large experimental results (can be regenerated)
+experimental_results/llama_*
+experimental_results/yi34b_*
+experimental_results/mixtral_*
+outputs/validation_reports/
+
+# Notebooks with potential personal paths
+notebooks/colab/*.ipynb
+
+# Colab helper scripts with GitHub references
+scripts/colab/COLAB_*.py
+scripts/colab/colab_*.py
+scripts/colab/RUN_THIS_IN_COLAB.txt
+scripts/utilities/package_for_colab.sh
+
+# Monitoring and analysis scripts  
+scripts/monitoring/
+scripts/analysis/analyze_tailchasing.py
+
+# External validation package with redundant content
+external_validation_package/
+
+# Documents with marketing language or personal info
+docs/analysis/YI34B_INDUSTRY_COMPARISON.md
+docs/analysis/HONEST_COMPLETE_COMPARISON.md
+docs/reports/THE_COMPLETE_TRUTH.md
+docs/papers/ISSUE_REPORT.md
+
+# Old/deprecated paper versions (use POT_PAPER_COMPLETE_UPDATED.md)
+docs/papers/POT_PAPER_COMPLETE.md
+docs/papers/POT_PAPER_ENHANCED.md
+docs/papers/POT_PAPER_EXPERIMENTAL_VALIDATION_REPORT.md

@@ -23,11 +23,11 @@ experiments:
     ref:
       type: hf_local
       model_name: gpt2
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2
     cand:
       type: hf_local
       model_name: distilgpt2
-      model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
+      model_path: ~/LLM_Models/distilgpt2
 
   # Pythia-70M self-consistency check
   - id: exp_003
@@ -36,11 +36,11 @@ experiments:
     ref:
       type: hf_local
       model_name: EleutherAI/pythia-70m
-      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+      model_path: ~/LLM_Models/pythia-70m
     cand:
       type: hf_local
       model_name: EleutherAI/pythia-70m
-      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+      model_path: ~/LLM_Models/pythia-70m
 
   # Pythia-70M vs Pythia-160M (size difference)
   - id: exp_004
@@ -48,11 +48,11 @@ experiments:
     ref:
       type: hf_local
       model_name: EleutherAI/pythia-70m
-      model_path: /Users/rohanvinaik/LLM_Models/pythia-70m
+      model_path: ~/LLM_Models/pythia-70m
     cand:
       type: hf_local
       model_name: EleutherAI/pythia-160m
-      model_path: /Users/rohanvinaik/LLM_Models/pythia-160m
+      model_path: ~/LLM_Models/pythia-160m
 
   # Example API comparison (requires endpoint setup)
   - id: exp_005
@@ -75,10 +75,10 @@ experiments:
     ref:
       type: hf_local
       model_name: gpt2
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2
     cand:
       type: hf_local
       model_name: gpt2
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2
     robustness:
       wrapper: true  # Enable paraphrase wrapper

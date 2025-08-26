@@ -14,8 +14,8 @@ experiments:
     ref:
       type: hf_local
       model_name: gpt2
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2
     cand:
       type: hf_local
       model_name: gpt2
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2

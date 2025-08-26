@@ -29,8 +29,8 @@ def test_pythia_size_fraud():
     print()
     
     # Model paths
-    pythia_70m_path = "/Users/rohanvinaik/LLM_Models/pythia-70m"
-    pythia_160m_path = "/Users/rohanvinaik/LLM_Models/pythia-160m"
+    pythia_70m_path = "~/LLM_Models/pythia-70m"
+    pythia_160m_path = "~/LLM_Models/pythia-160m"
     
     # Test parameters
     test_config = {
@@ -43,8 +43,8 @@ def test_pythia_size_fraud():
     }
     
     print(f"📊 Test Configuration:")
-    print(f"   • Model A: Pythia-70M ({pythia_70m_path})")
-    print(f"   • Model B: Pythia-160M ({pythia_160m_path})")
+    print(f"   • Model A: Pythia-70M (~/LLM_Models/pythia-70m)")
+    print(f"   • Model B: Pythia-160M (~/LLM_Models/pythia-160m)")
     print(f"   • Testing Mode: {test_config['testing_mode'].name}")
     print(f"   • Expected: {test_config['expected_result']}")
     print()

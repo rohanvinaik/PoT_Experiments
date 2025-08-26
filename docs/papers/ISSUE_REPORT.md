@@ -185,5 +185,5 @@
 4. Run analysis regularly to track progress
 
 ---
-*Analysis performed on: /Users/rohanvinaik/PoT_Experiments*
+*Analysis performed on: ~/PoT_Experiments*
 *TailChasingFixer Version: 1.0*

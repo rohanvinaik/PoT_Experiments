@@ -28,7 +28,7 @@ print("=" * 70)
 # Setup repository
 if not os.path.exists('/content/PoT_Experiments'):
     print("📥 Cloning repository...")
-    subprocess.run(['git', 'clone', 'https://github.com/rohanvinaik/PoT_Experiments.git', '/content/PoT_Experiments'])
+    subprocess.run(['git', 'clone', 'https://github.com/ANONYMOUS/PoT_Experiments.git', '/content/PoT_Experiments'])
 
 os.chdir('/content/PoT_Experiments')
 print(f"📍 Working directory: {os.getcwd()}")

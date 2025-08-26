@@ -59,8 +59,8 @@ class KDFPromptGenerator:
 ======================================================================
 SHARDED VERIFICATION FOR YI-34B MODELS
 ======================================================================
-Model 1: /Users/rohanvinaik/LLM_Models/yi-34b
-Model 2: /Users/rohanvinaik/LLM_Models/yi-34b-chat
+Model 1: ~/LLM_Models/yi-34b
+Model 2: ~/LLM_Models/yi-34b-chat
 Memory limit: 20GB per operation
 ======================================================================
 
@@ -241,9 +241,9 @@ python scripts/yi34b_full_verification_report.py
 ```
 
 ### Framework Paths:
-- Core modules: `/Users/rohanvinaik/PoT_Experiments/pot/`
-- Scripts: `/Users/rohanvinaik/PoT_Experiments/scripts/`
-- Results: `/Users/rohanvinaik/PoT_Experiments/experimental_results/`
+- Core modules: `~/PoT_Experiments/pot/`
+- Scripts: `~/PoT_Experiments/scripts/`
+- Results: `~/PoT_Experiments/experimental_results/`
 
 ---
 
@@ -268,7 +268,7 @@ This evidence conclusively proves:
 1. **Used REAL PoT framework** - Not mock implementations
 2. **Validated ALL paper claims** - 97% queries, 99% confidence, black-box
 3. **Solved memory problem** - 52% peak vs 118GB crash
-4. **Achieved breakthrough** - Verified 206GB on 64GB system
+4. **Demonstrated feasibility** - Verified 206GB on 64GB system
 5. **Maintained security** - Cryptographic proofs throughout
 
 The verification is **scientifically rigorous**, **cryptographically secure**, and **fully reproducible**.

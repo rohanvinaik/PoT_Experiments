@@ -50,7 +50,7 @@ python scripts/runtime_blackbox_validation_configurable.py \
 ### Local Models
 
 The framework automatically searches for models in these locations:
-1. `/Users/rohanvinaik/LLM_Models` (default)
+1. `~/LLM_Models` (default)
 2. `~/LLM_Models`
 3. `~/models`
 4. `./models`
@@ -243,7 +243,7 @@ print(f"HF models: {available['huggingface']}")
   "model_a": "gpt2",
   "model_b": "distilgpt2",
   "model_source": "auto",
-  "local_model_base": "/Users/rohanvinaik/LLM_Models",
+  "local_model_base": "~/LLM_Models",
   "hf_cache_dir": "~/.cache/huggingface",
   "use_hf_token": false,
   "torch_dtype": "auto",

@@ -77,8 +77,8 @@ Models >5GB must run sequentially with proper memory management.
 ## Overview
 **Proof-of-Training (PoT)** - Cryptographic verification framework for neural network training integrity with black-box behavioral verification and zero-knowledge proof generation.
 
-**Working Directory**: `/Users/rohanvinaik/PoT_Experiments`  
-**Model Directory**: `/Users/rohanvinaik/LLM_Models`  
+**Working Directory**: `~/PoT_Experiments`  
+**Model Directory**: `~/LLM_Models`  
 **Python**: 3.11.8  
 **Rust**: 1.88.0+ (for ZK circuits)
 
@@ -135,7 +135,7 @@ python tools/pot_runner.py run --manifest manifests/neurips_demo.yaml --id exp_0
 
 ### 4. Model Selection Pipeline
 ```bash
-python scripts/run_pipeline_with_models.py --models-dir /Users/rohanvinaik/LLM_Models
+python scripts/run_pipeline_with_models.py --models-dir ~/LLM_Models
 python scripts/run_pipeline_with_models.py --auto-pairs small --test-mode enhanced --non-interactive
 ```
 
@@ -258,10 +258,10 @@ if all(d in ["UNDECIDED", "UNDECIDED_STABLE"] for d in recent_decisions[-10:]):
 ### Quick Model Download
 ```bash
 # Open models
-huggingface-cli download gpt2 --local-dir /Users/rohanvinaik/LLM_Models/gpt2 --local-dir-use-symlinks False
+huggingface-cli download gpt2 --local-dir ~/LLM_Models/gpt2 --local-dir-use-symlinks False
 
 # For gated models (after huggingface-cli login)
-huggingface-cli download meta-llama/Llama-2-7b-chat-hf --local-dir /Users/rohanvinaik/LLM_Models/llama-2-7b-chat-hf --local-dir-use-symlinks False
+huggingface-cli download meta-llama/Llama-2-7b-chat-hf --local-dir ~/LLM_Models/llama-2-7b-chat-hf --local-dir-use-symlinks False
 ```
 
 ## CRITICAL: Never Create Mock Tests
@@ -291,17 +291,17 @@ When asked for tests or Google Colab code:
 
 ### Pre-flight Checks
 ```bash
-pwd                          # Should be /Users/rohanvinaik/PoT_Experiments
+pwd                          # Should be ~/PoT_Experiments
 python --version            # Should be 3.11.8
 python -c "import torch, transformers, numpy, scipy; print('✅ Core deps OK')"
-ls -la /Users/rohanvinaik/LLM_Models/  # Verify models exist
+ls -la ~/LLM_Models/  # Verify models exist
 ```
 
 ### Common Issues & Solutions
 
 | Issue | Solution |
 |-------|----------|
-| `ModuleNotFoundError: pot` | Run from `/Users/rohanvinaik/PoT_Experiments` |
+| `ModuleNotFoundError: pot` | Run from `~/PoT_Experiments` |
 | `Permission denied` | `chmod +x scripts/*.sh scripts/*.py` |
 | ZK tests fail | Use `--skip-zk` flag or install Rust |
 | Out of memory | Use smaller models or `--skip-zk` |
@@ -346,7 +346,7 @@ If tests run indefinitely without reaching a decision:
 ```bash
 pkill -f python && pkill -f cargo
 rm -rf /tmp/pot_* experimental_results/temp_*
-cd /Users/rohanvinaik/PoT_Experiments
+cd ~/PoT_Experiments
 bash scripts/run_all.sh --skip-zk
 ```
 
@@ -489,10 +489,10 @@ experiments:
   - id: exp_001
     ref:
       type: hf_local
-      model_path: /Users/rohanvinaik/LLM_Models/gpt2
+      model_path: ~/LLM_Models/gpt2
     cand:
       type: hf_local
-      model_path: /Users/rohanvinaik/LLM_Models/distilgpt2
+      model_path: ~/LLM_Models/distilgpt2
 ```
 
 

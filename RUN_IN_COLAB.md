@@ -12,7 +12,7 @@ are stored in `notebooks/colab/`.
 ```python
 # One-click PoT Test Suite for Google Colab
 !rm -rf PoT_Experiments  # Clean any previous clone
-!git clone https://github.com/rohanvinaik/PoT_Experiments.git
+!git clone https://github.com/ANONYMOUS/PoT_Experiments.git
 !cd PoT_Experiments && python scripts/colab/run_all_colab.py
 ```
 
@@ -129,6 +129,6 @@ STATUS: ✅ READY FOR PRODUCTION
 
 ## Support
 
-- **Issues**: https://github.com/rohanvinaik/PoT_Experiments/issues
+- **Issues**: https://github.com/ANONYMOUS/PoT_Experiments/issues
 - **Documentation**: See `/docs` folder in the repository
 - **Statistical Framework**: `docs/STATISTICAL_DIFFERENCE_FRAMEWORK.md`

@@ -310,7 +310,6 @@ def create_model_loader(
     # Auto-detect common local model directories
     if local_base is None:
         possible_dirs = [
-            "/Users/rohanvinaik/LLM_Models",
             os.path.expanduser("~/LLM_Models"),
             os.path.expanduser("~/models"),
             "./models",

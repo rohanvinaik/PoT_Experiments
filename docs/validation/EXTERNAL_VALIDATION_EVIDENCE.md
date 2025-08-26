@@ -257,7 +257,7 @@ Total Runs: 25
 ## 📞 **External Verification Support**
 
 ### **Contact Information**
-- **Repository:** `/Users/rohanvinaik/PoT_Experiments`
+- **Repository:** `~/PoT_Experiments`
 - **Validation Scripts:** `scripts/run_all.sh`, `experimental_results/reliable_validation.py`
 - **Evidence Files:** `validation_results_history.json`, `reliable_validation_results_*.json`
 
