@@ -182,6 +182,7 @@ class PipelineConfig:
     def __post_init__(self):
         """Ensure output directory exists"""
         self.output_dir = Path(self.output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
         
         # Generate HMAC key if not provided
         if not self.hmac_key:
@@ -1194,7 +1195,8 @@ class PipelineOrchestrator:
                 }
             }
             
-            # Save error results
+            # Save error results (ensure directory exists)
+            self.config.output_dir.mkdir(parents=True, exist_ok=True)
             error_path = self.config.output_dir / f"pipeline_error_{self.run_id}.json"
             with open(error_path, 'w') as f:
                 json.dump(error_results, f, indent=2)

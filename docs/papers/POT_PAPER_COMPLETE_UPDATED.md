@@ -139,15 +139,15 @@ From recent experimental runs, verification reaches decisions in **14–32** que
 | gpt2 → distilgpt2 | AUDIT | 0.01 | 32 | DIFFERENT | 92.2 | 1325 | `val_20250822_122522` |
 | dialogpt → gpt2 | QUICK | 0.025 | 16 | DIFFERENT | 17.3 | 1853 | `val_20250822_122609` |
 | llama-7b → llama-7b | QUICK | 0.025 | 14 | SAME | 1346.7 | 8009 | `val_20250823_061722` |
-| **gpt2 → gpt2-medium** | **AUDIT** | **0.01** | **40** | **DIFFERENT** | **90.1** | **1876** | **`val_20250825_210629`** |
+| **gpt2 → gpt2-medium** | **AUDIT** | **0.01** | **48** | **DIFFERENT** | **99.6** | **1748** | **`val_20250825_211041`** |
 
 **Note on behavioral fingerprinting**: The UNDECIDED_STABLE classification (Section 8.1) applies to same-architecture fine-tuned variants where the mean effect size converges to a stable intermediate value (0.01 < |mean| < 0.1). Different architectures (e.g., GPT-2 vs GPT-2-medium) produce larger effect sizes and reach definitive DIFFERENT decisions.
 
 **Error Rate Analysis** (from integrated calibration runs, n=8 pairs, see **Figure 2** for FAR/FRR tradeoffs):
 - **False Accept Rate (FAR)**: 0/4 (Wilson 95% CI: [0.00, 0.60]) — All SAME pairs correctly identified
 - **False Reject Rate (FRR)**: 0/4 (Wilson 95% CI: [0.00, 0.60]) — All DIFFERENT pairs correctly identified  
-- **Average queries**: 28.4 (AUDIT), 15 (QUICK)
-- **Query reduction**: 96.8–98.6% vs 1000-query baseline
+- **Average queries**: 32.0 (AUDIT), 15 (QUICK)  
+- **Query reduction**: 96.8–98.5% vs 1000-query baseline
 - **Confusion Matrix**: Perfect separation (8/8 correct, see inset)
 
 ### 7.2 Wall-time and Performance

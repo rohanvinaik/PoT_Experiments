@@ -122,25 +122,22 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 | **Model A** vs **Model B** | Quick-gate | SAME | 25.2 (avg of 8) | ~392 s (avg of 8) | ~15.5 s (avg of 8) | Model comparison (8 runs) |
 | DistilGPT-2 vs **GPT-2** | Audit-grade | DIFFERENT | 30 | ~42.8 s | ~1.4 s | Distillation |
 | EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
-| **Llama-2-7B-hf** vs **Llama-2-7B-hf** | Quick-gate | SAME | 14 | ~1347 s | ~96.2 s | 7B self-consistency |
-| **Llama-2-7B-chat-hf** vs **Llama-2-7B-chat-hf** | Quick-gate | SAME | 14 | ~1381 s | ~98.7 s | 7B chat self-consistency |
-| **Llama-2-7B-hf** vs **Llama-2-7B-chat-hf** | Quick-gate | DIFFERENT | 88 | ~9388 s | ~106.7 s | 7B fine-tuning detection |
 
-<!-- Table auto-updated: 2025-08-23 07:14:01 -->
+<!-- Table auto-updated: 2025-08-25 21:12:22 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 
 ### Audit-Grade Performance Metrics (Latest Runs)
 
-| Metric | DistilGPT-2 vs DistilGPT-2 | GPT-2 vs DistilGPT-2 | microsoft DialoGPT-small vs GPT-2 | EleutherAI gpt-neo-125m vs EleutherAI gpt-neo-1.3b |
+| Metric | GPT-2 vs GPT-2 | GPT-2 vs DistilGPT-2 | microsoft DialoGPT-small vs GPT-2 | EleutherAI gpt-neo-125m vs EleutherAI gpt-neo-1.3b |
 |--------|--------------------|--------------------|--------------------|--------------------|
-| **Peak RSS** | 1545 MB | 1845 MB | 2197 MB | 1966 MB |
-| **Page Faults (maj/min)** | 0/0 | 0/3421 | 0/0 | 0/0 |
-| **Disk Read Throughput** | - | 12.50 MB/s | - | - |
-| **Cold Query Time** | 0.12s | 2.13s | 0.79s | 4.20s |
-| **Warm Query Time** | 0.07s | 0.89s | 0.42s | 2.24s |
-| **Cold/Warm Ratio** | ~1.0x | 2.39x | ~1.0x | ~1.0x |
-| **Total Queries** | 30 | 32 | 32 | 100 |
+| **Peak RSS** | 21 MB | 1845 MB | 2197 MB | 1966 MB |
+| **Page Faults (maj/min)** | 0/320 | 0/3421 | 0/0 | 0/0 |
+| **Disk Read Throughput** | 5.16 MB/s | 12.50 MB/s | - | - |
+| **Cold Query Time** | 6.03s | 2.13s | 0.79s | 4.20s |
+| **Warm Query Time** | 1.01s | 0.89s | 0.42s | 2.24s |
+| **Cold/Warm Ratio** | 5.98x | 2.39x | ~1.0x | ~1.0x |
+| **Total Queries** | 14 | 32 | 32 | 100 |
 | **Decision Confidence** | 0.99 | 0.99 | 0.99 | 0.99 |
 
 **Performance Characteristics:**

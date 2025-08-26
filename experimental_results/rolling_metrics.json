@@ -1,6 +1,6 @@
 {
-  "total_runs": 27,
-  "successful_runs": 27,
+  "total_runs": 28,
+  "successful_runs": 28,
   "timing_samples": [
     {
       "t_per_query": 2.285130023956299,
@@ -135,6 +135,11 @@
     {
       "t_per_query": 98.66815154893058,
       "t_total": 1381.354121685028,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 2.075752933820089,
+      "t_total": 99.63614082336426,
       "hardware": "unknown"
     }
   ],
@@ -304,7 +309,13 @@
       "confidence": 0.975,
       "n_used": 14,
       "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 48,
+      "effect_size": 0.0
     }
   ],
-  "last_updated": "2025-08-23T07:14:01.964254"
+  "last_updated": "2025-08-25T21:12:22.457989"
 }
