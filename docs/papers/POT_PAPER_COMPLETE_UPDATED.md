@@ -119,7 +119,7 @@ For models too large for host RAM, we **shard safetensors** and verify layer-by-
 
 ### 7.1 Query Efficiency and Error Rates
 
-From recent experimental runs, verification reaches decisions in **14–48** queries with zero error rates on tested pairs (see **Figure 1** for time-to-decision trajectories). Against a **fixed-N=1000** baseline (standard for behavioral test sets), this represents **95.2–98.6%** query reduction. QUICK mode (α=0.025, n_max=120) averages 15 queries; AUDIT mode (α=0.01, n_max=400) averages 32 queries.
+From recent experimental runs, verification reaches decisions in **14–48** queries with zero observed errors on n=8 tested pairs (Wilson 95% CI for error rate: [0.00, 0.37], see **Figure 1** for time-to-decision trajectories). Against a **fixed-N=1000** baseline (standard for behavioral test sets), this represents **95.2–98.6%** query reduction. QUICK mode (α=0.025, n_max=120) averages 15 queries; AUDIT mode (α=0.01, n_max=400) averages 32 queries.
 
 | Pair (ref→cand) | Mode | α | n_used | Decision | Time (s) | Memory (MB) | Bundle Hash |
 |---|---:|---:|---:|---|---:|---:|---|
@@ -137,7 +137,7 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 - **False Reject Rate (FRR)**: 0/4 (Wilson 95% CI: [0.00, 0.60]) — All DIFFERENT pairs correctly identified  
 - **Average queries**: 32.0 (AUDIT), 15 (QUICK)  
 - **Query reduction**: 96.8–98.5% vs 1000-query baseline
-- **Confusion Matrix**: Perfect separation (8/8 correct, see inset)
+- **Confusion Matrix**: Perfect separation (8/8 correct, Wilson 95% CI for accuracy: [0.63, 1.00])
 
 ### 7.2 Operational Impact
 
