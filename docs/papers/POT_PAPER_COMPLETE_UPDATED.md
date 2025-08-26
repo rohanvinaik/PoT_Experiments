@@ -136,9 +136,9 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 | gpt2 → gpt2-medium | AUDIT | 0.01 | 48 | DIFFERENT | 99.6 | 1748 | `val_20250825_211041` |
 | pythia-70m → pythia-160m¹ | QUICK | 0.025 | 22 | DIFFERENT | 31.2 | 892 | `val_20250823_143212` |
 | gpt2 → gpt2-quantized² | AUDIT | 0.01 | 36 | DIFFERENT | 84.3 | 1402 | `val_20250823_144532` |
-| llama-7b → llama-7b³ | QUICK | 0.025 | 14 | SAME | 1346.7⁴ | 8009 | `val_20250823_061722` |
+| llama-7b → llama-7b³ | QUICK | 0.025 | 14 | SAME | 1356.4⁴ | 7981 | `val_20250825_222717` |
 
-¹Architecture variant (different model size) ²Quantization (int8) ³Same-architecture fine-tuned would trigger behavioral fingerprinting (§8.1) ⁴End-to-end on M2 Pro including MPS inference
+¹Architecture variant (different model size) ²Quantization (int8) ³Same-architecture fine-tuned would trigger behavioral fingerprinting (§8.1) ⁴End-to-end on M1 Max with sharded loading (7B model requires ~14GB, loaded in shards)
 
 *Note: The GPT-2 vs GPT-2-medium pair shows clear architectural differences (DIFFERENT decision). For subtler relationships like fine-tuned variants of the same base model, see Section 8.1's behavioral fingerprinting system which automatically classifies intermediate states as SAME_ARCH_FINE_TUNED, NEAR_CLONE, etc.*
 
@@ -156,10 +156,11 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 | Apple M1 Max (MPS) | GPT-2 (124M) | 49–92s | 10–20s | 0.35–0.61 | 1.3–1.6 GB |
 | Apple M1 Max (MPS) | GPT-2-medium (355M) | 99s | 25s | 0.48 | 1.7 GB |
 | API (GPT-3.5) | N/A | 48–72s | 48–72s | 0.42–0.67 | <100 MB |
-| Apple M2 Pro (MPS) | Llama-7B | 22.4 min | ~2 min⁵ | 0.01 | 8.0 GB |
+| Apple M1 Max (MPS) | Llama-7B⁷ | 22.6 min | ~2 min⁵ | 0.01 | 8.0 GB |
 | Apple M2 Pro (CPU) | Yi-34B (sharded)⁶ | 3 min | 3 min | — | 33.9 GB (52% host) |
 
 ⁵Estimated verifier-only based on API timings ⁶Systems feasibility demo, not core statistical verification
+⁷Requires sharding: model loads/unloads per query due to 14GB size vs 8GB peak RAM constraint
 
 ### 7.3 Operational Impact
 
