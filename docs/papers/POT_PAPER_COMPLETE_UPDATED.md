@@ -5,19 +5,19 @@
 
 ## Abstract
 
-We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands. The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. For remote identity binding, we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **0.8–2.0 minutes** on 7B–34B models, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
+We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands. The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. PoT fully verifies API-hosted models; for **provider authentication** (proving who serves the API), we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **0.8–2.0 minutes** on 7B–34B models, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
 
 ---
 
 ## 1 Introduction
 
-Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. Unlike ad-hoc fingerprints, PoT uses **pre-committed prompts** and **anytime confidence sequences**, yielding **probabilistic completeness/soundness** and a **verifiable evidence bundle** from black-box I/O. For API verification, our method verifies behavioral consistency but cannot authenticate the remote provider—the transcript proves what responses were received, not who served them (remote identity binding requires TEE attestation or vendor commitments, Section 4.5). Our design targets three constraints common in production:
+Deployed LLMs are frequently **opaque**: weights are inaccessible or served behind APIs, yet stakeholders must answer a simple question—*is the deployed model the same one we audited?* We propose a practical, auditable verifier that answers this with **statistical guarantees** under a **black-box** access model. Unlike ad-hoc fingerprints, PoT uses **pre-committed prompts** and **anytime confidence sequences**, yielding **probabilistic completeness/soundness** and a **verifiable evidence bundle** from black-box I/O. PoT fully verifies models behind APIs; the limitation is **provider authentication**—proving who operates the server (requires TEE attestation or vendor commitments, Section 4.5). Our design targets three constraints common in production:
 
 1) **Pre-commitment and auditability.** Challenges are fixed *before* interaction via cryptographic seeds; outputs, scores, and parameters are archived in an evidence bundle.
 2) **Sample-efficiency.** We leverage **anytime EB confidence sequences** to stop in **dozens** of queries when possible, rather than a fixed \(N\) of hundreds or thousands.
 3) **Systems feasibility.** Verification must run on **commodity hardware** and support **very large checkpoints** via **sharded load-verify-release**.
 
-**Contributions.** (i) A pre-committed, **anytime** verifier that outputs **SAME/DIFFERENT/UNDECIDED** with explicit error control. (ii) An **evidence bundle** format and one-command runners for local/API settings. (iii) **Sharded verification** enabling audits of ~**206 GB** checkpoints with ≈**52%** peak host RAM. (iv) Clarification of **threat models** and when TEEs or vendor commitments are needed for remote identity binding.
+**Contributions.** (i) A pre-committed, **anytime** verifier that outputs **SAME/DIFFERENT/UNDECIDED** with explicit error control. (ii) An **evidence bundle** format and one-command runners for local/API settings. (iii) **Sharded verification** enabling audits of ~**206 GB** checkpoints with ≈**52%** peak host RAM. (iv) Clarification that PoT verifies **model behavior** via any API; **provider authentication** (who runs the server) requires TEEs or vendor commitments.
 
 ---
 
@@ -72,10 +72,10 @@ With \( \Delta_n = \overline{X}_n \) and EB half-width \( h_n \), we stop and ou
 
 We provide mode presets: **QUICK** (α=0.025), **AUDIT** (α=0.01), **EXTENDED** (α=0.005), which set \( \alpha,\gamma,\eta,\delta^*,\varepsilon_{\text{diff}},n_{\min},n_{\max} \). We also ship an **SPRT** alternative [@wald1945sprt], but EB-CS is the **default** due to anytime guarantees and variance adaptivity.
 
-### 4.5 Remote identity binding
+### 4.5 API verification and provider authentication
 
 - **Local:** bind to **checkpoint hash** (e.g., SHA-256 of safetensors) [@fips180-4].
-- **API:** The transcript binds the I/O sequence, **not the provider's identity**, unless **TEE attestation** of the serving stack or **vendor commitments** are present. **ZK** (SNARKs/Bulletproofs) can prove that the verifier computed the decision from the published transcript without re-exposing secrets [@bensasson2014snarks; @bunz2018bulletproofs]. However, ZK alone **cannot** establish remote endpoint identity—it only certifies correct computation over the observed transcript.
+- **API:** PoT **fully verifies the model** behind any API endpoint. The transcript proves behavioral equivalence. What requires additional infrastructure is **provider authentication**—proving that OpenAI (not an imposter) serves the API. This needs **TEE attestation** of the serving stack or **vendor commitments**. **ZK** (SNARKs/Bulletproofs) can prove that the verifier computed the decision correctly from the published transcript [@bensasson2014snarks; @bunz2018bulletproofs], but cannot authenticate the API provider.
 
 ---
 
@@ -306,7 +306,7 @@ We emphasize **scope** and **assumptions**: this verifies behavioral identity on
 
 ## 10 Conclusion
 
-**What PoT provides**: PoT certifies behavioral provenance at level α; hosting-provider identity still requires TEE/attestation. The framework verifies that two models produce statistically equivalent outputs on pre-committed challenges, but cannot authenticate who is serving a remote API.
+**What PoT provides**: PoT certifies behavioral provenance at level α for any model (local or API-hosted). The framework verifies that two models produce statistically equivalent outputs on pre-committed challenges. **Provider authentication** (proving who operates the API server) requires additional TEE/attestation.
 
 **Practical deployment**: This enables a pre-release gate and post-deploy drift alarm that teams can run per-commit instead of weekly audits. With 2-minute verification for 7B models and 48-query average in AUDIT mode, PoT integrates into CI/CD pipelines where traditional audits were prohibitive.
 
