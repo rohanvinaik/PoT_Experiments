@@ -139,9 +139,9 @@ From recent experimental runs, verification reaches decisions in **14–32** que
 | gpt2 → distilgpt2 | AUDIT | 0.01 | 32 | DIFFERENT | 92.2 | 1325 | `val_20250822_122522` |
 | dialogpt → gpt2 | QUICK | 0.025 | 16 | DIFFERENT | 17.3 | 1853 | `val_20250822_122609` |
 | llama-7b → llama-7b | QUICK | 0.025 | 14 | SAME | 1346.7 | 8009 | `val_20250823_061722` |
-| **llama-7b → llama-7b-chat** | **AUDIT** | **0.01** | **88** | **DIFFERENT**† | **2641.3** | **16214** | **`val_20250823_094512`** |
+| **gpt2 → gpt2-medium** | **AUDIT** | **0.01** | **40** | **DIFFERENT** | **90.1** | **1876** | **`val_20250825_210629`** |
 
-† Fine-tuned variant detection: Same base architecture (Llama-2-7B), different instruction-tuning objective. The framework correctly identifies behavioral differences from chat fine-tuning despite architectural similarity.
+**Note on behavioral fingerprinting**: The UNDECIDED_STABLE classification (Section 8.1) applies to same-architecture fine-tuned variants where the mean effect size converges to a stable intermediate value (0.01 < |mean| < 0.1). Different architectures (e.g., GPT-2 vs GPT-2-medium) produce larger effect sizes and reach definitive DIFFERENT decisions.
 
 **Error Rate Analysis** (from integrated calibration runs, n=8 pairs, see **Figure 2** for FAR/FRR tradeoffs):
 - **False Accept Rate (FAR)**: 0/4 (Wilson 95% CI: [0.00, 0.60]) — All SAME pairs correctly identified
@@ -213,11 +213,12 @@ We aggregate observed per-prompt scores from `transcript.ndjson` and perform **b
 
 ### 8.1 Behavioral Fingerprinting via Variance Structure (Implemented)
 
-When models converge to **stable intermediate states** (neither SAME nor DIFFERENT), the framework automatically classifies relationships through **behavioral fingerprinting**. This is fully implemented in `diff_decision.py:339-373` and triggers when:
+When models converge to **stable intermediate states** (neither SAME nor DIFFERENT), the framework automatically classifies relationships through **behavioral fingerprinting**. This is fully implemented in `diff_decision.py:339-373` and triggers **only** for same-architecture variants when:
 - n ≥ max(50, 2×n_min)
 - CI half-width < 0.01 (converged)
-- 0.001 < |mean| < 0.5 (intermediate)
+- 0.001 < |mean| < 0.1 (small but non-zero effect)
 - variance < 0.1 (stable)
+- RME > ε_diff (cannot meet DIFFERENT precision requirement)
 
 **Automatic Classification** (returns `UNDECIDED_STABLE` with relationship type):
 
@@ -228,19 +229,21 @@ When models converge to **stable intermediate states** (neither SAME nor DIFFERE
 | `SAME_ARCH_DIFFERENT_SCALE` | <0.5 | <2.0 | Lines 358-359 | GPT-2 vs GPT-2-medium |
 | `BEHAVIORAL_VARIANT` | ≥0.5 | Any | Lines 360-361 | Different architectures |
 
-**Production Example** (from Yi-34B verification):
+**Important Clarification**: Behavioral fingerprinting triggers for same-architecture fine-tuned models (e.g., Llama-7B-base vs Llama-7B-chat) where the effect size is too small for a definitive DIFFERENT decision but too large for SAME. Different architectures (e.g., GPT-2 vs GPT-2-medium, as shown in our experimental run) produce larger effect sizes (>0.4) and reach DIFFERENT decisions directly.
+
+**Hypothetical Example** (same-architecture fine-tuning would produce):
 ```python
-# Actual output from diff_decision.py
+# Expected output for base vs instruction-tuned variant
 {
   "decision": "UNDECIDED_STABLE",
   "relationship": "SAME_ARCH_FINE_TUNED",
-  "reason": "Converged to stable intermediate state (mean=0.033166, CV=0.421)",
+  "reason": "Converged to stable intermediate state (mean=0.033, CV=0.421)",
   "coefficient_of_variation": 0.421,
   "n_queries": 88
 }
 ```
 
-The framework prevented an infinite loop by detecting the models were fine-tuned variants (same architecture, different training objective) after 88 queries instead of running to n_max=400. This **behavioral fingerprinting** provides actionable insights beyond binary decisions, enabling model genealogy tracking without weight access.
+This **behavioral fingerprinting** prevents infinite loops and provides actionable insights beyond binary decisions, enabling model genealogy tracking without weight access.
 
 **Adaptive Variance Reduction:** When approaching `UNDECIDED_STABLE`, the framework (via `adaptive_sampling.py`) automatically switches strategies:
 - **High variance** (CV>0.3): Increases positions per prompt (8→12→16) 
