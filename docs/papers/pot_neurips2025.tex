@@ -10,9 +10,6 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{url}
-\usepackage{multirow}
-\usepackage{algorithm}
-\usepackage{algorithmic}
 
 % For anonymous submission
 \newcommand{\neuripsauthor}[1]{}
@@ -109,10 +106,10 @@ We provide mode presets: \textbf{QUICK} ($\alpha=0.025$), \textbf{AUDIT} ($\alph
 
 We expose a \textbf{manifest-driven} runner with \textbf{one-command} entry points for local/API verification. Each run directory contains:
 \begin{itemize}
-\item \texttt{manifest.yaml}: run configuration, commitment metadata
-\item \texttt{transcript.ndjson}: per-challenge prompts, raw outputs, scores
-\item \texttt{evidence\_bundle.json}: summary, decision, confidence, n\_used
-\item \texttt{metrics.json} (optional): RSS time-series, sharding events
+\item \textbf{manifest.yaml}: run configuration, commitment metadata
+\item \textbf{transcript.ndjson}: per-challenge prompts, raw outputs, scores
+\item \textbf{evidence\_bundle.json}: summary, decision, confidence, n\_used
+\item \textbf{metrics.json} (optional): RSS time-series, sharding events
 \end{itemize}
 
 \subsection{Sharded verification (34B-class models)}
@@ -154,14 +151,14 @@ From recent experimental runs, verification reaches decisions in \textbf{14--48}
 \toprule
 Pair (ref$\rightarrow$cand) & Mode & $\alpha$ & n\_used & Decision & Time (s) & Memory (MB) & Bundle Hash \\
 \midrule
-gpt2 $\rightarrow$ gpt2 & AUDIT & 0.01 & 30 & SAME & 71.7 & 1560 & \texttt{val\_20250822\_122632} \\
-distilgpt2 $\rightarrow$ distilgpt2 & AUDIT & 0.01 & 30 & SAME & 49.6 & 1492 & \texttt{val\_20250822\_122754} \\
-gpt2 $\rightarrow$ distilgpt2 & AUDIT & 0.01 & 32 & DIFFERENT & 92.2 & 1325 & \texttt{val\_20250822\_122522} \\
-dialogpt $\rightarrow$ gpt2 & QUICK & 0.025 & 16 & DIFFERENT & 17.3 & 1853 & \texttt{val\_20250822\_122609} \\
-gpt2 $\rightarrow$ gpt2-medium & AUDIT & 0.01 & 48 & DIFFERENT & 99.6 & 1748 & \texttt{val\_20250825\_211041} \\
-pythia-70m $\rightarrow$ pythia-160m$^1$ & QUICK & 0.025 & 22 & DIFFERENT & 31.2 & 892 & \texttt{val\_20250823\_143212} \\
-gpt2 $\rightarrow$ gpt2-quantized$^2$ & AUDIT & 0.01 & 36 & DIFFERENT & 84.3 & 1402 & \texttt{val\_20250823\_144532} \\
-llama-7b $\rightarrow$ llama-7b$^3$ & QUICK & 0.025 & 14 & SAME & 1356.4$^4$ & 7981 & \texttt{val\_20250825\_222717} \\
+gpt2 $\rightarrow$ gpt2 & AUDIT & 0.01 & 30 & SAME & 71.7 & 1560 & val\_20250822\_122632 \\
+distilgpt2 $\rightarrow$ distilgpt2 & AUDIT & 0.01 & 30 & SAME & 49.6 & 1492 & val\_20250822\_122754 \\
+gpt2 $\rightarrow$ distilgpt2 & AUDIT & 0.01 & 32 & DIFFERENT & 92.2 & 1325 & val\_20250822\_122522 \\
+dialogpt $\rightarrow$ gpt2 & QUICK & 0.025 & 16 & DIFFERENT & 17.3 & 1853 & val\_20250822\_122609 \\
+gpt2 $\rightarrow$ gpt2-medium & AUDIT & 0.01 & 48 & DIFFERENT & 99.6 & 1748 & val\_20250825\_211041 \\
+pythia-70m $\rightarrow$ pythia-160m$^1$ & QUICK & 0.025 & 22 & DIFFERENT & 31.2 & 892 & val\_20250823\_143212 \\
+gpt2 $\rightarrow$ gpt2-quantized$^2$ & AUDIT & 0.01 & 36 & DIFFERENT & 84.3 & 1402 & val\_20250823\_144532 \\
+llama-7b $\rightarrow$ llama-7b$^3$ & QUICK & 0.025 & 14 & SAME & 1356.4$^4$ & 7981 & val\_20250825\_222717 \\
 \bottomrule
 \end{tabular}
 
@@ -278,7 +275,7 @@ The framework extends the core decision logic with \textbf{behavioral fingerprin
 \item variance < 0.1 (stable)
 \end{itemize}
 
-\textbf{Automatic Classification} (returns \texttt{UNDECIDED\_STABLE} with relationship type):
+\textbf{Automatic Classification} (returns UNDECIDED\_STABLE with relationship type):
 
 \begin{table}[h]
 \centering
@@ -286,10 +283,10 @@ The framework extends the core decision logic with \textbf{behavioral fingerprin
 \toprule
 Relationship & Mean Effect & CV Threshold & Real Example \\
 \midrule
-\texttt{NEAR\_CLONE} & <0.01 & <0.5 & Same model, different seeds \\
-\texttt{SAME\_ARCH\_FINE\_TUNED} & <0.1 & <1.0 & Llama-7B base vs chat \\
-\texttt{SAME\_ARCH\_DIFFERENT\_SCALE} & <0.5 & <2.0 & GPT-2 vs GPT-2-medium \\
-\texttt{BEHAVIORAL\_VARIANT} & $\geq$0.5 & Any & Different architectures \\
+NEAR\_CLONE & <0.01 & <0.5 & Same model, different seeds \\
+SAME\_ARCH\_FINE\_TUNED & <0.1 & <1.0 & Llama-7B base vs chat \\
+SAME\_ARCH\_DIFFERENT\_SCALE & <0.5 & <2.0 & GPT-2 vs GPT-2-medium \\
+BEHAVIORAL\_VARIANT & $\geq$0.5 & Any & Different architectures \\
 \bottomrule
 \end{tabular}
 \end{table}
