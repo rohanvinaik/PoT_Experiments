@@ -5,7 +5,7 @@
 
 ## Abstract
 
-We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands, with automatic **behavioral fingerprinting** for model variants (fine-tuned, quantized, etc.). The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. PoT fully verifies API-hosted models; for **provider authentication** (proving who serves the API), we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **minutes** on 7B–34B models (verifier-only overhead excluding model inference), enabling **per-commit provenance checks** that previously required tens of minutes to hours.
+We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands, with automatic **behavioral fingerprinting** for model variants (fine-tuned, quantized, etc.). The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we demonstrate **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. PoT fully verifies API-hosted models; for **provider authentication** (proving who serves the API), we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **1–2 minutes** on standard models (GPT-2 class) and API endpoints, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
 
 ---
 
@@ -156,20 +156,19 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 | Apple M1 Max (MPS) | GPT-2 (124M) | 49–92s | 10–20s | 0.35–0.61 | 1.3–1.6 GB |
 | Apple M1 Max (MPS) | GPT-2-medium (355M) | 99s | 25s | 0.48 | 1.7 GB |
 | API (GPT-3.5) | N/A | 48–72s | 48–72s | 0.42–0.67 | <100 MB |
-| Apple M1 Max (MPS) | Llama-7B⁷ | 22.6 min | ~2 min⁵ | 0.01 | 8.0 GB |
-| Apple M1 Max (CPU) | Yi-34B (sharded)⁶ | 3 min | 3 min | — | 33.9 GB (52% host) |
 
-⁵Estimated verifier-only based on API timings ⁶Systems feasibility demo, not core statistical verification
-⁷Requires sharding: model loads/unloads per query due to 14GB size vs 8GB peak RAM constraint
+**Extended experiments with sharding** (not included in primary timing claims):
+- Llama-7B on M1 Max (MPS): 22.6 min total due to sharding overhead (14GB model, 8GB peak RAM)
+- Yi-34B on M1 Max (CPU): 3 min (systems feasibility demo)
 
 ### 7.3 Operational Impact
 
 **Hours → Minutes**: Compact comparison for model verification
 
-| Method | Time (GPT-2 class) | Time (7B API) | Speedup | API-compatible |
+| Method | Time (GPT-2 class) | Time (API) | Speedup | API-compatible |
 |---|---:|---:|---:|---|
-| **PoT (ours)** | **1–2 min** | **2–3 min** | **—** | **✓** |
-| Fixed-N (1000 prompts) | 45–60 min | 60–90 min | 30–45× | ✓ |
+| **PoT (ours)** | **1–2 min** | **1–2 min** | **—** | **✓** |
+| Fixed-N (1000 prompts) | 45–60 min | 45–60 min | 30–45× | ✓ |
 | Gradient verification | 120 min | N/A | 60–120× | ✗ |
 
 

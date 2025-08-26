@@ -26,7 +26,7 @@ Anytime Behavioral Model Identity Checks}
 \maketitle
 
 \begin{abstract}
-We present a \textbf{post-training behavioral verifier} for model identity. Given two models (or a model and a reference), we decide \textbf{SAME / DIFFERENT / UNDECIDED} with \textbf{controlled error} using \textbf{dozens of queries} rather than thousands, with automatic \textbf{behavioral fingerprinting} for model variants (fine-tuned, quantized, etc.). The verifier (i) \textbf{pre-commits} to a challenge set via \textbf{HMAC-derived seeds}, (ii) maintains an \textbf{anytime confidence sequence} using \textbf{Empirical-Bernstein (EB)} bounds \cite{maurer2009empiricalbernstein,howard2021timeuniform,howard2021confidenceSequences}, and (iii) \textbf{stops early} when the interval is decisively within a SAME/DIFFERENT region. Each run exports a \textbf{reproducible audit bundle} (transcripts, seeds/commitments, configs, environment). On the systems side, we support \textbf{sharded verification} to validate \textbf{34B-class models} (aggregate $\approx$\textbf{206 GB} weights) on a \textbf{64 GB} host with peak $\approx$\textbf{52\%} RAM by loading/releasing shards. The repository includes \textbf{single-command runners} for \textbf{local} and \textbf{API (black-box)} verification. PoT fully verifies API-hosted models; for \textbf{provider authentication} (proving who serves the API), we clarify when \textbf{TEE attestation} or \textbf{vendor commitments} are required and how \textbf{ZK} can attest correctness of the verifier computation from a published transcript. At $\alpha=0.01$, PoT reaches SAME/DIFF decisions in \textbf{minutes} on 7B--34B models (verifier-only overhead excluding model inference), enabling \textbf{per-commit provenance checks} that previously required tens of minutes to hours.
+We present a \textbf{post-training behavioral verifier} for model identity. Given two models (or a model and a reference), we decide \textbf{SAME / DIFFERENT / UNDECIDED} with \textbf{controlled error} using \textbf{dozens of queries} rather than thousands, with automatic \textbf{behavioral fingerprinting} for model variants (fine-tuned, quantized, etc.). The verifier (i) \textbf{pre-commits} to a challenge set via \textbf{HMAC-derived seeds}, (ii) maintains an \textbf{anytime confidence sequence} using \textbf{Empirical-Bernstein (EB)} bounds \cite{maurer2009empiricalbernstein,howard2021timeuniform,howard2021confidenceSequences}, and (iii) \textbf{stops early} when the interval is decisively within a SAME/DIFFERENT region. Each run exports a \textbf{reproducible audit bundle} (transcripts, seeds/commitments, configs, environment). On the systems side, we demonstrate \textbf{sharded verification} to validate \textbf{34B-class models} (aggregate $\approx$\textbf{206 GB} weights) on a \textbf{64 GB} host with peak $\approx$\textbf{52\%} RAM by loading/releasing shards. The repository includes \textbf{single-command runners} for \textbf{local} and \textbf{API (black-box)} verification. PoT fully verifies API-hosted models; for \textbf{provider authentication} (proving who serves the API), we clarify when \textbf{TEE attestation} or \textbf{vendor commitments} are required and how \textbf{ZK} can attest correctness of the verifier computation from a published transcript. At $\alpha=0.01$, PoT reaches SAME/DIFF decisions in \textbf{1--2 minutes} on standard models (GPT-2 class) and API endpoints, enabling \textbf{per-commit provenance checks} that previously required tens of minutes to hours.
 \end{abstract}
 
 \section{Introduction}
@@ -200,14 +200,15 @@ Hardware & Model Size & End-to-end Time & Verifier-only & Peak Memory \\
 Apple M1 Max (MPS) & GPT-2 (124M) & 49--92s & 10--20s & 1.3--1.6 GB \\
 Apple M1 Max (MPS) & GPT-2-medium (355M) & 99s & 25s & 1.7 GB \\
 API (GPT-3.5) & N/A & 48--72s & 48--72s & <100 MB \\
-Apple M1 Max (MPS) & Llama-7B$^7$ & 22.6 min & $\sim$2 min$^5$ & 8.0 GB \\
-Apple M1 Max (CPU) & Yi-34B (sharded)$^6$ & 3 min & 3 min & 33.9 GB (52\% host) \\
 \bottomrule
 \end{tabular}
-
-\footnotesize{$^5$Estimated verifier-only based on API timings $^6$Systems feasibility demo, not core statistical verification\\
-$^7$Requires sharding: model loads/unloads per query due to 14GB size vs 8GB peak RAM constraint}
 \end{table}
+
+\textbf{Extended experiments with sharding} (not included in primary timing claims):
+\begin{itemize}
+\item Llama-7B on M1 Max (MPS): 22.6 min total due to sharding overhead (14GB model, 8GB peak RAM)
+\item Yi-34B on M1 Max (CPU): 3 min (systems feasibility demo)
+\end{itemize}
 
 \subsection{Operational Impact}
 
@@ -217,10 +218,10 @@ $^7$Requires sharding: model loads/unloads per query due to 14GB size vs 8GB pea
 \centering
 \begin{tabular}{lcccc}
 \toprule
-Method & Time (GPT-2 class) & Time (7B API) & Speedup & API-compatible \\
+Method & Time (GPT-2 class) & Time (API) & Speedup & API-compatible \\
 \midrule
-\textbf{PoT (ours)} & \textbf{1--2 min} & \textbf{2--3 min} & \textbf{---} & \textbf{\checkmark} \\
-Fixed-N (1000 prompts) & 45--60 min & 60--90 min & 30--45× & \checkmark \\
+\textbf{PoT (ours)} & \textbf{1--2 min} & \textbf{1--2 min} & \textbf{---} & \textbf{\checkmark} \\
+Fixed-N (1000 prompts) & 45--60 min & 45--60 min & 30--45× & \checkmark \\
 Gradient verification & 120 min & N/A & 60--120× & $\times$ \\
 \bottomrule
 \end{tabular}
