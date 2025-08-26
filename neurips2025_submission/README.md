@@ -1,28 +1,24 @@
-# NeurIPS 2025 Workshop Submission Packet
+# NeurIPS 2025 Workshop Submission
 
 ## Proof-of-Training (PoT) Verifier: Cryptographically Pre-Committed, Anytime Behavioral Model Identity Checks
 
-**Submission to**: NeurIPS 2025 Workshop on Reliable ML from Unreliable Data (non-archival)
+**Target**: NeurIPS 2025 Workshop on Reliable ML from Unreliable Data (non-archival)
 
-## Contents
+## Submission Files
 
-### Main Submission (Choose One)
-- **`pot_neurips2025_polished.pdf`** - Enhanced typography version (9 pages, 228KB) - RECOMMENDED
-- `pot_neurips2025.pdf` - Standard version (9 pages, 244KB)
-
-### LaTeX Sources
-- `pot_neurips2025_polished.tex` - Enhanced LaTeX with professional formatting
-- `pot_neurips2025.tex` - Standard LaTeX source
+### Main Paper
+- **`pot_neurips2025.pdf`** - Main submission (9 pages, 228KB)
+- `pot_neurips2025.tex` - LaTeX source with professional typography
+- `pot_neurips2025.bbl` - Compiled bibliography
 - `references.bib` - Bibliography source
-- `*.bbl` - Compiled bibliography files
 
 ### Figures
 - `figures/fig1_time_to_decision.pdf` - Time-to-decision trajectories 
-- `figures/fig2_error_rates.pdf` - FAR/FRR curves with operating points
-- `figures/confusion_matrix.pdf` - Decision accuracy visualization (optional)
+- `figures/fig2_error_rates.pdf` - FAR/FRR curves
+- Additional figures in `figures/` directory
 
-### Extended Version
-- `POT_PAPER_COMPLETE_UPDATED.md` - Markdown version with additional details
+### Supplementary
+- `POT_PAPER_COMPLETE_UPDATED.md` - Extended markdown version
 
 ## Key Results
 
