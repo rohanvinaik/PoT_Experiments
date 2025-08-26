@@ -74,6 +74,16 @@
 }
 
 % Section spacing - manual settings without titlesec
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-18pt plus -4pt minus -2pt}%
+  {10pt plus 2pt minus 1pt}%
+  {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-12pt plus -3pt minus -1pt}%
+  {6pt plus 1pt minus 0.5pt}%
+  {\normalfont\large\bfseries}}
+\makeatother
 
 % Paragraph settings
 \setlength{\parskip}{0pt}
@@ -236,7 +246,7 @@ We expose a \textbf{manifest-driven} runner with \textbf{one-command} entry poin
 \begin{itemize}
 \item \textbf{manifest.yaml}: run configuration, commitment metadata
 \item \textbf{transcript.ndjson}: per-challenge prompts, raw outputs, scores
-\item \textbf{evidence\_bundle.json}: summary, decision, confidence, n\_used
+\item \textbf{evidence\_bundle.json}: summary, decision, confidence, $n_{\text{used}}$
 \item \textbf{metrics.json} (optional): RSS time-series, sharding events
 \end{itemize}
 
@@ -278,7 +288,7 @@ From recent experimental runs, verification reaches decisions in \textbf{14--48}
 \small
 \begin{tabular}{l c r r c r l}
 \toprule
-\textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{n\_used} & \textbf{Decision} & \textbf{Time (s)} & \textbf{Evidence Hash} \\
+\textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n_{\text{used}}$} & \textbf{Decision} & \textbf{Time (s)} & \textbf{Evidence Hash} \\
 \midrule
 gpt2 $\to$ gpt2 & QUICK & 0.001 & 14 & SAME & 48.5 & val\_20250825\_142945 \\
 gpt2 $\to$ distilgpt2 & AUDIT & 13.04 & 32 & DIFFERENT & 61.4 & val\_20250825\_143122 \\
