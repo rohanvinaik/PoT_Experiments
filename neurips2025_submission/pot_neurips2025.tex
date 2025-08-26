@@ -26,7 +26,30 @@ Anytime Behavioral Model Identity Checks}
 \maketitle
 
 \begin{abstract}
-We present a \textbf{post-training behavioral verifier} for model identity. Given two models (or a model and a reference), we decide \textbf{SAME / DIFFERENT / UNDECIDED} with \textbf{controlled error} using \textbf{dozens of queries} rather than thousands, with automatic \textbf{behavioral fingerprinting} for model variants (fine-tuned, quantized, etc.). The verifier (i) \textbf{pre-commits} to a challenge set via \textbf{HMAC-derived seeds}, (ii) maintains an \textbf{anytime confidence sequence} using \textbf{Empirical-Bernstein (EB)} bounds \cite{maurer2009empiricalbernstein,howard2021timeuniform,howard2021confidenceSequences}, and (iii) \textbf{stops early} when the interval is decisively within a SAME/DIFFERENT region. Each run exports a \textbf{reproducible audit bundle} (transcripts, seeds/commitments, configs, environment). On the systems side, we demonstrate \textbf{sharded verification} to validate \textbf{34B-class models} (aggregate $\approx$\textbf{206 GB} weights) on a \textbf{64 GB} host with peak $\approx$\textbf{52\%} RAM by loading/releasing shards. The repository includes \textbf{single-command runners} for \textbf{local} and \textbf{API (black-box)} verification. PoT fully verifies API-hosted models; for \textbf{provider authentication} (proving who serves the API), we clarify when \textbf{TEE attestation} or \textbf{vendor commitments} are required and how \textbf{ZK} can attest correctness of the verifier computation from a published transcript. At $\alpha=0.01$, PoT reaches SAME/DIFF decisions in \textbf{1--2 minutes} on standard models (GPT-2 class) and API endpoints, enabling \textbf{per-commit provenance checks} that previously required tens of minutes to hours.
+We present a \textbf{post-training behavioral verifier} for model identity. 
+Given two models (or a model and a reference), we decide 
+\textbf{SAME/DIFFERENT/UNDECIDED} with \textbf{controlled error} using 
+\textbf{dozens of queries} rather than thousands, with automatic 
+\textbf{behavioral fingerprinting} for model variants. 
+The verifier (i) \textbf{pre-commits} to challenges via \textbf{HMAC-derived seeds}, 
+(ii) maintains \textbf{anytime confidence sequences} using 
+\textbf{Empirical-Bernstein bounds} \cite{maurer2009empiricalbernstein,howard2021timeuniform,howard2021confidenceSequences}, 
+and (iii) \textbf{stops early} when confidence intervals reach decision thresholds. 
+Each run exports a \textbf{reproducible audit bundle} containing transcripts, 
+seeds, commitments, configs, and environment data. 
+On the systems side, we demonstrate \textbf{sharded verification} of 
+\textbf{34B-class models} ($\approx$\textbf{206 GB} weights) on \textbf{64 GB} hosts 
+with $\approx$\textbf{52\%} peak RAM usage through shard cycling. 
+The repository includes \textbf{single-command runners} for both \textbf{local} 
+and \textbf{API-based} verification. 
+PoT fully verifies API-hosted models; \textbf{provider authentication} 
+(proving server operator identity) requires separate infrastructure like 
+\textbf{TEE attestation} or \textbf{vendor commitments}. 
+\textbf{ZK proofs} can attest verifier computation correctness from published 
+transcripts but cannot authenticate remote providers. 
+At $\alpha=0.01$, PoT reaches decisions in \textbf{1--2 minutes} on standard models 
+(GPT-2 class) and API endpoints, enabling \textbf{per-commit provenance checks} 
+that previously required 45--60 minutes or more.
 \end{abstract}
 
 \section{Introduction}
@@ -189,6 +212,11 @@ llama-7b $\rightarrow$ llama-7b$^3$ & QUICK & 0.025 & 14 & SAME & 1356.4$^4$ & 7
 \end{figure}
 
 \subsection{Wall-Time Performance}
+
+\begin{quote}
+\footnotesize
+\textbf{Timing Policy:} All times are end-to-end wall-clock including model inference. Verifier-only overhead (excluding inference) shown in parentheses where measurable; API times are entirely network-bound.
+\end{quote}
 
 \begin{table}[h]
 \centering
