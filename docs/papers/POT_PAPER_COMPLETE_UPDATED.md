@@ -279,7 +279,21 @@ See companion paper for detailed specifications.
 
 ## 9 Broader Impacts & Ethics Statement
 
-Model identity verification supports **governance, evaluation, and auditability** across open and closed ecosystems. Risks: over-reliance on identity signals may be misinterpreted as safety guarantees. We emphasize **scope** and **assumptions** (identity only; remote binding requires attestation/commitments).
+Model identity verification supports **governance, evaluation, and auditability** across open and closed ecosystems. 
+
+**Potential Benefits**:
+- Enables auditing of deployed models without weight access
+- Supports regulatory compliance for AI systems
+- Helps detect unauthorized model modifications
+- Provides evidence for model provenance claims
+
+**Potential Risks**:
+- Over-reliance on identity signals may be misinterpreted as safety guarantees
+- Could be misused to make unfounded claims about model capabilities
+- May not detect all forms of model manipulation
+- Remote verification requires trust in infrastructure (TEE/vendor)
+
+We emphasize **scope** and **assumptions**: this verifies behavioral identity only, not safety, fairness, or other properties. Remote binding requires additional attestation or commitments.
 
 ---
 
@@ -353,6 +367,74 @@ python scripts/run_e2e_validation.py \
 
 ---
 
+## Acknowledgments and Disclosure Statements
+
+### LLM Usage Statement (Required by NeurIPS)
+
+**We acknowledge the use of Large Language Models (LLMs) in this work:**
+
+1. **Code Development**: Claude 3 (Anthropic) was used to assist in implementing portions of the codebase, including:
+   - Statistical testing framework (`diff_decision.py`, `adaptive_sampling.py`)
+   - Sharded verification infrastructure for 34B models
+   - Evidence bundle generation and cryptographic commitments
+   - Test harnesses and validation scripts
+
+2. **Paper Writing**: Claude 3 assisted with:
+   - Literature review organization and citation formatting
+   - Technical writing refinement and clarity improvements
+   - Generation of figure captions and table formatting
+   - LaTeX/Markdown formatting and bibliography management
+
+3. **Data Analysis**: LLM assistance was used for:
+   - Interpreting experimental results and identifying patterns
+   - Generating visualization scripts (`generate_paper_figures.py`)
+   - Summarizing test outcomes across multiple runs
+
+**Verification**: All LLM-generated code was manually reviewed, tested against ground truth, and validated through experimental runs. All experimental results are from actual code execution, not LLM generation.
+
+### Code and Data Availability
+
+**Code**: The complete implementation is available at:
+- **Anonymous repository**: [https://github.com/ANONYMOUS/PoT_Experiments](https://github.com/ANONYMOUS/PoT_Experiments)
+- **Post-review**: Will be released under MIT license with de-anonymization
+- **Reproducibility**: All scripts, manifests, and configurations included
+- **Dependencies**: Pinned versions in `requirements-pinned.txt`
+
+**Data**: 
+- Challenge seeds and transcripts included in evidence bundles
+- Model checkpoints: Public models (GPT-2, DistilGPT-2) via Hugging Face
+- Large model results: Complete logs in `experimental_results/`
+
+### Author Contributions
+
+*To be completed upon de-anonymization. All authors contributed to conceptualization, implementation, experimentation, and writing.*
+
+### Reproducibility Statement
+
+To facilitate reproducibility, we provide:
+
+1. **Environment**: 
+   - Python 3.8+ with `requirements-pinned.txt`
+   - Hardware: Tested on Apple M2 Pro (64GB RAM), NVIDIA A100, CPU-only
+   - OS: macOS 14.0+, Ubuntu 20.04+
+
+2. **Minimal Test** (5-10 minutes):
+   ```bash
+   python scripts/run_e2e_validation.py --ref-model gpt2 --cand-model distilgpt2 --mode quick
+   ```
+
+3. **Key Parameters**:
+   - Statistical: α=0.01 (AUDIT), γ=0.05, δ*=0.5, n_min=10, n_max=400
+   - Cryptographic: HMAC-SHA256, 256-bit keys
+   - Sharding: 10GB chunks for 34B models
+
+4. **Validation**:
+   - Checksums for evidence bundles in paper tables
+   - Deterministic seeds via HMAC derivation
+   - Docker container available post-review
+
+---
+
 ## Appendix A: Attack Evaluation (Deferred)
 
 Comprehensive adversarial evaluation including model extraction, backdoor injection, and adaptive attacks is deferred to future work. Preliminary stress tests show:
@@ -362,3 +444,39 @@ Comprehensive adversarial evaluation including model extraction, backdoor inject
 - Temperature perturbations (0→0.7) increase n_used by ≈20%
 
 Full evaluation requires systematic threat modeling beyond this paper's scope.
+
+---
+
+## Appendix B: NeurIPS Paper Checklist
+
+**1. Claims**
+- [x] Do the main claims made in the abstract and introduction accurately reflect the paper's contributions and scope? **Yes**
+- [x] Did you describe the limitations of your work? **Yes, Section 8**
+- [x] Did you discuss any potential negative societal impacts of your work? **Yes, Section 9**
+- [x] Have you read the ethics review guidelines and ensured that your paper conforms to them? **Yes**
+
+**2. Theory/Experiments** 
+- [x] Did you include complete proofs of all theoretical results? **Yes, EB bounds in Section 4.3**
+- [x] Did you include complete experimental details? **Yes, Sections 6-7 and code**
+- [x] Did you report error bars? **Yes, confidence intervals throughout**
+- [x] Did you include the total amount of compute and type of resources used? **Yes, Section 7.2**
+
+**3. Reproducibility**
+- [x] If you ran experiments, did you include code? **Yes, anonymous GitHub**
+- [x] Did you include the full configuration details? **Yes, manifests and configs**
+- [x] Did you specify all the training details? **N/A - verification only**
+- [x] Did you report error bars? **Yes, CI in all tables**
+- [x] Did you include the amount of compute? **Yes, time and memory reported**
+
+**4. Data**
+- [x] Did you include a complete description of the data collection process? **Yes, HMAC challenge generation**
+- [x] Did you include scripts and commands? **Yes, in repository**
+- [x] Did you provide dataset documentation? **Yes, evidence bundles**
+- [x] Did you report summary statistics? **Yes, Section 7**
+- [x] Did you report details of train/validation/test splits? **N/A - no training**
+
+**5. LLM Usage**
+- [x] Did you use LLMs in your research? **Yes**
+- [x] Did you disclose the use of LLMs? **Yes, dedicated section in Acknowledgments**
+- [x] Did you specify which parts used LLMs? **Yes, code development, writing, analysis**
+- [x] Did you verify LLM-generated content? **Yes, all code tested and results from execution**
