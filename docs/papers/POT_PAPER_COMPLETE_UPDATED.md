@@ -343,7 +343,13 @@ python scripts/run_e2e_validation.py \
 
 ## References
 
-*References will render via `pandoc --citeproc` if you provide a `--bibliography=refs.bib`.*
+<!-- To build this paper with formatted citations:
+     ./build_paper.sh
+     or manually:
+     pandoc POT_PAPER_COMPLETE_UPDATED.md --citeproc --bibliography=references.bib -o POT_PAPER.pdf
+-->
+
+*All references are defined in `references.bib`. The citations above will be properly formatted when processed with pandoc using the `--citeproc` flag.*
 
 ---
 

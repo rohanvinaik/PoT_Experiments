@@ -1,87 +1,248 @@
+% ============================================================================
+% Bibliography for Proof-of-Training (PoT) Verifier Paper
+% NeurIPS 2025 Workshop Submission
+% ============================================================================
+
+% -----------------------------------------------------------------------------
+% Sequential Testing and Statistical Methods
+% -----------------------------------------------------------------------------
+
 @article{maurer2009empiricalbernstein,
-  title={Empirical Bernstein bounds and sample variance penalization},
+  title={Empirical {B}ernstein bounds and sample variance penalization},
   author={Maurer, Andreas and Pontil, Massimiliano},
   journal={COLT},
-  year={2009}
+  year={2009},
+  note={Foundation for variance-adaptive concentration bounds}
 }
 
 @article{howard2021timeuniform,
-  title={Time-uniform Chernoff bounds via nonnegative supermartingales},
-  author={Howard, Steven R. and Ramdas, Aaditya and others},
-  journal={arXiv preprint arXiv:2108.04265},
-  year={2021}
+  title={Time-uniform {C}hernoff bounds via nonnegative supermartingales},
+  author={Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
+  journal={Probability Theory and Related Fields},
+  volume={184},
+  number={3},
+  pages={817--891},
+  year={2021},
+  publisher={Springer}
 }
 
 @article{howard2021confidenceSequences,
   title={Time-uniform, nonparametric, nonasymptotic confidence sequences},
   author={Howard, Steven R. and Ramdas, Aaditya and McAuliffe, Jon and Sekhon, Jasjeet},
-  journal={Annals of Statistics},
+  journal={The Annals of Statistics},
   volume={49},
   number={2},
   pages={1055--1080},
-  year={2021}
+  year={2021},
+  publisher={Institute of Mathematical Statistics}
 }
 
 @article{wald1945sprt,
-  title={Sequential Tests of Statistical Hypotheses},
+  title={Sequential tests of statistical hypotheses},
   author={Wald, Abraham},
-  journal={Annals of Mathematical Statistics},
+  journal={The Annals of Mathematical Statistics},
   volume={16},
   number={2},
   pages={117--186},
-  year={1945}
+  year={1945},
+  publisher={Institute of Mathematical Statistics}
 }
 
 @article{audibert2009exploration,
-  title={Exploration--exploitation tradeoff using variance estimates},
+  title={Exploration--exploitation tradeoff using variance estimates in multi-armed bandits},
   author={Audibert, Jean-Yves and Munos, R{\'e}mi and Szepesv{\'a}ri, Csaba},
   journal={Theoretical Computer Science},
   volume={410},
   number={19},
   pages={1876--1902},
-  year={2009}
+  year={2009},
+  publisher={Elsevier}
 }
 
-@misc{rfc2104,
+% -----------------------------------------------------------------------------
+% Cryptographic Standards and Protocols
+% -----------------------------------------------------------------------------
+
+@techreport{rfc2104,
   title={{HMAC}: Keyed-Hashing for Message Authentication},
   author={Krawczyk, Hugo and Bellare, Mihir and Canetti, Ran},
-  howpublished={RFC 2104},
+  type={RFC},
+  number={2104},
   year={1997},
-  note={IETF}
+  month={February},
+  institution={Internet Engineering Task Force (IETF)},
+  url={https://www.rfc-editor.org/rfc/rfc2104}
 }
 
-@misc{rfc5869,
-  title={{HKDF}: HMAC-based Extract-and-Expand Key Derivation Function},
+@techreport{rfc5869,
+  title={{HMAC-based} Extract-and-Expand Key Derivation Function ({HKDF})},
   author={Krawczyk, Hugo and Eronen, Pasi},
-  howpublished={RFC 5869},
+  type={RFC},
+  number={5869},
   year={2010},
-  note={IETF}
+  month={May},
+  institution={Internet Engineering Task Force (IETF)},
+  url={https://www.rfc-editor.org/rfc/rfc5869}
 }
 
 @techreport{fips180-4,
   title={Secure Hash Standard ({SHS})},
-  institution={National Institute of Standards and Technology (NIST)},
-  number={FIPS PUB 180-4},
-  year={2015}
+  author={{NIST}},
+  institution={National Institute of Standards and Technology},
+  type={Federal Information Processing Standard (FIPS)},
+  number={180-4},
+  year={2015},
+  month={August},
+  doi={10.6028/NIST.FIPS.180-4}
 }
 
-@misc{costan2016sgx,
-  title={Intel {SGX} Explained},
+% -----------------------------------------------------------------------------
+% Trusted Execution and Zero-Knowledge Proofs
+% -----------------------------------------------------------------------------
+
+@article{costan2016sgx,
+  title={Intel {SGX} explained},
   author={Costan, Victor and Devadas, Srinivas},
-  howpublished={Cryptology ePrint Archive, Report 2016/086},
-  year={2016}
+  journal={Cryptology ePrint Archive, Report 2016/086},
+  year={2016},
+  url={https://eprint.iacr.org/2016/086}
 }
 
 @inproceedings{bensasson2014snarks,
-  title={Succinct Non-Interactive Zero Knowledge for a von Neumann Architecture},
+  title={Succinct non-interactive zero knowledge for a von {N}eumann architecture},
   author={Ben-Sasson, Eli and Chiesa, Alessandro and Garman, Christina and Green, Matthew and Miers, Ian and Tromer, Eran and Virza, Madars},
-  booktitle={USENIX Security},
-  year={2014}
+  booktitle={23rd USENIX Security Symposium},
+  pages={781--796},
+  year={2014},
+  organization={USENIX Association}
 }
 
 @inproceedings{bunz2018bulletproofs,
-  title={Bulletproofs: Short Proofs for Confidential Transactions and More},
+  title={Bulletproofs: Short proofs for confidential transactions and more},
   author={B{\"u}nz, Benedikt and Bootle, Jonathan and Boneh, Dan and Poelstra, Andrew and Wuille, Pieter and Maxwell, Gregory},
-  booktitle={IEEE Symposium on Security and Privacy},
-  year={2018}
+  booktitle={2018 IEEE Symposium on Security and Privacy (SP)},
+  pages={315--334},
+  year={2018},
+  organization={IEEE},
+  doi={10.1109/SP.2018.00020}
 }
+
+% -----------------------------------------------------------------------------
+% Model Verification and Security
+% -----------------------------------------------------------------------------
+
+@inproceedings{uchida2017embedding,
+  title={Embedding watermarks into deep neural networks},
+  author={Uchida, Yusuke and Nagai, Yuki and Sakazawa, Shigeyuki and Satoh, Shin'ichi},
+  booktitle={Proceedings of the 2017 ACM on International Conference on Multimedia Retrieval},
+  pages={269--277},
+  year={2017},
+  organization={ACM},
+  doi={10.1145/3078971.3078974}
+}
+
+@inproceedings{zhang2018protecting,
+  title={Protecting intellectual property of deep neural networks with watermarking},
+  author={Zhang, Jialong and Gu, Zhongshu and Jang, Jiyong and Wu, Hui and Stoecklin, Marc Ph and Huang, Heqing and Molloy, Ian},
+  booktitle={Proceedings of the 2018 on Asia Conference on Computer and Communications Security},
+  pages={159--172},
+  year={2018},
+  organization={ACM},
+  doi={10.1145/3196494.3196550}
+}
+
+@inproceedings{jia2021proof,
+  title={Proof-of-learning: Definitions and practice},
+  author={Jia, Hengrui and Yaghini, Mohammad and Choquette-Choo, Christopher A and Dullerud, Natalie and Thudi, Anvith and Chandrasekaran, Varun and Papernot, Nicolas},
+  booktitle={2021 IEEE Symposium on Security and Privacy (SP)},
+  pages={1039--1056},
+  year={2021},
+  organization={IEEE},
+  doi={10.1109/SP40001.2021.00106}
+}
+
+% -----------------------------------------------------------------------------
+% Model Testing and Evaluation
+% -----------------------------------------------------------------------------
+
+@inproceedings{geirhos2020shortcut,
+  title={Shortcut learning in deep neural networks},
+  author={Geirhos, Robert and Jacobsen, J{\"o}rn-Henrik and Michaelis, Claudio and Zemel, Richard and Brendel, Wieland and Bethge, Matthias and Wichmann, Felix A},
+  booktitle={Nature Machine Intelligence},
+  volume={2},
+  number={11},
+  pages={665--673},
+  year={2020},
+  publisher={Nature Publishing Group},
+  doi={10.1038/s42256-020-00257-z}
+}
+
+@inproceedings{hendrycks2021many,
+  title={The many faces of robustness: A critical analysis of out-of-distribution generalization},
+  author={Hendrycks, Dan and Basart, Steven and Mu, Norman and Kadavath, Saurav and Wang, Frank and Dorundo, Evan and Desai, Rahul and Zhu, Tyler and Parajuli, Samyak and Guo, Mike and Song, Dawn and Steinhardt, Jacob and Gilmer, Justin},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={8340--8349},
+  year={2021},
+  organization={IEEE},
+  doi={10.1109/ICCV48922.2021.00823}
+}
+
+% -----------------------------------------------------------------------------
+% Additional References (if needed for completeness)
+% -----------------------------------------------------------------------------
+
+@article{robbins1951stochastic,
+  title={A stochastic approximation method},
+  author={Robbins, Herbert and Monro, Sutton},
+  journal={The Annals of Mathematical Statistics},
+  volume={22},
+  number={3},
+  pages={400--407},
+  year={1951},
+  publisher={Institute of Mathematical Statistics}
+}
+
+@book{lehmann2005testing,
+  title={Testing Statistical Hypotheses},
+  author={Lehmann, Erich L and Romano, Joseph P},
+  edition={3rd},
+  year={2005},
+  publisher={Springer},
+  address={New York},
+  doi={10.1007/0-387-27605-X}
+}
+
+@article{lai1976confidence,
+  title={On confidence sequences},
+  author={Lai, Tze Leung},
+  journal={The Annals of Statistics},
+  volume={4},
+  number={2},
+  pages={265--280},
+  year={1976},
+  publisher={Institute of Mathematical Statistics}
+}
+
+% -----------------------------------------------------------------------------
+% Software and Tools (if referenced)
+% -----------------------------------------------------------------------------
+
+@software{pytorch2019,
+  author={Paszke, Adam and Gross, Sam and Massa, Francisco and Lerer, Adam and Bradbury, James and Chanan, Gregory and Killeen, Trevor and Lin, Zeming and Gimelshein, Natalia and Antiga, Luca and others},
+  title={{PyTorch}: An Imperative Style, High-Performance Deep Learning Library},
+  url={https://pytorch.org},
+  version={2.2.0},
+  year={2019}
+}
+
+@software{transformers2020,
+  author={Wolf, Thomas and Debut, Lysandre and Sanh, Victor and Chaumond, Julien and Delangue, Clement and Moi, Anthony and Cistac, Pierric and Rault, Tim and Louf, R{\'e}mi and Funtowicz, Morgan and others},
+  title={Transformers: State-of-the-art Natural Language Processing},
+  url={https://github.com/huggingface/transformers},
+  version={4.36.2},
+  year={2020}
+}
+
+% ============================================================================
+% End of Bibliography
+% ============================================================================
