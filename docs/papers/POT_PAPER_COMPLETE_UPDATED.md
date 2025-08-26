@@ -5,7 +5,7 @@
 
 ## Abstract
 
-We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands. The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. PoT fully verifies API-hosted models; for **provider authentication** (proving who serves the API), we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **0.8–2.0 minutes** on 7B–34B models, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
+We present a **post-training behavioral verifier** for model identity. Given two models (or a model and a reference), we decide **SAME / DIFFERENT / UNDECIDED** with **controlled error** using **dozens of queries** rather than thousands, with automatic **behavioral fingerprinting** for model variants (fine-tuned, quantized, etc.). The verifier (i) **pre-commits** to a challenge set via **HMAC-derived seeds**, (ii) maintains an **anytime confidence sequence** using **Empirical-Bernstein (EB)** bounds [@maurer2009empiricalbernstein; @howard2021timeuniform; @howard2021confidenceSequences], and (iii) **stops early** when the interval is decisively within a SAME/DIFFERENT region. Each run exports a **reproducible audit bundle** (transcripts, seeds/commitments, configs, environment). On the systems side, we support **sharded verification** to validate **34B-class models** (aggregate ≈**206 GB** weights) on a **64 GB** host with peak ≈**52%** RAM by loading/releasing shards. The repository includes **single-command runners** for **local** and **API (black-box)** verification. PoT fully verifies API-hosted models; for **provider authentication** (proving who serves the API), we clarify when **TEE attestation** or **vendor commitments** are required and how **ZK** can attest correctness of the verifier computation from a published transcript. At α=0.01, PoT reaches SAME/DIFF decisions in **0.8–2.0 minutes** on 7B–34B models, enabling **per-commit provenance checks** that previously required tens of minutes to hours.
 
 ---
 
@@ -70,6 +70,8 @@ With \( \Delta_n = \overline{X}_n \) and EB half-width \( h_n \), we stop and ou
 - **DIFFERENT** if \( \Delta_n \ge \delta^* \) *and* \( h_n/\max(\Delta_n,10^{-12}) \le \varepsilon_{\text{diff}} \).
 - **UNDECIDED** otherwise (continue until \( n_{\max} \), with \( n \ge n_{\min} \)).
 
+When models converge to stable intermediate states (neither SAME nor DIFFERENT), the framework performs **behavioral fingerprinting** to classify the relationship (e.g., fine-tuned variant, quantized version)—see Section 8.1 for the automated classification system.
+
 We provide mode presets: **QUICK** (α=0.025), **AUDIT** (α=0.01), **EXTENDED** (α=0.005), which set \( \alpha,\gamma,\eta,\delta^*,\varepsilon_{\text{diff}},n_{\min},n_{\max} \). We also ship an **SPRT** alternative [@wald1945sprt], but EB-CS is the **default** due to anytime guarantees and variance adaptivity.
 
 ### 4.5 API verification and provider authentication
@@ -130,7 +132,7 @@ From recent experimental runs, verification reaches decisions in **14–48** que
 | llama-7b → llama-7b | QUICK | 0.025 | 14 | SAME | 1346.7 | 8009 | `val_20250823_061722` |
 | **gpt2 → gpt2-medium** | **AUDIT** | **0.01** | **48** | **DIFFERENT** | **99.6** | **1748** | **`val_20250825_211041`** |
 
-**Note on behavioral fingerprinting**: The UNDECIDED_STABLE classification (Section 8.1) applies to same-architecture fine-tuned variants where the mean effect size converges to a stable intermediate value (0.01 < |mean| < 0.1). Different architectures (e.g., GPT-2 vs GPT-2-medium) produce larger effect sizes and reach definitive DIFFERENT decisions.
+*Note: The GPT-2 vs GPT-2-medium pair shows clear architectural differences (DIFFERENT decision). For subtler relationships like fine-tuned variants of the same base model, see Section 8.1's behavioral fingerprinting system which automatically classifies intermediate states as SAME_ARCH_FINE_TUNED, NEAR_CLONE, etc.*
 
 **Error Rate Analysis** (from integrated calibration runs, n=8 pairs, see **Figure 2** for FAR/FRR tradeoffs):
 - **False Accept Rate (FAR)**: 0/4 (Wilson 95% CI: [0.00, 0.60]) — All SAME pairs correctly identified
@@ -212,9 +214,11 @@ We aggregate observed per-prompt scores from `transcript.ndjson` and perform **b
 - **Distributional sensitivity.** Domain-specific behavior shifts can increase sample complexity; we report **UNDECIDED** rather than over-claim.  
 - **Scorer choice.** Results depend on the bounded scorer; we mitigate via ablations and transparently document the default.
 
-### 8.1 Behavioral Fingerprinting via Variance Structure (Implemented)
+### 8.1 Behavioral Fingerprinting: Beyond Binary Decisions
 
-When models converge to **stable intermediate states** (neither SAME nor DIFFERENT), the framework automatically classifies relationships through **behavioral fingerprinting**. This is fully implemented in `diff_decision.py:339-373` and triggers **only** for same-architecture variants when:
+While the main framework provides SAME/DIFFERENT decisions (Sections 4.4, 7.1), real-world deployments often encounter **model variants** that share architecture but differ in training—fine-tuned versions, quantized models, or continually learned checkpoints. These produce intermediate behavioral signatures that don't meet DIFFERENT thresholds but aren't SAME either.
+
+The framework extends the core decision logic with **behavioral fingerprinting** that automatically classifies these relationships. This is fully implemented in `diff_decision.py:339-373` and triggers when:
 - n ≥ max(50, 2×n_min)
 - CI half-width < 0.01 (converged)
 - 0.001 < |mean| < 0.1 (small but non-zero effect)
@@ -251,7 +255,7 @@ This **behavioral fingerprinting** prevents infinite loops and provides actionab
 - **Near-zero mean** (<0.05): Switches to symmetric KL divergence (more sensitive)
 - **Stuck patterns**: Applies importance sampling and control variates
 
-This adaptive behavior was critical for the Yi-34B test, applying 3 strategy switches before reaching the fingerprinting decision.
+**Practical Impact**: This behavioral fingerprinting enables **model genealogy tracking**—organizations can detect unauthorized fine-tuning, track continual learning drift, and identify when quantization or distillation has been applied to their base models. Unlike binary SAME/DIFFERENT, it provides actionable intelligence about *how* models are related, critical for compliance and IP protection.
 
 ### 8.2 Future Direction: Restriction Enzyme Verification (REV)
 
