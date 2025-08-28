@@ -28,6 +28,7 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Pre-committed challenges}{3}{subsection.4.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Scoring}{3}{subsection.4.2}\protected@file@percent }
 \citation{maurer2009empiricalbernstein,howard2021timeuniform}
+\citation{gehrmann2019gltr}
 \citation{wald1945sprt}
 \citation{costan2016sgx}
 \citation{bensasson2014snarks,bunz2018bulletproofs}
@@ -35,50 +36,58 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Decision rules and early stopping}{4}{subsection.4.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.5}API verification and provider authentication}{4}{subsection.4.5}\protected@file@percent }
 \newlabel{sec:api-verification}{{4.5}{4}{API verification and provider authentication}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5}Implementation}{4}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Runner and artifacts}{4}{subsection.5.1}\protected@file@percent }
+\citation{hendrycks2021many}
+\citation{johari2017peeking}
+\citation{ramdas2023gametheoretic}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Implementation}{5}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Runner and artifacts}{5}{subsection.5.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.2}Sharded verification (34B-class models)}{5}{subsection.5.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {6}Experimental Setup}{5}{section.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Results}{5}{section.7}\protected@file@percent }
 \newlabel{sec:results}{{7}{5}{Results}{section.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Query Efficiency and Error Rates}{5}{subsection.7.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Wall-Time Performance}{5}{subsection.7.2}\protected@file@percent }
+\citation{johari2017peeking}
+\citation{ramdas2023gametheoretic}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Query Efficiency and Error Rates}{6}{subsection.7.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Comparison with Sophisticated Sequential Testing Baselines}}{6}{table.caption.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces SAME/DIFFERENT Decisions with Evidence Bundles}}{6}{table.caption.3}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{tab:decisions}{{3}{6}{SAME/DIFFERENT Decisions with Evidence Bundles}{table.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Wall-Time Performance}{6}{subsection.7.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Wall-Time Performance Comparison}}{6}{table.caption.4}\protected@file@percent }
+\newlabel{tab:wall-time}{{4}{6}{Wall-Time Performance Comparison}{table.caption.4}{}}
 \citation{hendrycks2021many}
 \citation{jia2021proof}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces SAME/DIFFERENT Decisions with Evidence Bundles}}{6}{table.caption.2}\protected@file@percent }
-\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:decisions}{{2}{6}{SAME/DIFFERENT Decisions with Evidence Bundles}{table.caption.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Wall-Time Performance Comparison}}{6}{table.caption.3}\protected@file@percent }
-\newlabel{tab:wall-time}{{3}{6}{Wall-Time Performance Comparison}{table.caption.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Time-to-decision trajectories for SAME vs DIFFERENT model pairs. SAME decisions converge quickly with tight confidence intervals. DIFFERENT decisions show clear separation after initial queries.}}{6}{figure.caption.4}\protected@file@percent }
-\newlabel{fig:time-to-decision}{{1}{6}{Time-to-decision trajectories for SAME vs DIFFERENT model pairs. SAME decisions converge quickly with tight confidence intervals. DIFFERENT decisions show clear separation after initial queries}{figure.caption.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Operational Impact}{6}{subsection.7.3}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Time-to-decision trajectories for SAME vs DIFFERENT model pairs. SAME decisions converge quickly with tight confidence intervals. DIFFERENT decisions show clear separation after initial queries.}}{7}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:time-to-decision}{{1}{7}{Time-to-decision trajectories for SAME vs DIFFERENT model pairs. SAME decisions converge quickly with tight confidence intervals. DIFFERENT decisions show clear separation after initial queries}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Operational Impact}{7}{subsection.7.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {8}Limitations and Negative Results}{7}{section.8}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha =0.025$, green dotted) and AUDIT mode ($\alpha =0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds.}}{7}{figure.caption.6}\protected@file@percent }
-\newlabel{fig:error-rates}{{2}{7}{False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha =0.025$, green dotted) and AUDIT mode ($\alpha =0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds}{figure.caption.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {8.1}Behavioral Fingerprinting: Beyond Binary Decisions}{7}{subsection.8.1}\protected@file@percent }
 \newlabel{sec:behavioral-fingerprinting}{{8.1}{7}{Behavioral Fingerprinting: Beyond Binary Decisions}{subsection.8.1}{}}
 \bibdata{references}
-\bibcite{audibert2009exploration}{{1}{}{{}}{{}}}
-\bibcite{bensasson2014snarks}{{2}{}{{}}{{}}}
-\bibcite{bunz2018bulletproofs}{{3}{}{{}}{{}}}
-\bibcite{costan2016sgx}{{4}{}{{}}{{}}}
-\bibcite{geirhos2020shortcut}{{5}{}{{}}{{}}}
-\bibcite{hendrycks2021many}{{6}{}{{}}{{}}}
-\bibcite{howard2021confidenceSequences}{{7}{}{{}}{{}}}
-\bibcite{howard2021timeuniform}{{8}{}{{}}{{}}}
-\bibcite{jia2021proof}{{9}{}{{}}{{}}}
-\bibcite{rfc2104}{{10}{}{{}}{{}}}
-\bibcite{rfc5869}{{11}{}{{}}{{}}}
-\bibcite{maurer2009empiricalbernstein}{{12}{}{{}}{{}}}
+\bibcite{audibert2009exploration}{{1}{2009}{{Audibert et~al.}}{{Audibert, Munos, and Szepesv{\'a}ri}}}
+\bibcite{bensasson2014snarks}{{2}{2014}{{Ben-Sasson et~al.}}{{Ben-Sasson, Chiesa, Tromer, and Virza}}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha =0.025$, green dotted) and AUDIT mode ($\alpha =0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds.}}{8}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:error-rates}{{2}{8}{False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha =0.025$, green dotted) and AUDIT mode ($\alpha =0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds}{figure.caption.7}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {9}Broader Impacts \& Ethics Statement}{8}{section.9}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {10}Conclusion}{8}{section.10}\protected@file@percent }
-\bibcite{fips180-4}{{13}{}{{}}{{}}}
-\bibcite{uchida2017embedding}{{14}{}{{}}{{}}}
-\bibcite{wald1945sprt}{{15}{}{{}}{{}}}
-\bibcite{zhang2018protecting}{{16}{}{{}}{{}}}
-\providecommand\NAT@force@numbers{}\NAT@force@numbers
-\@writefile{toc}{\contentsline {section}{\numberline {A}Technical Details}{9}{appendix.A}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Alpha-Spending and Optional Stopping}{9}{subsection.A.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Evidence Bundle Schema}{9}{subsection.A.2}\protected@file@percent }
-\gdef \@abspage@last{9}
+\bibcite{bunz2018bulletproofs}{{3}{2018}{{B{\"u}nz et~al.}}{{B{\"u}nz, Bootle, Boneh, Poelstra, Wuille, and Maxwell}}}
+\bibcite{costan2016sgx}{{4}{2016}{{Costan and Devadas}}{{}}}
+\bibcite{gehrmann2019gltr}{{5}{2019}{{Gehrmann et~al.}}{{Gehrmann, Strobelt, and Rush}}}
+\bibcite{geirhos2020shortcut}{{6}{2020}{{Geirhos et~al.}}{{Geirhos, Jacobsen, Michaelis, Zemel, Brendel, Bethge, and Wichmann}}}
+\bibcite{hendrycks2021many}{{7}{2021}{{Hendrycks et~al.}}{{Hendrycks, Basart, Mu, Kadavath, Wang, Dorundo, Desai, Zhu, Parajuli, Guo, et~al.}}}
+\bibcite{howard2021confidenceSequences}{{8}{2021{}}{{Howard et~al.}}{{Howard, Ramdas, McAuliffe, and Sekhon}}}
+\bibcite{howard2021timeuniform}{{9}{2021{}}{{Howard et~al.}}{{Howard, Ramdas, McAuliffe, and Sekhon}}}
+\bibcite{jia2021proof}{{10}{2021}{{Jia et~al.}}{{Jia, Yaghini, Choquette-Choo, Dullerud, Thudi, Chandrasekaran, and Papernot}}}
+\bibcite{johari2017peeking}{{11}{2017}{{Johari et~al.}}{{Johari, Koomen, Pekelis, and Walsh}}}
+\bibcite{rfc5869}{{12}{2010}{{Krawczyk and Eronen}}{{}}}
+\bibcite{rfc2104}{{13}{1997}{{Krawczyk et~al.}}{{Krawczyk, Bellare, and Canetti}}}
+\bibcite{maurer2009empiricalbernstein}{{14}{2009}{{Maurer and Pontil}}{{}}}
+\bibcite{fips180-4}{{15}{2015}{{NIST}}{{}}}
+\bibcite{ramdas2023gametheoretic}{{16}{2023}{{Ramdas et~al.}}{{Ramdas, Gr{\"u}nwald, Vovk, and Shafer}}}
+\bibcite{uchida2017embedding}{{17}{2017}{{Uchida et~al.}}{{Uchida, Nagai, Sakazawa, and Satoh}}}
+\bibcite{wald1945sprt}{{18}{1945}{{Wald}}{{}}}
+\bibcite{zhang2018protecting}{{19}{2018}{{Zhang et~al.}}{{Zhang, Gu, Jang, Wu, Stoecklin, Huang, and Molloy}}}
+\@writefile{toc}{\contentsline {section}{\numberline {A}Technical Details}{10}{appendix.A}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.1}Alpha-Spending and Optional Stopping}{10}{subsection.A.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A.2}Evidence Bundle Schema}{10}{subsection.A.2}\protected@file@percent }
+\gdef \@abspage@last{10}
