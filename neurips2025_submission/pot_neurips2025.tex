@@ -204,13 +204,33 @@ Fixed behavioral tests & Black-box & 1000+ & 45--60\,min & <1\,GB & Yes & No \\
 \end{tabular}
 \end{table}
 
+\begin{quote}
+\colorbox{lightgray}{\parbox{0.95\textwidth}{\textbf{Significance of $30{\times}$--$300{\times}$ Speedup:} This transforms deployment patterns---every PR can verify model integrity (2\,min vs impossible at 60\,min); hourly production checks become feasible; incident response can verify model state in real-time; multi-model A/B testing validation becomes practical. Previously impractical verification is now routine.}}
+\end{quote}
+
 \textbf{Contributions.} (i)~A pre-committed, \textbf{anytime} verifier that outputs \textbf{SAME/DIFFERENT/UNDECIDED} with explicit error control. (ii)~An \textbf{evidence bundle} format and one-command runners for local/API settings. (iii)~\textbf{Sharded verification} enabling audits of~${\sim}$\textbf{206\,GB} checkpoints with~${\approx}$\textbf{52\%} peak host RAM\@. (iv)~Clarification that PoT verifies \textbf{model behavior} via any API; \textbf{provider authentication} (who runs the server) requires TEEs or vendor commitments.
 
-\section{Related Work}
+\section{Related Work and Why Existing Methods Fail}
+
+\subsection{Limitations of Existing Methods}
+
+\textbf{Why this problem wasn't already solved:}
+\begin{itemize}
+\item \textbf{Weight hashing:} Requires white-box access, infeasible for APIs
+\item \textbf{Behavioral testing without guarantees:} No confidence in results, vulnerable to random variation
+\item \textbf{Sequential testing without pre-commitment:} Vulnerable to p-hacking and adaptive attacks
+\item \textbf{Fixed-N testing:} Wastes 95\%+ queries when models are clearly identical/different
+\end{itemize}
+
+\textbf{The non-obvious combination:} While individual components are established, their orchestration is non-trivial. Prior work achieved speed \textbf{OR} guarantees \textbf{OR} pre-commitment, never all three. The specific integration (HMAC seeds $\to$ EB bounds $\to$ early stopping) required solving technical challenges: (i)~maintaining validity under data-dependent stopping, (ii)~variance-adaptive bounds that converge quickly, (iii)~cryptographic pre-commitment compatible with sequential testing.
+
+\subsection{Prior Verification Approaches}
 
 \textbf{Model verification approaches.} Prior work falls into three categories: (i)~\textbf{Weight-based} methods requiring full model access (checksums, watermarking~\cite{uchida2017embedding,zhang2018protecting}), unsuitable for API-only settings; (ii)~\textbf{Gradient-based} verification~\cite{jia2021proof} requiring white-box access to compute gradients, with~$O(\mathrm{model\_size})$ memory; (iii)~\textbf{Behavioral} approaches using fixed test sets~\cite{geirhos2020shortcut,hendrycks2021many}, but lacking statistical guarantees or pre-commitment. Our method uniquely combines \textbf{black-box behavioral testing} with \textbf{anytime statistical guarantees} and \textbf{cryptographic pre-commitment}, achieving~96.8\% query reduction (vs fixed-$N = 1000$ prompts baseline detailed in Section~\ref{sec:results}) while maintaining controlled error rates.
 
-\textbf{Sequential testing.} Wald's SPRT~\cite{wald1945sprt} established early-stopping binary tests. In bounded/noisy settings, \textbf{Empirical-Bernstein} style bounds yield \textbf{variance-adaptive} concentration~\cite{maurer2009empiricalbernstein,audibert2009exploration}. \textbf{Anytime-valid} inference produces \textbf{time-uniform} confidence sequences that remain valid under optional stopping~\cite{howard2021timeuniform,howard2021confidenceSequences}. We extend these to model verification with explicit SAME/DIFFERENT decision rules.
+\subsection{Sequential Testing Background}
+
+\textbf{Sequential testing.} Wald's SPRT~\cite{wald1945sprt} established early-stopping binary tests. In bounded/noisy settings, \textbf{Empirical-Bernstein} style bounds yield \textbf{variance-adaptive} concentration~\cite{maurer2009empiricalbernstein,audibert2009exploration}. \textbf{Anytime-valid} inference produces \textbf{time-uniform} confidence sequences that remain valid under optional stopping~\cite{howard2021timeuniform,howard2021confidenceSequences}. We extend these to model verification with explicit SAME/DIFFERENT decision rules, solving the challenge of maintaining validity while achieving aggressive early stopping.
 
 \textbf{Cryptographic commitments \& attestation.} HMAC~\cite{rfc2104}, HKDF~\cite{rfc5869}, and SHA-256~\cite{fips180-4} establish deterministic, non-malleable seeds and artifact integrity. TEEs provide \textbf{remote attestation} of code/data on trusted hardware~\cite{costan2016sgx}. ZK systems prove statements about computations without revealing inputs~\cite{bensasson2014snarks,bunz2018bulletproofs}; here they can attest the verifier's computation over a transcript but do \textbf{not} bind a \emph{remote} model identity.
 
