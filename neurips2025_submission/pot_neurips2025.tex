@@ -292,7 +292,7 @@ We report results from actual experimental runs (Aug 20--25, 2025) with evidence
 
 From recent experimental runs, verification reaches decisions in \textbf{14--48} queries with zero observed errors on~$n=8$ tested pairs (0/8 errors, Wilson 95\% CI: [0.00, 0.37]$^*$, see Figure~\ref{fig:time-to-decision} for time-to-decision trajectories). $^*$\footnotesize{Small-$n$ zero errors reported with Wilson confidence interval for completeness.} Against a \textbf{fixed-$N$=1000} baseline (standard for behavioral test sets), this represents \textbf{95.2--98.6\%} query reduction. QUICK mode ($\alpha=0.025$, $n_{\max}=120$) averages 15 queries; AUDIT mode ($\alpha=0.01$, $n_{\max}=400$) averages 32 queries.
 
-\begin{table}[t]
+\begin{table}[ht!]
 \centering
 \caption{SAME/DIFFERENT Decisions with Evidence Bundles}
 \label{tab:decisions}
@@ -321,7 +321,7 @@ llama-7b $\to$ llama-7b (API)$^{\S}$ & QUICK & 0.025 & 14 & SAME & 72.0 & val\_2
 \textbf{Timing Policy:} All times are end-to-end wall-clock including model inference. Verifier-only overhead (excluding inference) shown in parentheses where measurable; API times are entirely network-bound. This convention applies to all timing results in this paper.
 \end{quote}
 
-\begin{table}[t]
+\begin{table}[ht!]
 \centering
 \caption{Wall-Time Performance Comparison}
 \label{tab:wall-time}
@@ -346,7 +346,7 @@ API (GPT-3.5) & N/A & 48--72\,s & 48--72\,s & <100\,MB$^*$ \\
 \item Yi-34B on M1 Max (CPU): 3\,min verifier-only time (systems feasibility demo, excludes inference)
 \end{itemize}
 
-\begin{figure}[t]
+\begin{figure}[ht!]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/fig1_time_to_decision.pdf}
 \caption{Time-to-decision trajectories for SAME vs DIFFERENT model pairs. SAME decisions converge quickly with tight confidence intervals. DIFFERENT decisions show clear separation after initial queries.}
@@ -357,7 +357,7 @@ API (GPT-3.5) & N/A & 48--72\,s & 48--72\,s & <100\,MB$^*$ \\
 
 \textbf{Hours ${\to}$ Minutes}: Compact comparison for model verification
 
-\begin{table}[t]
+\begin{table}[ht!]
 \centering
 \small
 \begin{tabular}{l r r r c}
@@ -383,7 +383,7 @@ Gradient verification$^{[2]}$ & 120\,min & N/A & $60{\times}$--$120{\times}$ & $
 
 \subsection{Comparison to Prior Methods}
 
-\begin{table}[t]
+\begin{table}[ht!]
 \centering
 \caption{Comparison to Prior Verification Methods}
 \small
@@ -401,7 +401,7 @@ Fixed behavioral tests & Black-box & 1000+ & 45--60\,min & <1\,GB & Yes \\
 
 \section{Limitations and Negative Results}
 
-\begin{figure}[t]
+\begin{figure}[ht!]
 \centering
 \includegraphics[width=0.85\textwidth]{figures/fig2_error_rates.pdf}
 \caption{False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha=0.025$, green dotted) and AUDIT mode ($\alpha=0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds.}
