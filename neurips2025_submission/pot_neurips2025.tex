@@ -176,7 +176,7 @@ Deployed LLMs are frequently \textbf{opaque}: weights are inaccessible or served
 \end{quote}
 
 \begin{quote}
-\colorbox{lightgray}{\parbox{0.95\textwidth}{\textbf{Deployment Reality Check:} Runs on consumer hardware (M1 Max laptop) • Handles production models (34B parameters/206GB) • GitHub CI/CD integration ready • No GPU cluster required • \textbf{This isn't theoretical---you can run this today on your laptop.}}}
+\colorbox{lightgray}{\parbox{0.95\textwidth}{\textbf{Deployment Reality Check:} Runs on consumer hardware (M1 Max laptop) • Handles production models (34B parameters/206GB) • CI/CD integration ready • No GPU cluster required • \textbf{This isn't theoretical---you can run this today on your laptop.}}}
 \end{quote}
 
 \textbf{Important Scope:} PoT fully verifies \textbf{model behavior} behind APIs; it does \emph{not} verify \textbf{provider identity}---proving who operates the server requires separate infrastructure like TEE attestation or vendor commitments (Section~\ref{sec:api-verification}). Our design targets three constraints common in production:
@@ -598,5 +598,72 @@ runs/val\_20250825\_142945/\\
 \end{quote}
 
 Reviewers verify: (1) bundle hash matches table entry, (2) transcript reproduces scores, (3) HMAC seeds are deterministic.
+
+\subsection{Statistical Guarantees Under Early Stopping}
+
+The Empirical-Bernstein confidence sequence maintains validity under optional stopping through careful $\alpha$-spending:
+
+\textbf{Theorem (Anytime Validity):} For confidence sequence $C_n = [\overline{X}_n \pm h_n]$ with 
+$$h_n = \sqrt{\frac{2\hat{\sigma}^2_n \log(2/\delta_n)}{n}} + \frac{7\log(2/\delta_n)}{3(n-1)}$$
+and $\delta_n = \frac{2\alpha}{n(n+1)}$, we have for any stopping time $\tau$:
+$$\mathbb{P}(\mu \notin C_\tau) \leq \alpha$$
+
+This enables aggressive early stopping without inflating type-I error, crucial for achieving the reported 30-300× speedups.
+
+\subsection{Behavioral Fingerprinting Algorithm}
+
+The behavioral fingerprinting classification (Section 7) triggers when:
+\begin{enumerate}
+\item $n \geq \max(50, 2 \times n_{\text{min}})$ (sufficient samples)
+\item $\text{CV} = \frac{\sigma}{|\mu|} < 0.1$ (stable convergence)
+\item $\text{RME} > \epsilon_{\text{diff}}$ (cannot meet DIFFERENT threshold)
+\end{enumerate}
+
+\noindent\textbf{Classification thresholds:}
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Relationship} & \textbf{Mean Effect Range} \\
+\midrule
+NEAR\_CLONE & $|\overline{X}_n| < 0.001$ \\
+RELATED\_TRAINING & $0.001 \leq |\overline{X}_n| < 5$ \\
+DIFFERENT\_TRAINING & $5 \leq |\overline{X}_n| < 10$ \\
+DIFFERENT\_ARCH & $|\overline{X}_n| \geq 10$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Implementation Details}
+
+\textbf{Challenge Generation:} Prompts are generated via HMAC-SHA256 with revealed key:
+\begin{itemize}
+\item $\text{seed}_i = \text{HMAC}(\text{key}, \text{"challenge\_"} || i)$
+\item $\text{prompt}_i = \text{select\_prompt}(\text{seed}_i \bmod \text{num\_templates})$
+\item $\text{position}_i = (\text{seed}_i \gg 32) \bmod \text{context\_length}$
+\end{itemize}
+
+\textbf{Scoring Function:} KL divergence between output distributions:
+$$S(P, Q) = \sum_{v \in V} P(v) \log \frac{P(v)}{Q(v) + \epsilon}$$
+where $V$ is the vocabulary, $\epsilon = 10^{-10}$ for numerical stability.
+
+\textbf{Memory Management for Large Models:}
+\begin{itemize}
+\item Models $>$ 5GB: Sequential loading with gc.collect() between runs
+\item Models $>$ 10GB: Sharded loading, process 4-8 queries per shard
+\item Peak memory usage: $\approx 0.52 \times$ model size via aggressive unloading
+\end{itemize}
+
+\subsection{Reproducibility Checklist}
+
+To reproduce results from Table 3:
+\begin{enumerate}
+\item Install dependencies: torch>=2.2.0, transformers>=4.36.2, numpy, scipy
+\item Download models to \textasciitilde/LLM\_Models/
+\item Run: python scripts/run\_e2e\_validation.py --ref-model gpt2 --cand-model gpt2-medium --mode audit
+\item Verify bundle hash matches reported value
+\item Check experimental\_results/*/evidence\_bundle.json for full metrics
+\end{enumerate}
+
+Code will be made available upon acceptance.
 
 \end{document}
