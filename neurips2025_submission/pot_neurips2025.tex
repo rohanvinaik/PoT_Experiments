@@ -358,7 +358,7 @@ We report results from actual experimental runs (Aug 20--25, 2025) with evidence
 
 \subsection{Query Efficiency and Error Rates}
 
-From recent experimental runs, verification achieves \textbf{perfect separation} (0/8 errors) despite minimal testing in only \textbf{14--48} queries. Even with conservative Wilson bounds [0.00, 0.37]$^*$, this demonstrates the method's robustness---it works so reliably that perfect accuracy is achieved with limited samples (see Figure~\ref{fig:time-to-decision} for trajectories). $^*$\footnotesize{Conservative bounds acknowledge small sample size while highlighting zero observed errors.}
+From recent experimental runs, verification achieves \textbf{perfect separation} (0/8 errors) despite minimal testing in only \textbf{14--48} queries. Even with conservative Wilson bounds [0.00, 0.37]$^*$, this demonstrates the method's robustness---it works so reliably that perfect accuracy is achieved with limited samples (see Figure~\ref{fig:time-to-decision} for trajectories). {\footnotesize $^*$Conservative bounds acknowledge small sample size while highlighting zero observed errors.}
 
 \begin{table}[ht!]
 \centering
@@ -425,8 +425,8 @@ This finding suggests that behavioral verification inherently captures model cap
 \subsection{Wall-Time Performance}
 
 \begin{quote}
-\footnotesize
-\textbf{Timing Policy:} All times are end-to-end wall-clock including model inference. Verifier-only overhead (excluding inference) shown in parentheses where measurable; API times are entirely network-bound. This convention applies to all timing results in this paper.
+{\footnotesize
+\textbf{Timing Policy:} All times are end-to-end wall-clock including model inference. Verifier-only overhead (excluding inference) shown in parentheses where measurable; API times are entirely network-bound. This convention applies to all timing results in this paper.}
 \end{quote}
 
 \begin{table}[ht!]
