@@ -391,12 +391,17 @@ Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over
 \toprule
 \textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n$} & \textbf{Classification} & \textbf{Time (s)} \\
 \midrule
+\multicolumn{6}{l}{\emph{Small models (70M--124M parameters)}} \\
+pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME (identical) & 71.8 \\
 gpt2 $\to$ gpt2 & AUDIT & 0.000 & 30 & SAME (identical) & 65.2 \\
 gpt2 $\to$ distilgpt2 & AUDIT & 12.968 & 32 & DIFFERENT\_ARCH & 61.4 \\
+\midrule
+\multicolumn{6}{l}{\emph{Cross-scale comparisons (124M--355M)}} \\
 gpt2 $\to$ gpt2-medium & AUDIT & 3.553 & 40 & RELATED\_TRAINING & 84.6 \\
 gpt2-medium $\to$ gpt2 & AUDIT & 8.450 & 32 & DIFFERENT\_TRAINING & 116.1 \\
 dialogpt $\to$ gpt2 & QUICK & 20.681 & 16 & DIFFERENT\_ARCH & 42.1 \\
-pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME (identical) & 71.8 \\
+\midrule
+\multicolumn{6}{l}{\emph{Large models (7B parameters)}} \\
 llama-7b $\to$ llama-7b$^*$ & QUICK & 0.000 & 14 & SAME (identical) & 1356.4$^{\dagger}$ \\
 \bottomrule
 \end{tabular}
