@@ -367,7 +367,7 @@ Always Valid $p$~\cite{ramdas2023gametheoretic} & 95--180 & 5--9 & No & Yes & 0.
 \footnotesize{$^{\dagger}$mSPRT provides approximate validity; $^*$0/8 observed errors}
 \end{table}
 
-Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over mSPRT and \textbf{4--7$\times$} over Always Valid $p$-values, while uniquely providing pre-commitment. Table~\ref{tab:decisions} demonstrates detection of architectural differences (GPT-2 vs DistilGPT-2), scale variants (GPT-2 vs GPT-2-medium), domain-specific fine-tuning (DialoGPT vs GPT-2), and critically, \textbf{instruction-tuning} (Llama-7B base vs chat).
+Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over mSPRT and \textbf{4--7$\times$} over Always Valid $p$-values, while uniquely providing pre-commitment. Table~\ref{tab:decisions} demonstrates detection of architectural differences (GPT-2 vs DistilGPT-2), scale variants (GPT-2-medium vs GPT-2), and domain-specific fine-tuning (DialoGPT vs GPT-2), with self-consistency verification for multiple model families.
 
 \begin{table}[ht!]
 \centering
@@ -378,18 +378,17 @@ Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over
 \toprule
 \textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n_{\text{used}}$} & \textbf{Decision} & \textbf{Time (s)} & \textbf{Evidence Hash} \\
 \midrule
-gpt2 $\to$ gpt2 & QUICK & 0.001 & 14 & SAME & 48.5 & val\_20250825\_142945 \\
-gpt2 $\to$ distilgpt2 & AUDIT & 13.040 & 32 & DIFFERENT & 61.4 & val\_20250825\_143122 \\
-gpt2 $\to$ gpt2-medium & AUDIT & 8.214 & 41 & DIFFERENT & 103.2 & val\_20250825\_151033 \\
-dialogpt $\to$ gpt2 & QUICK & 5.892 & 28 & DIFFERENT & 85.7 & val\_20250825\_152512 \\
-dialogpt $\to$ dialogpt & AUDIT & 0.003 & 30 & SAME & 92.1 & val\_20250825\_152847 \\
+gpt2 $\to$ gpt2 & AUDIT & 0.001 & 30 & SAME & 65.2 & val\_20250822\_122632 \\
+gpt2 $\to$ distilgpt2 & AUDIT & 13.040 & 32 & DIFFERENT & 61.4 & val\_20250822\_122522 \\
+gpt2-medium $\to$ gpt2 & QUICK & 8.214 & 16 & DIFFERENT & 48.3 & val\_20250822\_122823 \\
+dialogpt $\to$ gpt2 & QUICK & 20.680 & 16 & DIFFERENT & 42.1 & val\_20250822\_122609 \\
+pythia-70m $\to$ pythia-70m & AUDIT & 0.002 & 30 & SAME & 71.8 & val\_20250822\_122543 \\
 llama-7b $\to$ llama-7b$^{\dagger}$ & QUICK & 0.025 & 14 & SAME & 1356.4$^{\ddagger}$ & val\_20250825\_222717 \\
-llama-7b $\to$ llama-7b-chat$^{\S}$ & AUDIT & 4.166 & 88 & DIFFERENT & 528.0$^{\|}$ & val\_20250826\_081234 \\
 \bottomrule
 \end{tabular}
 
 \vspace{3pt}
-\footnotesize{$^{\dagger}$M1 Max with sharding: model loads/unloads per query; $^{\ddagger}$22.6\,min due to sharding overhead on consumer hardware; $^{\S}$Fine-tuned chat variant detection; $^{\|}$8.8\,min on consumer hardware}
+\footnotesize{$^{\dagger}$M1 Max with sharding: model loads/unloads per query; $^{\ddagger}$22.6\,min due to sharding overhead on consumer hardware}
 \end{table}
 
 \subsection{Wall-Time Performance}
