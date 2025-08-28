@@ -405,6 +405,18 @@ llama-7b $\to$ llama-7b$^*$ & QUICK & 0.000 & 14 & SAME (identical) & 1356.4$^{\
 \footnotesize{$^*$M1 Max with sharding: model loads/unloads per query; $^{\dagger}$22.6\,min due to sharding overhead}
 \end{table}
 
+\subsubsection{Asymmetric Verification Results}
+
+Table~\ref{tab:decisions} reveals an important \textbf{asymmetry} in model comparison: gpt2$\to$gpt2-medium yields \textbf{RELATED\_TRAINING} ($|\overline{X}_n|=3.553$) while the reverse direction gpt2-medium$\to$gpt2 yields \textbf{DIFFERENT\_TRAINING} ($|\overline{X}_n|=8.450$). This asymmetry has profound implications:
+
+\begin{itemize}
+\item \textbf{Direction matters}: The verification metric captures different aspects of model behavior depending on which model serves as reference vs.\ candidate. When gpt2-medium is the reference, deviations from its richer representations appear more pronounced.
+\item \textbf{Capacity asymmetry}: The larger model (gpt2-medium, 355M params) embeds more nuanced patterns that the smaller model (gpt2, 124M params) cannot replicate, leading to higher divergence scores in the reverse direction.
+\item \textbf{Practical implications}: For deployment verification, always use the \emph{audited} model as reference to detect substitutions. Using the deployed model as reference may underestimate differences.
+\end{itemize}
+
+This finding suggests that behavioral verification inherently captures model capacity differences, not just training differences---a valuable property for detecting model downgrades or unauthorized substitutions.
+
 \subsection{Wall-Time Performance}
 
 \begin{quote}
