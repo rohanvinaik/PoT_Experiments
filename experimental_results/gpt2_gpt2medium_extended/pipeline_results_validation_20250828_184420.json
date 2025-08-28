@@ -1,0 +1,86 @@
+{
+  "run_id": "validation_20250828_184420",
+  "success": true,
+  "decision": "SAME",
+  "confidence": 0.99,
+  "n_queries": 2,
+  "evidence_bundle_path": "experimental_results/gpt2_gpt2medium_extended/evidence_bundle_validation_20250828_184420.json",
+  "zk_proof_path": null,
+  "total_duration": 0.5122904777526855,
+  "peak_memory_mb": 383.796875,
+  "stage_metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1756421060.289443,
+      "end_time": 1756421060.2914171,
+      "duration": 0.0019741058349609375,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.171875,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.609375,
+        "n_challenges": 400,
+        "hmac_key": "7a42dbc2dfd8e3b046dbd8613abc7a285ad4ffb7ed1bcd87d6e3c6a77c7dda27",
+        "run_id": "validation_20250828_184420",
+        "commitment": "f19b914477d72902f6c5b578e4aac84c1381581a77ff09b78e241a0f433c3a83",
+        "seeds": [
+          "b50360165c766e593ecb77f245286c5369114ee743d791aab9d26a2583a2df12",
+          "e8d98e66c183b8cd12931bc8158da0d762bc3d0ef9d0e7ccdb059b5511b8937d"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1756421060.291479,
+      "end_time": 1756421060.2915251,
+      "duration": 4.601478576660156e-05,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 98.8,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.78125,
+        "ref_model": "gpt2",
+        "cand_model": "gpt2-medium"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1756421060.29157,
+      "end_time": 1756421060.7965372,
+      "duration": 0.504967212677002,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.78125,
+        "decision": "SAME"
+      }
+    },
+    "evidence_generation": {
+      "stage": "evidence_generation",
+      "start_time": 1756421060.796854,
+      "end_time": 1756421060.8021572,
+      "duration": 0.005303144454956055,
+      "memory_peak_mb": 383.796875,
+      "memory_delta_mb": 0.015625,
+      "cpu_percent": 68.7,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.78125,
+        "bundle_path": "experimental_results/gpt2_gpt2medium_extended/evidence_bundle_validation_20250828_184420.json",
+        "bundle_hash": "4ac59f06d23c625443dda058a313e3f3db2a32e530c8670b441efb3042fdb8d7"
+      }
+    }
+  }
+}

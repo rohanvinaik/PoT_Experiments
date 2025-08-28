@@ -123,7 +123,7 @@ Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced
 | EleutherAI Pythia-70m vs **EleutherAI Pythia-160m** | Quick-gate | DIFFERENT | 76.0 (avg of 2) | ~68 s (avg of 2) | ~0.9 s (avg of 2) | Behavioral difference (2 runs) |
 | EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
 
-<!-- Table auto-updated: 2025-08-25 22:49:55 -->
+<!-- Table auto-updated: 2025-08-28 18:52:41 -->
 **Massive-model feasibility (sharded)**  
 Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
 

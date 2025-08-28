@@ -1,0 +1,132 @@
+{
+  "run_id": "validation_20250828_184420",
+  "timestamp": "2025-08-28T18:44:20.800085",
+  "config": {
+    "testing_mode": "audit_grade",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "experimental_results/gpt2_gpt2medium_extended",
+    "dry_run": true,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "7a42dbc2dfd8e3b046dbd8613abc7a285ad4ffb7ed1bcd87d6e3c6a77c7dda27",
+    "verbose": false,
+    "enable_adaptive": true,
+    "adaptive_batch_size": 8,
+    "adaptive_switch_threshold": 0.5,
+    "adaptive_noise_margin": 2.0,
+    "adaptive_max_factor": 1.5,
+    "enable_sharding": true,
+    "auto_detect_sharding": true,
+    "sharding_threshold_gb": 5.0,
+    "max_memory_percent": 70.0
+  },
+  "pre_commit": {
+    "n_challenges": 400,
+    "hmac_key": "7a42dbc2dfd8e3b046dbd8613abc7a285ad4ffb7ed1bcd87d6e3c6a77c7dda27",
+    "run_id": "validation_20250828_184420",
+    "commitment": "f19b914477d72902f6c5b578e4aac84c1381581a77ff09b78e241a0f433c3a83",
+    "seeds": [
+      "b50360165c766e593ecb77f245286c5369114ee743d791aab9d26a2583a2df12",
+      "e8d98e66c183b8cd12931bc8158da0d762bc3d0ef9d0e7ccdb059b5511b8937d"
+    ]
+  },
+  "challenges": [],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 2,
+    "ci_progression": [],
+    "effect_size": 0.0,
+    "challenges_used": 2
+  },
+  "transcript_merkle_root": "",
+  "transcript_entries": 0,
+  "performance_metrics": {
+    "performance": {
+      "peak_rss_mb": 383.78125,
+      "baseline_rss_mb": 383.546875,
+      "rss_growth_mb": 0.234375,
+      "page_faults_major": 0,
+      "page_faults_minor": 15,
+      "disk_throughput_mb_s": 0.0,
+      "total_queries": 0,
+      "avg_cold_query_seconds": 0,
+      "avg_warm_query_seconds": 0,
+      "cold_warm_ratio": 0,
+      "query_time_range": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "system_timeline_samples": 0,
+    "measurement_duration": 0.5721642971038818
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1756421060.289443,
+      "end_time": 1756421060.2914171,
+      "duration": 0.0019741058349609375,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.171875,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.609375,
+        "n_challenges": 400,
+        "hmac_key": "7a42dbc2dfd8e3b046dbd8613abc7a285ad4ffb7ed1bcd87d6e3c6a77c7dda27",
+        "run_id": "validation_20250828_184420",
+        "commitment": "f19b914477d72902f6c5b578e4aac84c1381581a77ff09b78e241a0f433c3a83",
+        "seeds": [
+          "b50360165c766e593ecb77f245286c5369114ee743d791aab9d26a2583a2df12",
+          "e8d98e66c183b8cd12931bc8158da0d762bc3d0ef9d0e7ccdb059b5511b8937d"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1756421060.291479,
+      "end_time": 1756421060.2915251,
+      "duration": 4.601478576660156e-05,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 98.8,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.78125,
+        "ref_model": "gpt2",
+        "cand_model": "gpt2-medium"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1756421060.29157,
+      "end_time": 1756421060.7965372,
+      "duration": 0.504967212677002,
+      "memory_peak_mb": 383.78125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 383.78125,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "4ac59f06d23c625443dda058a313e3f3db2a32e530c8670b441efb3042fdb8d7"
+}

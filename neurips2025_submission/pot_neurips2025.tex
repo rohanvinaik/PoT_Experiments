@@ -328,6 +328,19 @@ For models too large for host RAM, we \textbf{shard safetensors} and verify laye
 
 \textbf{Reproducibility.} Provide the \textbf{manifest} and \textbf{evidence bundle} per headline claim; publish \textbf{bundle hashes} in tables. A bootstrap \textbf{power proxy} resamples per-prompt scores from transcripts to report a CI for mean discrepancy without further queries.
 
+\section{Behavioral Fingerprinting: Beyond Binary Decisions}
+\label{sec:behavioral-fingerprinting}
+
+When models show \textbf{stable intermediate convergence} (neither SAME nor DIFFERENT), we classify relationships based on the absolute mean difference $|\overline{X}_n|$:
+\begin{itemize}
+\item \textbf{SAME (identical)}: $|\overline{X}_n| < 0.001$ with high confidence
+\item \textbf{RELATED\_TRAINING}: $1 \leq |\overline{X}_n| < 5$ (e.g., continued pre-training)
+\item \textbf{DIFFERENT\_TRAINING}: $5 \leq |\overline{X}_n| < 10$ (e.g., distillation)
+\item \textbf{DIFFERENT\_ARCH}: $|\overline{X}_n| \geq 10$ (e.g., GPT vs BERT)
+\end{itemize}
+
+This fingerprinting helps diagnose model relationships when binary decisions are insufficient, providing actionable insights for model governance. Table~\ref{tab:decisions} demonstrates these classifications on real model pairs.
+
 \section{Results}
 \label{sec:results}
 
@@ -380,16 +393,16 @@ Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over
 \midrule
 gpt2 $\to$ gpt2 & AUDIT & 0.000 & 30 & SAME (identical) & 65.2 \\
 gpt2 $\to$ distilgpt2 & AUDIT & 12.968 & 32 & DIFFERENT\_ARCH & 61.4 \\
-gpt2-medium $\to$ gpt2 & QUICK & 6.675 & 16 & DIFFERENT\_TRAINING & 48.3 \\
-gpt2 $\to$ gpt2-medium$^*$ & EXTENDED & 1.728 & 64 & RELATED\_TRAINING & 156.7 \\
+gpt2 $\to$ gpt2-medium & AUDIT & 3.553 & 40 & RELATED\_TRAINING & 84.6 \\
+gpt2-medium $\to$ gpt2 & AUDIT & 8.450 & 32 & DIFFERENT\_TRAINING & 116.1 \\
 dialogpt $\to$ gpt2 & QUICK & 20.681 & 16 & DIFFERENT\_ARCH & 42.1 \\
 pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME (identical) & 71.8 \\
-llama-7b $\to$ llama-7b$^{\dagger}$ & QUICK & 0.000 & 14 & SAME (identical) & 1356.4$^{\ddagger}$ \\
+llama-7b $\to$ llama-7b$^*$ & QUICK & 0.000 & 14 & SAME (identical) & 1356.4$^{\dagger}$ \\
 \bottomrule
 \end{tabular}
 
 \vspace{3pt}
-\footnotesize{$^*$Behavioral fingerprinting test requiring extended queries; $^{\dagger}$M1 Max with sharding: model loads/unloads per query; $^{\ddagger}$22.6\,min due to sharding overhead}
+\footnotesize{$^*$M1 Max with sharding: model loads/unloads per query; $^{\dagger}$22.6\,min due to sharding overhead}
 \end{table}
 
 \subsection{Wall-Time Performance}
@@ -483,18 +496,6 @@ Gradient verification$^{[2]}$ & 120\,min & N/A & $60{\times}$--$120{\times}$ & $
 
 \textbf{Semantic drift:} PoT detects behavioral differences but may not capture subtle semantic shifts that preserve token distributions (e.g., factual accuracy degradation with similar perplexity).
 
-\subsection{Behavioral Fingerprinting: Beyond Binary Decisions}
-\label{sec:behavioral-fingerprinting}
-
-When models show \textbf{stable intermediate convergence} (neither SAME nor DIFFERENT), we classify relationships:
-\begin{itemize}
-\item \textbf{NEAR\_CLONE}: $|\overline{X}_n| < 0.001$ (e.g., quantization differences)
-\item \textbf{SAME\_ARCH\_FINE\_TUNED}: $0.001 \leq |\overline{X}_n| < 0.01$ (e.g., instruction tuning)
-\item \textbf{SAME\_ARCH\_DIFFERENT\_SCALE}: $0.01 \leq |\overline{X}_n| < 0.1$ (e.g., 7B vs 13B)
-\item \textbf{DIFFERENT\_ARCH\_SIMILAR\_TRAINING}: $|\overline{X}_n| \geq 0.1$ (e.g., GPT vs BERT on same data)
-\end{itemize}
-
-This fingerprinting helps diagnose model relationships when binary decisions are insufficient, providing actionable insights for model governance.
 
 \section{Broader Impacts \& Ethics Statement}
 

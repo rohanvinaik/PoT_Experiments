@@ -1,6 +1,6 @@
 {
-  "total_runs": 29,
-  "successful_runs": 29,
+  "total_runs": 31,
+  "successful_runs": 31,
   "timing_samples": [
     {
       "t_per_query": 2.285130023956299,
@@ -145,6 +145,16 @@
     {
       "t_per_query": 96.88716777733394,
       "t_total": 1356.4203488826752,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 2.114540123939514,
+      "t_total": 84.58160495758057,
+      "hardware": "unknown"
+    },
+    {
+      "t_per_query": 3.6283628195524216,
+      "t_total": 116.10761022567749,
       "hardware": "unknown"
     }
   ],
@@ -326,7 +336,19 @@
       "confidence": 0.975,
       "n_used": 14,
       "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 40,
+      "effect_size": 0.0
+    },
+    {
+      "decision": "DIFFERENT",
+      "confidence": 0.99,
+      "n_used": 32,
+      "effect_size": 0.0
     }
   ],
-  "last_updated": "2025-08-25T22:49:55.377329"
+  "last_updated": "2025-08-28T18:52:41.859767"
 }
