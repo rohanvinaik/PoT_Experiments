@@ -455,4 +455,61 @@ PoT provides a practical, statistically rigorous solution for black-box model ve
 
 \bibliography{references}
 
+\appendix
+
+\section{Technical Details}
+
+\subsection{Alpha-Spending and Optional Stopping}
+
+\begin{quote}
+\colorbox{lightgray}{\parbox{0.95\textwidth}{
+\textbf{$\alpha$-Spending Schedule:} $\delta_n = \frac{\alpha \cdot c}{n(n+1)}$ with $c=2$ ensures $\sum_{n \geq 2} \delta_n = \alpha$ for time-uniform type-I error control under optional stopping.
+}}
+\end{quote}
+
+\textbf{Proof Sketch:}
+\begin{enumerate}
+\item By telescoping: $\sum_{n=2}^{\infty} \frac{c}{n(n+1)} = c \sum_{n=2}^{\infty} \left(\frac{1}{n} - \frac{1}{n+1}\right) = c \cdot 1 = c$
+\item Setting $c=2$ and $\delta_n = \frac{\alpha \cdot 2}{n(n+1)}$ yields $\sum_{n \geq 2} \delta_n = \alpha$
+\item The EB bound with this schedule satisfies $\mathbb{P}(\exists n \geq 2: |\overline{X}_n - \mu| > h_n) \leq \alpha$
+\item This holds \emph{anytime}, even under data-dependent stopping (optional stopping theorem)
+\item The confidence sequence $[\overline{X}_n \pm h_n]$ maintains coverage uniformly over all $n$
+\item Early stopping at any $\tau$ preserves validity: $\mathbb{P}(|\overline{X}_\tau - \mu| > h_\tau) \leq \alpha$
+\end{enumerate}
+
+This construction enables valid inference regardless of when we stop, crucial for adaptive early termination.
+
+\subsection{Evidence Bundle Schema}
+
+\begin{quote}
+\colorbox{lightgray}{\parbox{0.95\textwidth}{
+\textbf{Bundle Structure:} Each run produces a directory with cryptographic commitments, raw transcripts, and decisions. Bundle hash = SHA-256(manifest + transcript + evidence).
+}}
+\end{quote}
+
+\noindent\textbf{Directory structure:}
+\begin{quote}
+\small
+runs/val\_20250825\_142945/\\
+~~|- manifest.yaml \hfill \# Run config, HMAC key (revealed post-run)\\
+~~|- transcript.ndjson \hfill \# Per-query: \{prompt, outputs, scores\}\\
+~~|- evidence\_bundle.json \hfill \# Decision, CI, n\_used, bundle\_hash\\
+~~|- metrics.json \hfill \# (Optional) RSS, timing, sharding events
+\end{quote}
+
+\noindent\textbf{Key JSON fields} (evidence\_bundle.json):
+\begin{quote}
+\small
+\{\\
+~~"decision": "SAME|DIFFERENT|UNDECIDED",\\
+~~"confidence\_interval": [lower, upper],\\
+~~"n\_queries": 14,\\
+~~"mean\_effect": 0.001,\\
+~~"bundle\_hash": "sha256:abc123...",\\
+~~"timestamp": "2025-08-25T14:29:45Z"\\
+\}
+\end{quote}
+
+Reviewers verify: (1) bundle hash matches table entry, (2) transcript reproduces scores, (3) HMAC seeds are deterministic.
+
 \end{document}
