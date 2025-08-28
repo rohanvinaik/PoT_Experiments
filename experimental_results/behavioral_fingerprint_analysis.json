@@ -1,0 +1,122 @@
+[
+  {
+    "experiment": "llama_self_test_base",
+    "ref_model": "llama-2-7b-hf",
+    "cand_model": "llama-2-7b-hf",
+    "mean": 0.0,
+    "n_queries": 14,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "distilgpt2_self_audit",
+    "ref_model": "distilgpt2",
+    "cand_model": "distilgpt2",
+    "mean": 0.0,
+    "n_queries": 30,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "gpt2_self_audit",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2",
+    "mean": 0.0,
+    "n_queries": 30,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "pythia70m_self_audit",
+    "ref_model": "pythia-70m",
+    "cand_model": "pythia-70m",
+    "mean": 0.0,
+    "n_queries": 30,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "llama_self_test_chat",
+    "ref_model": "llama-2-7b-chat-hf",
+    "cand_model": "llama-2-7b-chat-hf",
+    "mean": 0.0,
+    "n_queries": 14,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "llama_7b_retest",
+    "ref_model": "llama-2-7b-hf",
+    "cand_model": "llama-2-7b-hf",
+    "mean": 0.0,
+    "n_queries": 14,
+    "decision": "SAME",
+    "classification": "SAME",
+    "description": "Identical model (high confidence)"
+  },
+  {
+    "experiment": "fingerprint_test",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2-medium",
+    "mean": 1.7279670704156156,
+    "n_queries": 64,
+    "decision": "DIFFERENT",
+    "classification": "RELATED_TRAINING",
+    "description": "Related training approach"
+  },
+  {
+    "experiment": "neo_pythia_cross_audit",
+    "ref_model": "gpt-neo-125m",
+    "cand_model": "pythia-160m",
+    "mean": 6.172158006578684,
+    "n_queries": 32,
+    "decision": "DIFFERENT",
+    "classification": "DIFFERENT_TRAINING",
+    "description": "Different training/distillation"
+  },
+  {
+    "experiment": "gpt2_medium_audit",
+    "ref_model": "gpt2-medium",
+    "cand_model": "gpt2",
+    "mean": 6.674619883298874,
+    "n_queries": 16,
+    "decision": "DIFFERENT",
+    "classification": "DIFFERENT_TRAINING",
+    "description": "Different training/distillation"
+  },
+  {
+    "experiment": "gpt2_distilgpt2_audit",
+    "ref_model": "gpt2",
+    "cand_model": "distilgpt2",
+    "mean": 12.967478033155205,
+    "n_queries": 32,
+    "decision": "DIFFERENT",
+    "classification": "DIFFERENT_ARCH",
+    "description": "Different architecture"
+  },
+  {
+    "experiment": "dialogpt_gpt2_quick",
+    "ref_model": "DialoGPT-small",
+    "cand_model": "gpt2",
+    "mean": -20.680469840765,
+    "n_queries": 16,
+    "decision": "DIFFERENT",
+    "classification": "DIFFERENT_ARCH",
+    "description": "Different architecture"
+  },
+  {
+    "experiment": "distilgpt2_dialogpt_quick",
+    "ref_model": "distilgpt2",
+    "cand_model": "DialoGPT-small",
+    "mean": 697.6286695258957,
+    "n_queries": 14,
+    "decision": "DIFFERENT",
+    "classification": "DIFFERENT_ARCH",
+    "description": "Different architecture"
+  }
+]

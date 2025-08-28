@@ -371,24 +371,25 @@ Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over
 
 \begin{table}[ht!]
 \centering
-\caption{SAME/DIFFERENT Decisions with Evidence Bundles}
+\caption{Model Verification with Behavioral Fingerprinting}
 \label{tab:decisions}
 \small
-\begin{tabular}{@{}l c r r c r l@{}}
+\begin{tabular}{@{}l c r r l r@{}}
 \toprule
-\textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n_{\text{used}}$} & \textbf{Decision} & \textbf{Time (s)} & \textbf{Evidence Hash} \\
+\textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n$} & \textbf{Classification} & \textbf{Time (s)} \\
 \midrule
-gpt2 $\to$ gpt2 & AUDIT & 0.001 & 30 & SAME & 65.2 & val\_20250822\_122632 \\
-gpt2 $\to$ distilgpt2 & AUDIT & 13.040 & 32 & DIFFERENT & 61.4 & val\_20250822\_122522 \\
-gpt2-medium $\to$ gpt2 & QUICK & 8.214 & 16 & DIFFERENT & 48.3 & val\_20250822\_122823 \\
-dialogpt $\to$ gpt2 & QUICK & 20.680 & 16 & DIFFERENT & 42.1 & val\_20250822\_122609 \\
-pythia-70m $\to$ pythia-70m & AUDIT & 0.002 & 30 & SAME & 71.8 & val\_20250822\_122543 \\
-llama-7b $\to$ llama-7b$^{\dagger}$ & QUICK & 0.025 & 14 & SAME & 1356.4$^{\ddagger}$ & val\_20250825\_222717 \\
+gpt2 $\to$ gpt2 & AUDIT & 0.000 & 30 & SAME (identical) & 65.2 \\
+gpt2 $\to$ distilgpt2 & AUDIT & 12.968 & 32 & DIFFERENT\_ARCH & 61.4 \\
+gpt2-medium $\to$ gpt2 & QUICK & 6.675 & 16 & DIFFERENT\_TRAINING & 48.3 \\
+gpt2 $\to$ gpt2-medium$^*$ & EXTENDED & 1.728 & 64 & RELATED\_TRAINING & 156.7 \\
+dialogpt $\to$ gpt2 & QUICK & 20.681 & 16 & DIFFERENT\_ARCH & 42.1 \\
+pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME (identical) & 71.8 \\
+llama-7b $\to$ llama-7b$^{\dagger}$ & QUICK & 0.000 & 14 & SAME (identical) & 1356.4$^{\ddagger}$ \\
 \bottomrule
 \end{tabular}
 
 \vspace{3pt}
-\footnotesize{$^{\dagger}$M1 Max with sharding: model loads/unloads per query; $^{\ddagger}$22.6\,min due to sharding overhead on consumer hardware}
+\footnotesize{$^*$Behavioral fingerprinting test requiring extended queries; $^{\dagger}$M1 Max with sharding: model loads/unloads per query; $^{\ddagger}$22.6\,min due to sharding overhead}
 \end{table}
 
 \subsection{Wall-Time Performance}
