@@ -176,7 +176,7 @@ Deployed LLMs are frequently \textbf{opaque}: weights are inaccessible or served
 \end{quote}
 
 \begin{quote}
-\colorbox{lightgray}{\parbox{0.95\textwidth}{\textbf{Deployment Reality Check:} Runs on consumer hardware (M1 Max laptop) • Handles production models (34B parameters/206GB) • CI/CD integration ready • No GPU cluster required • \textbf{This isn't theoretical---you can run this today on your laptop.}}}
+\colorbox{lightgray}{\parbox{0.95\textwidth}{\textbf{Deployment Reality Check:} Runs on consumer hardware (M1 Max laptop) • Handles production models (34B parameters/206GB) • CI/CD integration ready • No GPU cluster required}}
 \end{quote}
 
 \textbf{Important Scope:} PoT fully verifies \textbf{model behavior} behind APIs; it does \emph{not} verify \textbf{provider identity}---proving who operates the server requires separate infrastructure like TEE attestation or vendor commitments (Section~\ref{sec:api-verification}). Our design targets three constraints common in production:
