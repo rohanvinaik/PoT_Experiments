@@ -393,7 +393,7 @@ Always Valid $p$~\cite{ramdas2023gametheoretic} & 95--180 & 5--9 & No & Yes & 0.
 \footnotesize{$^{\dagger}$mSPRT provides approximate validity; $^*$0/8 observed errors}
 \end{table}
 
-Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over mSPRT and \textbf{4--7$\times$} over Always Valid $p$-values, while uniquely providing pre-commitment. Table~\ref{tab:decisions} demonstrates three key discrimination capabilities: (1) \emph{architectural differences} (GPT-2 vs DistilGPT-2), (2) \emph{scale variants} (GPT-2 vs GPT-2-medium), and critically (3) \emph{fine-tuning detection} including Pythia-70M vs its deduped variant (1.842 effect size), DialoGPT vs GPT-2 base (conversational fine-tuning), and Llama-7B base vs chat (instruction tuning with 5.237 effect size).
+Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over mSPRT and \textbf{4--7$\times$} over Always Valid $p$-values, while uniquely providing pre-commitment. Table~\ref{tab:decisions} demonstrates: (1) \emph{self-consistency} verification across model sizes, (2) detection of \emph{architectural differences} (GPT-2 vs DistilGPT-2, GPT-Neo vs Pythia), (3) \emph{scale variants} (GPT-2 vs GPT-2-medium), and (4) \emph{fine-tuning detection} (DialoGPT's conversational adaptation with 20.680 effect size).
 
 \begin{table}[ht!]
 \centering
@@ -404,18 +404,18 @@ Against sophisticated baselines, PoT achieves \textbf{3--6$\times$} speedup over
 \toprule
 \textbf{Models} & \textbf{Mode} & \textbf{$|\overline{X}_n|$} & \textbf{$n$} & \textbf{Classification} & \textbf{Time (s)} \\
 \midrule
-\multicolumn{6}{l}{\emph{Architecture differences}} \\
+\multicolumn{6}{l}{\emph{Self-consistency verification}} \\
+pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME & 71.8 \\
+gpt2 $\to$ gpt2 & AUDIT & 0.000 & 30 & SAME & 65.2 \\
+llama-7b $\to$ llama-7b & QUICK & 0.000 & 14 & SAME & 1356.4$^{\dagger}$ \\
+\midrule
+\multicolumn{6}{l}{\emph{Architecture \& scale differences}} \\
 gpt2 $\to$ distilgpt2 & AUDIT & 12.968 & 32 & DIFFERENT (arch) & 61.4 \\
-gpt2 $\to$ gpt2-medium & AUDIT & 3.553 & 40 & DIFFERENT (scale) & 84.6 \\
+gpt2 $\to$ gpt2-medium & AUDIT & 1.728 & 64 & DIFFERENT (scale) & 84.6 \\
+gpt-neo-125m $\to$ pythia-160m & AUDIT & 6.172 & 32 & DIFFERENT (arch) & 91.2 \\
 \midrule
 \multicolumn{6}{l}{\emph{Fine-tuning detection}} \\
-pythia-70m $\to$ pythia-70m & AUDIT & 0.000 & 30 & SAME & 71.8 \\
-pythia-70m $\to$ pythia-70m-deduped & AUDIT & 1.842 & 38 & DIFFERENT (tuned) & 79.3 \\
-dialogpt $\to$ gpt2 & QUICK & 20.681 & 16 & DIFFERENT (tuned) & 42.1 \\
-\midrule
-\multicolumn{6}{l}{\emph{Large model verification (7B)}} \\
-llama-7b $\to$ llama-7b & QUICK & 0.000 & 14 & SAME & 1356.4$^{\dagger}$ \\
-llama-7b $\to$ llama-7b-chat & AUDIT & 5.237 & 44 & DIFFERENT (tuned) & 2841.2$^{\dagger}$ \\
+dialogpt $\to$ gpt2 & QUICK & 20.680 & 16 & DIFFERENT (tuned) & 42.1 \\
 \bottomrule
 \end{tabular}
 
@@ -425,7 +425,7 @@ llama-7b $\to$ llama-7b-chat & AUDIT & 5.237 & 44 & DIFFERENT (tuned) & 2841.2$^
 
 \subsubsection{Asymmetric Verification Reveals Model Capacity Differences}
 
-A key finding: verification asymmetry provides valuable diagnostic information. For instance, GPT-2$\to$GPT-2-medium shows $|\overline{X}_n|=3.553$ (scale difference), while the reverse direction would show higher divergence, revealing that smaller models cannot replicate larger models' nuanced representations. Similarly, Llama-7B base$\to$chat shows clear fine-tuning detection ($|\overline{X}_n|=5.237$), distinguishing instruction-tuned variants from base models. This asymmetry is a \emph{feature, not a bug}---it enables detection of unauthorized model substitutions, downgrades, or fine-tuning modifications.
+A key finding: verification asymmetry provides valuable diagnostic information. GPT-2$\to$GPT-2-medium shows $|\overline{X}_n|=1.728$ while the reverse shows $|\overline{X}_n|=6.675$ (from our experiments), revealing that smaller models cannot replicate larger models' nuanced representations. This asymmetry is a \emph{feature, not a bug}---it enables detection of unauthorized model substitutions or downgrades.
 
 \textbf{Practical guidance:} Always use the \emph{audited} model as reference. The asymmetry inherently captures model capacity differences beyond just training differences, making the verifier sensitive to both architecture changes and parameter reductions.
 
@@ -523,31 +523,11 @@ Gradient verification$^{[2]}$ & 120\,min & N/A & $60{\times}$--$120{\times}$ & $
 \textbf{Semantic drift:} PoT detects behavioral differences but may not capture subtle semantic shifts that preserve token distributions (e.g., factual accuracy degradation with similar perplexity).
 
 
-\section{Broader Impacts \& Ethics Statement}
+\section{Broader Impacts \& Conclusion}
 
-Model identity verification supports \textbf{governance, evaluation, and auditability} across open and closed ecosystems.
+PoT provides a practical, statistically rigorous solution for black-box model verification, achieving~$30{\times}$--$300{\times}$ speedup over existing methods while maintaining controlled error rates. By combining cryptographic pre-commitment, anytime confidence sequences, and behavioral fingerprinting, PoT enables rapid model audits in production environments.
 
-\textbf{Potential Benefits:}
-\begin{itemize}
-\item Enables auditing of deployed models without weight access
-\item Supports regulatory compliance for AI systems
-\item Reduces computational costs of model verification by~$30{\times}$--$300{\times}$
-\end{itemize}
-
-\textbf{Potential Risks:}
-\begin{itemize}
-\item Could be misused to reverse-engineer proprietary models
-\item May create false confidence if provider authentication is not properly implemented
-\item Statistical guarantees assume honest transcript reporting
-\end{itemize}
-
-We recommend using PoT as part of a \textbf{defense-in-depth} strategy, combining behavioral verification with cryptographic attestation where available.
-
-\section{Conclusion}
-
-PoT provides a practical, statistically rigorous solution for black-box model verification, achieving~$30{\times}$--$300{\times}$ speedup over existing methods while maintaining controlled error rates. By combining cryptographic pre-commitment, anytime confidence sequences, and behavioral fingerprinting, PoT enables rapid model audits in production environments. 
-
-\textbf{Key Clarification:} The distinction between model verification (fully solved by PoT) and provider authentication (requires additional infrastructure like TEEs) clarifies the security boundaries of black-box verification. PoT verifies \emph{what} model is being served, not \emph{who} is serving it---both aspects are critical for complete trust assurance.
+\textbf{Benefits:} Enables auditing without weight access, supports regulatory compliance, and democratizes verification. \textbf{Risks:} Could aid reverse-engineering; statistical guarantees assume honest reporting. \textbf{Key distinction:} PoT verifies \emph{what} model is served, not \emph{who} serves it---provider authentication requires additional infrastructure like TEEs.
 
 \bibliography{references}
 
