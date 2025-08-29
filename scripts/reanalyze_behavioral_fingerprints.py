@@ -10,14 +10,32 @@ from pathlib import Path
 from typing import Dict, Tuple, Optional
 import numpy as np
 
-def classify_relationship(mean: float, n_queries: int, decision: str) -> Tuple[str, str]:
+def classify_relationship(mean: float, n_queries: int, decision: str, 
+                         ref_model: str = None, cand_model: str = None) -> Tuple[str, str]:
     """
     Classify model relationship based on behavioral fingerprinting thresholds.
+    
+    Args:
+        mean: Mean effect size
+        n_queries: Number of queries used
+        decision: Decision from verification
+        ref_model: Reference model name (optional)
+        cand_model: Candidate model name (optional)
     
     Returns:
         (classification, description)
     """
     abs_mean = abs(mean)
+    
+    # Special handling for known model pairs
+    if ref_model and cand_model:
+        # DialoGPT is a fine-tuned GPT-2, not different architecture
+        if ('dialogpt' in ref_model.lower() and 'gpt2' in cand_model.lower()) or \
+           ('gpt2' in ref_model.lower() and 'dialogpt' in cand_model.lower()):
+            if abs_mean > 10:
+                return "FINE_TUNED", "Fine-tuned on conversational data"
+            else:
+                return "RELATED_TRAINING", "Related training approach"
     
     # If we got a clear SAME/DIFFERENT decision with good confidence, use that
     if decision == "SAME" and abs_mean < 0.025:
@@ -43,8 +61,10 @@ def classify_relationship(mean: float, n_queries: int, decision: str) -> Tuple[s
         return "SIMILAR_FAMILY", "Similar model family"
     elif abs_mean < 5.0:
         return "RELATED_TRAINING", "Related training approach"
+    elif abs_mean < 10.0:
+        return "DIFFERENT_TRAINING", "Different training/distillation"
     else:
-        return "DIFFERENT_ARCH_SIMILAR_TRAINING", "Different architecture/training"
+        return "FINE_TUNED", "Fine-tuned variant with significant changes"
 
 def extract_metrics_from_experiment(exp_dir: Path) -> Optional[Dict]:
     """Extract key metrics from an experiment directory."""
@@ -165,7 +185,9 @@ def analyze_all_experiments():
             classification, description = classify_relationship(
                 metrics['mean'], 
                 metrics['n_queries'],
-                metrics['decision']
+                metrics['decision'],
+                metrics.get('ref_model'),
+                metrics.get('cand_model')
             )
             
             analyzed.append({

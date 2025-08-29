@@ -1,0 +1,7 @@
+{
+  "run_id": "validation_20250828_200112",
+  "status": "failed",
+  "error": "Error no file named pytorch_model.bin, model.safetensors, tf_model.h5, model.ckpt.index or flax_model.msgpack found in directory /Users/rohanvinaik/LLM_Models/gpt2-large-quantized.",
+  "stage_failed": "model_loading",
+  "timestamp": "2025-08-28T20:01:16.815773"
+}
