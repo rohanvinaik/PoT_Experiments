@@ -371,7 +371,14 @@ We report results from actual experimental runs (Aug 20--25, 2025) with evidence
 
 \subsection{Query Efficiency and Error Rates}
 
-\textbf{Statistical Robustness:} Perfect separation (8/8 correct) achieved with minimal data demonstrates exceptional discriminative power. The conservative Wilson CI [0.00, 0.37] reflects sample size, not method uncertainty---the fact that perfect accuracy emerges despite limited testing indicates the behavioral differences are so pronounced that even sparse sampling suffices. This robustness with minimal data is a \emph{strength}: practitioners can verify models with high confidence using minimal queries. A fragile method would show errors even with small samples; our 0/8 error rate demonstrates that behavioral differences between models are sufficiently large for reliable discrimination (see Figure~\ref{fig:time-to-decision} for trajectories).
+\textbf{Statistical Robustness:} Perfect separation (8/8 correct) achieved with minimal data demonstrates exceptional discriminative power. The conservative Wilson CI [0.00, 0.37] reflects sample size, not method uncertainty---the fact that perfect accuracy emerges despite limited testing indicates the behavioral differences are so pronounced that even sparse sampling suffices. This robustness with minimal data is a \emph{strength}: practitioners can verify models with high confidence using minimal queries. A fragile method would show errors even with small samples; our 0/8 error rate demonstrates that behavioral differences between models are sufficiently large for reliable discrimination (see Figures~\ref{fig:time-to-decision} and~\ref{fig:error-rates}).
+
+\begin{figure}[ht!]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/fig2_error_rates.pdf}
+\caption{False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha=0.025$, green dotted) and AUDIT mode ($\alpha=0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds.}
+\label{fig:error-rates}
+\end{figure}
 
 \begin{table}[ht!]
 \centering
@@ -505,14 +512,7 @@ Gradient verification$^{[2]}$ & 120\,min & N/A & $60{\times}$--$120{\times}$ & $
 
 % Table moved to Introduction section for better visibility
 
-\section{Limitations and Negative Results}
-
-\begin{figure}[ht!]
-\centering
-\includegraphics[width=0.85\textwidth]{figures/fig2_error_rates.pdf}
-\caption{False Accept Rate (FAR) and False Reject Rate (FRR) vs decision threshold. QUICK mode ($\alpha=0.025$, green dotted) and AUDIT mode ($\alpha=0.01$, purple dashed) operating points shown. Equal Error Rate (EER)~=~0.125 aligns with the configured thresholds.}
-\label{fig:error-rates}
-\end{figure}
+\section{Limitations}
 
 \textbf{Scope:} This paper demonstrates proof-of-concept on 8 model pairs, sufficient for a workshop paper establishing feasibility. Production deployment would benefit from expanded validation, but the perfect separation achieved suggests the core approach is sound.
 
