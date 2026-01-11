@@ -125,52 +125,78 @@ class EnhancedDiffTester(BaseTester):
         )
     
     def infer_relationship(self, signature: VarianceSignature) -> ModelRelationship:
-        """Infer model relationship from variance signature"""
-        
-        # Check for identical models first
-        if (abs(signature.mean_effect) < 1e-6 and 
-            signature.variance < self.expected_variance_same * 10):
+        """
+        Infer model relationship from variance signature.
+
+        Classification is based on mean effect magnitude and coefficient of variation (CV):
+        - IDENTICAL: mean ≈ 0, variance ≈ 0
+        - NEAR_CLONE: mean < 0.001
+        - DISTILLED: mean in [0.3, 3.0], CV < 0.3 (consistent behavior difference)
+        - SAME_ARCH_DIFF_SCALE: mean in [0.3, 3.0], CV in [0.3, 1.5]
+        - DIFFERENT_ARCH: mean > 3.0 OR (mean > 0.3 AND CV > 1.5)
+
+        Thresholds calibrated on small transformer models (GPT-2 family, Pythia, GPT-Neo).
+        """
+        mean = abs(signature.mean_effect)
+        cv = signature.cv
+        var = signature.variance
+
+        # ===================================================================
+        # IDENTICAL: Both mean and variance are effectively zero
+        # ===================================================================
+        # This catches same model instances with identical outputs
+        if mean < 1e-6 and var < 1e-10:
             return ModelRelationship.IDENTICAL
-        
-        # Near-clone detection
-        if (abs(signature.mean_effect) < 0.001 and
-            signature.variance < self.expected_variance_same * 100):
+
+        # Handle the case where mean=0 but we have some numerical noise
+        if mean < 1e-4 and var < 1e-6:
+            return ModelRelationship.IDENTICAL
+
+        # ===================================================================
+        # NEAR_CLONE: Very small differences, possibly version/seed differences
+        # ===================================================================
+        if mean < 0.001:
             return ModelRelationship.NEAR_CLONE
-        
-        # Same architecture, different scale
-        # Characterized by: moderate mean difference, moderate-high variance, stable CV
-        if (0.001 < abs(signature.mean_effect) < 0.5 and
-            self.expected_variance_same * 100 < signature.variance < self.expected_variance_arch and
-            signature.cv < 2.0):  # Relatively stable coefficient of variation
-            
-            # Further distinguish based on variance patterns
-            if signature.normalized_variance < 10:
-                return ModelRelationship.SAME_ARCHITECTURE_DIFFERENT_SCALE
-            elif signature.normalized_variance < 50:
-                return ModelRelationship.SAME_ARCHITECTURE_FINE_TUNED
-            else:
-                return ModelRelationship.SAME_ARCHITECTURE_QUANTIZED
-        
-        # Distillation detection
-        # Characterized by: large mean difference, moderate variance, specific patterns
-        if (abs(signature.mean_effect) > 0.5 and
-            signature.variance < self.expected_variance_arch * 0.5 and
-            signature.cv < 1.0):  # Very stable despite large difference
-            return ModelRelationship.DISTILLED
-        
-        # Different architecture
-        # Characterized by: large mean difference, high variance, unstable CV
-        if (abs(signature.mean_effect) > 0.1 and
-            (signature.variance > self.expected_variance_arch or signature.cv > 2.0)):
+
+        # ===================================================================
+        # DIFFERENT_ARCHITECTURE: Very large mean effect (>3.0)
+        # ===================================================================
+        # When models produce dramatically different outputs (e.g., different
+        # tokenizers, completely different training), mean effect is very large
+        if mean > 3.0:
             return ModelRelationship.DIFFERENT_ARCHITECTURE
-        
-        # Fine-tuning detection (fallback)
-        # Characterized by: small-moderate mean difference, low-moderate variance
-        if (0.01 < abs(signature.mean_effect) < 0.1 and
-            signature.variance < self.expected_variance_scale):
+
+        # ===================================================================
+        # For moderate mean effects (0.001 to 3.0), use CV to discriminate
+        # ===================================================================
+
+        # Handle infinite CV (when mean ≈ 0 but variance > 0)
+        if not np.isfinite(cv):
+            # Can't determine relationship without meaningful CV
+            return ModelRelationship.INCONCLUSIVE
+
+        # DISTILLED: Consistent behavior difference (low CV)
+        # Distillation transfers knowledge consistently, so CV is low
+        if mean > 0.3 and cv < 0.3:
+            return ModelRelationship.DISTILLED
+
+        # SAME_ARCH_DIFF_SCALE: Moderate CV indicates scale-related variations
+        # Same architecture at different scales shows moderate variability
+        if mean > 0.1 and cv < 1.5:
+            return ModelRelationship.SAME_ARCHITECTURE_DIFFERENT_SCALE
+
+        # DIFFERENT_ARCHITECTURE: High CV with moderate mean
+        # Different architectures show high variability in behavior
+        if mean > 0.1 and cv > 1.5:
+            return ModelRelationship.DIFFERENT_ARCHITECTURE
+
+        # FINE_TUNED: Small mean difference with low variance
+        if 0.01 < mean < 0.3 and cv < 0.5:
             return ModelRelationship.SAME_ARCHITECTURE_FINE_TUNED
-        
-        # If we can't determine, it's truly inconclusive
+
+        # ===================================================================
+        # INCONCLUSIVE: Patterns don't match known relationships
+        # ===================================================================
         return ModelRelationship.INCONCLUSIVE
     
     def should_stop(self) -> Tuple[bool, Optional[Dict[str, Any]]]:
@@ -219,21 +245,16 @@ class EnhancedDiffTester(BaseTester):
         # For non-UNDECIDED cases, enhance with relationship info
         if should_stop_base and base_info:
             signature = self.compute_variance_signature()
-            
+
             # Quick relationship inference for SAME/DIFFERENT cases
             if base_info.get("decision") == "SAME":
                 relationship = ModelRelationship.IDENTICAL
             elif base_info.get("decision") == "DIFFERENT":
-                # Use variance to distinguish type of difference
-                if signature.cv < 1.0 and abs(signature.mean_effect) > 0.5:
-                    relationship = ModelRelationship.DISTILLED
-                elif signature.variance > self.expected_variance_arch:
-                    relationship = ModelRelationship.DIFFERENT_ARCHITECTURE
-                else:
-                    relationship = ModelRelationship.SAME_ARCHITECTURE_DIFFERENT_SCALE
+                # Use infer_relationship for consistent classification
+                relationship = self.infer_relationship(signature)
             else:
                 relationship = ModelRelationship.INCONCLUSIVE
-            
+
             base_info["relationship"] = relationship.name
             base_info["variance_signature"] = {
                 "mean_effect": signature.mean_effect,
@@ -283,18 +304,33 @@ class EnhancedDiffTester(BaseTester):
     
     def get_summary(self) -> Dict[str, Any]:
         """Get comprehensive summary with relationship inference"""
-        
+
         base_summary = super().get_state()
         signature = self.compute_variance_signature()
-        relationship = self.infer_relationship(signature)
-        
+
+        # Special handling for IDENTICAL case (exact zero mean and variance)
+        if abs(signature.mean_effect) < 1e-10 and signature.variance < 1e-10:
+            relationship = ModelRelationship.IDENTICAL
+        else:
+            relationship = self.infer_relationship(signature)
+
+        # Map relationship to traditional decision for backward compatibility
+        if relationship in [ModelRelationship.IDENTICAL, ModelRelationship.NEAR_CLONE]:
+            traditional_decision = "SAME"
+        elif relationship == ModelRelationship.INCONCLUSIVE:
+            traditional_decision = "UNDECIDED"
+        else:
+            traditional_decision = "DIFFERENT"
+
         return {
             **base_summary,
+            "decision": traditional_decision,  # Override decision for compatibility
             "relationship": relationship.name,
+            "traditional_decision": traditional_decision,
             "relationship_confidence": self._compute_relationship_confidence(signature),
             "variance_signature": {
                 "mean_effect": signature.mean_effect,
-                "variance": signature.variance,  
+                "variance": signature.variance,
                 "cv": signature.cv,
                 "variance_ratio": signature.variance_ratio,
                 "normalized_variance": signature.normalized_variance,

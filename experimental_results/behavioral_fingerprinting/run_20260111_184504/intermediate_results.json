@@ -1,0 +1,200 @@
+[
+  {
+    "experiment_id": "self_gpt2",
+    "category": "self_consistency",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2",
+    "expected_relationship": "IDENTICAL",
+    "actual_relationship": "IDENTICAL",
+    "relationship_match": true,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 3.3408360481262207,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "self_pythia160m",
+    "category": "self_consistency",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_relationship": "IDENTICAL",
+    "actual_relationship": "IDENTICAL",
+    "relationship_match": true,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 3.6564090251922607,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "distill_gpt2",
+    "category": "distillation",
+    "ref_model": "gpt2",
+    "cand_model": "distilgpt2",
+    "expected_relationship": "DISTILLED",
+    "actual_relationship": "DISTILLED",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.7322346351109271,
+    "mean_effect": 0.5506188727915287,
+    "variance": 0.004861477351361043,
+    "cv": 0.126628960100534,
+    "n_queries": 200,
+    "duration_seconds": 9.95365595817566,
+    "inference_explanation": "Large stable difference (mean=0.551, CV=0.13) characteristic of student-teacher distillation",
+    "variance_signature": {
+      "normalized_variance": 0.016034893536142635,
+      "stability_score": 1.7908039276337673,
+      "variance_ratio": 4861.4773513610435
+    }
+  },
+  {
+    "experiment_id": "scale_pythia_70m_160m",
+    "category": "scale",
+    "ref_model": "EleutherAI/pythia-70m",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "SAME_ARCHITECTURE_DIFFERENT_SCALE",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.6061231554226906,
+    "mean_effect": 0.49218015968799594,
+    "variance": 0.09789644947852882,
+    "cv": 0.635710475067147,
+    "n_queries": 200,
+    "duration_seconds": 11.056999921798706,
+    "inference_explanation": "Moderate mean effect (0.492) with variance ratio 97896.4x suggests same architecture at different scales (e.g., 125M vs 1.3B parameters)",
+    "variance_signature": {
+      "normalized_variance": 0.40412780811009763,
+      "stability_score": 8.990303755826025,
+      "variance_ratio": 97896.44947852883
+    }
+  },
+  {
+    "experiment_id": "scale_pythia_160m_410m",
+    "category": "scale",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/pythia-410m",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "SAME_ARCHITECTURE_DIFFERENT_SCALE",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.4481729414994145,
+    "mean_effect": 0.530267194136977,
+    "variance": 0.192478177809587,
+    "cv": 0.8273627990221366,
+    "n_queries": 200,
+    "duration_seconds": 18.268367052078247,
+    "inference_explanation": "Moderate mean effect (0.530) with variance ratio 192478.2x suggests same architecture at different scales (e.g., 125M vs 1.3B parameters)",
+    "variance_signature": {
+      "normalized_variance": 0.6845292012057445,
+      "stability_score": 11.70067691380071,
+      "variance_ratio": 192478.177809587
+    }
+  },
+  {
+    "experiment_id": "scale_gpt2_gpt2medium",
+    "category": "scale",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2-medium",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "SAME_ARCHITECTURE_DIFFERENT_SCALE",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.41604654775602185,
+    "mean_effect": 0.8956767253577707,
+    "variance": 1.3485599282974365,
+    "cv": 1.2965337799250611,
+    "n_queries": 200,
+    "duration_seconds": 16.651809215545654,
+    "inference_explanation": "Moderate mean effect (0.896) with variance ratio 1348559.9x suggests same architecture at different scales (e.g., 125M vs 1.3B parameters)",
+    "variance_signature": {
+      "normalized_variance": 1.6809998424867667,
+      "stability_score": 18.335756556448754,
+      "variance_ratio": 1348559.9282974366
+    }
+  },
+  {
+    "experiment_id": "arch_gpt2_pythia",
+    "category": "architecture",
+    "ref_model": "gpt2",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_relationship": "DIFFERENT_ARCH",
+    "actual_relationship": "DIFFERENT_ARCHITECTURE",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.35154059392275494,
+    "mean_effect": 9.870054367261055,
+    "variance": 0.935227963123102,
+    "cv": 0.09798039747776341,
+    "n_queries": 39,
+    "duration_seconds": 3.781018018722534,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": 0.009600158289900506,
+      "stability_score": 0.611887386130912,
+      "variance_ratio": 935227.963123102
+    }
+  },
+  {
+    "experiment_id": "arch_gpt2_neo",
+    "category": "architecture",
+    "ref_model": "gpt2",
+    "cand_model": "EleutherAI/gpt-neo-125m",
+    "expected_relationship": "DIFFERENT_ARCH",
+    "actual_relationship": "DISTILLED",
+    "relationship_match": false,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.6745439897006558,
+    "mean_effect": 0.4782345466315747,
+    "variance": 0.020046440148719133,
+    "cv": 0.2960586029437519,
+    "n_queries": 200,
+    "duration_seconds": 15.636293172836304,
+    "inference_explanation": "Large stable difference (mean=0.478, CV=0.30) characteristic of student-teacher distillation",
+    "variance_signature": {
+      "normalized_variance": 0.08765069637700613,
+      "stability_score": 4.186900915402851,
+      "variance_ratio": 20046.440148719135
+    }
+  },
+  {
+    "experiment_id": "arch_pythia_neo",
+    "category": "architecture",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/gpt-neo-125m",
+    "expected_relationship": "DIFFERENT_ARCH",
+    "actual_relationship": "DIFFERENT_ARCHITECTURE",
+    "relationship_match": true,
+    "traditional_decision": "DIFFERENT",
+    "relationship_confidence": 0.32492594829948984,
+    "mean_effect": 8.67875647544861,
+    "variance": 0.4014324038847336,
+    "cv": 0.07300434532774794,
+    "n_queries": 36,
+    "duration_seconds": 4.3630921840667725,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": 0.005329634436733073,
+      "stability_score": 0.43802607196648763,
+      "variance_ratio": 401432.4038847336
+    }
+  }
+]
