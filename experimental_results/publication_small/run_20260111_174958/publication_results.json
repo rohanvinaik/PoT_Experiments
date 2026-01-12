@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "timestamp": "20260111_174958",
+    "mode": "audit",
+    "total_experiments": 11,
+    "completed": 11
+  },
+  "results": [
+    {
+      "experiment_id": "self_gpt2",
+      "category": "self_consistency",
+      "ref_model": "gpt2",
+      "cand_model": "gpt2",
+      "expected_decision": "SAME",
+      "actual_decision": "SAME",
+      "confidence": 0.99,
+      "queries_used": 30,
+      "duration_seconds": 69.9138879776001,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "self_pythia160m",
+      "category": "self_consistency",
+      "ref_model": "EleutherAI/pythia-160m",
+      "cand_model": "EleutherAI/pythia-160m",
+      "expected_decision": "SAME",
+      "actual_decision": "SAME",
+      "confidence": 0.99,
+      "queries_used": 30,
+      "duration_seconds": 66.3658618927002,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "self_gpt2medium",
+      "category": "self_consistency",
+      "ref_model": "gpt2-medium",
+      "cand_model": "gpt2-medium",
+      "expected_decision": "SAME",
+      "actual_decision": "SAME",
+      "confidence": 0.99,
+      "queries_used": 30,
+      "duration_seconds": 112.57551407814026,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "distill_gpt2",
+      "category": "distillation",
+      "ref_model": "gpt2",
+      "cand_model": "distilgpt2",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 32,
+      "duration_seconds": 64.79428505897522,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "scale_pythia_70m_160m",
+      "category": "scale",
+      "ref_model": "EleutherAI/pythia-70m",
+      "cand_model": "EleutherAI/pythia-160m",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 48,
+      "duration_seconds": 68.80934500694275,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "scale_pythia_160m_410m",
+      "category": "scale",
+      "ref_model": "EleutherAI/pythia-160m",
+      "cand_model": "EleutherAI/pythia-410m",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 40,
+      "duration_seconds": 90.41434097290039,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "scale_gpt2_gpt2medium",
+      "category": "scale",
+      "ref_model": "gpt2",
+      "cand_model": "gpt2-medium",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 56,
+      "duration_seconds": 115.28865480422974,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "scale_gpt_neo",
+      "category": "scale",
+      "ref_model": "EleutherAI/gpt-neo-125m",
+      "cand_model": "EleutherAI/gpt-neo-1.3B",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 108,
+      "duration_seconds": 363.1552858352661,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "arch_gpt2_pythia",
+      "category": "architecture",
+      "ref_model": "gpt2",
+      "cand_model": "EleutherAI/pythia-160m",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 64,
+      "duration_seconds": 131.74235796928406,
+      "correct": true,
+      "error": null
+    },
+    {
+      "experiment_id": "arch_gpt2_neo",
+      "category": "architecture",
+      "ref_model": "gpt2",
+      "cand_model": "EleutherAI/gpt-neo-125m",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "UNDECIDED",
+      "confidence": 0.99,
+      "queries_used": 196,
+      "duration_seconds": 404.82500195503235,
+      "correct": false,
+      "error": null
+    },
+    {
+      "experiment_id": "arch_pythia_neo",
+      "category": "architecture",
+      "ref_model": "EleutherAI/pythia-160m",
+      "cand_model": "EleutherAI/gpt-neo-125m",
+      "expected_decision": "DIFFERENT",
+      "actual_decision": "DIFFERENT",
+      "confidence": 0.99,
+      "queries_used": 40,
+      "duration_seconds": 89.84604215621948,
+      "correct": true,
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+
+\begin{table}[htbp]
+\centering
+\caption{PoT Verification Results}
+\label{tab:pot_results}
+\begin{tabular}{llllllllrl}
+\toprule
+Experiment & Category & Reference & Candidate & Expected & Actual & Correct & Confidence & Queries & Time (s) \\
+\midrule
+self_gpt2 & Self Consistency & gpt2 & gpt2 & SAME & SAME & ✓ & 99.0% & 30 & 69.9 \\
+self_pythia160m & Self Consistency & pythia-160m & pythia-160m & SAME & SAME & ✓ & 99.0% & 30 & 66.4 \\
+self_gpt2medium & Self Consistency & gpt2-medium & gpt2-medium & SAME & SAME & ✓ & 99.0% & 30 & 112.6 \\
+distill_gpt2 & Distillation & gpt2 & distilgpt2 & DIFFERENT & DIFFERENT & ✓ & 99.0% & 32 & 64.8 \\
+scale_pythia_70m_160m & Scale & pythia-70m & pythia-160m & DIFFERENT & DIFFERENT & ✓ & 99.0% & 48 & 68.8 \\
+scale_pythia_160m_410m & Scale & pythia-160m & pythia-410m & DIFFERENT & DIFFERENT & ✓ & 99.0% & 40 & 90.4 \\
+scale_gpt2_gpt2medium & Scale & gpt2 & gpt2-medium & DIFFERENT & DIFFERENT & ✓ & 99.0% & 56 & 115.3 \\
+scale_gpt_neo & Scale & gpt-neo-125m & gpt-neo-1.3B & DIFFERENT & DIFFERENT & ✓ & 99.0% & 108 & 363.2 \\
+arch_gpt2_pythia & Architecture & gpt2 & pythia-160m & DIFFERENT & DIFFERENT & ✓ & 99.0% & 64 & 131.7 \\
+arch_gpt2_neo & Architecture & gpt2 & gpt-neo-125m & DIFFERENT & UNDECIDED & ✗ & 99.0% & 196 & 404.8 \\
+arch_pythia_neo & Architecture & pythia-160m & gpt-neo-125m & DIFFERENT & DIFFERENT & ✓ & 99.0% & 40 & 89.8 \\
+\bottomrule
+\end{tabular}
+
+\end{table}

@@ -1,0 +1,86 @@
+{
+  "run_id": "validation_20260111_164320",
+  "success": true,
+  "decision": "SAME",
+  "confidence": 0.99,
+  "n_queries": 2,
+  "evidence_bundle_path": "outputs/validation_reports/evidence_bundle_validation_20260111_164320.json",
+  "zk_proof_path": null,
+  "total_duration": 0.5101475715637207,
+  "peak_memory_mb": 412.5625,
+  "stage_metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1768167800.080308,
+      "end_time": 1768167800.081066,
+      "duration": 0.0007579326629638672,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.5,
+        "n_challenges": 120,
+        "hmac_key": "805582e2cba4b4ab86d277d75494ff0d0eaf2cc3ffccc13506a9ec74b6d7eea3",
+        "run_id": "validation_20260111_164320",
+        "commitment": "ad31aeaae5095030db19e58c56917aa55fc8714067b1f3c477d5bfe81c18e9a0",
+        "seeds": [
+          "449ff63bfbb86a2e91e8e5c221c5b718ca51e1706724b19fbe2862a8f61826dc",
+          "a3afecba4af0d976464450634ee8e8fb3a27b5f1082b4e0bc8e5676c841fd416"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1768167800.081127,
+      "end_time": 1768167800.0812008,
+      "duration": 7.390975952148438e-05,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 97.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.53125,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1768167800.0812721,
+      "end_time": 1768167800.585093,
+      "duration": 0.5038208961486816,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.53125,
+        "decision": "SAME"
+      }
+    },
+    "evidence_generation": {
+      "stage": "evidence_generation",
+      "start_time": 1768167800.585263,
+      "end_time": 1768167800.5907578,
+      "duration": 0.005494832992553711,
+      "memory_peak_mb": 412.5625,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 82.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.53125,
+        "bundle_path": "outputs/validation_reports/evidence_bundle_validation_20260111_164320.json",
+        "bundle_hash": "10ea7e82c3bba3ff3a7807ad10c9e556b32a29fdc9464f12666fd372f81f58a4"
+      }
+    }
+  }
+}

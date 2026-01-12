@@ -1,0 +1,132 @@
+\begin{thebibliography}{18}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Audibert et~al.(2009)Audibert, Munos, and
+  Szepesv{\'a}ri]{audibert2009exploration}
+Jean-Yves Audibert, R{\'e}mi Munos, and Csaba Szepesv{\'a}ri.
+\newblock Exploration-exploitation tradeoff using variance estimates in
+  multi-armed bandits.
+\newblock In \emph{Conference on Learning Theory}, pages 13--1, 2009.
+
+\bibitem[Ben-Sasson et~al.(2014)Ben-Sasson, Chiesa, Tromer, and
+  Virza]{bensasson2014snarks}
+Eli Ben-Sasson, Alessandro Chiesa, Eran Tromer, and Madars Virza.
+\newblock Succinct non-interactive zero knowledge for a von neumann
+  architecture.
+\newblock In \emph{23rd USENIX Security Symposium}, pages 781--796, 2014.
+
+\bibitem[B{\"u}nz et~al.(2018)B{\"u}nz, Bootle, Boneh, Poelstra, Wuille, and
+  Maxwell]{bunz2018bulletproofs}
+Benedikt B{\"u}nz, Jonathan Bootle, Dan Boneh, Andrew Poelstra, Pieter Wuille,
+  and Greg Maxwell.
+\newblock Bulletproofs: Short proofs for confidential transactions and more.
+\newblock In \emph{2018 IEEE symposium on security and privacy (SP)}, pages
+  315--334. IEEE, 2018.
+
+\bibitem[Costan and Devadas(2016)]{costan2016sgx}
+Victor Costan and Srinivas Devadas.
+\newblock Intel sgx explained.
+\newblock In \emph{Cryptology ePrint Archive}, 2016.
+
+\bibitem[Gehrmann et~al.(2019)Gehrmann, Strobelt, and Rush]{gehrmann2019gltr}
+Sebastian Gehrmann, Hendrik Strobelt, and Alexander Rush.
+\newblock Gltr: Statistical detection and visualization of generated text.
+\newblock In \emph{Proceedings of the 57th Annual Meeting of the Association
+  for Computational Linguistics: System Demonstrations}, pages 111--116, 2019.
+
+\bibitem[Geirhos et~al.(2020)Geirhos, Jacobsen, Michaelis, Zemel, Brendel,
+  Bethge, and Wichmann]{geirhos2020shortcut}
+Robert Geirhos, J{\"o}rn-Henrik Jacobsen, Claudio Michaelis, Richard Zemel,
+  Wieland Brendel, Matthias Bethge, and Felix~A Wichmann.
+\newblock Shortcut learning in deep neural networks.
+\newblock \emph{Nature Machine Intelligence}, 2\penalty0 (11):\penalty0
+  665--673, 2020.
+
+\bibitem[Hendrycks et~al.(2021)Hendrycks, Basart, Mu, Kadavath, Wang, Dorundo,
+  Desai, Zhu, Parajuli, Guo, et~al.]{hendrycks2021many}
+Dan Hendrycks, Steven Basart, Norman Mu, Saurav Kadavath, Frank Wang, Evan
+  Dorundo, Rahul Desai, Tyler Zhu, Samyak Parajuli, Mike Guo, et~al.
+\newblock The many faces of robustness: A critical analysis of
+  out-of-distribution generalization.
+\newblock In \emph{Proceedings of the IEEE/CVF International Conference on
+  Computer Vision}, pages 8340--8349, 2021.
+
+\bibitem[Howard et~al.(2021{\natexlab{a}})Howard, Ramdas, McAuliffe, and
+  Sekhon]{howard2021confidenceSequences}
+Steven~R Howard, Aaditya Ramdas, Jon McAuliffe, and Jasjeet Sekhon.
+\newblock Confidence sequences for mean, variance, and median.
+\newblock \emph{Proceedings of the National Academy of Sciences}, 118\penalty0
+  (15), 2021{\natexlab{a}}.
+
+\bibitem[Howard et~al.(2021{\natexlab{b}})Howard, Ramdas, McAuliffe, and
+  Sekhon]{howard2021timeuniform}
+Steven~R Howard, Aaditya Ramdas, Jon McAuliffe, and Jasjeet Sekhon.
+\newblock Time-uniform, nonparametric, nonasymptotic confidence sequences.
+\newblock \emph{The Annals of Statistics}, 49\penalty0 (2):\penalty0
+  1055--1080, 2021{\natexlab{b}}.
+
+\bibitem[Jia et~al.(2021)Jia, Yaghini, Choquette-Choo, Dullerud, Thudi,
+  Chandrasekaran, and Papernot]{jia2021proof}
+Hengrui Jia, Mohammad Yaghini, Christopher~A Choquette-Choo, Natalie Dullerud,
+  Anvith Thudi, Varun Chandrasekaran, and Nicolas Papernot.
+\newblock Proof-of-learning: Definitions and practice.
+\newblock In \emph{2021 IEEE Symposium on Security and Privacy (SP)}, pages
+  1039--1056. IEEE, 2021.
+
+\bibitem[Johari et~al.(2017)Johari, Koomen, Pekelis, and
+  Walsh]{johari2017peeking}
+Ramesh Johari, Pete Koomen, Leonid Pekelis, and David Walsh.
+\newblock Peeking at a/b tests: Why it matters, and what to do about it.
+\newblock In \emph{Proceedings of the 23rd ACM SIGKDD international conference
+  on knowledge discovery and data mining}, pages 1517--1525, 2017.
+
+\bibitem[Krawczyk et~al.(1997)Krawczyk, Bellare, and Canetti]{rfc2104}
+Hugo Krawczyk, Mihir Bellare, and Ran Canetti.
+\newblock Hmac: Keyed-hashing for message authentication.
+\newblock Technical report, RFC 2104, 1997.
+
+\bibitem[Maurer and Pontil(2009)]{maurer2009empiricalbernstein}
+Andreas Maurer and Massimiliano Pontil.
+\newblock Empirical bernstein bounds and sample variance penalization.
+\newblock \emph{arXiv preprint arXiv:0907.3740}, 2009.
+
+\bibitem[Papernot et~al.(2016)Papernot, McDaniel, and
+  Goodfellow]{papernot2016transferability}
+Nicolas Papernot, Patrick McDaniel, and Ian Goodfellow.
+\newblock Transferability in machine learning: from phenomena to black-box
+  attacks using adversarial samples.
+\newblock In \emph{arXiv preprint arXiv:1605.07277}, 2016.
+
+\bibitem[Ramdas et~al.(2023)Ramdas, Gr{\"u}nwald, Vovk, and
+  Shafer]{ramdas2023gametheoretic}
+Aaditya Ramdas, Peter Gr{\"u}nwald, Vladimir Vovk, and Glenn Shafer.
+\newblock Game-theoretic statistics and safe anytime-valid inference.
+\newblock \emph{Statistical Science}, 38\penalty0 (4):\penalty0 576--601, 2023.
+
+\bibitem[Uchida et~al.(2017)Uchida, Nagai, Sakazawa, and
+  Satoh]{uchida2017embedding}
+Yusuke Uchida, Yuki Nagai, Shigeyuki Sakazawa, and Shin'ichi Satoh.
+\newblock Embedding watermarks into deep neural networks.
+\newblock In \emph{Proceedings of the 2017 ACM on international conference on
+  multimedia retrieval}, pages 269--277, 2017.
+
+\bibitem[Wald(1945)]{wald1945sprt}
+Abraham Wald.
+\newblock Sequential tests of statistical hypotheses.
+\newblock \emph{The annals of mathematical statistics}, 16\penalty0
+  (2):\penalty0 117--186, 1945.
+
+\bibitem[Zhang et~al.(2018)Zhang, Gu, Jang, Wu, Stoecklin, Huang, and
+  Molloy]{zhang2018protecting}
+Jialong Zhang, Zhongshu Gu, Jiyong Jang, Hui Wu, Marc~Ph Stoecklin, Heqing
+  Huang, and Ian Molloy.
+\newblock Protecting intellectual property of deep neural networks with
+  watermarking.
+\newblock In \emph{Proceedings of the 2018 on Asia conference on computer and
+  communications security}, pages 159--172, 2018.
+
+\end{thebibliography}

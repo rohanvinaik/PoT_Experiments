@@ -1,0 +1,54 @@
+[
+  {
+    "experiment_id": "self_gpt2",
+    "category": "self_consistency",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2",
+    "expected_decision": "SAME",
+    "actual_decision": "SAME",
+    "confidence": 0.99,
+    "queries_used": 30,
+    "duration_seconds": 67.94199585914612,
+    "correct": true,
+    "error": null
+  },
+  {
+    "experiment_id": "self_pythia160m",
+    "category": "self_consistency",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_decision": "SAME",
+    "actual_decision": "SAME",
+    "confidence": 0.99,
+    "queries_used": 30,
+    "duration_seconds": 64.18645906448364,
+    "correct": true,
+    "error": null
+  },
+  {
+    "experiment_id": "self_phi2",
+    "category": "self_consistency",
+    "ref_model": "microsoft/phi-2",
+    "cand_model": "microsoft/phi-2",
+    "expected_decision": "SAME",
+    "actual_decision": "SAME",
+    "confidence": 0.99,
+    "queries_used": 30,
+    "duration_seconds": 158.02580308914185,
+    "correct": true,
+    "error": null
+  },
+  {
+    "experiment_id": "distill_gpt2",
+    "category": "distillation",
+    "ref_model": "gpt2",
+    "cand_model": "distilgpt2",
+    "expected_decision": "DIFFERENT",
+    "actual_decision": "DIFFERENT",
+    "confidence": 0.99,
+    "queries_used": 32,
+    "duration_seconds": 63.573057889938354,
+    "correct": true,
+    "error": null
+  }
+]

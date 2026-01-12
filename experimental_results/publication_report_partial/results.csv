@@ -1,0 +1,5 @@
+Experiment,Category,Reference,Candidate,Expected,Actual,Correct,Confidence,Queries,Time (s)
+distill_gpt2,Distillation,unknown,unknown,DIFFERENT,DIFFERENT,✓,99.0%,32,62.5
+self_gpt2,Self Consistency,unknown,unknown,SAME,SAME,✓,99.0%,30,66.7
+self_phi2,Self Consistency,unknown,unknown,SAME,SAME,✓,99.0%,30,156.9
+self_pythia160m,Self Consistency,unknown,unknown,SAME,SAME,✓,99.0%,30,63.1

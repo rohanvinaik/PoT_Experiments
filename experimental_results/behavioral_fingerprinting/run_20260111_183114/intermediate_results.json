@@ -1,0 +1,134 @@
+[
+  {
+    "experiment_id": "self_gpt2",
+    "category": "self_consistency",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2",
+    "expected_relationship": "IDENTICAL",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 3.9852700233459473,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "self_pythia160m",
+    "category": "self_consistency",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_relationship": "IDENTICAL",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 2.7494609355926514,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "distill_gpt2",
+    "category": "distillation",
+    "ref_model": "gpt2",
+    "cand_model": "distilgpt2",
+    "expected_relationship": "DISTILLED",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 2.7454662322998047,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "scale_pythia_70m_160m",
+    "category": "scale",
+    "ref_model": "EleutherAI/pythia-70m",
+    "cand_model": "EleutherAI/pythia-160m",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 3.1093192100524902,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "scale_pythia_160m_410m",
+    "category": "scale",
+    "ref_model": "EleutherAI/pythia-160m",
+    "cand_model": "EleutherAI/pythia-410m",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 4.474699974060059,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  },
+  {
+    "experiment_id": "scale_gpt2_gpt2medium",
+    "category": "scale",
+    "ref_model": "gpt2",
+    "cand_model": "gpt2-medium",
+    "expected_relationship": "SAME_ARCH_DIFF_SCALE",
+    "actual_relationship": "INCONCLUSIVE",
+    "relationship_match": false,
+    "traditional_decision": "IDENTICAL",
+    "relationship_confidence": 0.105,
+    "mean_effect": 0.0,
+    "variance": 0.0,
+    "cv": Infinity,
+    "n_queries": 30,
+    "duration_seconds": 4.802489757537842,
+    "inference_explanation": "",
+    "variance_signature": {
+      "normalized_variance": Infinity,
+      "stability_score": Infinity,
+      "variance_ratio": 0.0
+    }
+  }
+]

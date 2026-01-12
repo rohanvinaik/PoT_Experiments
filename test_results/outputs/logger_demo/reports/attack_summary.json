@@ -1,7 +1,0 @@
-{
-  "total_attacks": 2,
-  "successful_attacks": 2,
-  "overall_success_rate": 1.0,
-  "robustness_score": 0.75,
-  "robustness_class": "Good"
-}

@@ -46,6 +46,8 @@ htmlcov/
 .tox/
 .hypothesis/
 .mypy_cache/
+.benchmarks/
+.tailchasing_cache/
 
 # Data and Models
 *.pkl
@@ -82,6 +84,10 @@ Thumbs.db
 *.cache
 temp/
 tmp/
+archive/
+
+# Intermediate experimental runs (keep final results only)
+experimental_results/*/intermediate_*.json
 # Rust
 target/
 Cargo.lock

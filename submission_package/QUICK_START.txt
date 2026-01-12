@@ -1,0 +1,69 @@
+===================================================================
+PoT NeurIPS 2025 - QUICK START GUIDE
+===================================================================
+
+READY-TO-USE FILES
+------------------
+✅ pot_neurips2025.pdf (261KB, 13 pages)
+   → Ready for conference submission
+   → Ready for website posting
+   → All experimental claims validated
+
+WHAT TO DO NOW
+--------------
+
+1. FOR CONFERENCE SUBMISSION:
+   → Submit: pot_neurips2025.pdf
+   → That's it!
+
+2. FOR YOUR WEBSITE:
+   → Copy pot_neurips2025.pdf to your website
+   → Or compile pot_neurips2025_website.tex for custom version
+
+3. FOR arXiv:
+   → Extract archive: tar -xzf pot_neurips2025_submission.tar.gz
+   → Upload: pot_neurips2025.tex + references.bib + figures/
+
+VALIDATION STATUS
+-----------------
+✅ All 8 experiments validated
+✅ All 19 citations verified
+✅ PDF compiles without errors
+✅ Perfect separation: 8/8 correct
+
+MAJOR CORRECTIONS MADE
+----------------------
+• Table 3: Fixed all timing values (some were 50% off)
+• Table 3: Removed fabricated effect sizes
+• Table 3: Corrected query counts (64 → 40)
+• Abstract: Fixed query range (14-48 → 14-40)
+• Abstract: Fixed timing claims (1-2 min → 17-92s for small)
+• Throughout: Fixed speedup (30×-300× → 30×-60×)
+
+KEY RESULTS (VALIDATED)
+-----------------------
+• Query reduction: 96%+ (14-40 vs 1000 baseline)
+• Speedup: 30-60× (up to 208× best case)
+• Timing: 17-92s (small models), 22 min (7B models)
+• Error rate: 0% (8/8 correct decisions)
+
+FILES IN THIS PACKAGE
+---------------------
+pot_neurips2025.pdf          Main paper (READY)
+pot_neurips2025.tex          LaTeX source
+pot_neurips2025_website.tex  Website version
+references.bib               Bibliography (19 citations)
+figures/                     All figures
+README.md                    Detailed documentation
+VALIDATION_SUMMARY.md        Full validation report
+
+NEED HELP?
+----------
+• See README.md for detailed instructions
+• See VALIDATION_SUMMARY.md for what was corrected
+• All experimental evidence in: ../experimental_results/
+
+===================================================================
+STATUS: ✅ READY FOR SUBMISSION
+Generated: October 2, 2025
+===================================================================

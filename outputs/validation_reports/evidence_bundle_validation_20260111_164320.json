@@ -1,0 +1,132 @@
+{
+  "run_id": "validation_20260111_164320",
+  "timestamp": "2026-01-11T16:43:20.586721",
+  "config": {
+    "testing_mode": "quick_gate",
+    "verification_mode": "local_weights",
+    "enable_zk_proof": false,
+    "enable_memory_tracking": true,
+    "enable_cpu_tracking": true,
+    "output_dir": "outputs/validation_reports",
+    "dry_run": true,
+    "benchmark_mode": false,
+    "max_queries": null,
+    "hmac_key": "805582e2cba4b4ab86d277d75494ff0d0eaf2cc3ffccc13506a9ec74b6d7eea3",
+    "verbose": false,
+    "enable_adaptive": true,
+    "adaptive_batch_size": 8,
+    "adaptive_switch_threshold": 0.5,
+    "adaptive_noise_margin": 2.0,
+    "adaptive_max_factor": 1.5,
+    "enable_sharding": true,
+    "auto_detect_sharding": true,
+    "sharding_threshold_gb": 5.0,
+    "max_memory_percent": 70.0
+  },
+  "pre_commit": {
+    "n_challenges": 120,
+    "hmac_key": "805582e2cba4b4ab86d277d75494ff0d0eaf2cc3ffccc13506a9ec74b6d7eea3",
+    "run_id": "validation_20260111_164320",
+    "commitment": "ad31aeaae5095030db19e58c56917aa55fc8714067b1f3c477d5bfe81c18e9a0",
+    "seeds": [
+      "449ff63bfbb86a2e91e8e5c221c5b718ca51e1706724b19fbe2862a8f61826dc",
+      "a3afecba4af0d976464450634ee8e8fb3a27b5f1082b4e0bc8e5676c841fd416"
+    ]
+  },
+  "challenges": [],
+  "verification": {
+    "decision": "SAME",
+    "confidence": 0.99,
+    "n_queries": 2,
+    "ci_progression": [],
+    "effect_size": 0.0,
+    "challenges_used": 2
+  },
+  "transcript_merkle_root": "",
+  "transcript_entries": 0,
+  "performance_metrics": {
+    "performance": {
+      "peak_rss_mb": 412.53125,
+      "baseline_rss_mb": 412.453125,
+      "rss_growth_mb": 0.078125,
+      "page_faults_major": 0,
+      "page_faults_minor": 5,
+      "disk_throughput_mb_s": 5.961621795062635,
+      "total_queries": 0,
+      "avg_cold_query_seconds": 0,
+      "avg_warm_query_seconds": 0,
+      "cold_warm_ratio": 0,
+      "query_time_range": {
+        "min": 0,
+        "max": 0
+      }
+    },
+    "system_timeline_samples": 0,
+    "measurement_duration": 0.5766439437866211
+  },
+  "metrics": {
+    "pre_commit": {
+      "stage": "pre_commit",
+      "start_time": 1768167800.080308,
+      "end_time": 1768167800.081066,
+      "duration": 0.0007579326629638672,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.03125,
+      "cpu_percent": 0.0,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.5,
+        "n_challenges": 120,
+        "hmac_key": "805582e2cba4b4ab86d277d75494ff0d0eaf2cc3ffccc13506a9ec74b6d7eea3",
+        "run_id": "validation_20260111_164320",
+        "commitment": "ad31aeaae5095030db19e58c56917aa55fc8714067b1f3c477d5bfe81c18e9a0",
+        "seeds": [
+          "449ff63bfbb86a2e91e8e5c221c5b718ca51e1706724b19fbe2862a8f61826dc",
+          "a3afecba4af0d976464450634ee8e8fb3a27b5f1082b4e0bc8e5676c841fd416"
+        ]
+      }
+    },
+    "model_loading": {
+      "stage": "model_loading",
+      "start_time": 1768167800.081127,
+      "end_time": 1768167800.0812008,
+      "duration": 7.390975952148438e-05,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 97.6,
+      "query_count": 0,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.53125,
+        "ref_model": "gpt2",
+        "cand_model": "distilgpt2"
+      }
+    },
+    "verification": {
+      "stage": "verification",
+      "start_time": 1768167800.0812721,
+      "end_time": 1768167800.585093,
+      "duration": 0.5038208961486816,
+      "memory_peak_mb": 412.53125,
+      "memory_delta_mb": 0.0,
+      "cpu_percent": 0.1,
+      "query_count": 2,
+      "ci_progression": [],
+      "errors": [],
+      "metadata": {
+        "memory_start": 412.53125,
+        "decision": "SAME"
+      }
+    }
+  },
+  "environment": {
+    "platform": "Darwin",
+    "python_version": "3.11.8",
+    "cpu_count": 10,
+    "memory_total_gb": 64.0
+  },
+  "hash": "10ea7e82c3bba3ff3a7807ad10c9e556b32a29fdc9464f12666fd372f81f58a4"
+}
