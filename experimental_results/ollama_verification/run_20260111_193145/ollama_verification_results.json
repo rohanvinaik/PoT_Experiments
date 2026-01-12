@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-01-11T19:36:15.906926",
+  "overall": {
+    "accuracy": 1.0,
+    "total_tests": 2,
+    "total_time_seconds": 268.9992787837982,
+    "avg_time_per_test": 134.4996393918991,
+    "avg_queries_per_test": 16.0
+  },
+  "by_category": {
+    "self_consistency": {
+      "accuracy": 1.0,
+      "correct": 1,
+      "total": 1
+    },
+    "architecture": {
+      "accuracy": 1.0,
+      "correct": 1,
+      "total": 1
+    }
+  },
+  "results": [
+    {
+      "model_a": "gemma2:2b",
+      "model_b": "gemma2:2b",
+      "decision": "SAME",
+      "relationship": "SIMILAR",
+      "mean_effect": 
