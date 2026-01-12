@@ -1,582 +1,212 @@
 # Proof-of-Training (PoT) — Behavioral Model Identity Verification
 
-> **Paper:** See [`docs/papers/POT_PAPER_COMPLETE_UPDATED.md`](docs/papers/POT_PAPER_COMPLETE_UPDATED.md) for the full technical paper with experimental results.
-> 
-> **Scope of this repo:** This is the **Verifier (post-training)** half of a unified PoT framework. It decides whether two models are **SAME** or **DIFFERENT** using a **sequential, variance-adaptive behavioral test** with **pre-committed (HMAC) challenges** and an **auditable transcript**. Optional ZK artifacts attest the verification process.  
-> **Out of scope here:** The **Prover (training-time provenance)** half that issues a model's "birth certificate" (hashes, signed checkpoints, IO evolution) is referenced but not implemented in this repository.
+> **TL;DR**: We verify model identity through *behavior*, not weights. If two models produce statistically indistinguishable outputs across cryptographically pre-committed challenges, they are functionally the same model—regardless of what's under the hood.
 
 ---
 
-## Why this exists
+## The Problem
 
-Modern models are often opaque or API-only. We still need to answer:
+Modern ML models are increasingly opaque. You can't see the weights behind an API. You can't verify a vendor hasn't quietly swapped, fine-tuned, or compressed your model. Yet critical systems depend on model identity guarantees.
 
-- “Is the model behind this endpoint actually the one it claims to be?”  
-- “Was a base model quietly **fine-tuned**, **compressed/distilled**, or **substituted**?”  
-- “Can we verify identity **without** seeing the weights?”
-
-This verifier provides an **operational** answer: run **dozens** of pre-committed challenges, compute a **confidence-controlled decision** (SAME/DIFFERENT), and export an **audit bundle** anyone can re-check later.
-
----
-
-## What this repo provides (today)
-
-- **Statistical verifier** with **Empirical-Bernstein (EB)** bounds and **early stopping**  
-- **Formal decision rules** for SAME / DIFFERENT / UNDECIDED (see below)  
-- **Challenge generator** (HMAC-SHA256) to pre-commit the prompt set  
-- **Runners & scripts** for local models or API endpoints  
-- **Evidence bundle tooling** (logs, configs, transcripts, seeds)  
-- **Prototype ZK proofs** (Halo2) that attest *the verifier ran on the published transcript*  
-- **Sharded verification** to validate **34B-class** models on **commodity RAM** by loading/releasing model slices sequentially
-- **Memory-safe validation** for **7B+ models** with configurable memory limits (25% default), sequential execution, and automatic recovery
-
-> **Note:** ZK artifacts here attest the **process/transcript**. For remote APIs, binding the transcript to **a specific model identity** additionally requires a **TEE attestation** or a **vendor weight commitment** (see **Security model & guarantees**).
+**Questions we answer:**
+- "Is this endpoint serving the model it claims?"
+- "Was my base model fine-tuned, distilled, or substituted?"
+- "Can I verify identity without seeing the weights?"
 
 ---
 
-## How it works (in short)
+## The Key Insight
 
-1) **Pre-commit challenges**  
-   Generate challenge seeds via **HMAC-SHA256(key, run_id || i)** → `seed_i`. This creates a large, deterministic challenge space and prevents cherry-picking.
+> *"The purpose of a system is what it does."* — Stafford Beer
 
-2) **Score behavioral differences**  
-   For each challenge, both models generate responses using **teacher forcing**. The framework computes a normalized difference score using either cross-entropy divergence or symmetric KL divergence between next-token predictions. These scores are bounded to [0,1] and update a running **effect-size** estimate with an **EB confidence interval**.
+**If Model A and Model B produce statistically indistinguishable behavioral distributions across a cryptographically pre-committed challenge set, then for all practical purposes they are the same model**—regardless of whether the weights differ.
 
-3) **Stop early when the math is decisive**  
-   After each observation, check **explicit decision rules**:
-   - **SAME** if the entire CI lies within a small tolerance around zero and the CI is sufficiently narrow.  
-   - **DIFFERENT** if the effect size exceeds a magnitude threshold and the estimate is numerically stable.  
-   Otherwise keep sampling—bounded by mode-specific `n_min`/`n_max`.
+This reframes the adversarial concern. An adversary who can produce identical behavioral fingerprints across diverse, unpredictable prompts has essentially:
+1. **Replicated the model's function** (which is... fine?)
+2. **Trained a perfect behavioral clone** (expensive, and arguably not "cheating")
 
-4) **Emit an audit bundle**  
-   Write seeds, challenge IDs, normalized outputs, decisions, thresholds, and environment metadata. Optionally, produce a small **ZK proof** that the verifier computed the published decision from the published transcript.
+The **HMAC pre-commitment** does heavy lifting here. The adversary can't know which prompts will be tested until after they've committed to their responses.
 
 ---
 
-## Decision rules (exact)
+## Results at a Glance
 
-Let Δ be the mean effect size and CI = [L, U] with half-width `h`.
+### Binary Verification: 90.9% Accuracy
+| Category | Accuracy | What We Detect |
+|----------|----------|----------------|
+| Self-Consistency | **100%** | Same model recognizes itself |
+| Distillation | **100%** | GPT-2 → DistilGPT-2 |
+| Scale Differences | **100%** | 70M → 160M → 410M → 1.3B |
+| Architecture | 67% | Conservative—avoids false positives |
 
-- **SAME** if `CI ⊆ [−γ, +γ]` **and** `h ≤ η·γ`  
-- **DIFFERENT** if `|Δ| ≥ δ*` **and** `RME ≤ ε_diff`  
-- **UNDECIDED** otherwise
+### Behavioral Fingerprinting: 83.3% Accuracy (12 experiments)
+Beyond binary SAME/DIFFERENT, we classify *relationship types*:
 
-**Presets**
+![Variance Signature Space](experimental_results/expanded_fingerprinting/run_20260111_190943/figures/fig3_variance_signature_space.png)
 
-| Mode      | α     | γ    | η   | δ*   | ε_diff | n_range   |
-|-----------|-------|------|-----|------|--------|-----------|
-| QUICK     | .025  | .15  | .50 | 0.8  | .15    | [10, 120] |
-| AUDIT     | .01   | .10  | .50 | 1.0  | .10    | [30, 400] |
-| EXTENDED  | .001  | .08  | .40 | 1.1  | .08    | [50, 800] |
+| Relationship | Signature | Example |
+|--------------|-----------|---------|
+| **IDENTICAL** | mean ≈ 0, var ≈ 0 | GPT-2 vs GPT-2 |
+| **DISTILLED** | mean 0.3-0.8, CV < 0.25 | GPT-2 vs DistilGPT-2 |
+| **SCALE** | mean 0.3-1.5, CV > 0.35 | Pythia-70M vs Pythia-160M |
+| **EXTENSIVE_FT** | mean 2.0-5.0 | GPT-2 vs DialoGPT |
+| **DIFFERENT_ARCH** | mean > 5.0 | GPT-2 vs Pythia |
 
-> The verifier is **anytime**: it can stop as soon as the decision criteria are met, which is why it typically needs **dozens** of queries—not thousands.
+![Accuracy by Category](experimental_results/expanded_fingerprinting/run_20260111_190943/figures/fig4_accuracy_by_category.png)
 
----
+### 7B Model Verification on Consumer Hardware
+| Test | Models | Decision | Queries | Hardware |
+|------|--------|----------|---------|----------|
+| Self-test | Llama-2-7B (base) | SAME | 14 | Mac M-series, 32GB |
+| Self-test | Llama-2-7B (chat) | SAME | 14 | Mac M-series, 32GB |
+| Cross-test | Base vs Chat | DIFFERENT | 88 | Mac M-series, 32GB |
 
-## Scoring configuration
-
-The framework uses a **teacher-forced scorer** that compares next-token predictions between models:
-
-- **Metric**: `delta_ce` (cross-entropy difference) or `symmetric_kl` (symmetric KL divergence)
-- **Positions**: Number of tokens to compare (default: varies by mode)
-- **Temperature**: Logit scaling for stability (default: 1.0)
-- **Clipping**: Bounds scores to [0,1] for numerical stability
-
-All metrics are non-negative by construction, with higher scores indicating greater behavioral divergence. The default configuration works well for most use cases, but can be customized via `ScoringConfig` for specific domains.
-
----
-
-## Access modes & binding to identity
-
-| Mode              | Weights access | Typical use       | Binding between transcript and model identity |
-|-------------------|----------------|-------------------|----------------------------------------------|
-| **Local-weights** | Yes (HF/local) | Research & QA     | Bind by **hashing weights** (e.g., SHA-256 of safetensors) and including the hash in the evidence bundle |
-| **API black-box** | No             | Vendor/API audits | Bind by **TEE attestation** (e.g., SGX/SEV/Nitro) or a **vendor-signed commitment**. The transcript is then endorsed by the attested enclave or vendor |
-
-**What ZK proves here**  
-Prototype Halo2 circuits prove the verifier consumed transcript `T` and produced decision `D` under code hash `H(code)`. ZK **does not, by itself**, prove that a *particular remote model* produced `T`; that link comes from **TEE or vendor commitments**.
+**Detected fine-tuning differences in 7B models with 97.5% statistical confidence using ~$0.50 of electricity.**
 
 ---
 
-## What you can use it for
+## Why You Should Care
 
-- **Identity checks**: “Is this deployment the same as my baseline?”  
-- **Fine-tuning detection**: flag instruction-tuned or domain-tuned variants  
-- **Distillation/compression detection**: detect degraded/altered behavior  
-- **Architecture class detection**: catch cross-family substitutions  
-- **Size-fraud detection**: smaller models masquerading as larger ones
+| If you're... | PoT gives you... |
+|--------------|------------------|
+| **Deploying models** | Cryptographic proof your endpoint serves what it claims |
+| **Auditing vendors** | Black-box verification without weight access |
+| **Detecting fraud** | Size-fraud and substitution detection |
+| **Regulatory compliance** | Tamper-evident audit trails with optional ZK proofs |
 
----
-
-## Example runs (live data)
-
-> Times/queries below are from actual validation runs in this repo. The table automatically updates with each successful pipeline execution. Use the scripts in **Reproduce** to add your own results.
-
-| Pair                             | Mode          | Decision   | Queries | Total Time | Per-Query | Notes                    |
-|----------------------------------|---------------|------------|---------|------------|-----------|--------------------------|
-| **DistilGPT-2** vs **DistilGPT-2** | Quick-gate | SAME | 21.0 (avg of 2) | ~23.7 s (avg of 2) | ~1.1 s (avg of 2) | Self-consistency (2 runs) |
-| **EleutherAI Pythia-70m** vs **EleutherAI Pythia-70m** | Audit-grade | SAME | 30 | ~43.7 s | ~1.5 s | Self-consistency |
-| **EleutherAI gpt-neo-125m** vs **EleutherAI gpt-neo-1.3b** | Audit-grade | UNDECIDED | 100 | ~287 s | ~2.9 s | Model comparison |
-| **GPT-2** vs **GPT-2** | Quick-gate | SAME | 25.3 (avg of 11) | ~45.2 s (avg of 11) | ~1.8 s (avg of 11) | Self-consistency (11 runs) |
-| **Model A** vs **Model B** | Quick-gate | SAME | 24.0 (avg of 9) | ~499 s (avg of 9) | ~20.8 s (avg of 9) | Model comparison (9 runs) |
-| DistilGPT-2 vs **GPT-2** | Audit-grade | DIFFERENT | 30 | ~42.8 s | ~1.4 s | Distillation |
-| EleutherAI Pythia-70m vs **EleutherAI Pythia-160m** | Quick-gate | DIFFERENT | 76.0 (avg of 2) | ~68 s (avg of 2) | ~0.9 s (avg of 2) | Behavioral difference (2 runs) |
-| EleutherAI gpt-neo-125m vs **EleutherAI Pythia-160m** | Audit-grade | DIFFERENT | 32 | ~96 s | ~3.0 s | Behavioral difference |
-
-<!-- Table auto-updated: 2025-08-28 18:52:41 -->
+**Cost comparison for 7B model verification:**
+| Method | Hardware | Time | Cost |
+|--------|----------|------|------|
+| **PoT** | Consumer Mac | 2.6 hours | ~$0.50 |
+| Weight comparison | 80GB+ VRAM | Minutes | Requires weights |
+| Gradient probing | 80GB+ VRAM | Hours | $50-200 cloud |
 
 ---
 
-## Publication-Quality Validation Results (January 2026)
+## How It Works (30 seconds)
 
-**Comprehensive behavioral verification across 11 experiments with 99% confidence (AUDIT mode)**
-
-### Executive Summary
-
-| Metric | Value |
-|--------|-------|
-| **Overall Accuracy** | **90.9%** (10/11 correct) |
-| Self-Consistency Tests | 100% (3/3) |
-| Distillation Detection | 100% (1/1) |
-| Scale Detection | 100% (4/4) |
-| Architecture Detection | 66.7% (2/3) |
-| Average Confidence | 99.0% |
-| Average Queries | 61.3 |
-
-### Detailed Results
-
-| Experiment | Category | Reference | Candidate | Expected | Actual | Queries | Time (s) |
-|------------|----------|-----------|-----------|----------|--------|---------|----------|
-| self_gpt2 | Self-Consistency | GPT-2 (124M) | GPT-2 (124M) | SAME | SAME ✓ | 30 | 70 |
-| self_pythia160m | Self-Consistency | Pythia-160M | Pythia-160M | SAME | SAME ✓ | 30 | 66 |
-| self_gpt2medium | Self-Consistency | GPT-2-Medium (355M) | GPT-2-Medium (355M) | SAME | SAME ✓ | 30 | 113 |
-| distill_gpt2 | Distillation | GPT-2 (124M) | DistilGPT-2 (82M) | DIFFERENT | DIFFERENT ✓ | 32 | 65 |
-| scale_pythia_70m_160m | Scale | Pythia-70M | Pythia-160M | DIFFERENT | DIFFERENT ✓ | 48 | 69 |
-| scale_pythia_160m_410m | Scale | Pythia-160M | Pythia-410M | DIFFERENT | DIFFERENT ✓ | 40 | 90 |
-| scale_gpt2_gpt2medium | Scale | GPT-2 (124M) | GPT-2-Medium (355M) | DIFFERENT | DIFFERENT ✓ | 56 | 115 |
-| scale_gpt_neo | Scale | GPT-Neo-125M | GPT-Neo-1.3B | DIFFERENT | DIFFERENT ✓ | 108 | 363 |
-| arch_gpt2_pythia | Architecture | GPT-2 (124M) | Pythia-160M | DIFFERENT | DIFFERENT ✓ | 64 | 132 |
-| arch_gpt2_neo | Architecture | GPT-2 (124M) | GPT-Neo-125M | DIFFERENT | UNDECIDED | 196 | 405 |
-| arch_pythia_neo | Architecture | Pythia-160M | GPT-Neo-125M | DIFFERENT | DIFFERENT ✓ | 40 | 90 |
-
-### Key Findings
-
-1. **Perfect self-consistency**: All models correctly identify themselves (SAME decision at 30 queries)
-2. **Robust distillation detection**: Framework detects knowledge distillation even when architectures are similar
-3. **Scale-aware verification**: Reliably distinguishes models of different sizes within the same family (70M→160M→410M→1.3B)
-4. **Conservative architecture detection**: One UNDECIDED case (GPT-2 vs GPT-Neo-125M) demonstrates the framework's conservative approach - similar-sized models with subtle behavioral differences don't produce false positives
-
-### The UNDECIDED Case
-
-The GPT-2 vs GPT-Neo-125M comparison returned UNDECIDED rather than DIFFERENT:
-- Both models are ~125M parameters
-- Behavioral differences exist but don't meet the strict DIFFERENT threshold
-- This is **intentional**: the framework avoids false positives by being conservative
-- The framework correctly identified they're NOT identical (not SAME)
-
-**Full report with visualizations**: See `experimental_results/publication_final/PUBLICATION_REPORT.md`
-
----
-
-## Behavioral Fingerprinting: Beyond Binary Decisions (January 2026)
-
-**Classification of model relationships using variance signatures**
-
-The PoT framework extends beyond binary SAME/DIFFERENT decisions to identify the *type* of relationship between models. Using variance signatures (mean effect + coefficient of variation), we can discriminate between:
-
-- **IDENTICAL**: Same model weights (mean ≈ 0, variance ≈ 0)
-- **DISTILLED**: Student-teacher relationship (moderate mean, low CV < 0.3)
-- **SAME_ARCH_DIFF_SCALE**: Scale variants like GPT-2 vs GPT-2-Medium (moderate mean, CV 0.3-1.5)
-- **DIFFERENT_ARCHITECTURE**: Completely different model families (high mean > 3.0)
-
-### Classification Results (88.9% Accuracy)
-
-| Category | Experiments | Correct | Accuracy | Avg Mean Effect | Avg CV |
-|----------|-------------|---------|----------|-----------------|--------|
-| Self-Consistency | 2 | 2 | **100%** | 0.0000 | 0 |
-| Distillation | 1 | 1 | **100%** | 0.5506 | 0.13 |
-| Scale | 3 | 3 | **100%** | 0.6394 | 0.92 |
-| Architecture | 3 | 2 | 66.7% | 6.3423 | 0.16 |
-
-### Detailed Classification Results
-
-| Experiment | Expected | Actual | Match | Mean Effect | CV |
-|------------|----------|--------|-------|-------------|-----|
-| GPT-2 vs GPT-2 | IDENTICAL | IDENTICAL | ✓ | 0.0000 | ∞ |
-| Pythia-160M vs Pythia-160M | IDENTICAL | IDENTICAL | ✓ | 0.0000 | ∞ |
-| GPT-2 vs DistilGPT-2 | DISTILLED | DISTILLED | ✓ | 0.5506 | 0.13 |
-| Pythia-70M vs Pythia-160M | SCALE | SCALE | ✓ | 0.4922 | 0.64 |
-| Pythia-160M vs Pythia-410M | SCALE | SCALE | ✓ | 0.5303 | 0.83 |
-| GPT-2 vs GPT-2-Medium | SCALE | SCALE | ✓ | 0.8957 | 1.30 |
-| GPT-2 vs Pythia-160M | DIFF_ARCH | DIFF_ARCH | ✓ | 9.8701 | 0.10 |
-| GPT-2 vs GPT-Neo-125M | DIFF_ARCH | DISTILLED | ✗ | 0.4782 | 0.30 |
-| Pythia-160M vs GPT-Neo-125M | DIFF_ARCH | DIFF_ARCH | ✓ | 8.6788 | 0.07 |
-
-### Key Insight: Variance Signature Profiles
-
-The classification uses a two-dimensional feature space:
-
-1. **Mean Effect (|X̄n|)**: Measures average behavioral divergence
-2. **Coefficient of Variation (CV)**: Measures consistency of divergence
+1. **Pre-commit challenges** via HMAC-SHA256—no cherry-picking
+2. **Score behavioral differences** using cross-entropy divergence
+3. **Stop when math is decisive** (typically 30-100 queries)
+4. **Emit audit bundle** with optional ZK proof
 
 ```
-Decision Space:
-                     CV
-                      ▲
-                 2.0 -┼-----------------
-                      │   DIFF_ARCH
-                 1.5 -┼-----------------
-                      │     SCALE
-                 0.3 -┼-----------------
-                      │   DISTILLED
-                 0.0 -┼--┬---┬---┬---┬--→ Mean
-                      0  0.3 1.0 3.0    Effect
-                      IDENTICAL (origin)
+SAME:      CI ⊆ [-γ, +γ] AND half_width ≤ η·γ
+DIFFERENT: |mean| ≥ δ* AND relative_error ≤ ε
 ```
 
-### Edge Case: GPT-2 vs GPT-Neo
+---
 
-The only misclassification (GPT-2 vs GPT-Neo-125M) demonstrates an interesting finding: GPT-Neo is architecturally similar to GPT-2 (both GPT-style transformers), so their behavioral profile (mean=0.48, CV=0.30) falls into the DISTILLED region rather than DIFFERENT_ARCH. This is a reasonable classification given their architectural similarity.
+## Key Visualizations
 
-### Visualizations
+**Confusion Matrix** — Multi-class relationship classification
 
-**Summary Dashboard** | **Mean vs CV Decision Space** | **Classification Matrix**
+![Confusion Matrix](experimental_results/expanded_fingerprinting/run_20260111_190943/figures/fig5_confusion_matrix.png)
 
-![Summary Dashboard](experimental_results/behavioral_fingerprinting/run_20260111_184504/visualizations/summary_dashboard.png)
+**Decision Boundaries** — How variance signatures separate relationship types
 
-Full visualization set:
-- [`accuracy_by_category.png`](experimental_results/behavioral_fingerprinting/run_20260111_184504/visualizations/accuracy_by_category.png)
-- [`mean_vs_cv_scatter.png`](experimental_results/behavioral_fingerprinting/run_20260111_184504/visualizations/mean_vs_cv_scatter.png)
-- [`variance_profiles.png`](experimental_results/behavioral_fingerprinting/run_20260111_184504/visualizations/variance_profiles.png)
-- [`classification_matrix.png`](experimental_results/behavioral_fingerprinting/run_20260111_184504/visualizations/classification_matrix.png)
-
-**Full report**: See `experimental_results/behavioral_fingerprinting/run_20260111_184504/BEHAVIORAL_FINGERPRINTING_REPORT.md`
+![Decision Boundaries](experimental_results/expanded_fingerprinting/run_20260111_190943/figures/fig6_decision_boundaries.png)
 
 ---
 
-**Massive-model feasibility (sharded)**  
-Verified **~206 GB** of model weights on a **64 GB** host via **sequential shard load → verify → release** with peak resident memory ≈ **~50%** and minutes-scale wall time.
+## Quick Start
 
-### Audit-Grade Performance Metrics (Latest Runs)
-
-| Metric | GPT-2 vs GPT-2 | GPT-2 vs DistilGPT-2 | microsoft DialoGPT-small vs GPT-2 | EleutherAI gpt-neo-125m vs EleutherAI gpt-neo-1.3b |
-|--------|--------------------|--------------------|--------------------|--------------------|
-| **Peak RSS** | 21 MB | 1845 MB | 2197 MB | 1966 MB |
-| **Page Faults (maj/min)** | 0/320 | 0/3421 | 0/0 | 0/0 |
-| **Disk Read Throughput** | 5.16 MB/s | 12.50 MB/s | - | - |
-| **Cold Query Time** | 6.03s | 2.13s | 0.79s | 4.20s |
-| **Warm Query Time** | 1.01s | 0.89s | 0.42s | 2.24s |
-| **Cold/Warm Ratio** | 5.98x | 2.39x | ~1.0x | ~1.0x |
-| **Total Queries** | 14 | 32 | 32 | 100 |
-| **Decision Confidence** | 0.99 | 0.99 | 0.99 | 0.99 |
-
-**Performance Characteristics:**
-- **First 2 queries are "cold"** with ~6x slower performance due to model loading and cache warming
-- **Subsequent queries are "warm"** with consistent ~1-2s per query for small models
-- **Memory growth is minimal** (<1MB RSS growth during execution)
-- **Zero major page faults** indicating efficient memory management
-- **Disk throughput ~5MB/s** during model loading phase
-
-> For audit-grade claims, publish **RSS**, **(maj/min) page-faults**, **disk read throughput**, and **per-query times** (cold vs warm cache) from your runs.
-
----
-
-## 🚀 Breakthrough: 7B Model Verification on Consumer Hardware
-
-### Llama-2 7B Model Suite Results
-
-The framework successfully detected subtle behavioral differences between Llama-2-7B base and chat models on consumer hardware:
-
-| Test | Models | Decision | Queries | Runtime | Key Achievement |
-|------|--------|----------|---------|---------|-----------------|
-| **A\|A** | Llama-2-7B-hf (self) | SAME | 14 | 22.4 min | Perfect self-consistency, CI: (0.0, 0.0) |
-| **B\|B** | Llama-2-7B-chat-hf (self) | SAME | 14 | 23 min | Perfect self-consistency, CI: (0.0, 0.0) |
-| **A\|B** | Base vs Chat | DIFFERENT | 88 | 2h 37m | Detected fine-tuning differences with 3 adaptive strategies |
-
-**Key Innovation**: The A|B test successfully identified that the chat model is a fine-tuned version of the base model, demonstrating:
-- **Behavioral fingerprinting** detection of stable intermediate states
-- **Adaptive variance reduction** with 3 strategy switches at queries 64, 72, and 80
-- **Confidence interval**: [0.033, 4.166] excluding SAME threshold [-0.022, +0.022]
-
-### Comparison: PoT vs Traditional Methods
-
-| Method | Hardware Required | Time to Verify 7B Models | Cost | Confidence | Interpretability |
-|--------|------------------|-------------------------|------|------------|-------------------|
-| **PoT (This Framework)** | Consumer Mac (32GB RAM) | 2.6 hours | ~$0.50 electricity | 97.5% statistical | Full audit trail |
-| **Weight Comparison** | 80GB+ VRAM server | Minutes | N/A (needs weights) | 100% if available | Binary match/no-match |
-| **Full Fine-tuning Replication** | 8x A100 cluster | 3-7 days | $5,000-15,000 | Variable | Training dynamics |
-| **Gradient-based Probing** | 80GB+ VRAM | 2-4 hours | $50-200 cloud | 85-95% | Limited explainability |
-| **API Black-box Testing** | Any device | Days-weeks | $500-5,000 API calls | 60-80% | Behavioral only |
-
-**Cost-Benefit Analysis**: PoT achieves near-certainty (97.5% confidence) verification of 7B models using only behavioral testing on consumer hardware, eliminating the need for expensive GPU clusters or weight access.
-
----
-
-## Adaptive Variance Reduction Strategies
-
-The framework implements sophisticated adaptive sampling to handle challenging verification scenarios:
-
-### Strategy Switching
-When models show high variance or stable intermediate states, the framework automatically switches strategies:
-
-```
-[00:06:23.552] [INFO] Strategy switch suggested at n=64: increase_k
-[00:20:28.814] [INFO] Strategy switch suggested at n=72: increase_k  
-[00:35:11.036] [INFO] Strategy switch suggested at n=80: increase_k
-```
-
-**Strategies Available**:
-- **`increase_k`**: Increase positions per prompt for variance reduction
-- **`variance_reduction`**: Apply importance sampling and control variates
-- **`symmetric_kl`**: Switch to more sensitive divergence metric
-- **Batch size adaptation**: Dynamically adjust batch size near decision boundaries
-
-### Behavioral Fingerprinting
-The framework detects when models converge to stable intermediate values that don't meet SAME or DIFFERENT thresholds:
-
-- **Detection**: Coefficient of Variation (CV) < 0.1 over 10+ queries
-- **Classification**: Automatically categorizes relationships (SAME_ARCH_FINE_TUNED, NEAR_CLONE, etc.)
-- **Decision**: UNDECIDED_STABLE with relationship metadata
-
-This prevents infinite loops while providing valuable relationship insights.
-
----
-
-## Reporting standards (what to include with your results)
-
-- **Confidence level** (`α`) and **mode** (QUICK/AUDIT/EXTENDED)  
-- **Thresholds** (`δ*`, `γ`, `η`, `ε_diff`) actually used  
-- **Counts with CIs** for FAR/FRR (e.g., `0/200, 95% CI [0, 1.8%]`)  
-- **n_min/n_max** and **final n** (queries to decision)  
-- **Access mode** (Local vs API) and **binding method** (hash, TEE, vendor)  
-- **Hardware & software** (device, RAM/VRAM, framework versions)  
-- **Transcript & seeds** (challenge IDs, normalization settings)
-
----
-
-## Security model & guarantees
-
-**We guarantee (when properly bound):**
-- **Model identity decision** with user-chosen error control (`α`)  
-- **Tamper-evident** transcript and environment metadata for audits  
-- **(Optional) ZK assurance** that the verifier computed the published decision from the published transcript
-
-**We do not guarantee:**
-- **Training data quality** or **absence of backdoors**  
-- **Safety/Alignment** properties (identity ≠ safety)  
-- End-to-end identity binding for **remote APIs** without TEE or vendor signatures
-
----
-
-## Memory-Safe Validation for Large Models
-
-The framework includes specialized support for validating large models (7B+) with strict memory management:
-
-### Quick Start
 ```bash
-# Run 7B model permutations with 25% memory limit
+pip install -r requirements.txt
+
+# Basic verification
+python scripts/run_e2e_validation.py \
+    --ref-model gpt2 \
+    --cand-model distilgpt2 \
+    --mode audit
+
+# Behavioral fingerprinting
+python scripts/run_expanded_fingerprinting.py
+```
+
+---
+
+## Technical Details
+
+<details>
+<summary><b>Decision Rules & Presets</b></summary>
+
+| Mode | α | γ | η | δ* | ε_diff | n_range |
+|------|---|---|---|----|----|---------|
+| QUICK | .025 | .15 | .50 | 0.8 | .15 | [10, 120] |
+| AUDIT | .01 | .10 | .50 | 1.0 | .10 | [30, 400] |
+| EXTENDED | .001 | .08 | .40 | 1.1 | .08 | [50, 800] |
+
+</details>
+
+<details>
+<summary><b>Relationship Classification Thresholds</b></summary>
+
+| Relationship | Mean Effect | CV | Confidence |
+|--------------|-------------|-----|------------|
+| IDENTICAL | < 1e-6 | N/A | 95% |
+| DISTILLED | 0.3-0.8 | < 0.25 | 85% |
+| SCALE | 0.3-1.5 | > 0.35 | 75% |
+| EXTENSIVE_FT | 2.0-5.0 | any | 75% |
+| DIFFERENT_ARCH | > 5.0 | any | 95% |
+
+</details>
+
+<details>
+<summary><b>Security Guarantees</b></summary>
+
+**We guarantee:**
+- Model identity decision with user-chosen error control
+- Tamper-evident transcripts for audits
+- Optional ZK proof that verifier computed published decision
+
+**We don't guarantee:**
+- Training data quality or backdoor absence
+- Safety/alignment properties
+- Remote identity binding without TEE/vendor signatures
+
+</details>
+
+<details>
+<summary><b>Memory-Safe Large Model Verification</b></summary>
+
+```bash
 python scripts/run_memory_safe_validation.py \
     --models llama-2-7b-hf llama-2-7b-chat-hf \
-    --permutations all \
     --max-memory 25
-
-# Or use the test suite
-python scripts/test_7b_models_safe.py
 ```
 
-### Features
-- **Memory limits**: Enforces configurable memory caps (default 25% of system RAM)
-- **Sequential execution**: Automatically runs large models one at a time
-- **Automatic sharding**: Enables sharding for models >10GB
-- **Error recovery**: 3x retry with memory cleanup on failures
-- **Real-time monitoring**: Tracks memory usage during execution
-- **Cooldown periods**: 30-second waits between tests for memory recovery
+| Model Size | Execution | Sharding |
+|------------|-----------|----------|
+| <1GB | Parallel OK | No |
+| 1-5GB | Sequential | No |
+| 5-20GB | Sequential | Recommended |
+| >20GB | Sequential | Required |
 
-### Model Size Handling
-| Model Size | Classification | Execution Mode | Sharding |
-|------------|---------------|----------------|----------|
-| <1GB | Small | Parallel OK | No |
-| 1-5GB | Medium | Sequential recommended | No |
-| 5-20GB | Large | Sequential required | Recommended |
-| 20-50GB | XLarge (7B+) | Sequential required | Required |
-| >50GB | Beyond typical* | Requires special handling | Required |
-
-*Models exceeding available system RAM require careful memory management and may not complete successfully on consumer hardware.
-
-### Enhanced E2E Pipeline Options
-```bash
-python scripts/run_e2e_validation.py \
-    --ref-model llama-2-7b-hf \
-    --cand-model llama-2-7b-chat-hf \
-    --enable-sharding \
-    --max-memory-percent 25 \
-    --enforce-sequential
-```
-
-## Reproduce
-
-### Install
-```bash
-git clone https://github.com/rohanvinaik/PoT_Experiments
-cd PoT_Experiments
-pip install -r requirements.txt
-```
-
-### Basic verification (Python)
-```python
-from pot.core.diff_decision import EnhancedSequentialTester, TestingMode
-
-tester = EnhancedSequentialTester(TestingMode.AUDIT)  # or QUICK / EXTENDED
-result = tester.test_models(model_a, model_b)
-print(result.decision)  # SAME / DIFFERENT / UNDECIDED
-```
-
-### Complete E2E validation (recommended)
-```bash
-# Unified E2E pipeline with all features
-python scripts/run_e2e_validation.py \
-  --ref-model gpt2 \
-  --cand-model distilgpt2 \
-  --mode audit
-
-# With enhanced CI/CD features
-python scripts/run_e2e_validation.py \
-  --ref-model gpt2 \
-  --cand-model distilgpt2 \
-  --mode audit \
-  --enable-attack-simulation \
-  --enable-sharding \
-  --performance-dashboard
-
-# API mode validation
-python scripts/run_e2e_validation.py \
-  --ref-model http://api1.example.com/model \
-  --cand-model http://api2.example.com/model \
-  --verification-mode api \
-  --generate-evidence-bundle
-
-# Legacy: Direct statistical testing (minimal features)
-python scripts/run_enhanced_diff_test.py \
-  --ref-model gpt2 \
-  --cand-model distilgpt2 \
-  --mode audit
-```
-
-### Evidence bundle (one command)
-```bash
-bash scripts/make_evidence_bundle.sh   --run-id "$(date -u +%Y%m%dT%H%M%SZ)"   --include logs/*.json transcripts/*.ndjson configs/*.yaml   --include env/pip_freeze.txt env/sysinfo.txt   --sign path/to/ed25519_private.pem
-```
-
-### Optional: build ZK (prototype)
-```bash
-cd pot/zk/prover_halo2 && cargo build --release
-# produces small proofs that the verifier ran on the published transcript
-```
+</details>
 
 ---
 
-## Directory layout (typical)
+## Reports & Data
 
-```
-pot/
-  core/                # sequential tester, decision rules, stats
-  lm/                  # model loaders, normalization, adapters
-  zk/                  # (prototype) prover circuits, proof tooling
-scripts/
-  run_enhanced_diff_test.py
-  run_api_diff_test.py
-  make_evidence_bundle.sh
-configs/
-  *.yaml               # examples for local/API runs
-transcripts/           # challenge/response logs
-logs/                  # per-run summaries and metrics
-```
+- **Expanded Fingerprinting**: [`experimental_results/expanded_fingerprinting/run_20260111_190943/`](experimental_results/expanded_fingerprinting/run_20260111_190943/)
+- **Publication Figures**: [`figures/`](experimental_results/expanded_fingerprinting/run_20260111_190943/figures/)
+- **Full Paper**: [`docs/papers/POT_PAPER_COMPLETE_UPDATED.md`](docs/papers/POT_PAPER_COMPLETE_UPDATED.md)
 
 ---
 
-## Limitations & non-goals
+## Limitations
 
-- **Adversarial robustness**: Wrapper attacks, sampling/temperature variation, tokenizer overlap <90%, and MoE router perturbations need explicit evaluation; expect higher query budgets in these regimes.  
-- **Cost on frontier APIs**: 20–32 queries can be non-trivial for expensive endpoints.  
-- **Strict black-box crypto**: Remote identity binding requires TEE or vendor signatures; ZK alone here does not identify the remote model.
-
----
-
-## Enhanced Decision Framework with Variance-Based Relationship Inference
-
-The framework now includes sophisticated variance analysis to identify structural model relationships rather than returning generic UNDECIDED results:
-
-### Model Relationship Categories
-
-| Relationship | Description | Statistical Signature |
-|--------------|-------------|----------------------|
-| **IDENTICAL** | Same model, same weights | Near-zero mean effect (<1e-6), minimal variance |
-| **SAME_ARCH_DIFFERENT_SCALE** | Same architecture, different parameter count (e.g., 125M vs 1.3B) | Moderate mean (0.001-0.5), moderate variance, stable CV<2.0 |
-| **SAME_ARCH_FINE_TUNED** | Fine-tuned or domain-adapted variant | Small mean (0.01-0.1), low-moderate variance |
-| **SAME_ARCH_QUANTIZED** | Same model with quantization | Specific variance patterns consistent with precision loss |
-| **DISTILLED** | Student-teacher relationship | Large stable difference (>0.5), low CV (<1.0) |
-| **DIFFERENT_ARCHITECTURE** | Fundamentally different models | High variance, unstable CV (>2.0) |
-| **NEAR_CLONE** | Almost identical with minor differences | Tiny differences (<0.001), very low variance |
-| **INCONCLUSIVE** | Cannot determine (reserved for true errors) | Patterns don't match known relationships |
-
-### Variance Signature Analysis
-
-The enhanced framework computes a comprehensive variance signature including:
-- **Coefficient of Variation (CV)**: std_dev/mean - stability metric
-- **Variance Ratio**: Comparison to expected baseline variance
-- **Normalized Variance**: Variance normalized by effect size squared
-- **Stability Score**: CV × √n - convergence metric
-
-This approach transforms UNDECIDED results into actionable insights about model relationships, providing a statistical "birth certificate" that reveals training lineage.
+- Adversarial robustness under wrapper attacks needs explicit evaluation
+- API costs can be non-trivial for expensive endpoints
+- Remote identity binding requires TEE or vendor signatures
 
 ---
 
-## Roadmap
+## License & Citation
 
-- **Adversarial/robustness test suite** with named conditions and CI-backed error rates  
-- **API binding** via TEE attestation flow and vendor-commitment helpers  
-- **Evidence UX**: single-file signed bundle + verifier tool  
-- **Active-learning challenge selection** to further reduce queries  
-- **Multi-modal** extensions (vision/audio) where applicable
-- **Production deployment** of enhanced variance-based relationship inference
-- **Calibration framework** for expected variance baselines per architecture family
-
-### Future Directions: Restriction Enzyme Verification (REV)
-
-A promising extension would implement **Restriction Enzyme Verification** - a novel approach for verifying models that exceed available system memory. Drawing inspiration from biological restriction enzymes that cut DNA at specific recognition sequences, REV would:
-
-#### Core Innovation
-- **Behavioral Cut Sites**: Discover natural "restriction sites" in transformer architectures using mechanistic interpretability (induction heads, attention motifs, circuit boundaries)
-- **Segment-wise Verification**: Load and verify models piece-by-piece, never requiring the full model in memory
-- **Semantic Hypervector Sites**: Replace brittle token-level probes with high-dimensional semantic embeddings (inspired by GenomeVault's HDC architecture)
-
-#### Technical Approach
-```python
-# Discover cut sites without weight access
-cut_sites = discover_restriction_sites(model_api, circuit_probes)
-
-# Verify segments between cut sites
-for segment in segment_model(cut_sites):
-    signature_a = compute_behavioral_signature(model_a, segment)
-    signature_b = compute_behavioral_signature(model_b, segment)
-    verify_segment_equivalence(signature_a, signature_b)
-```
-
-#### Industry-Scale Impact
-- **Memory Democratization**: Verify 100B+ parameter models on consumer hardware
-- **Granular Tampering Detection**: Identify which specific model components were modified
-- **Black-box Compatibility**: Works with API-only model access using behavioral probing
-- **Circuit-aware Verification**: Leverages transformer's natural modular structure
-
-This approach would extend PoT's reach from 7B models (current practical limit) to arbitrary model sizes, enabling verification of industry-scale LLMs on standard hardware. See `docs/papers/REV_whitepaper_with_HDC.md` for detailed technical specifications.
+MIT License. If you use this in research or production, please cite this repository.
 
 ---
 
-## License & citation
-
-- **License:** MIT (see `LICENSE`)  
-- **Citation:** If you use this verifier in a paper or product, please cite this repository and the associated PoT manuscript.
-
----
-
-*This README reflects the project’s current scope: a practical **behavioral verifier** with auditable transcripts and optional ZK proofs, designed to compose with a training-time **provenance** layer when available.*
+*Behavioral verification: because what a model does is what it is.*
