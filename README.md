@@ -1,5 +1,7 @@
 # Proof-of-Training (PoT) — Behavioral Model Identity Verification
 
+
+> **Status: 2025 research record (archived).** The behavioral-identity line continues in [MeasuringAGI](https://github.com/rohanvinaik/MeasuringAGI).
 > **TL;DR**: We verify model identity through *behavior*, not weights. If two models produce statistically indistinguishable outputs across cryptographically pre-committed challenges, they are functionally the same model—regardless of what's under the hood.
 
 ---
